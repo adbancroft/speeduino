@@ -86,10 +86,10 @@ static inline entity_t create_entity(void *pEntity, uint16_t table_key,
   } 
 
 // If the offset is in range, create a Table entity_t
-#define CHECK_TABLE(offset, startByte, pTable, tableSize) \
-  if (offset < (startByte)+TABLE_SIZE(tableSize)) \
+#define CHECK_TABLE(offset, startByte, pTable) \
+  if (offset < (startByte)+TABLE_SIZE(table_key_to_axissize((pTable)->type_key))) \
   { \
-    return create_entity(pTable, (pTable)->type_key, startByte, TABLE_SIZE(tableSize), Table); \
+    return create_entity(pTable, (pTable)->type_key, startByte, TABLE_SIZE(table_key_to_axissize((pTable)->type_key)), Table); \
   }
 
 // If the offset is in range, create a Raw entity_t
@@ -112,47 +112,47 @@ entity_t map_page_offset_to_entity_inline(uint8_t pageNumber, uint16_t offset)
       END_OF_PAGE(0, 0);
 
     case veMapPage:
-      CHECK_TABLE(offset, 0U, &fuelTable, 16)
+      CHECK_TABLE(offset, 0U, &fuelTable)
       END_OF_PAGE(veMapPage, TABLE16_SIZE);
 
     case ignMapPage: //Ignition settings page (Page 2)
-      CHECK_TABLE(offset, 0U, &ignitionTable, 16)
+      CHECK_TABLE(offset, 0U, &ignitionTable)
       END_OF_PAGE(ignMapPage, TABLE16_SIZE);
 
     case afrMapPage: //Air/Fuel ratio target settings page
-      CHECK_TABLE(offset, 0U, &afrTable, 16)
+      CHECK_TABLE(offset, 0U, &afrTable)
       END_OF_PAGE(afrMapPage, TABLE16_SIZE);
 
     case boostvvtPage: //Boost, VVT and staging maps (all 8x8)
-      CHECK_TABLE(offset, 0U, &boostTable, 8)
-      CHECK_TABLE(offset, TABLE8_SIZE, &vvtTable, 8)
-      CHECK_TABLE(offset, TABLE8_SIZE*2, &stagingTable, 8)
+      CHECK_TABLE(offset, 0U, &boostTable)
+      CHECK_TABLE(offset, TABLE8_SIZE, &vvtTable)
+      CHECK_TABLE(offset, TABLE8_SIZE*2, &stagingTable)
       END_OF_PAGE(boostvvtPage, TABLE8_SIZE*3);
 
     case seqFuelPage:
-      CHECK_TABLE(offset, 0U, &trim1Table, 6)
-      CHECK_TABLE(offset, TABLE6_SIZE*1, &trim2Table, 6)
-      CHECK_TABLE(offset, TABLE6_SIZE*2, &trim3Table, 6)
-      CHECK_TABLE(offset, TABLE6_SIZE*3, &trim4Table, 6)
-      CHECK_TABLE(offset, TABLE6_SIZE*4, &trim5Table, 6)
-      CHECK_TABLE(offset, TABLE6_SIZE*5, &trim6Table, 6)
-      CHECK_TABLE(offset, TABLE6_SIZE*6, &trim7Table, 6)
-      CHECK_TABLE(offset, TABLE6_SIZE*7, &trim8Table, 6)
+      CHECK_TABLE(offset, 0U, &trim1Table)
+      CHECK_TABLE(offset, TABLE6_SIZE*1, &trim2Table)
+      CHECK_TABLE(offset, TABLE6_SIZE*2, &trim3Table)
+      CHECK_TABLE(offset, TABLE6_SIZE*3, &trim4Table)
+      CHECK_TABLE(offset, TABLE6_SIZE*4, &trim5Table)
+      CHECK_TABLE(offset, TABLE6_SIZE*5, &trim6Table)
+      CHECK_TABLE(offset, TABLE6_SIZE*6, &trim7Table)
+      CHECK_TABLE(offset, TABLE6_SIZE*7, &trim8Table)
       END_OF_PAGE(seqFuelPage, TABLE6_SIZE*8);
 
     case fuelMap2Page:
-      CHECK_TABLE(offset, 0U, &fuelTable2, 16)
+      CHECK_TABLE(offset, 0U, &fuelTable2)
       END_OF_PAGE(fuelMap2Page, TABLE16_SIZE);
 
     case wmiMapPage:
-      CHECK_TABLE(offset, 0U, &wmiTable, 8)
-      CHECK_TABLE(offset, TABLE8_SIZE, &vvt2Table, 8)
-      CHECK_TABLE(offset, TABLE8_SIZE*2, &dwellTable, 4)
+      CHECK_TABLE(offset, 0U, &wmiTable)
+      CHECK_TABLE(offset, TABLE8_SIZE, &vvt2Table)
+      CHECK_TABLE(offset, TABLE8_SIZE*2, &dwellTable)
       END_OF_PAGE(wmiMapPage, TABLE8_SIZE*2 + TABLE4_SIZE);
       break;
     
     case ignMap2Page:
-      CHECK_TABLE(offset, 0U, &ignitionTable2, 16)
+      CHECK_TABLE(offset, 0U, &ignitionTable2)
       END_OF_PAGE(ignMap2Page, TABLE16_SIZE);
 
     case veSetPage: 
