@@ -126,11 +126,11 @@ static inline uint8_t write_raw(const page_iterator_t &entity, eeprom_address_t 
   return write_range(index, pStart, pStart+entity.size, counter);
 }
 
-static inline uint8_t write_table(const table3D * const pTable, eeprom_address_t &index, uint8_t counter)
+static inline int16_t write_table(const page_iterator_t &entity, int &index, int16_t counter)
 {
-  return write(y_begin(pTable), index, 
-                write(x_begin(pTable), index, 
-                  write(rows_begin(pTable), index, counter)));
+  counter = write(rows_begin(entity), index, counter);
+  counter = write(x_begin(entity), index, counter);
+  return write(y_begin(entity), index, counter);
 }
 
 static inline uint8_t write(const page_iterator_t &entity, eeprom_address_t &index, uint8_t counter)
@@ -142,7 +142,7 @@ static inline uint8_t write(const page_iterator_t &entity, eeprom_address_t &ind
     break;
 
   case Table:
-    counter = write_table(entity.pTable, index, counter);
+    return write_table(entity, index, counter);
     break;
 
   case NoEntity:
@@ -243,11 +243,11 @@ static inline eeprom_address_t load_raw(page_iterator_t &entity, eeprom_address_
   return load_range(index, pStart, pStart+entity.size);
 }
 
-static inline eeprom_address_t load(const table3D * const pTable, eeprom_address_t index)
+static inline eeprom_address_t load_table(page_iterator_t &entity, int index)
 {
-  return load(y_begin(pTable),
-                load(x_begin(pTable), 
-                  load(rows_begin(pTable), index)));
+  return load(y_begin(entity),
+                load(x_begin(entity), 
+                  load(rows_begin(entity), index)));
 }
 
 
@@ -260,7 +260,7 @@ static inline eeprom_address_t load(page_iterator_t &entity, eeprom_address_t in
     break;
 
   case Table: 
-    index = load(entity.pTable, index);
+    index = load_table(entity, index);
     break;
 
   case NoEntity: 
