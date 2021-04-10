@@ -49,6 +49,11 @@ struct table3DGetValueCache {
   bool cacheIsValid; ///< This tracks whether the tables cache should be used. Ordinarily this is true, but is set to false whenever TunerStudio sends a new value for the table
 };
 
+inline void invalidate_cache(table3DGetValueCache *pCache)
+{
+    pCache->cacheIsValid = false;
+}
+
 /*
 3D Tables have an origin (0,0) in the top left hand corner. Vertical axis is expressed first.
 Eg: 2x2 table
