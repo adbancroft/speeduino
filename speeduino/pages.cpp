@@ -48,12 +48,6 @@ static inline void check_size() {
 #define TABLE_AXISY_END(size) (TABLE_AXISX_END(size)+(uint16_t)size)
 #define TABLE_SIZE(size) TABLE_AXISY_END(size)
 
-// Precompute for performance
-#define TABLE16_SIZE TABLE_SIZE(16)
-#define TABLE8_SIZE TABLE_SIZE(8)
-#define TABLE6_SIZE TABLE_SIZE(6)
-#define TABLE4_SIZE TABLE_SIZE(4)
-
 /**
  * This is required to reduce RAM (.data section) usage. 
  * 
@@ -73,31 +67,42 @@ static inline entity_t create_entity(void *pEntity, uint16_t table_key,
   return { pEntity, table_key, .start = start, .size = size, .type = type };
 }
 
+// 
+#define _ENTITY_START(entityNum) entity ## entityNum ## Start
+#define ENTITY_START_VAR(entityNum) _ENTITY_START(entityNum)
+#define DECLARE_NEXT_ENTITY_START(entityIndex, entitySize) \
+  /* Compute the start address of the next entity. We need this to be a constexpr */ \
+  /* so we can static assert on it later. So we cannot increment an exiting var. */ \
+  static constexpr uint16_t ENTITY_START_VAR( PP_INC(entityIndex) ) = ENTITY_START_VAR(entityIndex)+entitySize;
+
 // Signal the end of a page
-#define END_OF_PAGE(pageNum, pageSize) \
-  check_size<pageNum, pageSize>(); \
-  return create_entity(nullptr, 0, 0, pageSize, End);
+#define END_OF_PAGE(pageNum, entityNum) \
+  check_size<pageNum, ENTITY_START_VAR(entityNum)>(); \
+  return create_entity(nullptr, 0, 0, ENTITY_START_VAR(entityNum), End);
 
 // If the offset is in range, create a None entity_t
-#define CHECK_NOENTITY(offset, startByte, blockSize) \
-  if (offset < (startByte)+blockSize) \
+#define CHECK_NOENTITY(offset, blockSize, entityNum) \
+  if (offset < ENTITY_START_VAR(entityNum)+blockSize) \
   { \
-    return create_entity(nullptr, 0, startByte, blockSize, NoEntity); \
-  } 
+    return create_entity(nullptr, 0, ENTITY_START_VAR(entityNum), blockSize, NoEntity); \
+  } \
+  DECLARE_NEXT_ENTITY_START(entityNum, blockSize)
 
 // If the offset is in range, create a Table entity_t
-#define CHECK_TABLE(offset, startByte, pTable) \
-  if (offset < (startByte)+TABLE_SIZE(table_key_to_axissize((pTable)->type_key))) \
+#define CHECK_TABLE(offset, pTable, entityNum) \
+  if (offset < ENTITY_START_VAR(entityNum)+TABLE_SIZE(table_key_to_axissize((pTable)->type_key))) \
   { \
-    return create_entity(pTable, (pTable)->type_key, startByte, TABLE_SIZE(table_key_to_axissize((pTable)->type_key)), Table); \
-  }
+    return create_entity(pTable, (pTable)->type_key, ENTITY_START_VAR(entityNum), TABLE_SIZE(table_key_to_axissize((pTable)->type_key)), Table); \
+  } \
+  DECLARE_NEXT_ENTITY_START(entityNum, TABLE_SIZE(table_key_to_axissize((pTable)->type_key)))
 
 // If the offset is in range, create a Raw entity_t
-#define CHECK_RAW(offset, startByte, pDataBlock, blockSize) \
-  if (offset < (startByte)+blockSize) \
+#define CHECK_RAW(offset, pDataBlock, blockSize, entityNum) \
+  if (offset < ENTITY_START_VAR(entityNum)+blockSize) \
   { \
-    return create_entity(pDataBlock, 0U, startByte, blockSize, Raw); \
-  } 
+    return create_entity(pDataBlock, 0U, ENTITY_START_VAR(entityNum), blockSize, Raw); \
+  } \
+  DECLARE_NEXT_ENTITY_START(entityNum, blockSize)
 
 // Does the heavy lifting of mapping page+offset to an entity
 //
@@ -106,81 +111,111 @@ static inline entity_t create_entity(void *pEntity, uint16_t table_key,
 static inline __attribute__((always_inline)) // <-- this is critical for performance
 entity_t map_page_offset_to_entity_inline(uint8_t pageNumber, uint16_t offset)
 {
+  // The start address of the 1st entity in any page.
+  static constexpr uint16_t ENTITY_START_VAR(0) = 0U;
+
   switch (pageNumber)
   {
     case 0:
-      END_OF_PAGE(0, 0);
+      END_OF_PAGE(0, 0)
 
     case veMapPage:
-      CHECK_TABLE(offset, 0U, &fuelTable)
-      END_OF_PAGE(veMapPage, TABLE16_SIZE);
+    {
+      CHECK_TABLE(offset, &fuelTable, 0)
+      END_OF_PAGE(veMapPage, 1)
+    }
 
     case ignMapPage: //Ignition settings page (Page 2)
-      CHECK_TABLE(offset, 0U, &ignitionTable)
-      END_OF_PAGE(ignMapPage, TABLE16_SIZE);
+    {
+      CHECK_TABLE(offset, &ignitionTable, 0)
+      END_OF_PAGE(ignMapPage, 1)
+    }
 
     case afrMapPage: //Air/Fuel ratio target settings page
-      CHECK_TABLE(offset, 0U, &afrTable)
-      END_OF_PAGE(afrMapPage, TABLE16_SIZE);
+    {
+      CHECK_TABLE(offset, &afrTable, 0)
+      END_OF_PAGE(afrMapPage, 1)
+    }
 
     case boostvvtPage: //Boost, VVT and staging maps (all 8x8)
-      CHECK_TABLE(offset, 0U, &boostTable)
-      CHECK_TABLE(offset, TABLE8_SIZE, &vvtTable)
-      CHECK_TABLE(offset, TABLE8_SIZE*2, &stagingTable)
-      END_OF_PAGE(boostvvtPage, TABLE8_SIZE*3);
+    {
+      CHECK_TABLE(offset, &boostTable, 0)
+      CHECK_TABLE(offset, &vvtTable, 1)
+      CHECK_TABLE(offset, &stagingTable, 2)
+      END_OF_PAGE(boostvvtPage, 3)
+    }
 
     case seqFuelPage:
-      CHECK_TABLE(offset, 0U, &trim1Table)
-      CHECK_TABLE(offset, TABLE6_SIZE*1, &trim2Table)
-      CHECK_TABLE(offset, TABLE6_SIZE*2, &trim3Table)
-      CHECK_TABLE(offset, TABLE6_SIZE*3, &trim4Table)
-      CHECK_TABLE(offset, TABLE6_SIZE*4, &trim5Table)
-      CHECK_TABLE(offset, TABLE6_SIZE*5, &trim6Table)
-      CHECK_TABLE(offset, TABLE6_SIZE*6, &trim7Table)
-      CHECK_TABLE(offset, TABLE6_SIZE*7, &trim8Table)
-      END_OF_PAGE(seqFuelPage, TABLE6_SIZE*8);
+    {
+      CHECK_TABLE(offset, &trim1Table, 0)
+      CHECK_TABLE(offset, &trim2Table, 1)
+      CHECK_TABLE(offset, &trim3Table, 2)
+      CHECK_TABLE(offset, &trim4Table, 3)
+      CHECK_TABLE(offset, &trim5Table, 4)
+      CHECK_TABLE(offset, &trim6Table, 5)
+      CHECK_TABLE(offset, &trim7Table, 6)
+      CHECK_TABLE(offset, &trim8Table, 7)
+      END_OF_PAGE(seqFuelPage, 8)
+    }
 
     case fuelMap2Page:
-      CHECK_TABLE(offset, 0U, &fuelTable2)
-      END_OF_PAGE(fuelMap2Page, TABLE16_SIZE);
+    {
+      CHECK_TABLE(offset, &fuelTable2, 0)
+      END_OF_PAGE(fuelMap2Page, 1)
+    }
 
     case wmiMapPage:
-      CHECK_TABLE(offset, 0U, &wmiTable)
-      CHECK_TABLE(offset, TABLE8_SIZE, &vvt2Table)
-      CHECK_TABLE(offset, TABLE8_SIZE*2, &dwellTable)
-      END_OF_PAGE(wmiMapPage, TABLE8_SIZE*2 + TABLE4_SIZE);
-      break;
+    {
+      CHECK_TABLE(offset, &wmiTable, 0)
+      CHECK_TABLE(offset, &vvt2Table, 1)
+      CHECK_TABLE(offset, &dwellTable, 2)
+      END_OF_PAGE(wmiMapPage, 3)
+    }
     
     case ignMap2Page:
-      CHECK_TABLE(offset, 0U, &ignitionTable2)
-      END_OF_PAGE(ignMap2Page, TABLE16_SIZE);
+    {
+      CHECK_TABLE(offset, &ignitionTable2, 0)
+      END_OF_PAGE(ignMap2Page, 1)
+    }
 
     case veSetPage: 
-      CHECK_RAW(offset, 0U, &configPage2, sizeof(configPage2))
-      END_OF_PAGE(veSetPage, sizeof(configPage2));
+    {
+      CHECK_RAW(offset, &configPage2, sizeof(configPage2), 0)
+      END_OF_PAGE(veSetPage, 1)
+    }
 
     case ignSetPage: 
-      CHECK_RAW(offset, 0U, &configPage4, sizeof(configPage4))
-      END_OF_PAGE(ignSetPage, sizeof(configPage4));
-
+    {
+      CHECK_RAW(offset, &configPage4, sizeof(configPage4), 0)
+      END_OF_PAGE(ignSetPage, 1)
+    }
+    
     case afrSetPage: 
-      CHECK_RAW(offset, 0U, &configPage6, sizeof(configPage6))
-      END_OF_PAGE(afrSetPage, sizeof(configPage6));
+    {
+      CHECK_RAW(offset, &configPage6, sizeof(configPage6), 0)
+      END_OF_PAGE(afrSetPage, 1)
+    }
 
     case canbusPage:  
-      CHECK_RAW(offset, 0U, &configPage9, sizeof(configPage9))
-      END_OF_PAGE(canbusPage, sizeof(configPage9));
+    {
+      CHECK_RAW(offset, &configPage9, sizeof(configPage9), 0)
+      END_OF_PAGE(canbusPage, 1)
+    }
 
     case warmupPage: 
-      CHECK_RAW(offset, 0U, &configPage10, sizeof(configPage10))
-      END_OF_PAGE(warmupPage, sizeof(configPage10));
+    {
+      CHECK_RAW(offset, &configPage10, sizeof(configPage10), 0)
+      END_OF_PAGE(warmupPage, 1)
+    }
 
     case progOutsPage: 
-      CHECK_RAW(offset, 0U, &configPage13, sizeof(configPage13))
-      END_OF_PAGE(progOutsPage, sizeof(configPage13));
+    {
+      CHECK_RAW(offset, &configPage13, sizeof(configPage13), 0)
+      END_OF_PAGE(progOutsPage, 1)
+    }
 
     default:
-      abort(); // Unkown page number. Not a lot  we can do.
+      abort(); // Unkown page number. Not a lot we can do.
       break;
   }
 }
@@ -365,11 +400,9 @@ byte getPageValue(byte page, uint16_t offset)
   {
     case Table:
       return get_table_value(entity, offset-entity.start);
-      break;
 
     case Raw:
       return *get_raw_value(entity, offset-entity.start);
-      break;
 
     default: return 0U;
   }
