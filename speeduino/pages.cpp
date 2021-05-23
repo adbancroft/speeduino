@@ -73,7 +73,7 @@ static inline entity_t create_entity(void *pEntity, uint16_t table_key,
 #define DECLARE_NEXT_ENTITY_START(entityIndex, entitySize) \
   /* Compute the start address of the next entity. We need this to be a constexpr */ \
   /* so we can static assert on it later. So we cannot increment an exiting var. */ \
-  static constexpr uint16_t ENTITY_START_VAR( PP_INC(entityIndex) ) = ENTITY_START_VAR(entityIndex)+entitySize;
+  constexpr uint16_t ENTITY_START_VAR( PP_INC(entityIndex) ) = ENTITY_START_VAR(entityIndex)+entitySize;
 
 // Signal the end of a page
 #define END_OF_PAGE(pageNum, entityNum) \
@@ -234,108 +234,63 @@ entity_t map_page_offset_to_entity_inline(uint8_t pageNumber, uint16_t offset)
 
 // ================================== Table getters & setters ===================
 
-#define OFFSET_TO_XAXIS_INDEX(offset, size) (offset - sq(size))
-
-#define GET_XAXIS_VALUE(size, xDomain, yDomain, pTable, offset) \
-   return ((DECLARE_3DTABLE_TYPENAME(size, xDomain, yDomain)*)pTable)->axisX[OFFSET_TO_XAXIS_INDEX(offset, size)] / getTableAxisFactor(axis_domain_ ## xDomain);
-
-static inline uint8_t get_xaxis(uint16_t table_key, void* pTable, uint16_t offset)
-{
-  CONCRETE_TABLE_ACTION(table_key, GET_XAXIS_VALUE, pTable, offset)
-}
-
-#define SET_XAXIS_VALUE(size, xDomain, yDomain, pTable, offset, value) \
-    ((DECLARE_3DTABLE_TYPENAME(size, xDomain, yDomain)*)pTable)->axisX[OFFSET_TO_XAXIS_INDEX(offset, size)] = value * getTableAxisFactor(axis_domain_ ## xDomain); \
-    break;
-
-static inline void set_xaxis(uint16_t table_key, void* pTable, uint16_t offset, byte value)
-{
-  CONCRETE_TABLE_ACTION(table_key, SET_XAXIS_VALUE, pTable, offset, value)
-}
-
-#define OFFSET_TO_YAXIS_INDEX(offset, size) ((size-1) - (offset - (sq(size)+size)))
-
-#define GET_YAXIS_VALUE(size, xDomain, yDomain, pTable, offset) \
-    return ((DECLARE_3DTABLE_TYPENAME(size, xDomain, yDomain)*)pTable)->axisY[OFFSET_TO_YAXIS_INDEX(offset, size)] / getTableAxisFactor(axis_domain_ ## yDomain);
-
-static inline uint8_t get_yaxis(uint16_t table_key, void* pTable, uint16_t offset)
-{
-  CONCRETE_TABLE_ACTION(table_key, GET_YAXIS_VALUE, pTable, offset)
-}
-
-#define SET_YAXIS_VALUE(size, xDomain, yDomain, pTable, offset, value) \
-    ((DECLARE_3DTABLE_TYPENAME(size, xDomain, yDomain)*)pTable)->axisY[OFFSET_TO_YAXIS_INDEX(offset, size)] = value * getTableAxisFactor(axis_domain_ ## yDomain); \
-    break;
-
-static inline void set_yaxis(uint16_t table_key, void* pTable, uint16_t offset, byte value)
-{
-  CONCRETE_TABLE_ACTION(table_key, SET_YAXIS_VALUE, pTable, offset, value)
-}
-
-// Inline functions + compile time constants == fast division/modulus
-#define OFFSET_TO_VALUE_INDEX(offset, size) (((size*size)-size)+(2*(offset % size))-offset)
-
-#define GEN_GET_VALUE(size, xDomain, yDomain, pTable, offset) \
-  return ((DECLARE_3DTABLE_TYPENAME(size, xDomain, yDomain)*)pTable)->values[OFFSET_TO_VALUE_INDEX(offset, size)];
-
-static inline table3d_value_t get_value(uint16_t table_key, void* pTable, uint16_t offset)
-{
-   CONCRETE_TABLE_ACTION(table_key, GEN_GET_VALUE, pTable, offset);
-}
-
-#define GEN_SET_VALUE(size, xDomain, yDomain, pTable, offset, value) \
-  ((DECLARE_3DTABLE_TYPENAME(size, xDomain, yDomain)*)pTable)->values[OFFSET_TO_VALUE_INDEX(offset, size)] = value; \
-  break;
-
-static inline void set_value(uint16_t table_key, void* pTable, uint16_t offset, table3d_value_t value)
-{
-   CONCRETE_TABLE_ACTION(table_key, GEN_SET_VALUE, pTable, offset, value);
-}
-
-#define GEN_INVALIDATE_CACHE(size, xDomain, yDomain, pTable) \
-  invalidate_cache(&((DECLARE_3DTABLE_TYPENAME(size, xDomain, yDomain)*)pTable)->get_value_cache); \
-  break;
-
-static inline void invalidate_cache(uint16_t table_key, void* pTable)
-{
-   CONCRETE_TABLE_ACTION(table_key, GEN_INVALIDATE_CACHE, pTable);
-}
-
 // Tables do not map linearly to the TS page address space, so special 
 // handling is necessary (we do not use the normal array layout for
 // performance reasons elsewhere)
 //
 // We take the offset & map it to a single value, x-axis or y-axis element
+
+// Inline functions + compile time constants == fast division/modulus
+#define OFFSET_TO_XAXIS_INDEX(offset, size) (offset - sq(size))
+#define OFFSET_TO_YAXIS_INDEX(offset, size) ((size-1) - (offset - (sq(size)+size)))
+#define OFFSET_TO_VALUE_INDEX(offset, size) (((size*size)-size)+(2*(offset % size))-offset)
+
+#define GEN_GET_TABLE_VALUE(size, xDom, yDom) \
+    static inline byte get_table_value(DECLARE_3DTABLE_TYPENAME(size, xDom, yDom) *pTable, uint16_t offset) \
+    { \
+      if (offset < TABLE_VALUE_END(size)) \
+      { \
+        return pTable->values[OFFSET_TO_VALUE_INDEX(offset, size)]; \
+      } \
+      if (offset < TABLE_AXISX_END(size)) \
+      { \
+        return pTable->axisX[OFFSET_TO_XAXIS_INDEX(offset, size)] / getTableAxisFactor(axis_domain_ ## xDom); \
+      } \
+      return pTable->axisY[OFFSET_TO_YAXIS_INDEX(offset, size)] / getTableAxisFactor(axis_domain_ ## yDom); \
+    } 
+TABLE_GENERATOR(GEN_GET_TABLE_VALUE)
+
 static inline byte get_table_value(const entity_t entity, uint16_t offset)
 {
-  uint8_t axisSize = table_key_to_axissize(entity.table_key);
-  if (offset < TABLE_VALUE_END(axisSize))
-  {
-    return get_value(entity.table_key, entity.pEntity, offset);;
-  } 
-  if (offset < TABLE_AXISX_END(axisSize))
-  {
-    return get_xaxis(entity.table_key, entity.pEntity, offset);
-  }
-  return get_yaxis(entity.table_key, entity.pEntity, offset); 
+  #define GEN_GET_VALUE(size, xDomain, yDomain, pTable, offset) \
+    return get_table_value((DECLARE_3DTABLE_TYPENAME(size, xDomain, yDomain)*)pTable, offset)
+  CONCRETE_TABLE_ACTION(entity.table_key, GEN_GET_VALUE, entity.pEntity, offset);
 }
+
+#define GEN_SET_TABLE_VALUE(size, xDom, yDom) \
+    static inline void set_table_value(DECLARE_3DTABLE_TYPENAME(size, xDom, yDom) *pTable, uint16_t offset, int8_t value) \
+    { \
+      if (offset < TABLE_VALUE_END(size)) \
+      { \
+        pTable->values[OFFSET_TO_VALUE_INDEX(offset, size)] = value; \
+      } \
+      else if (offset < TABLE_AXISX_END(size)) \
+      { \
+        pTable->axisX[OFFSET_TO_XAXIS_INDEX(offset, size)] = value * getTableAxisFactor(axis_domain_ ## xDom); \
+      } \
+      else \
+      { \
+        pTable->axisY[OFFSET_TO_YAXIS_INDEX(offset, size)] = value * getTableAxisFactor(axis_domain_ ## yDom); \
+      } \
+      invalidate_cache(&pTable->get_value_cache); \
+    }
+TABLE_GENERATOR(GEN_SET_TABLE_VALUE)
 
 static inline void set_table_value(const entity_t entity, uint16_t offset, int8_t value)
 {
-  uint8_t axisSize = table_key_to_axissize(entity.table_key);
-  if (offset < TABLE_VALUE_END(axisSize))
-  {
-      set_value(entity.table_key, entity.pEntity, offset, value);
-  }
-  else if (offset < TABLE_AXISX_END(axisSize))
-  {
-      set_xaxis(entity.table_key, entity.pEntity, offset, value);
-  }
-  else 
-  {
-    set_yaxis(entity.table_key, entity.pEntity, offset, value);
-  }
-  invalidate_cache(entity.table_key, entity.pEntity);
+  #define GEN_SET_VALUE(size, xDomain, yDomain, pTable, offset, value) \
+    return set_table_value((DECLARE_3DTABLE_TYPENAME(size, xDomain, yDomain)*)pTable, offset, value)
+  CONCRETE_TABLE_ACTION(entity.table_key, GEN_SET_VALUE, entity.pEntity, offset, value);
 }
 
 static inline byte* get_raw_value(const entity_t &entity, uint16_t offset)
