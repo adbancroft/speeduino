@@ -243,11 +243,18 @@ entity_t map_page_offset_to_entity_inline(uint8_t pageNumber, uint16_t offset)
 // Inline functions + compile time constants == fast division/modulus
 #define OFFSET_TO_XAXIS_INDEX(offset, size) (offset - sq(size))
 #define OFFSET_TO_YAXIS_INDEX(offset, size) ((size-1) - (offset - (sq(size)+size)))
-#define OFFSET_TO_VALUE_INDEX(offset, size) (((size*size)-size)+(2*(offset % size))-offset)
+// 8 bit arith + compile time constants == fast modulus
+#define FIRST_ELEMENT_INDEX(size) ((size*size)-size)
+#define OFFSET_TO_VALUE_INDEX(offset, size) (FIRST_ELEMENT_INDEX(size)+(2*((uint8_t)offset % (uint8_t)size))-offset)
 
+// We want to use uint8_t for performance reasons - 8-bit calculations are a *lot* faster
+// on 8-bit hardware (E.g. ATMega2560).
+//
+// But that limits us to 16x16 tables so check with static_assert just in case we ever go beyond that.
 #define GEN_GET_TABLE_VALUE(size, xDom, yDom) \
     static inline byte get_table_value(DECLARE_3DTABLE_TYPENAME(size, xDom, yDom) *pTable, uint16_t offset) \
     { \
+      static_assert(size<17, "Table is too big"); \
       if (offset < TABLE_VALUE_END(size)) \
       { \
         return pTable->values[OFFSET_TO_VALUE_INDEX(offset, size)]; \
