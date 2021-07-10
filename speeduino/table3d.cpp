@@ -7,7 +7,7 @@
 
 //This function pulls a value from a 3D table given a target for X and Y coordinates.
 //It performs a 2D linear interpolation as descibred in: www.megamanual.com/v22manual/ve_tuner.pdf
-table3d_value_t get3DTableValue(struct table3DGetValueCache *fromTable, 
+table3d_value_t get3DTableValue(struct table3DGetValueCache *pValueCache, 
                     table3d_dim_t axisSize,
                     const table3d_value_t *pValues,
                     const table3d_axis_t *pXAxis,
@@ -31,40 +31,41 @@ table3d_value_t get3DTableValue(struct table3DGetValueCache *fromTable,
     if(X < xMinValue) { X = xMinValue; }
 
     //0th check is whether the same X and Y values are being sent as last time. If they are, this not only prevents a lookup of the axis, but prevents the interpolation calcs being performed
-    if( (X_in == fromTable->lastXInput) && (Y_in == fromTable->lastYInput) && (fromTable->cacheIsValid == true))
+    if( X_in == pValueCache->last_lookup.x && 
+        Y_in == pValueCache->last_lookup.y)
     {
-      return fromTable->lastOutput;
+      return pValueCache->lastOutput;
     }
 
     //Commence the lookups on the X and Y axis
 
     //1st check is whether we're still in the same X bin as last time
-    if ( (X <= pXAxis[fromTable->lastXMax]) && (X > pXAxis[fromTable->lastXMin]) )
+    if ( (X <= pXAxis[pValueCache->lastXBins.max]) && (X > pXAxis[pValueCache->lastXBins.min]) )
     {
-      xMaxValue = pXAxis[fromTable->lastXMax];
-      xMinValue = pXAxis[fromTable->lastXMin];
-      xMax = fromTable->lastXMax;
-      xMin = fromTable->lastXMin;
+      xMaxValue = pXAxis[pValueCache->lastXBins.max];
+      xMinValue = pXAxis[pValueCache->lastXBins.min];
+      xMax = pValueCache->lastXBins.max;
+      xMin = pValueCache->lastXBins.min;
     }
     //2nd check is whether we're in the next RPM bin (To the right)
-    else if ( ((fromTable->lastXMax + 1) < axisSize ) && (X <= pXAxis[fromTable->lastXMax +1 ]) && (X > pXAxis[fromTable->lastXMin + 1]) ) //First make sure we're not already at the last X bin
+    else if ( ((pValueCache->lastXBins.max + 1) < axisSize ) && (X <= pXAxis[pValueCache->lastXBins.max +1 ]) && (X > pXAxis[pValueCache->lastXBins.min + 1]) ) //First make sure we're not already at the last X bin
     {
-      xMax = fromTable->lastXMax + 1;
-      fromTable->lastXMax = xMax;
-      xMin = fromTable->lastXMin + 1;
-      fromTable->lastXMin = xMin;
-      xMaxValue = pXAxis[fromTable->lastXMax];
-      xMinValue = pXAxis[fromTable->lastXMin];
+      xMax = pValueCache->lastXBins.max + 1;
+      pValueCache->lastXBins.max = xMax;
+      xMin = pValueCache->lastXBins.min + 1;
+      pValueCache->lastXBins.min = xMin;
+      xMaxValue = pXAxis[pValueCache->lastXBins.max];
+      xMinValue = pXAxis[pValueCache->lastXBins.min];
     }
     //3rd check is to look at the previous bin (to the left)
-    else if ( (fromTable->lastXMin > 0 ) && (X <= pXAxis[fromTable->lastXMax - 1]) && (X > pXAxis[fromTable->lastXMin - 1]) ) //First make sure we're not already at the first X bin
+    else if ( (pValueCache->lastXBins.min > 0 ) && (X <= pXAxis[pValueCache->lastXBins.max - 1]) && (X > pXAxis[pValueCache->lastXBins.min - 1]) ) //First make sure we're not already at the first X bin
     {
-      xMax = fromTable->lastXMax - 1;
-      fromTable->lastXMax = xMax;
-      xMin = fromTable->lastXMin - 1;
-      fromTable->lastXMin = xMin;
-      xMaxValue = pXAxis[fromTable->lastXMax];
-      xMinValue = pXAxis[fromTable->lastXMin];
+      xMax = pValueCache->lastXBins.max - 1;
+      pValueCache->lastXBins.max = xMax;
+      xMin = pValueCache->lastXBins.min - 1;
+      pValueCache->lastXBins.min = xMin;
+      xMaxValue = pXAxis[pValueCache->lastXBins.max];
+      xMinValue = pXAxis[pValueCache->lastXBins.min];
     }
     else
     //If it's not caught by one of the above scenarios, give up and just run the loop
@@ -77,9 +78,9 @@ table3d_value_t get3DTableValue(struct table3DGetValueCache *fromTable,
           xMaxValue = pXAxis[x];
           xMinValue = pXAxis[x];
           xMax = x;
-          fromTable->lastXMax = xMax;
+          pValueCache->lastXBins.max = xMax;
           xMin = x;
-          fromTable->lastXMin = xMin;
+          pValueCache->lastXBins.min = xMin;
           break;
         }
         //Normal case
@@ -88,9 +89,9 @@ table3d_value_t get3DTableValue(struct table3DGetValueCache *fromTable,
           xMaxValue = pXAxis[x];
           xMinValue = pXAxis[x-1];
           xMax = x;
-          fromTable->lastXMax = xMax;
+          pValueCache->lastXBins.max = xMax;
           xMin = x-1;
-          fromTable->lastXMin = xMin;
+          pValueCache->lastXBins.min = xMin;
           break;
         }
       }
@@ -107,32 +108,32 @@ table3d_value_t get3DTableValue(struct table3DGetValueCache *fromTable,
     if(Y < yMinValue) { Y = yMinValue; }
 
     //1st check is whether we're still in the same Y bin as last time
-    if ( (Y >= pYAxis[fromTable->lastYMax]) && (Y < pYAxis[fromTable->lastYMin]) )
+    if ( (Y >= pYAxis[pValueCache->lastYBins.max]) && (Y < pYAxis[pValueCache->lastYBins.min]) )
     {
-      yMaxValue = pYAxis[fromTable->lastYMax];
-      yMinValue = pYAxis[fromTable->lastYMin];
-      yMax = fromTable->lastYMax;
-      yMin = fromTable->lastYMin;
+      yMaxValue = pYAxis[pValueCache->lastYBins.max];
+      yMinValue = pYAxis[pValueCache->lastYBins.min];
+      yMax = pValueCache->lastYBins.max;
+      yMin = pValueCache->lastYBins.min;
     }
     //2nd check is whether we're in the next MAP/TPS bin (Next one up)
-    else if ( (fromTable->lastYMin > 0 ) && (Y <= pYAxis[fromTable->lastYMin - 1 ]) && (Y > pYAxis[fromTable->lastYMax - 1]) ) //First make sure we're not already at the top Y bin
+    else if ( (pValueCache->lastYBins.min > 0 ) && (Y <= pYAxis[pValueCache->lastYBins.min - 1 ]) && (Y > pYAxis[pValueCache->lastYBins.max - 1]) ) //First make sure we're not already at the top Y bin
     {
-      yMax = fromTable->lastYMax - 1;
-      fromTable->lastYMax = yMax;
-      yMin = fromTable->lastYMin - 1;
-      fromTable->lastYMin = yMin;
-      yMaxValue = pYAxis[fromTable->lastYMax];
-      yMinValue = pYAxis[fromTable->lastYMin];
+      yMax = pValueCache->lastYBins.max - 1;
+      pValueCache->lastYBins.max = yMax;
+      yMin = pValueCache->lastYBins.min - 1;
+      pValueCache->lastYBins.min = yMin;
+      yMaxValue = pYAxis[pValueCache->lastYBins.max];
+      yMinValue = pYAxis[pValueCache->lastYBins.min];
     }
     //3rd check is to look at the previous bin (Next one down)
-    else if ( ((fromTable->lastYMax + 1) < axisSize) && (Y <= pYAxis[fromTable->lastYMin + 1]) && (Y > pYAxis[fromTable->lastYMax + 1]) ) //First make sure we're not already at the bottom Y bin
+    else if ( ((pValueCache->lastYBins.max + 1) < axisSize) && (Y <= pYAxis[pValueCache->lastYBins.min + 1]) && (Y > pYAxis[pValueCache->lastYBins.max + 1]) ) //First make sure we're not already at the bottom Y bin
     {
-      yMax = fromTable->lastYMax + 1;
-      fromTable->lastYMax = yMax;
-      yMin = fromTable->lastYMin + 1;
-      fromTable->lastYMin = yMin;
-      yMaxValue = pYAxis[fromTable->lastYMax];
-      yMinValue = pYAxis[fromTable->lastYMin];
+      yMax = pValueCache->lastYBins.max + 1;
+      pValueCache->lastYBins.max = yMax;
+      yMin = pValueCache->lastYBins.min + 1;
+      pValueCache->lastYBins.min = yMin;
+      yMaxValue = pYAxis[pValueCache->lastYBins.max];
+      yMinValue = pYAxis[pValueCache->lastYBins.min];
     }
     else
     //If it's not caught by one of the above scenarios, give up and just run the loop
@@ -146,9 +147,9 @@ table3d_value_t get3DTableValue(struct table3DGetValueCache *fromTable,
           yMaxValue = pYAxis[y];
           yMinValue = pYAxis[y];
           yMax = y;
-          fromTable->lastYMax = yMax;
+          pValueCache->lastYBins.max = yMax;
           yMin = y;
-          fromTable->lastYMin = yMin;
+          pValueCache->lastYBins.min = yMin;
           break;
         }
         //Normal case
@@ -157,9 +158,9 @@ table3d_value_t get3DTableValue(struct table3DGetValueCache *fromTable,
           yMaxValue = pYAxis[y];
           yMinValue = pYAxis[y-1];
           yMax = y;
-          fromTable->lastYMax = yMax;
+          pValueCache->lastYBins.max = yMax;
           yMin = y-1;
-          fromTable->lastYMin = yMin;
+          pValueCache->lastYBins.min = yMin;
           break;
         }
       }
@@ -218,10 +219,9 @@ table3d_value_t get3DTableValue(struct table3DGetValueCache *fromTable,
     }
 
     //Update the tables cache data
-    fromTable->lastXInput = X_in;
-    fromTable->lastYInput = Y_in;
-    fromTable->lastOutput = tableResult;
-    fromTable->cacheIsValid = true;
+    pValueCache->last_lookup.x = X_in;
+    pValueCache->last_lookup.y = Y_in;
+    pValueCache->lastOutput = tableResult;
 
     return tableResult;
 }
