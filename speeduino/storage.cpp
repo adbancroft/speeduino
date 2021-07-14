@@ -126,7 +126,7 @@ static inline uint8_t write_raw(const page_iterator_t &entity, eeprom_address_t 
   return write_range(index, pStart, pStart+entity.size, counter);
 }
 
-static inline int16_t write_table(const page_iterator_t &entity, int &index, int16_t counter)
+static inline int16_t write_table(const page_iterator_t &entity, eeprom_address_t &index, int16_t counter)
 {
   counter = write(rows_begin(entity), index, counter);
   counter = write(x_begin(entity), index, counter);
