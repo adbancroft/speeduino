@@ -1,83 +1,8 @@
 #include "table3d_interpolate.h"
 #include "maths.h"
-
+#include "array_utils.h"
 
 // ============================= Axis Bin Searching =========================
-
-static inline bool is_in_bin(const table3d_axis_t &testValue, const table3d_axis_t &min, const table3d_axis_t &max)
-{
-  return testValue > min && testValue <= max;
-}
-
-// Find the axis index for the top of the bin that covers the test value.
-// E.g. 4 in { 1, 3, 5, 7, 9 } would be 2
-// We assume the axis is in order.
-static inline table3d_dim_t find_bin_max(
-  table3d_axis_t &value,        // Value to search for
-  const table3d_axis_t *pAxis,  // The axis to search
-  table3d_dim_t minElement,     // Axis index of the element with the lowest value (at one end of the array)
-  table3d_dim_t maxElement,     // Axis index of the element with the highest value (at the other end of the array)
-  table3d_dim_t lastBinMax)     // The last result from this call - used to speed up searches
-{
-  // It's quicker to increment/adjust this pointer than to repeatedly 
-  // index the array - minimum 2%, often >5%
-  const table3d_axis_t *pMax = nullptr;
-  // minElement is at one end of the array, so the "lowest" bin 
-  // is [minElement, minElement+stride]. Since we're working with the upper
-  // index of the bin pair, we can't go below minElement + stride.
-  table3d_dim_t minBinIndex = minElement - 1U;
-
-  // Check the cached last bin and either side first - it's likely that this will give a hit under
-  // real world conditions
-
-  // Check if we're still in the same bin as last time
-  pMax = pAxis + lastBinMax;
-  if (is_in_bin(value, *(pMax + 1U), *pMax))
-  {
-    return lastBinMax;
-  }
-  // Check the bin above the last one
-  pMax = pMax + 1U;
-  if (lastBinMax!=minBinIndex && is_in_bin(value, *(pMax + 1U), *pMax))
-  {
-    return lastBinMax + 1U;    
-  }
-  // Check the bin below the last one
-  pMax -= 2U;
-  if (lastBinMax!=maxElement && is_in_bin(value, *(pMax + 1U), *pMax))
-  {
-    return lastBinMax - 1U;
-  }
-
-  // Check if outside array limits - won't happen often in the real world
-  // so check after the cache check
-  // At or above maximum - clamp to final value
-  if (value>=pAxis[maxElement])
-  {
-    value = pAxis[maxElement];
-    return maxElement;
-  }
-  // At or below minimum - clamp to lowest value
-  if (value<=pAxis[minElement])
-  {
-    value = pAxis[minElement];
-    return minElement - 1U;
-  }
-
-  // No hits above, so run a linear search.
-  // We start at the maximum & work down, rather than looping from [0] up to [max]
-  // This is because the important tables (fuel and injection) will have the highest
-  // RPM at the top of the X axis, so starting there will mean the best case occurs 
-  // when the RPM is highest (and hence the CPU is needed most)
-  lastBinMax = maxElement;
-  pMax = pAxis + lastBinMax;
-  while (lastBinMax!=minBinIndex && !is_in_bin(value, *(pMax + 1U), *pMax))
-  {
-    ++lastBinMax;
-    ++pMax;
-  }
-  return lastBinMax;
-}
 
 table3d_dim_t find_xbin(table3d_axis_t &value, const table3d_axis_t *pAxis, table3d_dim_t size, table3d_dim_t lastBin)
 {
