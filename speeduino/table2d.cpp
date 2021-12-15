@@ -13,6 +13,39 @@ Note that this may clear some of the existing values of the table
 #include "globals.h"
 #endif
 
+/**
+ * @brief Returns an axis (bin) value from the 2D table. This works regardless of whether that axis is bytes or int16_ts
+ * 
+ * @param fromTable 
+ * @param X_in 
+ * @return int16_t 
+ */
+int16_t table2D_getAxisValue(struct table2D *fromTable, uint8_t X_in)
+{
+  int returnValue = 0;
+
+  if(fromTable->axisSize == SIZE_INT) { returnValue = ((int16_t*)fromTable->axisX)[X_in]; }
+  else if(fromTable->axisSize == SIZE_BYTE) { returnValue = ((uint8_t*)fromTable->axisX)[X_in]; }
+
+  return returnValue;
+}
+
+/**
+ * @brief Returns an value from the 2D table given an index value. No interpolation is performed
+ * 
+ * @param fromTable 
+ * @param X_index 
+ * @return int16_t 
+ */
+int16_t table2D_getRawValue(struct table2D *fromTable, uint8_t X_index)
+{
+  int returnValue = 0;
+
+  if(fromTable->valueSize == SIZE_INT) { returnValue = ((int16_t*)fromTable->values)[X_index]; }
+  else if(fromTable->valueSize == SIZE_BYTE) { returnValue = ((uint8_t*)fromTable->values)[X_index]; }
+
+  return returnValue;
+}
 
 static inline uint8_t getCacheTime(void) {
 #if !defined(UNIT_TEST)
@@ -119,43 +152,6 @@ int table2D_getValue(struct table2D *fromTable, int X_in)
 
   fromTable->lastInput = X_in;
   fromTable->lastOutput = returnValue;
-
-  return returnValue;
-}
-
-/**
- * @brief Returns an axis (bin) value from the 2D table. This works regardless of whether that axis is bytes or int16_ts
- * 
- * @param fromTable 
- * @param X_in 
- * @return int16_t 
- */
-int16_t table2D_getAxisValue(struct table2D *fromTable, byte X_in)
-{
-  int returnValue = 0;
-
-  if(fromTable->axisSize == SIZE_INT) { returnValue = ((int16_t*)fromTable->axisX)[X_in]; }
-  else if(fromTable->axisSize == SIZE_BYTE) { returnValue = ((uint8_t*)fromTable->axisX)[X_in]; }
-  else if(fromTable->axisSize == SIZE_SIGNED_BYTE) { returnValue = ((int8_t*)fromTable->axisX)[X_in]; }
-  
-
-  return returnValue;
-}
-
-/**
- * @brief Returns an value from the 2D table given an index value. No interpolation is performed
- * 
- * @param fromTable 
- * @param X_index 
- * @return int16_t 
- */
-int16_t table2D_getRawValue(struct table2D *fromTable, byte X_index)
-{
-  int returnValue = 0;
-
-  if(fromTable->valueSize == SIZE_INT) { returnValue = ((int16_t*)fromTable->values)[X_index]; }
-  else if(fromTable->valueSize == SIZE_BYTE) { returnValue = ((uint8_t*)fromTable->values)[X_index]; }
-  else if(fromTable->valueSize == SIZE_SIGNED_BYTE) { returnValue = ((int8_t*)fromTable->values)[X_index]; }
 
   return returnValue;
 }
