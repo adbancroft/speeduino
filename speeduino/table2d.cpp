@@ -20,7 +20,7 @@ Note that this may clear some of the existing values of the table
  * @param X_in 
  * @return int16_t 
  */
-int16_t table2D_getAxisValue(struct table2D *fromTable, uint8_t X_in)
+int16_t table2D_getAxisValue(const struct table2D *fromTable, uint8_t X_in)
 {
   int returnValue = 0;
 
@@ -37,7 +37,7 @@ int16_t table2D_getAxisValue(struct table2D *fromTable, uint8_t X_in)
  * @param X_index 
  * @return int16_t 
  */
-int16_t table2D_getRawValue(struct table2D *fromTable, uint8_t X_index)
+int16_t table2D_getRawValue(const struct table2D *fromTable, uint8_t X_index)
 {
   int returnValue = 0;
 
@@ -55,6 +55,23 @@ static inline uint8_t getCacheTime(void) {
 #endif
 }
 
+static inline int16_t interpolate(const table2D *fromTable, const int16_t &X, const int16_t &xMaxValue, const int16_t xMinValue)
+{
+    int16_t m = X - xMinValue;
+    int16_t n = xMaxValue - xMinValue;
+
+    int16_t yMax = table2D_getRawValue(fromTable, fromTable->lastXMax);
+    int16_t yMin = table2D_getRawValue(fromTable, fromTable->lastXMax - 1);
+
+    /* Float version (if m, yMax, yMin and n were float's)
+       int yVal = (m * (yMax - yMin)) / n;
+    */
+    
+    //Non-Float version
+    int16_t yVal = ( ((int32_t) m) * (yMax-yMin) ) / n;
+    return yMin + yVal;
+}
+
 /*
 This function pulls a 1D linear interpolated (ie averaged) value from a 2D table
 ie: Given a value on the X axis, it returns a Y value that corresponds to the point on the curve between the nearest two defined X values
@@ -64,94 +81,59 @@ Unfortunately this means many of the lines are duplicated depending on this
 */
 int table2D_getValue(struct table2D *fromTable, int X_in)
 {
-  //Orig memory usage = 5414
-  int returnValue = 0;
-  bool valueFound = false;
-
-  int X = X_in;
-  int xMinValue, xMaxValue;
-  int xMin = 0;
-  int xMax = fromTable->xSize-1;
-
   //Check whether the X input is the same as last time this ran
   if( (X_in == fromTable->lastInput) && (fromTable->cacheTime == getCacheTime()) )
   {
-    returnValue = fromTable->lastOutput;
-    valueFound = true;
+    // No-op
   }
   //If the requested X value is greater/small than the maximum/minimum bin, simply return that value
-  else if(X >= table2D_getAxisValue(fromTable, xMax))
+  else if(X_in >= table2D_getAxisValue(fromTable, fromTable->xSize-1))
   {
-    returnValue = table2D_getRawValue(fromTable, xMax);
-    valueFound = true;
+    fromTable->lastOutput = table2D_getRawValue(fromTable, fromTable->xSize-1);
   }
-  else if(X <= table2D_getAxisValue(fromTable, xMin))
+  else if(X_in <= table2D_getAxisValue(fromTable, 0))
   {
-    returnValue = table2D_getRawValue(fromTable, xMin);
-    valueFound = true;
+    fromTable->lastOutput = table2D_getRawValue(fromTable, 0);
   }
   //Finally if none of that is found
   else
   {
-    fromTable->cacheTime = getCacheTime(); //As we're not using the cache value, set the current secl value to track when this new value was calculated
-
     //1st check is whether we're still in the same X bin as last time
-    xMaxValue = table2D_getAxisValue(fromTable, fromTable->lastXMax);
-    xMinValue = table2D_getAxisValue(fromTable, fromTable->lastXMin);
-    if ( (X <= xMaxValue) && (X > xMinValue) )
+    int16_t xMaxValue = table2D_getAxisValue(fromTable, fromTable->lastXMax);
+    int16_t xMinValue = table2D_getAxisValue(fromTable, fromTable->lastXMax-1);
+    if ( (X_in <= xMaxValue) && (X_in > xMinValue) )
     {
-      xMax = fromTable->lastXMax;
-      xMin = fromTable->lastXMin;
+      fromTable->lastOutput = interpolate(fromTable, X_in, xMaxValue, xMinValue);
     }
     else
     {
       //If we're not in the same bin, loop through to find where we are
       xMaxValue = table2D_getAxisValue(fromTable, fromTable->xSize-1); // init xMaxValue in preparation for loop.
-      for (int x = fromTable->xSize-1; x > 0; x--)
+      for (fromTable->lastXMax = fromTable->xSize-1; fromTable->lastXMax > 0; --(fromTable->lastXMax))
       {
-        xMinValue = table2D_getAxisValue(fromTable, x-1); // fetch next Min
-
         //Checks the case where the X value is exactly what was requested
-        if (X == xMaxValue)
+        if (X_in == xMaxValue)
         {
-          returnValue = table2D_getRawValue(fromTable, x); //Simply return the corresponding value
-          valueFound = true;
+          fromTable->lastOutput = table2D_getRawValue(fromTable, fromTable->lastXMax); //Simply return the coresponding value
           break;
         }
-        else if (X > xMinValue)
+        else
         {
-          // Value is in the current bin
-          xMax = x;
-          fromTable->lastXMax = xMax;
-          xMin = x-1;
-          fromTable->lastXMin = xMin;
-          break;
+          xMinValue = table2D_getAxisValue(fromTable, fromTable->lastXMax-1); // fetch next Min
+          if (X_in > xMinValue)
+          {
+            // Value is in the current bin
+            fromTable->lastOutput = interpolate(fromTable, X_in, xMaxValue, xMinValue);
+            break;
+          }
+          // Otherwise, continue to next bin
+          xMaxValue = xMinValue; // for the next bin, our Min is their Max
         }
-        // Otherwise, continue to next bin
-        xMaxValue = xMinValue; // for the next bin, our Min is their Max
       }
     }
   } //X_in same as last time
 
-  if (valueFound == false)
-  {
-    int16_t m = X - xMinValue;
-    int16_t n = xMaxValue - xMinValue;
-
-    int16_t yMax = table2D_getRawValue(fromTable, xMax);
-    int16_t yMin = table2D_getRawValue(fromTable, xMin);
-
-    /* Float version (if m, yMax, yMin and n were float's)
-       int yVal = (m * (yMax - yMin)) / n;
-    */
-    
-    //Non-Float version
-    int16_t yVal = ( ((int32_t) m) * (yMax-yMin) ) / n;
-    returnValue = yMin + yVal;
-  }
-
+  fromTable->cacheTime = getCacheTime(); //As we're not using the cache value, set the current secl value to track when this new value was calc'd
   fromTable->lastInput = X_in;
-  fromTable->lastOutput = returnValue;
-
-  return returnValue;
+  return fromTable->lastOutput;
 }
