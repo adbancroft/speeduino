@@ -31,8 +31,6 @@ struct StepperIdle
   volatile unsigned long stepStartTime;
 };
 
-extern long FeedForwardTerm;
-
 void initialiseIdle(bool forcehoming, const pin_mapping_t &pins);
 void initialiseIdle(bool forcehoming);
 void idleControl(void);

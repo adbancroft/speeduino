@@ -22,34 +22,36 @@ struct table3d8RpmLoad vvtTable; ///< 8x8 vvt map
 struct table3d8RpmLoad vvt2Table; ///< 8x8 vvt2 map
 struct table3d8RpmLoad wmiTable; ///< 8x8 wmi map
 struct table3d4RpmLoad dwellTable; ///< 4x4 Dwell map
-struct table2D taeTable; ///< 4 bin TPS Acceleration Enrichment map (2D)
-struct table2D maeTable;
-struct table2D WUETable; ///< 10 bin Warm Up Enrichment map (2D)
-struct table2D ASETable; ///< 4 bin After Start Enrichment map (2D)
-struct table2D ASECountTable; ///< 4 bin After Start duration map (2D)
-struct table2D PrimingPulseTable; ///< 4 bin Priming pulsewidth map (2D)
-struct table2D crankingEnrichTable; ///< 4 bin cranking Enrichment map (2D)
-struct table2D dwellVCorrectionTable; ///< 6 bin dwell voltage correction (2D)
-struct table2D injectorVCorrectionTable; ///< 6 bin injector voltage correction (2D)
-struct table2D injectorAngleTable; ///< 4 bin injector angle curve (2D)
-struct table2D IATDensityCorrectionTable; ///< 9 bin inlet air temperature density correction (2D)
-struct table2D baroFuelTable; ///< 8 bin baro correction curve (2D)
-struct table2D IATRetardTable; ///< 6 bin ignition adjustment based on inlet air temperature  (2D)
-struct table2D idleTargetTable; ///< 10 bin idle target table for idle timing (2D)
-struct table2D idleAdvanceTable; ///< 6 bin idle advance adjustment table based on RPM difference  (2D)
-struct table2D CLTAdvanceTable; ///< 6 bin ignition adjustment based on coolant temperature  (2D)
-struct table2D rotarySplitTable; ///< 8 bin ignition split curve for rotary leading/trailing  (2D)
-struct table2D flexFuelTable;  ///< 6 bin flex fuel correction table for fuel adjustments (2D)
-struct table2D flexAdvTable;   ///< 6 bin flex fuel correction table for timing advance (2D)
-struct table2D flexBoostTable; ///< 6 bin flex fuel correction table for boost adjustments (2D)
-struct table2D fuelTempTable;  ///< 6 bin flex fuel correction table for fuel adjustments (2D)
-struct table2D knockWindowStartTable;
-struct table2D knockWindowDurationTable;
-struct table2D oilPressureProtectTable;
-struct table2D wmiAdvTable; //6 bin wmi correction table for timing advance (2D)
-struct table2D coolantProtectTable;
-struct table2D fanPWMTable;
-struct table2D rollingCutTable;
+
+struct table2D<uint8_t, uint8_t, 4> taeTable; ///< 4 bin TPS Acceleration Enrichment map (2D)
+struct table2D<uint8_t, uint8_t, 4> maeTable;
+struct table2D<uint8_t, uint8_t, 10> WUETable; ///< 10 bin Warm Up Enrichment map (2D)
+struct table2D<uint8_t, uint8_t, 4> ASETable; ///< 4 bin After Start Enrichment map (2D)
+struct table2D<uint8_t, uint8_t, 4> ASECountTable; ///< 4 bin After Start duration map (2D)
+struct table2D<uint8_t, uint8_t, 4> PrimingPulseTable; ///< 4 bin Priming pulsewidth map (2D)
+struct table2D<uint8_t, uint8_t, 4> crankingEnrichTable; ///< 4 bin cranking Enrichment map (2D)
+struct table2D<uint8_t, uint8_t, 6> dwellVCorrectionTable; ///< 6 bin dwell voltage correction (2D)
+struct table2D<uint8_t, uint8_t, 6> injectorVCorrectionTable; ///< 6 bin injector voltage correction (2D)
+struct table2D<uint8_t, uint16_t, 4> injectorAngleTable; ///< 4 bin injector angle curve (2D)
+struct table2D<uint8_t, uint8_t, 9> IATDensityCorrectionTable; ///< 9 bin inlet air temperature density correction (2D)
+struct table2D<uint8_t, uint8_t, 8> baroFuelTable; ///< 8 bin baro correction curve (2D)
+struct table2D<uint8_t, uint8_t, 6> IATRetardTable; ///< 6 bin ignition adjustment based on inlet air temperature  (2D)
+struct table2D<uint8_t, uint8_t, 6> idleTargetTable; ///< 10 bin idle target table for idle timing (2D)
+struct table2D<uint8_t, uint8_t, 10> idleAdvanceTable; ///< 6 bin idle advance adjustment table based on RPM difference  (2D)
+struct table2D<uint8_t, uint8_t, 6> CLTAdvanceTable; ///< 6 bin ignition adjustment based on coolant temperature  (2D)
+struct table2D<uint8_t, uint8_t, 8> rotarySplitTable; ///< 8 bin ignition split curve for rotary leading/trailing  (2D)
+struct table2D<uint8_t, uint8_t, 6> flexFuelTable;  ///< 6 bin flex fuel correction table for fuel adjustments (2D)
+struct table2D<uint8_t, uint8_t, 6> flexAdvTable;   ///< 6 bin flex fuel correction table for timing advance (2D)
+struct table2D<uint8_t, int16_t, 6> flexBoostTable; ///< 6 bin flex fuel correction table for boost adjustments (2D)
+struct table2D<uint8_t, uint8_t, 6> fuelTempTable;  ///< 6 bin flex fuel correction table for fuel adjustments (2D)
+struct table2D<uint8_t, uint8_t, 6> knockWindowStartTable;
+struct table2D<uint8_t, uint8_t, 6> knockWindowDurationTable;
+struct table2D<uint8_t, uint8_t, 4> oilPressureProtectTable;
+struct table2D<uint8_t, uint8_t, 6> wmiAdvTable; //6 bin wmi correction table for timing advance (2D)
+struct table2D<uint8_t, uint8_t, 6> coolantProtectTable;
+struct table2D<uint8_t, uint8_t, 4> fanPWMTable;
+struct table2D<int8_t, uint8_t, 4> rollingCutTable;
+
 
 //These are variables used across multiple files
 byte fpPrimeTime = 0; ///< The time (in seconds, based on @ref statuses.secl) that the fuel pump started priming
@@ -86,10 +88,10 @@ struct config15 configPage15;
 
 uint16_t cltCalibration_bins[32];
 uint16_t cltCalibration_values[32];
-struct table2D cltCalibrationTable;
+struct table2D<uint16_t, uint16_t, 32> cltCalibrationTable;
 uint16_t iatCalibration_bins[32];
 uint16_t iatCalibration_values[32];
-struct table2D iatCalibrationTable;
+struct table2D<uint16_t, uint16_t, 32> iatCalibrationTable;
 uint16_t o2Calibration_bins[32];
 uint8_t o2Calibration_values[32];
-struct table2D o2CalibrationTable; 
+struct table2D<uint16_t, uint8_t, 32> o2CalibrationTable; 

@@ -55,7 +55,7 @@ void test_corrections_WUE_inactive_value(void)
   ((uint8_t*)WUETable.values)[9] = 123; //Use a value other than 100 here to ensure we are using the non-default value
 
   //Force invalidate the cache
-  WUETable.cacheTime = currentStatus.secl - 1;
+  WUETable.cache.cacheTime = currentStatus.secl - 1;
   
   TEST_ASSERT_EQUAL(123, correctionWUE() );
 }
@@ -80,7 +80,7 @@ void test_corrections_WUE_active_value(void)
   ((uint8_t*)WUETable.values)[7] = 130;
 
   //Force invalidate the cache
-  WUETable.cacheTime = currentStatus.secl - 1;
+  WUETable.cache.cacheTime = currentStatus.secl - 1;
   
   //Value should be midway between 120 and 130 = 125
   TEST_ASSERT_EQUAL(125, correctionWUE() );
