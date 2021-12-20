@@ -12,7 +12,7 @@ inline bool is_in_bin(const T &testValue, const T &min, const T &max)
 // E.g. 4 in { 1, 3, 5, 7, 9 } would be 2
 // We assume the axis is in order.
 template <typename T>
-inline uint8_t find_bin_max(
+inline uint8_t find_bin(
   T &value,               // Value to search for
   const T *pAxis,         // The axis to search
   uint8_t minElement,     // Axis index of the element with the lowest value (at one end of the array)

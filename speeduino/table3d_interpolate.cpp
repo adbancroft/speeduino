@@ -6,14 +6,14 @@
 
 table3d_dim_t find_xbin(table3d_axis_t &value, const table3d_axis_t *pAxis, table3d_dim_t size, table3d_dim_t lastBin)
 {
-  return find_bin_max(value, pAxis, size-1U, 0U, lastBin);
+  return find_bin(value, pAxis, size-1U, 0U, lastBin);
 }
 
 table3d_dim_t find_ybin(table3d_axis_t &value, const table3d_axis_t *pAxis, table3d_dim_t size, table3d_dim_t lastBin)
 {
   // Y axis is stored in reverse for performance purposes (not sure that's still valid). 
   // The minimum value is at the end & max at the start. So need to adjust for that. 
-  return find_bin_max(value, pAxis, size-1U, 0U, lastBin);
+  return find_bin(value, pAxis, size-1U, 0U, lastBin);
 }
 
 // ========================= Fixed point math =========================
