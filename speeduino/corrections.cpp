@@ -140,12 +140,11 @@ byte correctionWUE(void)
 {
   byte WUEValue;
   //Possibly reduce the frequency this runs at (Costs about 50 loops per second)
-  //if (currentStatus.coolant > (WUETable.axisX[9] - CALIBRATION_TEMPERATURE_OFFSET))
-  if (currentStatus.coolant > (((byte*)WUETable.axisX)[9] - CALIBRATION_TEMPERATURE_OFFSET))
+  if (currentStatus.coolant > (WUETable.axisX[9] - CALIBRATION_TEMPERATURE_OFFSET))
   {
     //This prevents us doing the 2D lookup if we're already up to temp
     BIT_CLEAR(currentStatus.engine, BIT_ENGINE_WARMUP);
-    WUEValue = ((byte*)WUETable.values)[9];
+    WUEValue = WUETable.values[9];
   }
   else
   {

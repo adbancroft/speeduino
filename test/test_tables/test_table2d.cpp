@@ -21,17 +21,15 @@ static int16_t table2d_axis_s16[TEST_TABLE2D_SIZE] = {
     123, 2539, 5531, 7537, 11329, 16363, 21323, 26357, 32029,
 };
 
-static table2D table2d_u8_u8;
-static table2D table2d_u8_s16;
-static table2D table2d_s16_u8;
-static table2D table2d_s16_s16;
+// static table2D table2d_u8_u8;
+static table2D<uint8_t, uint8_t, TEST_TABLE2D_SIZE> table2d_u8_u8;
+static table2D<int16_t, uint8_t, TEST_TABLE2D_SIZE> table2d_u8_s16;
+static table2D<uint8_t, int16_t, TEST_TABLE2D_SIZE> table2d_s16_u8;
+static table2D<int16_t, int16_t, TEST_TABLE2D_SIZE> table2d_s16_s16;
 
 template <typename dataT, typename axisT>
-void setup_test_subject(table2D &table, dataT *data, axisT *axis)
+void setup_test_subject(table2D<axisT, dataT, TEST_TABLE2D_SIZE> &table, dataT *data, axisT *axis)
 {
-    table.valueSize = sizeof(dataT)*CHAR_BIT;
-    table.axisSize = sizeof(axisT)*CHAR_BIT;
-    table.xSize = TEST_TABLE2D_SIZE;
     table.values = data;
     table.axisX = axis;
 }
@@ -49,21 +47,21 @@ void test_table2dLookup_50pct(void)
 {
     setup_test_subjects();
 
-    uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, table2d_axis_u8[3]+((table2d_axis_u8[4]-table2d_axis_u8[3])/2));
+    uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, (uint8_t)(table2d_axis_u8[3]+((table2d_axis_u8[4]-table2d_axis_u8[3])/2)));
     TEST_ASSERT_EQUAL(147, u8_u8_result);
-    TEST_ASSERT_EQUAL(4, table2d_u8_u8.lastXMax);
+    TEST_ASSERT_EQUAL(4, table2d_u8_u8.cache.lastXMax);
 
-    uint8_t u8_s16_result = table2D_getValue(&table2d_u8_s16, table2d_axis_s16[6]+((table2d_axis_s16[7]-table2d_axis_s16[6])/2));
+    uint8_t u8_s16_result = table2D_getValue(&table2d_u8_s16, (int16_t)(table2d_axis_s16[6]+((table2d_axis_s16[7]-table2d_axis_s16[6])/2)));
     TEST_ASSERT_EQUAL(41, u8_s16_result);
-    TEST_ASSERT_EQUAL(7, table2d_u8_s16.lastXMax);
+    TEST_ASSERT_EQUAL(7, table2d_u8_s16.cache.lastXMax);
 
-    int16_t s16_u8_result = table2D_getValue(&table2d_s16_u8, table2d_axis_u8[3]+((table2d_axis_u8[4]-table2d_axis_u8[3])/2));
+    int16_t s16_u8_result = table2D_getValue(&table2d_s16_u8, (uint8_t)(table2d_axis_u8[3]+((table2d_axis_u8[4]-table2d_axis_u8[3])/2)));
     TEST_ASSERT_EQUAL(13846, s16_u8_result);
-    TEST_ASSERT_EQUAL(4, table2d_s16_u8.lastXMax);
+    TEST_ASSERT_EQUAL(4, table2d_s16_u8.cache.lastXMax);
 
-    int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, table2d_axis_s16[3]+((table2d_axis_s16[4]-table2d_axis_s16[3])/2));
+    int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, (int16_t)(table2d_axis_s16[3]+((table2d_axis_s16[4]-table2d_axis_s16[3])/2)));
     TEST_ASSERT_EQUAL(13846, s16_s16_result);
-    TEST_ASSERT_EQUAL(4, table2d_s16_s16.lastXMax);
+    TEST_ASSERT_EQUAL(4, table2d_s16_s16.cache.lastXMax);
 }
 
 
@@ -73,61 +71,61 @@ void test_table2dLookup_exactAxis(void)
 
     uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, table2d_axis_u8[7]);
     TEST_ASSERT_EQUAL(23, u8_u8_result);
-    // TEST_ASSERT_EQUAL(7, table2d_u8_u8.lastXMax);
+    TEST_ASSERT_EQUAL(7, table2d_u8_u8.cache.lastXMax);
 
     uint8_t u8_s16_result = table2D_getValue(&table2d_u8_s16, table2d_axis_s16[1]);
     TEST_ASSERT_EQUAL(211, u8_s16_result);
-    // TEST_ASSERT_EQUAL(7, table2d_u8_s16.lastXMax);
+    TEST_ASSERT_EQUAL(1, table2d_u8_s16.cache.lastXMax);
 
     int16_t s16_u8_result = table2D_getValue(&table2d_s16_u8, table2d_axis_u8[2]);
     TEST_ASSERT_EQUAL(21323, s16_u8_result);
-    // TEST_ASSERT_EQUAL(4, table2d_s16_u8.lastXMax);
+    TEST_ASSERT_EQUAL(2, table2d_s16_u8.cache.lastXMax);
 
     int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, table2d_axis_s16[5]);
     TEST_ASSERT_EQUAL(7537, s16_s16_result);
-    // TEST_ASSERT_EQUAL(4, table2d_s16_s16.lastXMax);    
+    TEST_ASSERT_EQUAL(5, table2d_s16_s16.cache.lastXMax);    
 }
 
 void test_table2dLookup_overMax(void)
 {
     setup_test_subjects();
 
-    uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, table2d_axis_u8[TEST_TABLE2D_SIZE-1]+1);
+    uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, (uint8_t)(table2d_axis_u8[TEST_TABLE2D_SIZE-1]+1));
     TEST_ASSERT_EQUAL(5, u8_u8_result);
-    // TEST_ASSERT_EQUAL(8, table2d_u8_u8.lastXMax);
+    TEST_ASSERT_EQUAL(8, table2d_u8_u8.cache.lastXMax);
 
-    uint8_t u8_s16_result = table2D_getValue(&table2d_u8_s16, table2d_axis_s16[TEST_TABLE2D_SIZE-1]+1);
+    uint8_t u8_s16_result = table2D_getValue(&table2d_u8_s16, (int16_t)(table2d_axis_s16[TEST_TABLE2D_SIZE-1]+1));
     TEST_ASSERT_EQUAL(5, u8_s16_result);
-    // TEST_ASSERT_EQUAL(8, table2d_u8_s16.lastXMax);
+    TEST_ASSERT_EQUAL(8, table2d_u8_s16.cache.lastXMax);
 
-    int16_t s16_u8_result = table2D_getValue(&table2d_s16_u8, table2d_axis_u8[TEST_TABLE2D_SIZE-1]+1);
+    int16_t s16_u8_result = table2D_getValue(&table2d_s16_u8, (uint8_t)(table2d_axis_u8[TEST_TABLE2D_SIZE-1]+1));
     TEST_ASSERT_EQUAL(1237, s16_u8_result);
-    // TEST_ASSERT_EQUAL(8, table2d_s16_u8.lastXMax);
+    TEST_ASSERT_EQUAL(8, table2d_s16_u8.cache.lastXMax);
 
-    int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, table2d_axis_s16[TEST_TABLE2D_SIZE-1]+1);
+    int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, (int16_t)(table2d_axis_s16[TEST_TABLE2D_SIZE-1]+1));
     TEST_ASSERT_EQUAL(1237, s16_s16_result);
-    // TEST_ASSERT_EQUAL(8, table2d_s16_s16.lastXMax);    
+    TEST_ASSERT_EQUAL(8, table2d_s16_s16.cache.lastXMax);    
 }
 
 void test_table2dLookup_underMin(void)
 {
     setup_test_subjects();
 
-    uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, table2d_axis_u8[0]-1);
+    uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, (uint8_t)(table2d_axis_u8[0]-1));
     TEST_ASSERT_EQUAL(251, u8_u8_result);
-    // TEST_ASSERT_EQUAL(0, table2d_u8_u8.lastXMax);
+    TEST_ASSERT_EQUAL(1, table2d_u8_u8.cache.lastXMax);
 
-    uint8_t u8_s16_result = table2D_getValue(&table2d_u8_s16, table2d_axis_s16[0]-1);
+    uint8_t u8_s16_result = table2D_getValue(&table2d_u8_s16, (int16_t)(table2d_axis_s16[0]-1));
     TEST_ASSERT_EQUAL(251, u8_s16_result);
-    // TEST_ASSERT_EQUAL(0, table2d_u8_s16.lastXMax);
+    TEST_ASSERT_EQUAL(1, table2d_u8_s16.cache.lastXMax);
 
-    int16_t s16_u8_result = table2D_getValue(&table2d_s16_u8, table2d_axis_u8[0]-1);
+    int16_t s16_u8_result = table2D_getValue(&table2d_s16_u8, (uint8_t)(table2d_axis_u8[0]-1));
     TEST_ASSERT_EQUAL(32029, s16_u8_result);
-    // TEST_ASSERT_EQUAL(0, table2d_s16_u8.lastXMax);
+    TEST_ASSERT_EQUAL(1, table2d_s16_u8.cache.lastXMax);
 
-    int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, table2d_axis_s16[0]-1);
+    int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, (int16_t)(table2d_axis_s16[0]-1));
     TEST_ASSERT_EQUAL(32029, s16_s16_result);
-    // TEST_ASSERT_EQUAL(0, table2d_s16_s16.lastXMax);       
+    TEST_ASSERT_EQUAL(1, table2d_s16_s16.cache.lastXMax);       
 }
 
 
@@ -135,12 +133,24 @@ void test_table2d_all_decrementing(void)
 {
     setup_test_subjects();
 
-    uint8_t u8_u8_result_last = UINT8_MAX;
-    for (uint8_t loop=table2d_axis_u8[0]; loop<=table2d_axis_u8[TEST_TABLE2D_SIZE-1]; ++loop)
     {
-        uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, loop);
-        TEST_ASSERT_LESS_OR_EQUAL(u8_u8_result_last, u8_u8_result);
-        u8_u8_result_last = u8_u8_result;
+        uint8_t u8_u8_result_last = UINT8_MAX;
+        for (uint8_t loop=table2d_axis_u8[0]; loop<=table2d_axis_u8[TEST_TABLE2D_SIZE-1]; ++loop)
+        {
+            uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, loop);
+            TEST_ASSERT_LESS_OR_EQUAL(u8_u8_result_last, u8_u8_result);
+            u8_u8_result_last = u8_u8_result;
+        }
+    }
+
+    {
+        int16_t s16_s16_result_last = INT16_MAX;
+        for (int16_t loop=table2d_axis_s16[0]; loop<=table2d_axis_s16[TEST_TABLE2D_SIZE-1]; loop+=3)
+        {
+            int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, loop);
+            TEST_ASSERT_LESS_OR_EQUAL(s16_s16_result_last, s16_s16_result);
+            s16_s16_result_last = s16_s16_result;
+        }
     }
 }
 

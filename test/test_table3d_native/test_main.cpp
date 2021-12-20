@@ -1,7 +1,7 @@
 #include <unity.h>
 #include "table3d_interpolate.cpp"
 typedef uint8_t byte;
-#include "table2d.ino"
+#include "table2d.h"
 #include "..\test_misc\tests_tables.cpp"
 #include "..\test_misc\test_table2d.cpp"
 
