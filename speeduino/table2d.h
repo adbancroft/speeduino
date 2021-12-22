@@ -5,7 +5,7 @@ using byte = uint8_t;
 #if !defined(UNIT_TEST)
 #include "currentstatus.h"
 #endif
-// #include "src/stl/type_traits.hpp"
+#include "src/stl/type_traits.hpp"
 // #include "src/stl/limits.hpp"
 // #include "src/stl/bits/no_min_max.h"
 
@@ -42,11 +42,31 @@ static inline uint8_t getCacheTime(void) {
 #endif
 }
 
+
+template <typename unsigned_axis_t>
+static inline int16_t interpolate_neg_value_width(const unsigned_axis_t &binWidth, const unsigned_axis_t &binDistance, const int16_t valueWidth)
+{
+  // valueWidth will be negative here
+  if (binDistance-valueWidth<=362) // Will not overflow int16_t
+    return (binDistance * valueWidth ) / binWidth;
+  else
+    return ( ((int32_t) binDistance) * valueWidth ) / binWidth;  
+}
+template <typename unsigned_axis_t>
+static inline uint16_t interpolate_pos_value_width(const unsigned_axis_t &binWidth, const unsigned_axis_t &binDistance, const uint16_t valueWidth)
+{
+  if (binDistance+valueWidth<=512) // Will not overflow uint16_t
+    return (binDistance * valueWidth ) / binWidth;
+  else
+    return ( ((uint32_t) binDistance) * valueWidth ) / binWidth;  
+}
+
 template <typename axis_t, typename value_t, uint8_t sizeT>
 static inline value_t interpolate(const table2D<axis_t, value_t, sizeT> *fromTable, const axis_t X, const axis_t xMaxValue, const axis_t xMinValue)
 {
-    axis_t m = X - xMinValue;
-    axis_t n = xMaxValue - xMinValue;
+    typedef typename std::make_unsigned<axis_t>::type unsigned_axis_t;
+    unsigned_axis_t binDistance = X - xMinValue;
+    unsigned_axis_t binWidth = xMaxValue - xMinValue;
 
     value_t yMax = fromTable->values[fromTable->cache.lastXMax];
     value_t yMin = fromTable->values[fromTable->cache.lastXMax - 1];
@@ -54,10 +74,15 @@ static inline value_t interpolate(const table2D<axis_t, value_t, sizeT> *fromTab
     /* Float version (if m, yMax, yMin and n were float's)
        int yVal = (m * (yMax - yMin)) / n;
     */
-    
-    //Non-Float version
-    int16_t yVal = ( ((int32_t) m) * (yMax-yMin) ) / n;
-    return yMin + yVal;
+
+    if (yMax>yMin)
+    {
+      uint16_t valueWidth = yMax - yMin;
+      return yMin + interpolate_pos_value_width(binWidth, binDistance, valueWidth);
+    }
+
+    int16_t valueWidth = yMax - yMin;   
+    return yMin + interpolate_neg_value_width(binWidth, binDistance, valueWidth);
 }
 
 template <typename axis_t, typename value_t, uint8_t sizeT>
