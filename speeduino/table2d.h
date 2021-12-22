@@ -5,6 +5,9 @@ using byte = uint8_t;
 #if !defined(UNIT_TEST)
 #include "currentstatus.h"
 #endif
+// #include "src/stl/type_traits.hpp"
+// #include "src/stl/limits.hpp"
+// #include "src/stl/bits/no_min_max.h"
 
 template <typename axis_t, typename value_t>
 struct table2D_lookup_cache 
@@ -40,13 +43,13 @@ static inline uint8_t getCacheTime(void) {
 }
 
 template <typename axis_t, typename value_t, uint8_t sizeT>
-static inline int16_t interpolate(const table2D<axis_t, value_t, sizeT> *fromTable, const int16_t X, const int16_t xMaxValue, const int16_t xMinValue)
+static inline value_t interpolate(const table2D<axis_t, value_t, sizeT> *fromTable, const axis_t X, const axis_t xMaxValue, const axis_t xMinValue)
 {
-    int16_t m = X - xMinValue;
-    int16_t n = xMaxValue - xMinValue;
+    axis_t m = X - xMinValue;
+    axis_t n = xMaxValue - xMinValue;
 
-    int16_t yMax = fromTable->values[fromTable->cache.lastXMax];
-    int16_t yMin = fromTable->values[fromTable->cache.lastXMax - 1];
+    value_t yMax = fromTable->values[fromTable->cache.lastXMax];
+    value_t yMin = fromTable->values[fromTable->cache.lastXMax - 1];
 
     /* Float version (if m, yMax, yMin and n were float's)
        int yVal = (m * (yMax - yMin)) / n;
@@ -58,7 +61,7 @@ static inline int16_t interpolate(const table2D<axis_t, value_t, sizeT> *fromTab
 }
 
 template <typename axis_t, typename value_t, uint8_t sizeT>
-value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, int16_t X_in)
+value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_t X_in)
 {
   //Check whether the X input is the same as last time this ran
   if( (X_in == fromTable->cache.lastInput) && (fromTable->cache.cacheTime == getCacheTime()) )
@@ -78,8 +81,8 @@ value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, int16_t X_i
   else
   {
     //1st check is whether we're still in the same X bin as last time
-    int16_t xMaxValue = fromTable->axisX[fromTable->cache.lastXMax];
-    int16_t xMinValue = fromTable->axisX[fromTable->cache.lastXMax-1];
+    axis_t xMaxValue = fromTable->axisX[fromTable->cache.lastXMax];
+    axis_t xMinValue = fromTable->axisX[fromTable->cache.lastXMax-1];
     if ( (X_in <= xMaxValue) && (X_in > xMinValue) )
     {
       fromTable->cache.lastOutput = interpolate(fromTable, X_in, xMaxValue, xMinValue);
@@ -116,3 +119,15 @@ value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, int16_t X_i
   fromTable->cache.lastInput = X_in;
   return fromTable->cache.lastOutput;
 }
+
+#include <clamp_cast.hpp>
+#include <bits/no_min_max.h>
+
+template <typename axis_t, typename value_t, uint8_t sizeT, typename axis_query_t>
+inline value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_query_t X_in)
+{
+  axis_t X = clamp_cast<axis_t>(X_in);
+  return table2D_getValue<axis_t, value_t, sizeT>(fromTable, X);
+}
+
+POP_MINMAX()
