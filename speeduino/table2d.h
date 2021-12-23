@@ -5,9 +5,8 @@ using byte = uint8_t;
 #if !defined(UNIT_TEST)
 #include "currentstatus.h"
 #endif
-#include "src/stl/type_traits.hpp"
-// #include "src/stl/limits.hpp"
-// #include "src/stl/bits/no_min_max.h"
+#include "src/stl/type_traits"
+#include "maths.h"
 
 template <typename axis_t, typename value_t>
 struct table2D_lookup_cache 
@@ -19,7 +18,6 @@ struct table2D_lookup_cache
   value_t lastOutput;
   uint8_t cacheTime = UINT8_MAX; //Tracks when the last cache value was set so it can expire after x seconds. A timeout is required to pickup when a tuning value is changed, otherwise the old cached value will continue to be returned as the X value isn't changing. 
 };
-
 
 template <typename axis_t, typename value_t, uint8_t sizeT>
 struct table2D
@@ -42,47 +40,32 @@ static inline uint8_t getCacheTime(void) {
 #endif
 }
 
-
-template <typename unsigned_axis_t>
-static inline int16_t interpolate_neg_value_width(const unsigned_axis_t &binWidth, const unsigned_axis_t &binDistance, const int16_t valueWidth)
-{
-  // valueWidth will be negative here
-  if (binDistance-valueWidth<=362) // Will not overflow int16_t
-    return (binDistance * valueWidth ) / binWidth;
-  else
-    return ( ((int32_t) binDistance) * valueWidth ) / binWidth;  
-}
-template <typename unsigned_axis_t>
-static inline uint16_t interpolate_pos_value_width(const unsigned_axis_t &binWidth, const unsigned_axis_t &binDistance, const uint16_t valueWidth)
-{
-  if (binDistance+valueWidth<=512) // Will not overflow uint16_t
-    return (binDistance * valueWidth ) / binWidth;
-  else
-    return ( ((uint32_t) binDistance) * valueWidth ) / binWidth;  
-}
-
 template <typename axis_t, typename value_t, uint8_t sizeT>
 static inline value_t interpolate(const table2D<axis_t, value_t, sizeT> *fromTable, const axis_t X, const axis_t xMaxValue, const axis_t xMinValue)
 {
-    typedef typename std::make_unsigned<axis_t>::type unsigned_axis_t;
-    unsigned_axis_t binDistance = X - xMinValue;
-    unsigned_axis_t binWidth = xMaxValue - xMinValue;
+  /* Float version (if m, yMax, yMin and n were float's)
+      int yVal = (m * (yMax - yMin)) / n;
+  */
 
-    value_t yMax = fromTable->values[fromTable->cache.lastXMax];
-    value_t yMin = fromTable->values[fromTable->cache.lastXMax - 1];
+  typedef typename std::make_unsigned<axis_t>::type unsigned_axis_t;
+  typedef typename std::make_unsigned<value_t>::type unsigned_value_t;
+  // Pick the wider of the two types to use for the calculation
+  // Note that std::common_type will not do what we want here, as it will use integer
+  // calculation promotion rules. So everything will be "int" at a minimum.
+  typedef typename std::conditional<(sizeof(unsigned_axis_t) >= sizeof(unsigned_value_t)), unsigned_axis_t, unsigned_value_t>::type u_common_t;
 
-    /* Float version (if m, yMax, yMin and n were float's)
-       int yVal = (m * (yMax - yMin)) / n;
-    */
+  value_t yMax = fromTable->values[fromTable->cache.lastXMax];
+  value_t yMin = fromTable->values[fromTable->cache.lastXMax - 1];
+  // We convert everything to unsigned for performance reasons
+  // and convert back to signed at the end.
+  int8_t multiplier = yMax<yMin ? -1 : 1;
 
-    if (yMax>yMin)
-    {
-      uint16_t valueWidth = yMax - yMin;
-      return yMin + interpolate_pos_value_width(binWidth, binDistance, valueWidth);
-    }
+  u_common_t binDistance = X - xMinValue;
+  u_common_t binWidth = xMaxValue - xMinValue;
 
-    int16_t valueWidth = yMax - yMin;   
-    return yMin + interpolate_neg_value_width(binWidth, binDistance, valueWidth);
+  u_common_t valueWidth = multiplier * (yMax - yMin);
+  u_common_t scaled = muldiv(valueWidth, binDistance, binWidth);
+  return yMin + (multiplier * scaled);
 }
 
 template <typename axis_t, typename value_t, uint8_t sizeT>
