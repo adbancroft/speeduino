@@ -78,6 +78,8 @@ value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_t X_in
   }
   else
   {
+    fromTable->cache.cacheTime = getCacheTime(); //As we're not using the cache value, set the current secl value to track when this new value was calc'd
+  
     axis_t X = X_in;
     fromTable->cache.lastXMax = find_bin(X, fromTable->axisX, 0, sizeT-1, fromTable->cache.lastXMax);
     axis_t xMaxValue = fromTable->axisX[fromTable->cache.lastXMax];
@@ -97,7 +99,6 @@ value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_t X_in
     }
   }
 
-  fromTable->cache.cacheTime = getCacheTime(); //As we're not using the cache value, set the current secl value to track when this new value was calc'd
   fromTable->cache.lastInput = X_in;
   return fromTable->cache.lastOutput;
 }
