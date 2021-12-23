@@ -7,11 +7,12 @@ using byte = uint8_t;
 #endif
 #include "src/stl/type_traits"
 #include "maths.h"
+#include "array_utils.h"
 
 template <typename axis_t, typename value_t>
 struct table2D_lookup_cache 
 {
-  uint8_t lastXMax = 1;
+  uint8_t lastXMax = 1U; // The axis bin search algo relies on this being 1 initially
 
   //Store the last input and output for caching
   axis_t lastInput;
@@ -76,52 +77,26 @@ value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_t X_in
   {
     // No-op
   }
-  //If the requested X value is greater/small than the maximum/minimum bin, simply return that value
-  else if(X_in >= fromTable->axisX[sizeT-1])
-  {
-    fromTable->cache.lastOutput = fromTable->values[sizeT-1];
-  }
-  else if(X_in <= fromTable->axisX[0])
-  {
-    fromTable->cache.lastOutput = fromTable->values[0];
-  }
-  //Finally if none of that is found
   else
   {
-    //1st check is whether we're still in the same X bin as last time
+    axis_t X = X_in;
+    fromTable->cache.lastXMax = find_bin(X, fromTable->axisX, 0, sizeT-1, fromTable->cache.lastXMax);
     axis_t xMaxValue = fromTable->axisX[fromTable->cache.lastXMax];
     axis_t xMinValue = fromTable->axisX[fromTable->cache.lastXMax-1];
-    if ( (X_in <= xMaxValue) && (X_in > xMinValue) )
+
+    if (X==xMaxValue)
     {
-      fromTable->cache.lastOutput = interpolate(fromTable, X_in, xMaxValue, xMinValue);
+      fromTable->cache.lastOutput = fromTable->values[fromTable->cache.lastXMax];
+    }
+    else if (X==xMinValue)
+    {
+      fromTable->cache.lastOutput = fromTable->values[fromTable->cache.lastXMax-1];
     }
     else
     {
-      //If we're not in the same bin, loop through to find where we are
-      xMaxValue = fromTable->axisX[sizeT-1]; // init xMaxValue in preparation for loop.
-      for (fromTable->cache.lastXMax = sizeT-1; fromTable->cache.lastXMax > 0; --(fromTable->cache.lastXMax))
-      {
-        //Checks the case where the X value is exactly what was requested
-        if (X_in == xMaxValue)
-        {
-          fromTable->cache.lastOutput = fromTable->values[fromTable->cache.lastXMax]; //Simply return the coresponding value
-          break;
-        }
-        else
-        {
-          xMinValue = fromTable->axisX[fromTable->cache.lastXMax-1]; // fetch next Min
-          if (X_in > xMinValue)
-          {
-            // Value is in the current bin
-            fromTable->cache.lastOutput = interpolate(fromTable, X_in, xMaxValue, xMinValue);
-            break;
-          }
-          // Otherwise, continue to next bin
-          xMaxValue = xMinValue; // for the next bin, our Min is their Max
-        }
-      }
+      fromTable->cache.lastOutput = interpolate(fromTable, X, xMaxValue, xMinValue);
     }
-  } //X_in same as last time
+  }
 
   fromTable->cache.cacheTime = getCacheTime(); //As we're not using the cache value, set the current secl value to track when this new value was calc'd
   fromTable->cache.lastInput = X_in;
