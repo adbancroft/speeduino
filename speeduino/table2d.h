@@ -56,16 +56,21 @@ static inline value_t interpolate(const table2D<axis_t, value_t, sizeT> *fromTab
 
   value_t yMax = fromTable->values[fromTable->cache.lastXMax];
   value_t yMin = fromTable->values[fromTable->cache.lastXMax - 1];
-  // We convert everything to unsigned for performance reasons
-  // and convert back to signed at the end.
-  int8_t multiplier = yMax<yMin ? -1 : 1;
 
   u_common_t binDistance = X - xMinValue;
   u_common_t binWidth = xMaxValue - xMinValue;
 
-  u_common_t valueWidth = multiplier * (yMax - yMin);
+  // If the scale-to range is inverted we convert to unsigned and invert the result
+  // This helps performance and simplifies the code.
+  if (yMax<yMin)
+  {
+    u_common_t valueWidth = -1 * (yMax - yMin);
+    u_common_t scaled = muldiv(valueWidth, binDistance, binWidth);
+    return yMin + (-1 * scaled);
+  }
+  u_common_t valueWidth = yMax - yMin;
   u_common_t scaled = muldiv(valueWidth, binDistance, binWidth);
-  return yMin + (multiplier * scaled);
+  return yMin + scaled;
 }
 
 template <typename axis_t, typename value_t, uint8_t sizeT>
