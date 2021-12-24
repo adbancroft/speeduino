@@ -346,10 +346,6 @@ static inline int16_t LOW_PASS_FILTER(int16_t input, uint8_t alpha, int16_t prio
   return (uint32_t)preshift >> 8U;
 }
 
-// We want to use the gcc intrinsic function here.
-#pragma push_macro("abs")
-#undef abs
-
 /**
  * @defgroup muldiv muldiv
  * @brief Optimised calculation of (a*b)/c.
@@ -387,7 +383,7 @@ inline uint8_t muldiv(uint8_t a, uint8_t b, uint8_t div)
     return ((uint16_t)a * (uint16_t)b) / (uint16_t)div;
 }
 
-inline int16_t muldiv(const int16_t &a, const int16_t &b, const int16_t &div)
+inline int16_t muldiv(const int16_t a, const int16_t b, const int16_t div)
 {
     constexpr int16_t overflow_threshold = 182; // sqrt(INT16_MAX) + 1
     if (abs(a)<overflow_threshold && abs(b)<overflow_threshold)
@@ -398,17 +394,17 @@ inline int16_t muldiv(const int16_t &a, const int16_t &b, const int16_t &div)
     return ((int32_t)a * (int32_t)b) / (int32_t)div;
 }
 
-inline uint16_t muldiv(const uint16_t &a, const uint16_t &b, const uint16_t &div)
+inline uint16_t muldiv(const uint16_t a, const uint16_t b, const uint16_t div)
 {
     return udiv_32_16((uint32_t)a * (uint32_t)b, div);
 }
 
-inline int32_t muldiv(const int32_t &a, const int32_t &b, const int32_t &div)
+inline int32_t muldiv(const int32_t a, const int32_t b, const int32_t div)
 {
     return (a * b) / div;
 }
 
-inline uint32_t muldiv(const uint32_t &a, const uint32_t &b, const uint32_t &div)
+inline uint32_t muldiv(const uint32_t a, const uint32_t b, const uint32_t div)
 {
     uint32_t dividend = a * b;
 #ifdef USE_LIBDIVIDE    
@@ -419,8 +415,51 @@ inline uint32_t muldiv(const uint32_t &a, const uint32_t &b, const uint32_t &div
     return dividend / div;
 }
 
-#pragma pop_macro("abs")
-
 /** @} */
+
+/* @brief Integer rescaling from one range to another
+ *
+ * Map a value from one range to another. The ranges can have different types.
+ * Assumes the input range is ascending.
+ * The output range can be either ascending or descending.
+ * 
+ * @param fromValue the value to rescale
+ * @param fromMin the minimum value of the input range
+ * @param fromMax the maximum value of the input range
+ * @param toMin the minimum value of the output range
+ * @param toMax the maximum value of the output range
+ */
+template <typename from_t, typename to_t>
+static inline to_t rescale(const from_t fromValue, const from_t fromMin, const from_t fromMax, const to_t toMin, const to_t toMax) 
+{
+    /* Float version (if m, yMax, yMin and n were float's)
+        int yVal = (m * (yMax - yMin)) / n;
+    */
+
+    // We use unsigned types for performance and code simplicity.
+    typedef typename std::make_unsigned<from_t>::type unsigned_axis_t;
+    typedef typename std::make_unsigned<to_t>::type unsigned_value_t;
+    
+    // Pick the wider of the two types to use for the calculation
+    // Note that std::common_type will not do what we want here, as it will use integer
+    // calculation promotion rules. So everything will be "int" at a minimum - our
+    // goal is to use the narrowest type possible for performance reasons.
+    typedef typename std::conditional<(sizeof(unsigned_axis_t) >= sizeof(unsigned_value_t)), unsigned_axis_t, unsigned_value_t>::type u_common_t;
+
+    u_common_t fromDistance = fromValue - fromMin;
+    u_common_t fromWidth = fromMax - fromMin;
+
+    // If the scale-to range is inverted we convert to unsigned and invert the result
+    // This helps performance and simplifies the code.
+    if (toMax<toMin)
+    {
+        u_common_t toWidth = -1 * (toMax - toMin);
+        u_common_t scaled = muldiv(toWidth, fromDistance, fromWidth);
+        return toMin + (-1 * scaled);
+    }
+    u_common_t toWidth = toMax - toMin;
+    u_common_t scaled = muldiv(toWidth, fromDistance, fromWidth);
+    return toMin + scaled;  
+}
 
 #endif
