@@ -41,39 +41,9 @@ static inline uint8_t getCacheTime(void) {
 #endif
 }
 
-template <typename axis_t, typename value_t, uint8_t sizeT>
-static inline value_t interpolate(const table2D<axis_t, value_t, sizeT> *fromTable, const axis_t X, const axis_t xMaxValue, const axis_t xMinValue)
-{
-  /* Float version (if m, yMax, yMin and n were float's)
-      int yVal = (m * (yMax - yMin)) / n;
-  */
-
-  typedef typename std::make_unsigned<axis_t>::type unsigned_axis_t;
-  typedef typename std::make_unsigned<value_t>::type unsigned_value_t;
-  // Pick the wider of the two types to use for the calculation
-  // Note that std::common_type will not do what we want here, as it will use integer
-  // calculation promotion rules. So everything will be "int" at a minimum.
-  typedef typename std::conditional<(sizeof(unsigned_axis_t) >= sizeof(unsigned_value_t)), unsigned_axis_t, unsigned_value_t>::type u_common_t;
-
-  value_t yMax = fromTable->values[fromTable->cache.lastXMax];
-  value_t yMin = fromTable->values[fromTable->cache.lastXMax - 1];
-
-  u_common_t binDistance = X - xMinValue;
-  u_common_t binWidth = xMaxValue - xMinValue;
-
-  // If the scale-to range is inverted we convert to unsigned and invert the result
-  // This helps performance and simplifies the code.
-  if (yMax<yMin)
-  {
-    u_common_t valueWidth = -1 * (yMax - yMin);
-    u_common_t scaled = muldiv(valueWidth, binDistance, binWidth);
-    return yMin + (-1 * scaled);
-  }
-  u_common_t valueWidth = yMax - yMin;
-  u_common_t scaled = muldiv(valueWidth, binDistance, binWidth);
-  return yMin + scaled;
-}
-
+/*
+ * @brief Lookup a value in a curve, interpolating if necessary
+ */
 template <typename axis_t, typename value_t, uint8_t sizeT>
 value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_t X_in)
 {
@@ -97,11 +67,11 @@ value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_t X_in
     }
     else if (X==xMinValue)
     {
-      fromTable->cache.lastOutput = fromTable->values[fromTable->cache.lastXMax-1];
+      fromTable->cache.lastOutput = fromTable->values[fromTable->cache.lastXMax - 1];
     }
     else
     {
-      fromTable->cache.lastOutput = interpolate(fromTable, X, xMaxValue, xMinValue);
+      fromTable->cache.lastOutput = rescale(X, xMinValue, xMaxValue, fromTable->values[fromTable->cache.lastXMax - 1], fromTable->values[fromTable->cache.lastXMax]);
     }
   }
 
@@ -112,9 +82,13 @@ value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_t X_in
 #include <clamp_cast.hpp>
 #include <bits/no_min_max.h>
 
+/*
+ * @brief Lookup a value in a curve, interpolating if necessary
+ */
 template <typename axis_t, typename value_t, uint8_t sizeT, typename axis_query_t>
 inline value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_query_t X_in)
 {
+  // This function is only here to skip casting in callers if necessary
   axis_t X = clamp_cast<axis_t>(X_in);
   return table2D_getValue<axis_t, value_t, sizeT>(fromTable, X);
 }
