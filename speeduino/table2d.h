@@ -4,7 +4,7 @@
 #if !defined(UNIT_TEST)
 #include "currentstatus.h"
 #endif
-#include "src/stl/type_traits"
+#include <type_traits>
 #include "maths.h"
 #include "array_utils.h"
 
@@ -78,8 +78,7 @@ value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_t X_in
   return fromTable->cache.lastOutput;
 }
 
-#include <clamp_cast.hpp>
-#include <bits/no_min_max.h>
+#include <limits>
 
 /*
  * @brief Lookup a value in a curve, interpolating if necessary
@@ -88,8 +87,9 @@ template <typename axis_t, typename value_t, uint8_t sizeT, typename axis_query_
 inline value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_query_t X_in)
 {
   // This function is only here to skip casting in callers if necessary
-  axis_t X = clamp_cast<axis_t>(X_in);
+  
+  // Clamp the input to the range of the axis. Using a cast would reinterpret the bit pattern
+  // which isn't what we want.
+  axis_t X = min(max(X_in, (std::numeric_limits<axis_t>::min)()), (std::numeric_limits<axis_t>::max)());
   return table2D_getValue<axis_t, value_t, sizeT>(fromTable, X);
 }
-
-POP_MINMAX()
