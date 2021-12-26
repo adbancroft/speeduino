@@ -1,6 +1,8 @@
 #include "table3d_interpolate.h"
 #include "maths.h"
 #include "array_utils.h"
+#include "maths.h"
+#include "src/stl/type_traits"
 
 // ============================= Axis Bin Searching =========================
 
@@ -57,16 +59,18 @@ static inline QU1X8_t compute_bin_position(table3d_axis_t value, const table3d_d
   if (value==binMinValue) { return 0; }
   table3d_axis_t binMaxValue = pAxis[bin];
   if (value==binMaxValue) { return QU1X8_ONE; }
-  table3d_axis_t binWidth = binMaxValue-binMinValue;
+
+  typedef typename std::make_unsigned<table3d_axis_t>::type utable3d_axis_t;
 
   // Since we can have bins of any width, we need to use 
   // 24.8 fixed point to avoid overflow
-  table3d_axis_t binPosition = value - binMinValue;
-  uint32_t p = (uint32_t)binPosition << QU1X8_INTEGER_SHIFT;
-  // But since we are computing the ratio (0 to 1), p is guaranteed to be
+  utable3d_axis_t binWidth = binMaxValue-binMinValue;
+  utable3d_axis_t binDistance = value - binMinValue;
+  // Since we are computing the ratio (0 to 1), p is guarenteed to be
   // less than binWidth and thus the division below will result in a value
   // <=1. So we can reduce the data type from 24.8 (uint32_t) to 1.8 (uint16_t)
-  return udiv_32_16(p, (uint16_t)binWidth);  
+  // return p / binWidth; 
+  return (QU1X8_t)muldiv(binDistance, QU1X8_ONE, binWidth); 
 }
 
 
