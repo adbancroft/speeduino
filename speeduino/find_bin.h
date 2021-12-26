@@ -29,6 +29,10 @@ inline uint8_t find_bin(
   // index of the bin pair, we can't go below minElement + stride.
   uint8_t minBinIndex = minElement + stride;
 
+  // This is deliberate - this is a very hot code path, and defensively checking lastBinMax
+  // adds 5-20% overhead.
+  //lastBinMax = std::min(std::max(lastBinMax, minBinIndex), maxElement);
+
   // Check the cached last bin and either side first - it's likely that this will give a hit under
   // real world conditions
 

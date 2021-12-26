@@ -7,7 +7,7 @@ using byte = uint8_t;
 #endif
 #include <type_traits>
 #include "maths.h"
-#include "array_utils.h"
+#include "find_bin.h"
 
 template <typename axis_t, typename value_t>
 struct table2D_lookup_cache 
