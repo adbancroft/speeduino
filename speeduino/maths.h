@@ -386,7 +386,7 @@ inline uint8_t muldiv(uint8_t a, uint8_t b, uint8_t div)
 inline int16_t muldiv(const int16_t a, const int16_t b, const int16_t div)
 {
     constexpr int16_t overflow_threshold = 182; // sqrt(INT16_MAX) + 1
-    if (abs(a)<overflow_threshold && abs(b)<overflow_threshold)
+    if (__builtin_abs(a)<overflow_threshold && __builtin_abs(b)<overflow_threshold)
     {
         int16_t numerator = a * b;
         return numerator / div;
@@ -414,6 +414,8 @@ inline uint32_t muldiv(const uint32_t a, const uint32_t b, const uint32_t div)
 #endif
     return dividend / div;
 }
+
+#include "src/stl/type_traits"
 
 /** @} */
 
