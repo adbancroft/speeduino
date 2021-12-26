@@ -130,6 +130,26 @@ void test_table2dLookup_underMin(void)
 }
 
 
+void test_table2dLookup_mismatch_lookup_type(void)
+{
+    // Test that mimatched types are clamped to the lookup type min/max
+    setup_test_subjects();
+
+    {
+        int16_t lookupValue_s16 = INT16_MIN/2;
+        uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, lookupValue_s16);
+        TEST_ASSERT_EQUAL(table2d_u8_u8.values[0], u8_u8_result);
+        TEST_ASSERT_EQUAL(1, table2d_u8_u8.cache.lastXMax);
+    }
+
+    {
+        uint16_t lookupValue_u16 = UINT16_MAX;
+        int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, lookupValue_u16);
+        TEST_ASSERT_EQUAL(table2d_s16_s16.values[TEST_TABLE2D_SIZE-1], s16_s16_result);
+        TEST_ASSERT_EQUAL(TEST_TABLE2D_SIZE-1, table2d_s16_s16.cache.lastXMax);      
+    }
+}
+
 void test_table2d_all_decrementing(void)
 {
     setup_test_subjects();
@@ -165,5 +185,6 @@ void testTable2d()
     RUN_TEST(test_table2dLookup_overMax);
     RUN_TEST(test_table2dLookup_underMin);
     RUN_TEST(test_table2d_all_decrementing); 
+    RUN_TEST(test_table2dLookup_mismatch_lookup_type);
   }
 }
