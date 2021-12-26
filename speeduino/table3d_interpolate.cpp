@@ -1,7 +1,7 @@
 #include "table3d_interpolate.h"
 #include "find_bin.h"
 #include "maths.h"
-#include "src/stl/type_traits"
+#include <type_traits>
 
 // ============================= Axis Bin Searching =========================
 

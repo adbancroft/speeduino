@@ -412,7 +412,7 @@ inline uint32_t muldiv(const uint32_t a, const uint32_t b, const uint32_t div)
     return dividend / div;
 }
 
-#include "src/stl/type_traits"
+#include <type_traits>
 
 /** @} */
 

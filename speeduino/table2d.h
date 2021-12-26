@@ -9,13 +9,6 @@ using byte = uint8_t;
 #include "maths.h"
 #include "find_bin.h"
 
-#if !defined(max)
-  #define max(a,b) (((a) > (b)) ? (a) : (b))
-#endif
-#if !defined(min)
-  #define min(a,b) (((a) < (b)) ? (a) : (b))
-#endif
-
 template <typename axis_t, typename value_t>
 struct table2D_lookup_cache 
 {
@@ -86,7 +79,7 @@ value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_t X_in
   return fromTable->cache.lastOutput;
 }
 
-#include <limits>
+#include "saturated_cast.hpp"
 
 /*
  * @brief Lookup a value in a curve, interpolating if necessary
@@ -96,8 +89,8 @@ inline value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis
 {
   // This function is only here to skip casting in callers if necessary
   
-  // Clamp the input to the range of the axis. Using a cast would reinterpret the bit pattern
+  // Clamp the input to the range of the axis type. Using a cast would reinterpret the bit pattern
   // which isn't what we want.
-  axis_t X = min(max(X_in, (std::numeric_limits<axis_t>::min)()), (std::numeric_limits<axis_t>::max)());
+  axis_t X = saturated_cast<axis_t>(X_in);
   return table2D_getValue<axis_t, value_t, sizeT>(fromTable, X);
 }
