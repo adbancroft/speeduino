@@ -8,6 +8,13 @@
 #include "maths.h"
 #include "find_bin.h"
 
+#if !defined(max)
+  #define max(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+#if !defined(min)
+  #define min(a,b) (((a) < (b)) ? (a) : (b))
+#endif
+
 template <typename axis_t, typename value_t>
 struct table2D_lookup_cache 
 {
