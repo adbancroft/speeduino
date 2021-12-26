@@ -1,6 +1,5 @@
 #include "table3d_interpolate.h"
-#include "maths.h"
-#include "array_utils.h"
+#include "find_bin.h"
 #include "maths.h"
 #include "src/stl/type_traits"
 
