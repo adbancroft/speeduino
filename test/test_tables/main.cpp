@@ -3,6 +3,9 @@
 
 #include "tests_tables.h"
 #include "test_table2d.h"
+// #include "tests_maths.h"
+#include "test_find_bin.h"
+#include "test_saturated_cast.h"
 
 #define UNITY_EXCLUDE_DETAILS
 
@@ -18,6 +21,9 @@ void setup()
 
     testTables();
     testTable2d();
+    // testMaths();
+    testFindBin();
+    test_saturated_cast();
 
     UNITY_END(); // stop unit testing
 }

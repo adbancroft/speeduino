@@ -5,6 +5,7 @@ typedef uint8_t byte;
 #include "..\test_misc\tests_tables.cpp"
 #include "..\test_misc\test_table2d.cpp"
 #include "..\test_misc\test_find_bin.cpp"
+#include "..\test_misc\test_saturated_cast.cpp"
 
 int main(int argc, char **argv) {
   UNITY_BEGIN();
@@ -15,6 +16,8 @@ int main(int argc, char **argv) {
   testTable2d();
 
   testFindBin();
+
+  test_saturated_cast();
 
   UNITY_END();
 
