@@ -7,11 +7,14 @@
 
 #define _countof(x) (sizeof(x) / sizeof (x[0]))
 
-#if defined(PROGMEM)
-const PROGMEM table3d_value_t values[] = {
+#if defined(ARDUINO)
+#include <avr/pgmspace.h>
 #else
-const table3d_value_t values[] = {
+#define PROGMEM
+#define memcpy_P memcpy
 #endif
+
+const PROGMEM uint8_t values[] = {
  //0    1    2   3     4    5    6    7    8    9   10   11   12   13    14   15
 34,  34,  34,  34,  34,  34,  34,  34,  34,  35,  35,  35,  35,  35,  35,  35, 
 34,  35,  36,  37,  39,  41,  42,  43,  43,  44,  44,  44,  44,  44,  44,  44, 
@@ -98,7 +101,7 @@ void setup_TestTable(void)
       table_row_iterator itRow = *itZ;
       while (!itRow.at_end())
       {
-#if defined(PROGMEM)
+#if defined(ARDUINO)
         *itRow = pgm_read_byte(pZValue);
 #else
         *itRow = *pZValue;
@@ -121,8 +124,9 @@ void testTables()
   RUN_TEST(test_tableLookup_underMinX);
   RUN_TEST(test_tableLookup_underMinY);
   RUN_TEST(test_tableLookup_roundUp);
-  //RUN_TEST(test_all_incrementing);
-  
+#if !defined(ARDUINO)
+  RUN_TEST(test_all_incrementing);
+#endif
 }
 
 void test_tableLookup_50pct(void)
