@@ -1,14 +1,24 @@
-#include <Arduino.h>
 #include <unity.h>
-
 #include "tests_tables.h"
 #include "test_table2d.h"
-// #include "tests_maths.h"
 #include "test_find_bin.h"
 #include "test_saturated_cast.h"
 
-#define UNITY_EXCLUDE_DETAILS
+void run_tests(void)
+{
+    UNITY_BEGIN();    // IMPORTANT LINE!
 
+    testTables();
+    testTable2d();
+    testFindBin();
+    test_saturated_cast();
+
+    UNITY_END(); // stop unit testing    
+}
+
+#if defined(ARDUINO)
+#include <Arduino.h>
+// Device build
 void setup()
 {
     pinMode(LED_BUILTIN, OUTPUT);
@@ -17,15 +27,7 @@ void setup()
     // if board doesn't support software reset via Serial.DTR/RTS
     delay(2000);
 
-    UNITY_BEGIN();    // IMPORTANT LINE!
-
-    testTables();
-    testTable2d();
-    // testMaths();
-    testFindBin();
-    test_saturated_cast();
-
-    UNITY_END(); // stop unit testing
+    run_tests();
 }
 
 void loop()
@@ -36,3 +38,13 @@ void loop()
     digitalWrite(LED_BUILTIN, LOW);
     delay(250);
 }
+#else
+
+#include "table3d_interpolate.cpp"
+
+// Native build
+int main(int argc, char **argv) {
+  run_tests();
+  return 0;
+}
+#endif
