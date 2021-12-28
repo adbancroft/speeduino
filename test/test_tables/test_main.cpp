@@ -3,6 +3,7 @@
 #include "test_table2d.h"
 #include "test_find_bin.h"
 #include "test_saturated_cast.h"
+#include "test_muldiv.h"
 
 void run_tests(void)
 {
@@ -12,6 +13,7 @@ void run_tests(void)
     testTable2d();
     testFindBin();
     test_saturated_cast();
+    testmuldiv();
 
     UNITY_END(); // stop unit testing    
 }
