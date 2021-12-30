@@ -4,6 +4,7 @@
 #include "test_find_bin.h"
 #include "test_saturated_cast.h"
 #include "test_muldiv.h"
+#include "test_rescale.h"
 
 void run_tests(void)
 {
@@ -14,6 +15,7 @@ void run_tests(void)
     testFindBin();
     test_saturated_cast();
     testmuldiv();
+    testrescale();
 
     UNITY_END(); // stop unit testing    
 }

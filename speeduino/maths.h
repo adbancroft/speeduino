@@ -346,9 +346,20 @@ static inline int16_t LOW_PASS_FILTER(int16_t input, uint8_t alpha, int16_t prio
   return (uint32_t)preshift >> 8U;
 }
 
+template <typename T, typename I>
+inline T muldiv_simple(T a, T b, T div)
+{
+    return ((I)a * b) / div;
+
+    // This version is applies the correct rounding (+- c/2), but slower & uses more memory
+    // I numerator = ((I)a * b);
+    // T offset = numerator<0 ? -c/2 : c/2;
+    // return (numerator + offset) / c;    
+}
+
 /**
  * @defgroup muldiv muldiv
- * @brief Optimised calculation of (a*b)/c.
+ * @brief Optimised calculation of (a*b)/c
  *
  * This family of functions will calculate (a*b)/c using the narrowest type possible,
  * which should be the fastest method on AVR. Division is implemented in
@@ -372,7 +383,7 @@ inline int8_t muldiv(int8_t a, int8_t b, int8_t div)
     // By the time we condtionally check for potential overflow, including
     // accounting for negative operands, we are just as quick promoting
     // to int16_t & applying the multiply + divide.
-    return ((int16_t)a * (int16_t)b) / (int16_t)div;
+    return muldiv_simple<int8_t, int16_t>(a, b, div);
 }
 
 inline uint8_t muldiv(uint8_t a, uint8_t b, uint8_t div)
@@ -380,7 +391,7 @@ inline uint8_t muldiv(uint8_t a, uint8_t b, uint8_t div)
     // By the time we condtionally check for potential overflow,
     // we are just as quick promoting to int16_t & applying the 
     // multiply + divide.
-    return ((uint16_t)a * (uint16_t)b) / (uint16_t)div;
+    return muldiv_simple<uint8_t, uint16_t>(a, b, div);
 }
 
 inline int16_t muldiv(const int16_t a, const int16_t b, const int16_t div)
@@ -388,10 +399,10 @@ inline int16_t muldiv(const int16_t a, const int16_t b, const int16_t div)
     constexpr int16_t overflow_threshold = 182; // sqrt(INT16_MAX) + 1
     if (__builtin_abs(a)<overflow_threshold && __builtin_abs(b)<overflow_threshold)
     {
-        int16_t numerator = a * b;
-        return numerator / div;
+        // Fast path - avoid int32_t promotion
+        return muldiv_simple<int16_t, int16_t>(a, b, div);
     }
-    return ((int32_t)a * (int32_t)b) / (int32_t)div;
+    return muldiv_simple<int16_t, int32_t>(a, b, div);
 }
 
 inline uint16_t muldiv(const uint16_t a, const uint16_t b, const uint16_t div)
@@ -401,7 +412,7 @@ inline uint16_t muldiv(const uint16_t a, const uint16_t b, const uint16_t div)
 
 inline int32_t muldiv(const int32_t a, const int32_t b, const int32_t div)
 {
-    return (a * b) / div;
+    return muldiv_simple<int32_t, int32_t>(a, b, div);
 }
 
 inline uint32_t muldiv(const uint32_t a, const uint32_t b, const uint32_t div)
@@ -455,9 +466,9 @@ static inline to_t rescale(const from_t fromValue, const from_t fromMin, const f
     // This helps performance and simplifies the code.
     if (toMax<toMin)
     {
-        u_common_t toWidth = -1 * (toMax - toMin);
+        u_common_t toWidth = toMin - toMax;
         u_common_t scaled = muldiv(toWidth, fromDistance, fromWidth);
-        return toMin + (-1 * scaled);
+        return toMin - scaled;
     }
     u_common_t toWidth = toMax - toMin;
     u_common_t scaled = muldiv(toWidth, fromDistance, fromWidth);
