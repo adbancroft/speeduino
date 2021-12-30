@@ -4,42 +4,52 @@
 #include "timer.hpp"
 
 
-void test_muldiv_u16()
+template <typename T>
+void test_muldiv_t(T min, T max, T step)
 {
-    constexpr uint16_t step = 11;
-    for (uint16_t a = 1; a < UINT16_MAX/3; a+=step)
+    const T range = max - min;
+    for (T a = min; a < max; a+= step)
     {
-        uint16_t b = (UINT16_MAX/3) - a;
-        uint16_t div = a + b;
-        uint16_t d = muldiv(a, b, div);
-        uint16_t expected = (float)a * (float)b / (float)div;
+        T b = (max - a)/3;
+        T div = b+3;
+#if defined(ARDUINO)
+        if (div==0) { div = 1; }
+#endif
+        T d = muldiv(a, b, div);
+        T expected = (float)a * (float)b / (float)div;
         if (expected!=d)
         {
             char buffer[256];
-            sprintf(buffer, "a=%u, b=%u, div=%u, expected=%u, d=%u", a, b, div, expected, d);
+            if (std::is_unsigned<T>::value)
+            {
+                sprintf(buffer, "a=%u, b=%u, div=%u, expected=%u, d=%u", a, b, div, expected, d);
+            } else {
+                sprintf(buffer, "a=%d, b=%d, div=%d, expected=%d, d=%d", a, b, div, expected, d);
+            }
             TEST_MESSAGE(buffer);
         }
         TEST_ASSERT_EQUAL(expected, d);
     }
 }
 
+void test_muldiv_u8()
+{
+    test_muldiv_t<uint8_t>(1, UINT8_MAX, 1);
+}
+
+void test_muldiv_s8()
+{
+    test_muldiv_t<int8_t>(INT8_MIN, INT8_MAX, 1);
+}
+
+void test_muldiv_u16()
+{
+    test_muldiv_t<uint16_t>(1, UINT16_MAX/3, 11);
+}
+
 void test_muldiv_s16()
 {
-    constexpr int16_t step = 23;
-    for (int16_t a = -(INT16_MAX/3); a < INT16_MAX/3; a+=step)
-    {
-        int16_t b = -a;
-        int16_t div = abs(a) + abs(b);
-        int16_t d = muldiv(a, b, div);
-        int16_t expected = (float)a * (float)b / (float)div;
-        if (expected!=d)
-        {
-            char buffer[256];
-            sprintf(buffer, "a=%d, b=%d, div=%d, expected=%d, d=%d", a, b, div, expected, d);
-            TEST_MESSAGE(buffer);
-        }
-        TEST_ASSERT_EQUAL(expected, d);
-    }
+    test_muldiv_t<int16_t>(-(INT16_MAX/3), INT16_MAX/3, 23);
 }
 
 void test_muldiv_u16_perf()
@@ -59,7 +69,7 @@ void test_muldiv_u16_perf()
         {
             uint16_t b = max - a;
             uint16_t div = a + b;
-            checkSumNative += (uint32_t)a * (uint32_t)b / (uint32_t)div;
+            checkSumNative += muldiv_simple<uint32_t, uint32_t>(a, b, div);
         }
     }
     native_timer.stop();
@@ -104,7 +114,7 @@ void test_muldiv_s16_perf()
         {
             int16_t b = -a;
             int16_t div = abs(a) + abs(b);
-            checkSumNative += (int32_t)a * (int32_t)b / (int32_t)div;
+            checkSumNative += muldiv_simple<int32_t, int32_t>(a, b, div);
         }
     }
     native_timer.stop();
@@ -133,6 +143,8 @@ void test_muldiv_s16_perf()
 
 void testmuldiv()
 {
+    RUN_TEST(test_muldiv_u8);
+    RUN_TEST(test_muldiv_s8);
     RUN_TEST(test_muldiv_u16);
     RUN_TEST(test_muldiv_s16);
 #if defined(ARDUINO)    
