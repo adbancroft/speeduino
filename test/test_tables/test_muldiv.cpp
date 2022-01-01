@@ -3,18 +3,27 @@
 #include "maths.h"
 #include "timer.hpp"
 
+template <typename T> inline T get_b(T a, T max)
+{
+    return (max - a)/3;
+}
+template <typename T> inline T get_div(T, T b)
+{
+    T div = b+3;
+#if !defined(ARDUINO)
+    if (div==0) { div = 1; }
+#endif
+    return div;
+}
+
 
 template <typename T>
 void test_muldiv_t(T min, T max, T step)
 {
-    const T range = max - min;
     for (T a = min; a < max; a+= step)
     {
-        T b = (max - a)/3;
-        T div = b+3;
-#if defined(ARDUINO)
-        if (div==0) { div = 1; }
-#endif
+        T b = get_b(a, max);
+        T div = get_div(a, b);
         T d = muldiv(a, b, div);
         T expected = (float)a * (float)b / (float)div;
         if (expected!=d)
@@ -52,38 +61,33 @@ void test_muldiv_s16()
     test_muldiv_t<int16_t>(-(INT16_MAX/3), INT16_MAX/3, 23);
 }
 
-void test_muldiv_u16_perf()
-{
-    constexpr uint16_t step = 11;
-    // We mostly use muldiv() for small numbers, which is where we gain all the performance
-    // E.g. various axis bin widths which are small. RPM probably <500, Load<20, TPS<10, Coolant<75 etc.    
-    constexpr uint16_t max = 256;
-    constexpr uint16_t iters = 128;
 
+template <typename T, typename TPromote>
+void test_muldiv_perf_t(uint16_t iters, const char *msgTag, T min, T max, T step)
+{
     timer native_timer;
-    uint32_t checkSumNative = 0;
+    int32_t checkSumNative = 0;
     native_timer.start();
     for (uint16_t loop=0; loop<iters; ++loop)
     {
-        for (uint16_t a = 1; a < max; a+=step)
+        for (T a = min; a < max; a+= step)
         {
-            uint16_t b = max - a;
-            uint16_t div = a + b;
-            checkSumNative += muldiv_simple<uint32_t, uint32_t>(a, b, div);
+            T b = get_b(a, max);
+            T div = get_div(a, b);
+            checkSumNative += muldiv_simple<T, TPromote>(a, b, div);
         }
     }
     native_timer.stop();
 
     timer mulDiv_timer;
-    uint32_t checkSumMuldiv = 0;
-
+    int32_t checkSumMuldiv = 0;
     mulDiv_timer.start();
     for (uint16_t loop=0; loop<iters; ++loop)
     {
-        for (uint16_t a = 1; a < max; a+=step)
+        for (T a = min; a < max; a+= step)
         {
-            uint16_t b = max - a;
-            uint16_t div = a + b;
+            T b = get_b(a, max);
+            T div = get_div(a, b);
             checkSumMuldiv += muldiv(a, b, div);
         }
     }
@@ -91,54 +95,24 @@ void test_muldiv_u16_perf()
 
     TEST_ASSERT_EQUAL(checkSumNative, checkSumMuldiv);
     char buffer[256];
-    sprintf(buffer, "muldiv u16 timing: %lu, %lu", native_timer.duration_micros(), mulDiv_timer.duration_micros());
+    sprintf(buffer, "muldiv %s timing: %lu, %lu", msgTag, native_timer.duration_micros(), mulDiv_timer.duration_micros());
     TEST_MESSAGE(buffer);
     TEST_ASSERT_LESS_THAN(native_timer.duration_micros(), mulDiv_timer.duration_micros());
+
+}
+
+void test_muldiv_u16_perf()
+{
+    // We mostly use muldiv() for small numbers, which is where we gain all the performance
+    // E.g. various axis bin widths which are small. RPM probably <500, Load<20, TPS<10, Coolant<75 etc.    
+    test_muldiv_perf_t<uint16_t, uint32_t>(128, "u16", 0, 512, 11);
 }
 
 void test_muldiv_s16_perf()
 {
-    constexpr int16_t step = 11;
     // We mostly use muldiv() for small numbers, which is where we gain all the performance
-    // E.g. various axis bin widths which are small. RPM probably <500, Load<20, TPS<10, Coolant<75 etc.  
-    constexpr int16_t min = -128;  
-    constexpr int16_t max = 128;
-    constexpr int16_t iters = 128;
-
-    timer native_timer;
-    uint32_t checkSumNative = 0;
-    native_timer.start();
-    for (int16_t loop=0; loop<iters; ++loop)
-    {
-        for (int16_t a = min; a < max; a+=step)
-        {
-            int16_t b = -a;
-            int16_t div = abs(a) + abs(b);
-            checkSumNative += muldiv_simple<int32_t, int32_t>(a, b, div);
-        }
-    }
-    native_timer.stop();
-
-    timer mulDiv_timer;
-    uint32_t checkSumMuldiv = 0;
-
-    mulDiv_timer.start();
-    for (int16_t loop=0; loop<iters; ++loop)
-    {
-        for (int16_t a = min; a < max; a+=step)
-        {
-            int16_t b = -a;
-            int16_t div = abs(a) + abs(b);
-            checkSumMuldiv += muldiv(a, b, div);
-        }
-    }
-    mulDiv_timer.stop();
-
-    TEST_ASSERT_EQUAL(checkSumNative, checkSumMuldiv);
-    char buffer[256];
-    sprintf(buffer, "muldiv s16 timing: %lu, %lu", native_timer.duration_micros(), mulDiv_timer.duration_micros());
-    TEST_MESSAGE(buffer);
-    TEST_ASSERT_LESS_THAN(native_timer.duration_micros(), mulDiv_timer.duration_micros());
+    // E.g. various axis bin widths which are small. RPM probably <500, Load<20, TPS<10, Coolant<75 etc.    
+    test_muldiv_perf_t<int16_t, int32_t>(128, "s16", -256, 256, 11);
 }
 
 void testmuldiv()
