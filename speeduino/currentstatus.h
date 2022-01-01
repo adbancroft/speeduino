@@ -1,5 +1,9 @@
 #pragma once
 
+#include <stdint.h>
+
+typedef uint8_t byte;
+
 /** The status struct with current values for all 'live' variables.
 * In current version this is 64 bytes. Instantiated as global currentStatus.
 * int *ADC (Analog-to-digital value / count) values contain the "raw" value from AD conversion, which get converted to
