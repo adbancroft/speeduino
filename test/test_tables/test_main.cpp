@@ -45,6 +45,7 @@ void loop()
 #else
 
 #include "table3d_interpolate.cpp"
+#include "currentstatus.cpp"
 
 // Native build
 int main(int argc, char **argv) {

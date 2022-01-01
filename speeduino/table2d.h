@@ -1,11 +1,8 @@
 #pragma once
 
 #include <stdint.h>
-using byte = uint8_t;
-#if !defined(UNIT_TEST)
-#include "currentstatus.h"
-#endif
 #include <type_traits>
+#include "currentstatus.h"
 #include "maths.h"
 #include "find_bin.h"
 
@@ -34,11 +31,7 @@ struct table2D
 };
 
 static inline uint8_t getCacheTime(void) {
-#if !defined(UNIT_TEST)
   return currentStatus.secl;
-#else
-  return 0;
-#endif
 }
 
 /*
