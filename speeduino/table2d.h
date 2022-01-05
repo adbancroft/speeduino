@@ -9,6 +9,9 @@
 template <typename axis_t, typename value_t>
 struct table2D_lookup_cache 
 {
+  static_assert(std::is_integral<axis_t>::value, "T must be an integral type");
+  static_assert(std::is_integral<value_t>::value, "T must be an integral type");
+
   uint8_t lastXMax = 1U; // The axis bin search algo relies on this being 1 initially
 
   //Store the last input and output for caching
@@ -20,6 +23,9 @@ struct table2D_lookup_cache
 template <typename axis_t, typename value_t, uint8_t sizeT>
 struct table2D
 {
+  static_assert(std::is_integral<axis_t>::value, "T must be an integral type");
+  static_assert(std::is_integral<value_t>::value, "T must be an integral type");
+
   static constexpr uint8_t size = sizeT;
   typedef axis_t axis_type;
   typedef value_t value_type;
@@ -40,6 +46,9 @@ static inline uint8_t getCacheTime(void) {
 template <typename axis_t, typename value_t, uint8_t sizeT>
 value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_t X_in)
 {
+  static_assert(std::is_integral<axis_t>::value, "T must be an integral type");
+  static_assert(std::is_integral<value_t>::value, "T must be an integral type");
+
   //Check whether the X input is the same as last time this ran
   if( (X_in == fromTable->cache.lastInput) && (fromTable->cache.cacheTime == getCacheTime()) )
   {
@@ -80,6 +89,10 @@ value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_t X_in
 template <typename axis_t, typename value_t, uint8_t sizeT, typename axis_query_t>
 inline value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_query_t X_in)
 {
+  static_assert(std::is_integral<axis_t>::value, "T must be an integral type");
+  static_assert(std::is_integral<value_t>::value, "T must be an integral type");
+  static_assert(std::is_integral<axis_query_t>::value, "T must be an integral type");
+
   // This function is only here to skip casting in callers if necessary
   
   // Clamp the input to the range of the axis type. Using a cast would reinterpret the bit pattern

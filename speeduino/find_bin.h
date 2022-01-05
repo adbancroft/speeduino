@@ -1,10 +1,12 @@
 #pragma once
 
 #include <stdint.h>
+#include <type_traits>
 
 template <typename T>
 inline bool is_in_bin(const T &testValue, const T &min, const T &max)
 {
+  static_assert(std::is_integral<T>::value, "T must be an integral type");
   return testValue > min && testValue <= max;
 }
 
@@ -19,6 +21,8 @@ inline uint8_t find_bin(
   uint8_t maxElement,     // Axis index of the element with the highest value (at the other end of the array)
   uint8_t lastBinMax)     // The last result from this call - used to speed up searches
 {
+  static_assert(std::is_integral<T>::value, "T must be an integral type");
+
   // Direction to search (1 coventional, -1 to go backwards from pAxis)
   int8_t stride = maxElement>minElement ? 1 : -1;
   // It's quicker to increment/adjust this pointer than to repeatedly 

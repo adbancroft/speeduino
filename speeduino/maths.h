@@ -2,6 +2,7 @@
 #define MATH_H
 
 #include <stdint.h>
+#include <type_traits>
 
 #ifdef USE_LIBDIVIDE
 // We use pre-computed constant parameters with libdivide where possible. 
@@ -349,6 +350,7 @@ static inline int16_t LOW_PASS_FILTER(int16_t input, uint8_t alpha, int16_t prio
 template <typename T, typename I>
 inline T muldiv_simple(T a, T b, T div)
 {
+    static_assert(std::is_integral<T>::value, "T must be an integral type");
     return ((I)a * b) / div;
 
     // This version is applies the correct rounding (+- c/2), but slower & uses more memory
@@ -426,7 +428,6 @@ inline uint32_t muldiv(const uint32_t a, const uint32_t b, const uint32_t div)
     return dividend / div;
 }
 
-#include <type_traits>
 
 /** @} */
 
@@ -445,8 +446,11 @@ inline uint32_t muldiv(const uint32_t a, const uint32_t b, const uint32_t div)
 template <typename from_t, typename to_t>
 static inline to_t rescale(const from_t fromValue, const from_t fromMin, const from_t fromMax, const to_t toMin, const to_t toMax) 
 {
-    /* Float version (if m, yMax, yMin and n were float's)
-        int yVal = (m * (yMax - yMin)) / n;
+    static_assert(std::is_integral<from_t>::value, "from_t must be an integral type");
+    static_assert(std::is_integral<to_t>::value, "to_t must be an integral type");
+
+    /* Float version, if parameters were floats
+        int result = (fromValue * (toMax - toMin)) / (fromMax-fromMin);
     */
 
     // We use unsigned types for performance and code simplicity.
