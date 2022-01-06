@@ -10,6 +10,33 @@ inline bool is_in_bin(const T &testValue, const T &min, const T &max)
   return testValue > min && testValue <= max;
 }
 
+
+template <typename T>
+inline uint8_t linear_bin_search( const T value,          // Value to search for
+                                  const T *pAxis,         // The axis to search
+                                  uint8_t minBinIndex,    // Axis index of the element with the lowest value (at one end of the array)
+                                  uint8_t maxElement,     // Axis index of the element with the highest value (at the other end of the array)
+                                  int8_t stride)
+{
+  // We start at the maximum & work down, rather than looping from [0] up to [max]
+  // This is because the important tables (fuel and injection) will have the highest
+  // RPM at the top of the X axis, so starting there will mean the best case occurs 
+  // when the RPM is highest (and hence the CPU is needed most)
+  const T* pIter = pAxis + maxElement;
+  T vMax = *pIter;
+  pIter -= stride;
+  T vMin = *pIter;
+  while (maxElement!=minBinIndex && !is_in_bin(value, vMin, vMax))
+  {
+    maxElement -= stride;
+    pIter -= stride;
+    vMax = vMin;
+    vMin = *pIter;
+  }
+  return maxElement;
+}
+
+
 // Find the axis index for the top of the bin that covers the test value.
 // E.g. 4 in { 1, 3, 5, 7, 9 } would be 2
 // We assume the axis is in order.
@@ -75,16 +102,5 @@ inline uint8_t find_bin(
   }
 
   // No hits above, so run a linear search.
-  // We start at the maximum & work down, rather than looping from [0] up to [max]
-  // This is because the important tables (fuel and injection) will have the highest
-  // RPM at the top of the X axis, so starting there will mean the best case occurs 
-  // when the RPM is highest (and hence the CPU is needed most)
-  lastBinMax = maxElement;
-  pMax = pAxis + lastBinMax;
-  while (lastBinMax!=minBinIndex && !is_in_bin(value, *(pMax - stride), *pMax))
-  {
-    lastBinMax -= stride;
-    pMax -= stride;
-  }
-  return lastBinMax;
+  return linear_bin_search(value, pAxis, minBinIndex, maxElement, stride);
 }
