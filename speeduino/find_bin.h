@@ -10,26 +10,31 @@ inline bool is_in_bin(const T &testValue, const T &min, const T &max)
   return testValue > min && testValue <= max;
 }
 
+enum stride {
+    stride_inc = 1,
+    stride_dec = -1
+};
 
 template <typename T>
 inline uint8_t linear_bin_search( const T value,          // Value to search for
                                   const T *pAxis,         // The axis to search
                                   uint8_t minBinIndex,    // Axis index of the element with the lowest value (at one end of the array)
-                                  uint8_t maxElement,     // Axis index of the element with the highest value (at the other end of the array)
-                                  int8_t stride)
+                                  uint8_t maxElement)     // Axis index of the element with the highest value (at the other end of the array)
 {
+  stride direction = maxElement>minBinIndex ? stride_inc : stride_dec;
+
   // We start at the maximum & work down, rather than looping from [0] up to [max]
   // This is because the important tables (fuel and injection) will have the highest
   // RPM at the top of the X axis, so starting there will mean the best case occurs 
   // when the RPM is highest (and hence the CPU is needed most)
   const T* pIter = pAxis + maxElement;
   T vMax = *pIter;
-  pIter -= stride;
+  pIter -= direction;
   T vMin = *pIter;
   while (maxElement!=minBinIndex && !is_in_bin(value, vMin, vMax))
   {
-    maxElement -= stride;
-    pIter -= stride;
+    maxElement -= direction;
+    pIter -= direction;
     vMax = vMin;
     vMin = *pIter;
   }
@@ -51,14 +56,14 @@ inline uint8_t find_bin(
   static_assert(std::is_integral<T>::value, "T must be an integral type");
 
   // Direction to search (1 coventional, -1 to go backwards from pAxis)
-  int8_t stride = maxElement>minElement ? 1 : -1;
+  stride direction = maxElement>minElement ? stride_inc : stride_dec;
   // It's quicker to increment/adjust this pointer than to repeatedly 
   // index the array - minimum 2%, often >5%
   const T *pMax = nullptr;
   // minElement is at one end of the array, so the "lowest" bin 
-  // is [minElement, minElement+stride]. Since we're working with the upper
-  // index of the bin pair, we can't go below minElement + stride.
-  uint8_t minBinIndex = minElement + stride;
+  // is [minElement, minElement+direction]. Since we're working with the upper
+  // index of the bin pair, we can't go below minElement + direction.
+  uint8_t minBinIndex = minElement + direction;
 
   // This is deliberate - this is a very hot code path, and defensively checking lastBinMax
   // adds 5-20% overhead.
@@ -69,21 +74,21 @@ inline uint8_t find_bin(
 
   // Check if we're still in the same bin as last time
   pMax = pAxis + lastBinMax;
-  if (is_in_bin(value, *(pMax - stride), *pMax))
+  if (is_in_bin(value, *(pMax - direction), *pMax))
   {
     return lastBinMax;
   }
   // Check the bin above the last one
-  pMax = pMax - stride;
-  if (lastBinMax!=minBinIndex && is_in_bin(value, *(pMax - stride), *pMax))
+  pMax = pMax - direction;
+  if (lastBinMax!=minBinIndex && is_in_bin(value, *(pMax - direction), *pMax))
   {
-    return lastBinMax-stride;    
+    return lastBinMax-direction;    
   }
   // Check the bin below the last one
-  pMax += stride*2;
-  if (lastBinMax!=maxElement && is_in_bin(value, *(pMax - stride), *pMax))
+  pMax += direction*2;
+  if (lastBinMax!=maxElement && is_in_bin(value, *(pMax - direction), *pMax))
   {
-    return lastBinMax+stride;
+    return lastBinMax+direction;
   }
 
   // Check if outside array limits - won't happen often in the real world
@@ -98,9 +103,9 @@ inline uint8_t find_bin(
   if (value<=pAxis[minElement])
   {
     value = pAxis[minElement];
-    return minElement+stride;
+    return minElement+direction;
   }
 
   // No hits above, so run a linear search.
-  return linear_bin_search(value, pAxis, minBinIndex, maxElement, stride);
+  return linear_bin_search(value, pAxis, minBinIndex, maxElement);
 }
