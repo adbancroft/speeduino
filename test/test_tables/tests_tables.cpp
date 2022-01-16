@@ -119,9 +119,9 @@ void test_tableLookup_50_50(void)
 
   uint16_t tempVE = get3DTableValue(&testTable, intermediate(tempYAxis[6], tempYAxis[7], 50), 
                                       intermediate(tempXAxis[5], tempXAxis[6], 50));
-  TEST_ASSERT_EQUAL(tempVE, 69);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastXBinMax, (table3d_dim_t)9);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastYBinMax, (table3d_dim_t)8);
+  TEST_ASSERT_EQUAL_UINT8(69, tempVE);
+  TEST_ASSERT_EQUAL_UINT8(9, testTable.get_value_cache.lastXBinMax);
+  TEST_ASSERT_EQUAL_UINT8(8, testTable.get_value_cache.lastYBinMax);
 }
 
 void test_tableLookup_33_33(void)
@@ -130,9 +130,9 @@ void test_tableLookup_33_33(void)
 
   uint16_t tempVE = get3DTableValue(&testTable, intermediate(tempYAxis[6], tempYAxis[7], 33), 
                                       intermediate(tempXAxis[5], tempXAxis[6], 33));
-  TEST_ASSERT_EQUAL(tempVE, 67);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastXBinMax, (table3d_dim_t)9);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastYBinMax, (table3d_dim_t)8);
+  TEST_ASSERT_EQUAL_UINT8(67, tempVE);
+  TEST_ASSERT_EQUAL_UINT8(9, testTable.get_value_cache.lastXBinMax);
+  TEST_ASSERT_EQUAL_UINT8(8, testTable.get_value_cache.lastYBinMax);
 }
 
 void test_tableLookup_33_66(void)
@@ -141,9 +141,9 @@ void test_tableLookup_33_66(void)
 
   uint16_t tempVE = get3DTableValue(&testTable, intermediate(tempYAxis[6], tempYAxis[7], 33), 
                                       intermediate(tempXAxis[5], tempXAxis[6], 66));
-  TEST_ASSERT_EQUAL(tempVE, 68);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastXBinMax, (table3d_dim_t)9);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastYBinMax, (table3d_dim_t)8);
+  TEST_ASSERT_EQUAL_UINT8(68, tempVE);
+  TEST_ASSERT_EQUAL_UINT8(9, testTable.get_value_cache.lastXBinMax);
+  TEST_ASSERT_EQUAL_UINT8(8, testTable.get_value_cache.lastYBinMax);
 }
 
 void test_tableLookup_66_66(void)
@@ -152,9 +152,9 @@ void test_tableLookup_66_66(void)
 
   uint16_t tempVE = get3DTableValue(&testTable, intermediate(tempYAxis[6], tempYAxis[7], 66), 
                                       intermediate(tempXAxis[5], tempXAxis[6], 66));
-  TEST_ASSERT_EQUAL(tempVE, 69);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastXBinMax, (table3d_dim_t)9);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastYBinMax, (table3d_dim_t)8);
+  TEST_ASSERT_EQUAL_UINT8(69, tempVE);
+  TEST_ASSERT_EQUAL_UINT8(9, testTable.get_value_cache.lastXBinMax);
+  TEST_ASSERT_EQUAL_UINT8(8, testTable.get_value_cache.lastYBinMax);
 }
 
 void test_tableLookup_66_33(void)
@@ -163,9 +163,9 @@ void test_tableLookup_66_33(void)
 
   uint16_t tempVE = get3DTableValue(&testTable, intermediate(tempYAxis[6], tempYAxis[7], 66), 
                                       intermediate(tempXAxis[5], tempXAxis[6], 33));
-  TEST_ASSERT_EQUAL(tempVE, 68);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastXBinMax, (table3d_dim_t)9);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastYBinMax, (table3d_dim_t)8);
+  TEST_ASSERT_EQUAL_UINT8(68, tempVE);
+  TEST_ASSERT_EQUAL_UINT8(9, testTable.get_value_cache.lastXBinMax);
+  TEST_ASSERT_EQUAL_UINT8(8, testTable.get_value_cache.lastYBinMax);
 }
 
 void test_tableLookup_exact1Axis(void)
@@ -174,9 +174,9 @@ void test_tableLookup_exact1Axis(void)
   setup_TestTable();
 
   uint16_t tempVE = get3DTableValue(&testTable, intermediate(tempYAxis[5], tempYAxis[6], 50), testTable.axisX.axis[6]);
-  TEST_ASSERT_EQUAL(tempVE, 65);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastXBinMax, (table3d_dim_t)6);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastYBinMax, (table3d_dim_t)9);
+  TEST_ASSERT_EQUAL_UINT8(65, tempVE);
+  TEST_ASSERT_EQUAL_UINT8(6, testTable.get_value_cache.lastXBinMax);
+  TEST_ASSERT_EQUAL_UINT8(9, testTable.get_value_cache.lastYBinMax);
 }
 
 void test_tableLookup_exact2Axis(void)
@@ -185,9 +185,9 @@ void test_tableLookup_exact2Axis(void)
   setup_TestTable();
 
   uint16_t tempVE = get3DTableValue(&testTable, testTable.axisY.axis[5], testTable.axisX.axis[9]);
-  TEST_ASSERT_EQUAL(tempVE, 86);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastXBinMax, (table3d_dim_t)9);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastYBinMax, (table3d_dim_t)5);
+  TEST_ASSERT_EQUAL_UINT8(86, tempVE);
+  TEST_ASSERT_EQUAL_UINT8(9, testTable.get_value_cache.lastXBinMax);
+  TEST_ASSERT_EQUAL_UINT8(5, testTable.get_value_cache.lastYBinMax);
 }
 
 void test_tableLookup_overMaxX(void)
@@ -196,9 +196,9 @@ void test_tableLookup_overMaxX(void)
   setup_TestTable();
 
   uint16_t tempVE = get3DTableValue(&testTable, intermediate(tempYAxis[10], tempYAxis[11], 50), xMax+100);
-  TEST_ASSERT_EQUAL(tempVE, 89);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastXBinMax, (table3d_dim_t)0);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastYBinMax, (table3d_dim_t)4);
+  TEST_ASSERT_EQUAL_UINT8(89, tempVE);
+  TEST_ASSERT_EQUAL_UINT8(0, testTable.get_value_cache.lastXBinMax);
+  TEST_ASSERT_EQUAL_UINT8(4, testTable.get_value_cache.lastYBinMax);
 }
 
 void test_tableLookup_overMaxY(void)
@@ -207,9 +207,9 @@ void test_tableLookup_overMaxY(void)
   setup_TestTable();
 
   uint16_t tempVE = get3DTableValue(&testTable, yMax+10, intermediate(tempXAxis[0], tempXAxis[1], 50));
-  TEST_ASSERT_EQUAL(tempVE, 110);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastXBinMax, (table3d_dim_t)14);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastYBinMax, (table3d_dim_t)0);
+  TEST_ASSERT_EQUAL_UINT8(110, tempVE);
+  TEST_ASSERT_EQUAL_UINT8(14, testTable.get_value_cache.lastXBinMax);
+  TEST_ASSERT_EQUAL_UINT8(0, testTable.get_value_cache.lastYBinMax);
 }
 
 void test_tableLookup_underMinX(void)
@@ -218,9 +218,9 @@ void test_tableLookup_underMinX(void)
   setup_TestTable();
 
   uint16_t tempVE = get3DTableValue(&testTable, intermediate(tempYAxis[3], tempYAxis[4], 50), xMin-100);
-  TEST_ASSERT_EQUAL(tempVE, 37);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastXBinMax, (table3d_dim_t)14);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastYBinMax, (table3d_dim_t)11);
+  TEST_ASSERT_EQUAL_UINT8(37, tempVE);
+  TEST_ASSERT_EQUAL_UINT8(14, testTable.get_value_cache.lastXBinMax);
+  TEST_ASSERT_EQUAL_UINT8(11, testTable.get_value_cache.lastYBinMax);
 }
 
 void test_tableLookup_underMinY(void)
@@ -229,9 +229,9 @@ void test_tableLookup_underMinY(void)
   setup_TestTable();
 
   uint16_t tempVE = get3DTableValue(&testTable, yMin-5, intermediate(tempXAxis[0], tempXAxis[1], 50));
-  TEST_ASSERT_EQUAL(tempVE, 34);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastXBinMax, (table3d_dim_t)14);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastYBinMax, (table3d_dim_t)14);
+  TEST_ASSERT_EQUAL_UINT8(34, tempVE);
+  TEST_ASSERT_EQUAL_UINT8(14, testTable.get_value_cache.lastXBinMax);
+  TEST_ASSERT_EQUAL_UINT8(14, testTable.get_value_cache.lastYBinMax);
 }
 
 void test_tableLookup_roundUp(void)
@@ -242,9 +242,9 @@ void test_tableLookup_roundUp(void)
   setup_TestTable();
 
   uint16_t tempVE = get3DTableValue(&testTable, 17, 600);
-  TEST_ASSERT_EQUAL(tempVE, 34);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastXBinMax, (table3d_dim_t)14);
-  TEST_ASSERT_EQUAL(testTable.get_value_cache.lastYBinMax, (table3d_dim_t)14);
+  TEST_ASSERT_EQUAL_UINT8(34, tempVE);
+  TEST_ASSERT_EQUAL_UINT8(14, testTable.get_value_cache.lastXBinMax);
+  TEST_ASSERT_EQUAL_UINT8(14, testTable.get_value_cache.lastYBinMax);
 }
 
 void test_all_incrementing(void)
