@@ -1,10 +1,9 @@
-#include <string.h> // memcpy
 #include <unity.h>
-#include <stdio.h>
-typedef uint8_t byte;
 #include "test_table2d.h"
 #include "table2d.h"
+#include "test_utils.h"
 
+typedef uint8_t byte;
 
 static constexpr uint8_t TEST_TABLE2D_SIZE = 9;
 static uint8_t table2d_data_u8[TEST_TABLE2D_SIZE] = {
@@ -47,23 +46,65 @@ void test_table2dLookup_50pct(void)
 {
     setup_test_subjects();
 
-    uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, (uint8_t)(table2d_axis_u8[3]+((table2d_axis_u8[4]-table2d_axis_u8[3])/2)));
+    uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], 50));
     TEST_ASSERT_EQUAL(147, u8_u8_result);
     TEST_ASSERT_EQUAL(4, table2d_u8_u8.cache.lastXMax);
 
-    uint8_t u8_s16_result = table2D_getValue(&table2d_u8_s16, (int16_t)(table2d_axis_s16[6]+((table2d_axis_s16[7]-table2d_axis_s16[6])/2)));
+    uint8_t u8_s16_result = table2D_getValue(&table2d_u8_s16, intermediate(table2d_axis_s16[6], table2d_axis_s16[7], 50));
     TEST_ASSERT_EQUAL(41, u8_s16_result);
     TEST_ASSERT_EQUAL(7, table2d_u8_s16.cache.lastXMax);
 
-    int16_t s16_u8_result = table2D_getValue(&table2d_s16_u8, (uint8_t)(table2d_axis_u8[3]+((table2d_axis_u8[4]-table2d_axis_u8[3])/2)));
+    int16_t s16_u8_result = table2D_getValue(&table2d_s16_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], 50));
     TEST_ASSERT_EQUAL(13846, s16_u8_result);
     TEST_ASSERT_EQUAL(4, table2d_s16_u8.cache.lastXMax);
 
-    int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, (int16_t)(table2d_axis_s16[3]+((table2d_axis_s16[4]-table2d_axis_s16[3])/2)));
+    int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, intermediate(table2d_axis_s16[3], table2d_axis_s16[4], 50));
     TEST_ASSERT_EQUAL(13846, s16_s16_result);
     TEST_ASSERT_EQUAL(4, table2d_s16_s16.cache.lastXMax);
 }
 
+
+void test_table2dLookup_33pct(void)
+{
+    setup_test_subjects();
+
+    uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], 33));
+    TEST_ASSERT_EQUAL(155, u8_u8_result);
+    TEST_ASSERT_EQUAL(4, table2d_u8_u8.cache.lastXMax);
+
+    uint8_t u8_s16_result = table2D_getValue(&table2d_u8_s16, intermediate(table2d_axis_s16[6], table2d_axis_s16[7], 33));
+    TEST_ASSERT_EQUAL(48, u8_s16_result);
+    TEST_ASSERT_EQUAL(7, table2d_u8_s16.cache.lastXMax);
+
+    int16_t s16_u8_result = table2D_getValue(&table2d_s16_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], 33));
+    TEST_ASSERT_EQUAL(14815, s16_u8_result);
+    TEST_ASSERT_EQUAL(4, table2d_s16_u8.cache.lastXMax);
+
+    int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, intermediate(table2d_axis_s16[3], table2d_axis_s16[4], 33));
+    TEST_ASSERT_EQUAL(14703, s16_s16_result);
+    TEST_ASSERT_EQUAL(4, table2d_s16_s16.cache.lastXMax);
+}
+
+void test_table2dLookup_66pct(void)
+{
+    setup_test_subjects();
+
+    uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], 66));
+    TEST_ASSERT_EQUAL(141, u8_u8_result);
+    TEST_ASSERT_EQUAL(4, table2d_u8_u8.cache.lastXMax);
+
+    uint8_t u8_s16_result = table2D_getValue(&table2d_u8_s16, intermediate(table2d_axis_s16[6], table2d_axis_s16[7], 66));
+    TEST_ASSERT_EQUAL(36, u8_s16_result);
+    TEST_ASSERT_EQUAL(7, table2d_u8_s16.cache.lastXMax);
+
+    int16_t s16_u8_result = table2D_getValue(&table2d_s16_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], 66));
+    TEST_ASSERT_EQUAL(13072, s16_u8_result);
+    TEST_ASSERT_EQUAL(4, table2d_s16_u8.cache.lastXMax);
+
+    int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, intermediate(table2d_axis_s16[3], table2d_axis_s16[4], 66));
+    TEST_ASSERT_EQUAL(13042, s16_s16_result);
+    TEST_ASSERT_EQUAL(4, table2d_s16_s16.cache.lastXMax);
+}
 
 void test_table2dLookup_exactAxis(void)
 {
@@ -178,6 +219,8 @@ void test_table2d_all_decrementing(void)
 void testTable2d()
 {
     RUN_TEST(test_table2dLookup_50pct);
+    RUN_TEST(test_table2dLookup_33pct);
+    RUN_TEST(test_table2dLookup_66pct);
     RUN_TEST(test_table2dLookup_exactAxis);
     RUN_TEST(test_table2dLookup_overMax);
     RUN_TEST(test_table2dLookup_underMin);
