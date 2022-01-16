@@ -14,6 +14,10 @@
 #include "src/libdivide/constant_fast_div.h"
 #endif
 
+static constexpr uint32_t MICROS_PER_SEC = 1000000U;
+static constexpr uint32_t MICROS_PER_MIN = (MICROS_PER_SEC*60UL);
+static constexpr uint32_t MICROS_PER_HOUR = (MICROS_PER_MIN*60UL);
+
 extern uint8_t random1to100(void);
 
 /**

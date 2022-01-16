@@ -9,6 +9,7 @@
  */
 
 #include "maths.h"
+#include "pre_processor.h"
 
 /** @brief At 1 RPM, each degree of angular rotation takes this many microseconds */
 static constexpr uint32_t MICROS_PER_DEG_1_RPM = UDIV_ROUND_CLOSEST(MICROS_PER_MIN, 360UL, uint32_t);
@@ -48,7 +49,8 @@ static constexpr uint32_t MAX_REVOLUTION_TIME = MICROS_PER_MIN/MIN_RPM;
  * @return int16_t 
  */
 static inline int16_t ignitionLimits(int16_t angle) {
-    return nudge(0, CRANK_ANGLE_MAX_IGN-1, angle, CRANK_ANGLE_MAX_IGN);
+  extern int16_t CRANK_ANGLE_MAX_IGN;
+  return nudge(0, CRANK_ANGLE_MAX_IGN-1, angle, CRANK_ANGLE_MAX_IGN);
 }
 
 /**
@@ -59,10 +61,11 @@ static inline int16_t ignitionLimits(int16_t angle) {
  */
 static inline int16_t injectorLimits(int16_t angle)
 {
-    int16_t tempAngle = angle;
-    if(tempAngle < 0) { tempAngle = tempAngle + CRANK_ANGLE_MAX_INJ; }
-    while(tempAngle > CRANK_ANGLE_MAX_INJ ) { tempAngle -= CRANK_ANGLE_MAX_INJ; }
-    return tempAngle;
+  extern int16_t CRANK_ANGLE_MAX_INJ;
+  int16_t tempAngle = angle;
+  if(tempAngle < 0) { tempAngle = tempAngle + CRANK_ANGLE_MAX_INJ; }
+  while(tempAngle > CRANK_ANGLE_MAX_INJ ) { tempAngle -= CRANK_ANGLE_MAX_INJ; }
+  return tempAngle;
 }
 
 /**
@@ -137,7 +140,6 @@ static CRITICAL_INLINE uint16_t timeToAngleDegPerMicroSec(uint32_t time) {
     uint32_t degFixed = time * (uint32_t)degreesPerMicro;
     return rshift_round<crank_math_detail::degreesPerMicro_Shift>(degFixed);
 }
-
 
 /** @brief Calculate RPM based on the current crank revolution time (@ref setRevolutionTime). */
 static inline uint16_t rpmFromRevolutionTime(void) {

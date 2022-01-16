@@ -5,7 +5,7 @@
 */
 
 #include <stdint.h>
-#include "globals.h" // Required for CPU/architecture preprocessor symbols
+#include "board_definition.h" // Required for CPU/architecture preprocessor symbols
 
 /// @defgroup group-opt-shift Optimised bitwise shifts
 ///
