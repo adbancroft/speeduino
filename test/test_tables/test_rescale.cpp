@@ -57,10 +57,22 @@ void test_rescale_s8_u16()
     test_rescale((int8_t)0, (int8_t)-5, (int8_t)10, (uint16_t)7, (uint16_t)1);
 }
 
+void test_rescale_clamp_min()
+{
+    TEST_ASSERT_EQUAL(33214, rescale((int8_t)-3, (int8_t)0, (int8_t)4, (uint16_t)33214, (uint16_t)1234));
+}
+
+void test_rescale_clamp_max()
+{
+    TEST_ASSERT_EQUAL(1234, rescale((int8_t)5, (int8_t)0, (int8_t)4, (uint16_t)33214, (uint16_t)1234));
+}
+
 void testrescale()
 {
     RUN_TEST(test_rescale_s8_s8);
     RUN_TEST(test_rescale_s8_u16);
+    RUN_TEST(test_rescale_clamp_min);
+    RUN_TEST(test_rescale_clamp_max);
 #if defined(ARDUINO)    
 #endif
 }

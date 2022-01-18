@@ -463,6 +463,10 @@ static inline to_t rescale(const from_t fromValue, const from_t fromMin, const f
     // goal is to use the narrowest type possible for performance reasons.
     typedef typename std::conditional<(sizeof(unsigned_axis_t) >= sizeof(unsigned_value_t)), unsigned_axis_t, unsigned_value_t>::type u_common_t;
 
+    // Clamp to output range
+    if (fromValue<=fromMin) { return toMin; }
+    if (fromValue>=fromMax) { return toMax; }
+
     u_common_t fromDistance = fromValue - fromMin;
     u_common_t fromWidth = fromMax - fromMin;
 
