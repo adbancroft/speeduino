@@ -47,7 +47,7 @@ inline uint8_t linear_bin_search( const T value,          // Value to search for
 // We assume the axis is in order.
 template <typename T>
 inline uint8_t find_bin(
-  T &value,               // Value to search for
+  const T value,          // Value to search for
   const T *pAxis,         // The axis to search
   uint8_t minElement,     // Axis index of the element with the lowest value (at one end of the array)
   uint8_t maxElement,     // Axis index of the element with the highest value (at the other end of the array)
@@ -96,13 +96,11 @@ inline uint8_t find_bin(
   // At or above maximum - clamp to final value
   if (value>=pAxis[maxElement])
   {
-    value = pAxis[maxElement];
     return maxElement;
   }
   // At or below minimum - clamp to lowest value
   if (value<=pAxis[minElement])
   {
-    value = pAxis[minElement];
     return minElement+direction;
   }
 
