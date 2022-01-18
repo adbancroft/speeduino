@@ -3,20 +3,6 @@
 #include "maths.h"
 #include <type_traits>
 
-// ============================= Axis Bin Searching =========================
-
-table3d_dim_t find_xbin(table3d_axis_t &value, const table3d_axis_t *pAxis, table3d_dim_t size, table3d_dim_t lastBin)
-{
-  return find_bin(value, pAxis, size-1U, 0U, lastBin);
-}
-
-table3d_dim_t find_ybin(table3d_axis_t &value, const table3d_axis_t *pAxis, table3d_dim_t size, table3d_dim_t lastBin)
-{
-  // Y axis is stored in reverse for performance purposes (not sure that's still valid). 
-  // The minimum value is at the end & max at the start. So need to adjust for that. 
-  return find_bin(value, pAxis, size-1U, 0U, lastBin);
-}
-
 // ========================= Fixed point math =========================
 
 // An unsigned fixed point number type with 1 integer bit & 8 fractional bits.
@@ -98,8 +84,8 @@ table3d_value_t __attribute__((noclone)) get3DTableValue(struct table3DGetValueC
     pValueCache->last_lookup.y = Y_in;
 
     // Figure out where on the axes the incoming coord are
-    pValueCache->lastXBinMax = find_xbin(X_in, pXAxis, axisSize, pValueCache->lastXBinMax);
-    pValueCache->lastYBinMax = find_ybin(Y_in, pYAxis, axisSize, pValueCache->lastYBinMax);
+    pValueCache->lastXBinMax = find_bin(X_in, pXAxis, axisSize-1, 0, pValueCache->lastXBinMax);
+    pValueCache->lastYBinMax = find_bin(Y_in, pYAxis, axisSize-1, 0, pValueCache->lastYBinMax);
 
     /*
     At this point we have the 4 corners of the map where the interpolated value will fall in

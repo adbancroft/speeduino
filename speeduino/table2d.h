@@ -50,34 +50,16 @@ value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_t X_in
   static_assert(std::is_integral<value_t>::value, "T must be an integral type");
 
   //Check whether the X input is the same as last time this ran
-  if( (X_in == fromTable->cache.lastInput) && (fromTable->cache.cacheTime == getCacheTime()) )
+  if( (X_in != fromTable->cache.lastInput) || (fromTable->cache.cacheTime != getCacheTime()) )
   {
-    // No-op
-  }
-  else
-  {
+    fromTable->cache.lastXMax = find_bin(X_in, fromTable->axisX, 0, sizeT-1, fromTable->cache.lastXMax);
+    fromTable->cache.lastOutput = rescale(X_in, 
+                                          fromTable->axisX[fromTable->cache.lastXMax-1], fromTable->axisX[fromTable->cache.lastXMax], 
+                                          fromTable->values[fromTable->cache.lastXMax - 1], fromTable->values[fromTable->cache.lastXMax]);
+    fromTable->cache.lastInput = X_in;
     fromTable->cache.cacheTime = getCacheTime(); //As we're not using the cache value, set the current secl value to track when this new value was calc'd
-  
-    axis_t X = X_in;
-    fromTable->cache.lastXMax = find_bin(X, fromTable->axisX, 0, sizeT-1, fromTable->cache.lastXMax);
-    axis_t xMaxValue = fromTable->axisX[fromTable->cache.lastXMax];
-    axis_t xMinValue = fromTable->axisX[fromTable->cache.lastXMax-1];
-
-    if (X==xMaxValue)
-    {
-      fromTable->cache.lastOutput = fromTable->values[fromTable->cache.lastXMax];
-    }
-    else if (X==xMinValue)
-    {
-      fromTable->cache.lastOutput = fromTable->values[fromTable->cache.lastXMax - 1];
-    }
-    else
-    {
-      fromTable->cache.lastOutput = rescale(X, xMinValue, xMaxValue, fromTable->values[fromTable->cache.lastXMax - 1], fromTable->values[fromTable->cache.lastXMax]);
-    }
   }
 
-  fromTable->cache.lastInput = X_in;
   return fromTable->cache.lastOutput;
 }
 
