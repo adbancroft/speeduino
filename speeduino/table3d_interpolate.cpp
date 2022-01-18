@@ -54,10 +54,10 @@ static inline QU1X8_t mulQU1X8(QU1X8_t a, QU1X8_t b)
 
 static inline QU1X8_t compute_bin_position(table3d_axis_t value, const table3d_dim_t &bin, const table3d_axis_t *pAxis)
 {
-  table3d_axis_t binMinValue = pAxis[bin+1U];
-  if (value==binMinValue) { return 0; }
+  table3d_axis_t binMinValue = pAxis[bin-1U];
+  if (value<=binMinValue) { return 0; }
   table3d_axis_t binMaxValue = pAxis[bin];
-  if (value==binMaxValue) { return QU1X8_ONE; }
+  if (value>=binMaxValue) { return QU1X8_ONE; }
 
   typedef typename std::make_unsigned<table3d_axis_t>::type utable3d_axis_t;
 
