@@ -26,102 +26,6 @@
 #include "SD_logger.h"
 #include "rtc_common.h"
 
-static void configure2dTables(void) {
-  //Repoint the 2D table structs to the config pages that were just loaded
-  taeTable.values = configPage4.taeValues;
-  taeTable.axisX = configPage4.taeBins;
-  
-  maeTable.values = configPage4.maeRates;
-  maeTable.axisX = configPage4.maeBins;
-  
-  WUETable.values = configPage2.wueValues;
-  WUETable.axisX = configPage4.wueBins;
-  
-  ASETable.values = configPage2.asePct;
-  ASETable.axisX = configPage2.aseBins;
-  
-  ASECountTable.values = configPage2.aseCount;
-  ASECountTable.axisX = configPage2.aseBins;
-  
-  PrimingPulseTable.values = configPage2.primePulse;
-  PrimingPulseTable.axisX = configPage2.primeBins;
-  
-  crankingEnrichTable.values = configPage10.crankingEnrichValues;
-  crankingEnrichTable.axisX = configPage10.crankingEnrichBins;
-
-  dwellVCorrectionTable.values = configPage4.dwellCorrectionValues;
-  dwellVCorrectionTable.axisX = configPage6.voltageCorrectionBins;
-  
-  injectorVCorrectionTable.values = configPage6.injVoltageCorrectionValues;
-  injectorVCorrectionTable.axisX = configPage6.voltageCorrectionBins;
-  
-  injectorAngleTable.values = configPage2.injAng;
-  injectorAngleTable.axisX = configPage2.injAngRPM;
-  
-  IATDensityCorrectionTable.values = configPage6.airDenRates;
-  IATDensityCorrectionTable.axisX = configPage6.airDenBins;
-  
-  baroFuelTable.values = configPage4.baroFuelValues;
-  baroFuelTable.axisX = configPage4.baroFuelBins;
-  
-  IATRetardTable.values = configPage4.iatRetValues;
-  IATRetardTable.axisX = configPage4.iatRetBins;
-  
-  CLTAdvanceTable.values = (byte*)configPage4.cltAdvValues;
-  CLTAdvanceTable.axisX = configPage4.cltAdvBins;
-  
-  idleTargetTable.values = configPage6.iacCLValues;
-  idleTargetTable.axisX = configPage6.iacBins;
-  
-  idleAdvanceTable.values = (byte*)configPage4.idleAdvValues;
-  idleAdvanceTable.axisX = configPage4.idleAdvBins;
-  
-  rotarySplitTable.values = configPage10.rotarySplitValues;
-  rotarySplitTable.axisX = configPage10.rotarySplitBins;
-
-  flexFuelTable.values = configPage10.flexFuelAdj;
-  flexFuelTable.axisX = configPage10.flexFuelBins;
-  
-  flexAdvTable.values = configPage10.flexAdvAdj;
-  flexAdvTable.axisX = configPage10.flexAdvBins;
-
-  flexBoostTable.values = configPage10.flexBoostAdj;
-  flexBoostTable.axisX = configPage10.flexBoostBins;
-
-  fuelTempTable.values = configPage10.fuelTempValues;
-  fuelTempTable.axisX = configPage10.fuelTempBins;
-
-  knockWindowStartTable.values = configPage10.knock_window_angle;
-  knockWindowStartTable.axisX = configPage10.knock_window_rpms;
-
-  knockWindowDurationTable.values = configPage10.knock_window_dur;
-  knockWindowDurationTable.axisX = configPage10.knock_window_rpms;
-
-  oilPressureProtectTable.values = configPage10.oilPressureProtMins;
-  oilPressureProtectTable.axisX = configPage10.oilPressureProtRPM;
-
-  coolantProtectTable.values = configPage9.coolantProtRPM;
-  coolantProtectTable.axisX = configPage9.coolantProtTemp;
-
-  fanPWMTable.values = configPage9.PWMFanDuty;
-  fanPWMTable.axisX = configPage6.fanPWMBins;
-
-  rollingCutTable.values = configPage15.rollingProtCutPercent;
-  rollingCutTable.axisX = configPage15.rollingProtRPMDelta;
-  
-  wmiAdvTable.values = configPage10.wmiAdvAdj;
-  wmiAdvTable.axisX = configPage10.wmiAdvBins;
-
-  cltCalibrationTable.values = cltCalibration_values;
-  cltCalibrationTable.axisX = cltCalibration_bins;
-
-  iatCalibrationTable.values = iatCalibration_values;
-  iatCalibrationTable.axisX = iatCalibration_bins;
-
-  o2CalibrationTable.values = o2Calibration_values;
-  o2CalibrationTable.axisX = o2Calibration_bins;
-}
-
 static void calculateRequiredFuel(void) {
   req_fuel_uS = configPage2.reqFuel * 100; //Convert to uS and an int. This is the only variable to be used in calculations
   inj_opentime_uS = configPage2.injOpen * 100; //Injector open time. Comes through as ms*10 (Eg 15.5ms = 155).
@@ -227,8 +131,6 @@ void initialiseAll(void)
 
     checkForEepromReset();
   
-    configure2dTables();
-
     // Unit tests should be independent of any stored configuration on the board!
 #if !defined(UNIT_TEST)
     loadConfig();

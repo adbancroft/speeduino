@@ -32,8 +32,12 @@ struct table2D
 
   value_t *values;
   axis_t *axisX;
-
   table2D_lookup_cache<axis_t, value_t> cache;
+
+  table2D(axis_t (&axisBin)[sizeT], value_t (&curve)[sizeT])
+    : values(curve), axisX(axisBin)
+  {
+  }
 };
 
 static inline uint8_t getCacheTime(void) {
