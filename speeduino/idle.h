@@ -34,7 +34,6 @@ struct StepperIdle
 void initialiseIdle(bool forcehoming, const pin_mapping_t &pins);
 void initialiseIdle(bool forcehoming);
 void idleControl(void);
-void initialiseIdleUpOutput(void);
 void disableIdle(void);
 void idleInterrupt(void);
 

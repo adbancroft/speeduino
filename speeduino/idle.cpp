@@ -7,35 +7,36 @@ A full copy of the license may be found in the projects root directory
 #include "maths.h"
 #include "timers.h"
 #include "port_pin.h"
+#include "table2d.h"
 #include "src/PID_v1/PID_v1.h"
 
 #define STEPPER_LESS_AIR_DIRECTION() ((configPage9.iacStepperInv == 0) ? STEPPER_BACKWARD : STEPPER_FORWARD)
 #define STEPPER_MORE_AIR_DIRECTION() ((configPage9.iacStepperInv == 0) ? STEPPER_FORWARD : STEPPER_BACKWARD)
 
-byte idleCounter; //Used for tracking the number of calls to the idle control function
-uint8_t idleTaper;
+static byte idleCounter; //Used for tracking the number of calls to the idle control function
+static uint8_t idleTaper;
 
-struct StepperIdle idleStepper;
-bool idleOn; //Simply tracks whether idle was on last time around
-byte idleInitComplete = 99; //Tracks which idle method was initialised. 99 is a method that will never exist
-unsigned int iacStepTime_uS;
-unsigned int iacCoolTime_uS;
-unsigned int completedHomeSteps;
+static struct StepperIdle idleStepper;
+static bool idleOn; //Simply tracks whether idle was on last time around
+static byte idleInitComplete = 99; //Tracks which idle method was initialised. 99 is a method that will never exist
+static unsigned int iacStepTime_uS;
+static unsigned int iacCoolTime_uS;
+static unsigned int completedHomeSteps;
 
-volatile bool idle_pwm_state;
-bool lastDFCOValue;
+static volatile bool idle_pwm_state;
+static bool lastDFCOValue;
 static uint16_t idle_pwm_max_count; //Used for variable PWM frequency
-volatile unsigned int idle_pwm_cur_value;
-long idle_pid_target_value;
-long FeedForwardTerm;
-unsigned long idle_pwm_target_value;
-long idle_cl_target_rpm;
+static volatile unsigned int idle_pwm_cur_value;
+static long idle_pid_target_value;
+static long FeedForwardTerm;
+static unsigned long idle_pwm_target_value;
+static long idle_cl_target_rpm;
 
-struct table2D<uint8_t, uint8_t, 10> iacPWMTable;
-struct table2D<uint8_t, uint8_t, 10> iacStepTable;
+static struct table2D<uint8_t, uint8_t, 10> iacPWMTable(configPage6.iacBins, configPage6.iacOLPWMVal);
+static struct table2D<uint8_t, uint8_t, 10> iacStepTable(configPage6.iacBins, configPage6.iacOLStepVal);
 //Open loop tables specifically for cranking
-struct table2D<uint8_t, uint8_t, 4> iacCrankStepsTable;
-struct table2D<uint8_t, uint8_t, 4> iacCrankDutyTable;
+static struct table2D<uint8_t, uint8_t, 4> iacCrankStepsTable(configPage6.iacCrankBins, configPage6.iacCrankSteps);
+static struct table2D<uint8_t, uint8_t, 4> iacCrankDutyTable(configPage6.iacCrankBins, configPage6.iacCrankDuty);
 
 /*
 These functions cover the PWM and stepper idle control
@@ -45,7 +46,7 @@ These functions cover the PWM and stepper idle control
 Idle Control
 Currently limited to on/off control and open loop PWM and stepper drive
 */
-integerPID idlePID(&currentStatus.longRPM, &idle_pid_target_value, &idle_cl_target_rpm, configPage6.idleKP, configPage6.idleKI, configPage6.idleKD, DIRECT); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID idlePID(&currentStatus.longRPM, &idle_pid_target_value, &idle_cl_target_rpm, configPage6.idleKP, configPage6.idleKI, configPage6.idleKD, DIRECT); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
 
 //Any common functions associated with starting the Idle
 //Typically this is enabling the PWM interrupt
@@ -64,6 +65,22 @@ static uint8_t pinIdleUpOutput;
 static uint8_t pinStepperStep;
 static uint8_t pinStepperDir;
 static uint8_t pinStepperEnable;
+
+static inline uint8_t getIdleUpOutputHIGH(void) {
+  return !configPage2.idleUpOutputInv;
+}
+
+static inline uint8_t getIdleUpOutputLOW(void) {
+  return configPage2.idleUpOutputInv;
+}
+
+void initialiseIdleUpOutput(void)
+{
+  if (isIdleUpOutputEnabled()) {
+    setPinState(pinIdleUpOutput, getIdleUpOutputLOW()); //Initialise program with the idle up output in the off state if it is enabled. 
+  }
+  currentStatus.idleUpOutputActive = false;
+}
 
 void initialiseIdle(bool forcehoming, const pin_mapping_t &pins) {
   //Pin masks must always be initialised, regardless of whether PWM idle is used. This is required for STM32 to prevent issues if the IRQ function fires on restart/overflow
@@ -108,24 +125,12 @@ void initialiseIdle(bool forcehoming)
 
     case IAC_ALGORITHM_PWM_OL:
       //Case 2 is PWM open loop
-      iacPWMTable.values = configPage6.iacOLPWMVal;
-      iacPWMTable.axisX = configPage6.iacBins;
-
-      iacCrankDutyTable.values = configPage6.iacCrankDuty;
-      iacCrankDutyTable.axisX = configPage6.iacCrankBins;
-
       idle_pwm_max_count = frequencyToTimerTicks(configPage6.idleFreq * 2U); //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle. Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
       enableIdle();
       break;
 
     case IAC_ALGORITHM_PWM_OLCL:
       //Case 6 is PWM closed loop with open loop table used as feed forward
-      iacPWMTable.values = configPage6.iacOLPWMVal;
-      iacPWMTable.axisX = configPage6.iacBins;
-
-      iacCrankDutyTable.values = configPage6.iacCrankDuty;
-      iacCrankDutyTable.axisX = configPage6.iacCrankBins;
-
       idle_pwm_max_count = frequencyToTimerTicks(configPage6.idleFreq * 2U); //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle. Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
       idlePID.SetOutputLimits(percentage(configPage2.iacCLminValue, idle_pwm_max_count<<2), percentage(configPage2.iacCLmaxValue, idle_pwm_max_count<<2));
       idlePID.SetTunings(configPage6.idleKP, configPage6.idleKI, configPage6.idleKD);
@@ -138,9 +143,6 @@ void initialiseIdle(bool forcehoming)
 
     case IAC_ALGORITHM_PWM_CL:
       //Case 3 is PWM closed loop
-      iacCrankDutyTable.values = configPage6.iacCrankDuty;
-      iacCrankDutyTable.axisX = configPage6.iacCrankBins;
-
       idle_pwm_max_count = frequencyToTimerTicks(configPage6.idleFreq * 2U); //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle. Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
       idlePID.SetOutputLimits(percentage(configPage2.iacCLminValue, idle_pwm_max_count<<2), percentage(configPage2.iacCLmaxValue, idle_pwm_max_count<<2));
       idlePID.SetTunings(configPage6.idleKP, configPage6.idleKI, configPage6.idleKD);
@@ -153,11 +155,6 @@ void initialiseIdle(bool forcehoming)
 
     case IAC_ALGORITHM_STEP_OL:
       //Case 2 is Stepper open loop
-      iacStepTable.values = configPage6.iacOLStepVal;
-      iacStepTable.axisX = configPage6.iacBins;
-
-      iacCrankStepsTable.values = configPage6.iacCrankSteps;
-      iacCrankStepsTable.axisX = configPage6.iacCrankBins;
       iacStepTime_uS = configPage6.iacStepTime * 1000;
       iacCoolTime_uS = configPage9.iacCoolTime * 1000;
 
@@ -174,8 +171,6 @@ void initialiseIdle(bool forcehoming)
 
     case IAC_ALGORITHM_STEP_CL:
       //Case 5 is Stepper closed loop
-      iacCrankStepsTable.values = configPage6.iacCrankSteps;
-      iacCrankStepsTable.axisX = configPage6.iacCrankBins;
       iacStepTime_uS = configPage6.iacStepTime * 1000;
       iacCoolTime_uS = configPage9.iacCoolTime * 1000;
 
@@ -198,11 +193,6 @@ void initialiseIdle(bool forcehoming)
 
     case IAC_ALGORITHM_STEP_OLCL:
       //Case 7 is Stepper closed loop with open loop table used as feed forward
-      iacStepTable.values = configPage6.iacOLStepVal;
-      iacStepTable.axisX = configPage6.iacBins;
-
-      iacCrankStepsTable.values = configPage6.iacCrankSteps;
-      iacCrankStepsTable.axisX = configPage6.iacCrankBins;
       iacStepTime_uS = configPage6.iacStepTime * 1000;
       iacCoolTime_uS = configPage9.iacCoolTime * 1000;
 
@@ -232,22 +222,6 @@ void initialiseIdle(bool forcehoming)
 
   idleInitComplete = configPage6.iacAlgorithm; //Sets which idle method was initialised
   currentStatus.idleLoad = 0;
-}
-
-static inline uint8_t getIdleUpOutputHIGH(void) {
-  return !configPage2.idleUpOutputInv;
-}
-
-static inline uint8_t getIdleUpOutputLOW(void) {
-  return configPage2.idleUpOutputInv;
-}
-
-void initialiseIdleUpOutput(void)
-{
-  if (isIdleUpOutputEnabled()) {
-    setPinState(pinIdleUpOutput, getIdleUpOutputLOW()); //Initialise program with the idle up output in the off state if it is enabled. 
-  }
-  currentStatus.idleUpOutputActive = false;
 }
 
 /*

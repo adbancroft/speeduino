@@ -21,31 +21,13 @@ static int16_t table2d_axis_s16[TEST_TABLE2D_SIZE] = {
 };
 
 // static table2D table2d_u8_u8;
-static table2D<uint8_t, uint8_t, TEST_TABLE2D_SIZE> table2d_u8_u8;
-static table2D<int16_t, uint8_t, TEST_TABLE2D_SIZE> table2d_u8_s16;
-static table2D<uint8_t, int16_t, TEST_TABLE2D_SIZE> table2d_s16_u8;
-static table2D<int16_t, int16_t, TEST_TABLE2D_SIZE> table2d_s16_s16;
-
-template <typename dataT, typename axisT>
-void setup_test_subject(table2D<axisT, dataT, TEST_TABLE2D_SIZE> &table, dataT *data, axisT *axis)
-{
-    table.values = data;
-    table.axisX = axis;
-}
-
-static void setup_test_subjects(void)
-{
-    setup_test_subject(table2d_u8_u8, table2d_data_u8, table2d_axis_u8);
-    setup_test_subject(table2d_u8_s16, table2d_data_u8, table2d_axis_s16);
-    setup_test_subject(table2d_s16_u8, table2d_data_s16, table2d_axis_u8);
-    setup_test_subject(table2d_s16_s16, table2d_data_s16, table2d_axis_s16);
-}
-
+static table2D<uint8_t, uint8_t, TEST_TABLE2D_SIZE> table2d_u8_u8(table2d_axis_u8, table2d_data_u8);
+static table2D<int16_t, uint8_t, TEST_TABLE2D_SIZE> table2d_u8_s16(table2d_axis_s16, table2d_data_u8);
+static table2D<uint8_t, int16_t, TEST_TABLE2D_SIZE> table2d_s16_u8(table2d_axis_u8, table2d_data_s16);
+static table2D<int16_t, int16_t, TEST_TABLE2D_SIZE> table2d_s16_s16(table2d_axis_s16, table2d_data_s16);
 
 void test_table2dLookup_50pct(void)
 {
-    setup_test_subjects();
-
     uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], 50));
     TEST_ASSERT_EQUAL(147, u8_u8_result);
     TEST_ASSERT_EQUAL(4, table2d_u8_u8.cache.lastXMax);
@@ -66,8 +48,6 @@ void test_table2dLookup_50pct(void)
 
 void test_table2dLookup_33pct(void)
 {
-    setup_test_subjects();
-
     uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], 33));
     TEST_ASSERT_EQUAL(155, u8_u8_result);
     TEST_ASSERT_EQUAL(4, table2d_u8_u8.cache.lastXMax);
@@ -87,8 +67,6 @@ void test_table2dLookup_33pct(void)
 
 void test_table2dLookup_66pct(void)
 {
-    setup_test_subjects();
-
     uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], 66));
     TEST_ASSERT_EQUAL(141, u8_u8_result);
     TEST_ASSERT_EQUAL(4, table2d_u8_u8.cache.lastXMax);
@@ -108,8 +86,6 @@ void test_table2dLookup_66pct(void)
 
 void test_table2dLookup_exactAxis(void)
 {
-    setup_test_subjects();
-
     uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, table2d_axis_u8[7]);
     TEST_ASSERT_EQUAL(23, u8_u8_result);
     TEST_ASSERT_EQUAL(7, table2d_u8_u8.cache.lastXMax);
@@ -129,8 +105,6 @@ void test_table2dLookup_exactAxis(void)
 
 void test_table2dLookup_overMax(void)
 {
-    setup_test_subjects();
-
     uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, (uint8_t)(table2d_axis_u8[TEST_TABLE2D_SIZE-1]+1));
     TEST_ASSERT_EQUAL(5, u8_u8_result);
     TEST_ASSERT_EQUAL(8, table2d_u8_u8.cache.lastXMax);
@@ -150,8 +124,6 @@ void test_table2dLookup_overMax(void)
 
 void test_table2dLookup_underMin(void)
 {
-    setup_test_subjects();
-
     uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, (uint8_t)(table2d_axis_u8[0]-1));
     TEST_ASSERT_EQUAL(251, u8_u8_result);
     TEST_ASSERT_EQUAL(1, table2d_u8_u8.cache.lastXMax);
@@ -172,9 +144,6 @@ void test_table2dLookup_underMin(void)
 
 void test_table2dLookup_mismatch_lookup_type(void)
 {
-    // Test that mimatched types are clamped to the lookup type min/max
-    setup_test_subjects();
-
     {
         int16_t lookupValue_s16 = INT16_MIN/2;
         uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, lookupValue_s16);
@@ -192,8 +161,6 @@ void test_table2dLookup_mismatch_lookup_type(void)
 
 void test_table2d_all_decrementing(void)
 {
-    setup_test_subjects();
-
     {
         uint8_t u8_u8_result_last = UINT8_MAX;
         for (uint8_t loop=table2d_axis_u8[0]; loop<=table2d_axis_u8[TEST_TABLE2D_SIZE-1]; ++loop)
