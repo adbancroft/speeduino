@@ -7,7 +7,7 @@
 #include "find_bin.h"
 
 template <typename axis_t, typename value_t>
-struct table2D_lookup_cache 
+struct table2d_lookup_cache 
 {
   static_assert(std::is_integral<axis_t>::value, "T must be an integral type");
   static_assert(std::is_integral<value_t>::value, "T must be an integral type");
@@ -21,7 +21,7 @@ struct table2D_lookup_cache
 };
 
 template <typename axis_t, typename value_t, uint8_t sizeT>
-struct table2D
+struct table2d
 {
   static_assert(std::is_integral<axis_t>::value, "T must be an integral type");
   static_assert(std::is_integral<value_t>::value, "T must be an integral type");
@@ -32,15 +32,26 @@ struct table2D
 
   value_t *values;
   axis_t *axisX;
-  table2D_lookup_cache<axis_t, value_t> cache;
+  table2d_lookup_cache<axis_t, value_t> cache;
 
-  table2D(axis_t (&axisBin)[sizeT], value_t (&curve)[sizeT])
+  table2d(axis_t (&axisBin)[sizeT], value_t (&curve)[sizeT])
     : values(curve), axisX(axisBin)
   {
   }
 };
 
-static inline uint8_t getCacheTime(void) {
+typedef table2d<uint8_t, uint8_t, 4> table2du8u8_4;
+typedef table2d<int8_t, uint8_t, 4> table2di8u8_4;
+typedef table2d<uint8_t, uint8_t, 10> table2du8u8_10;
+typedef table2d<uint8_t, uint8_t, 6> table2du8u8_6;
+typedef table2d<uint8_t, uint8_t, 9> table2du8u8_9;
+typedef table2d<uint8_t, uint8_t, 8> table2du8u8_8;
+typedef table2d<uint8_t, uint16_t, 4> table2du8u16_4;
+typedef table2d<uint8_t, int16_t, 6> table2du8s16_6;
+typedef table2d<uint16_t, uint16_t, 32> table2du16u16_32;
+typedef table2d<uint16_t, uint8_t, 32> table2du16u8_32;
+
+static inline uint8_t getCacheTime() {
   return currentStatus.secl;
 }
 
@@ -48,7 +59,7 @@ static inline uint8_t getCacheTime(void) {
  * @brief Lookup a value in a curve, interpolating if necessary
  */
 template <typename axis_t, typename value_t, uint8_t sizeT>
-value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_t X_in)
+value_t table2D_getValue(table2d<axis_t, value_t, sizeT> *fromTable, axis_t X_in)
 {
   static_assert(std::is_integral<axis_t>::value, "T must be an integral type");
   static_assert(std::is_integral<value_t>::value, "T must be an integral type");
@@ -73,7 +84,7 @@ value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_t X_in
  * @brief Lookup a value in a curve, interpolating if necessary
  */
 template <typename axis_t, typename value_t, uint8_t sizeT, typename axis_query_t>
-inline value_t table2D_getValue(table2D<axis_t, value_t, sizeT> *fromTable, axis_query_t X_in)
+inline value_t table2D_getValue(table2d<axis_t, value_t, sizeT> *fromTable, axis_query_t X_in)
 {
   static_assert(std::is_integral<axis_t>::value, "T must be an integral type");
   static_assert(std::is_integral<value_t>::value, "T must be an integral type");
