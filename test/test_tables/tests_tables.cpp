@@ -41,6 +41,36 @@ static const table3d_axis_t yMax = tempYAxis[_countof(tempYAxis)-1];
 
 static table3d16RpmLoad testTable;
 
+void loadAxis(table_axis_iterator it, const table3d_axis_t *pValues)
+{
+  while (!it.at_end())
+  {
+    *it = *pValues;
+    ++pValues;
+    ++it;
+  }
+}
+
+void loadValues(table_value_iterator it, const table3d_value_t *pValues)
+{
+    while (!it.at_end())
+    {
+      table_row_iterator itRow = *it;
+      while (!itRow.at_end())
+      {
+#if defined(ARDUINO)
+        *itRow = pgm_read_byte(pValues);
+#else
+        *itRow = *pValues;
+#endif
+        ++pValues;
+        ++itRow;
+      }
+      ++it;
+    }
+}
+
+
 void setup_TestTable(void)
 {
   //Setup the fuel table with some sane values for testing
@@ -70,46 +100,9 @@ void setup_TestTable(void)
   // NOTE: USE OF ITERATORS HERE IS DELIBERATE. IT INCLUDES THEM IN THE UNIT TESTS, giving
   // them some coverage
   //
-  {
-    table_axis_iterator itX = testTable.axisX.begin();
-    const table3d_axis_t *pXValue = tempXAxis;
-    while (!itX.at_end())
-    {
-      *itX = *pXValue;
-      ++pXValue;
-      ++itX;
-    }
-  }
-  {
-    table_axis_iterator itY = testTable.axisY.begin();
-    const table3d_axis_t *pYValue = tempYAxis;
-    while (!itY.at_end())
-    {
-      *itY = *pYValue;
-      ++pYValue;
-      ++itY;
-    }
-  }
-
-  {
-    table_value_iterator itZ = testTable.values.begin();
-    const table3d_value_t *pZValue = values;
-    while (!itZ.at_end())
-    {
-      table_row_iterator itRow = *itZ;
-      while (!itRow.at_end())
-      {
-#if defined(ARDUINO)
-        *itRow = pgm_read_byte(pZValue);
-#else
-        *itRow = *pZValue;
-#endif
-        ++pZValue;
-        ++itRow;
-      }
-      ++itZ;
-    }
-  }
+  loadAxis(testTable.axisX.begin(), tempXAxis);
+  loadAxis(testTable.axisY.begin(), tempYAxis);
+  loadValues(testTable.values.begin(), values);
 }
 
 void test_tableLookup_50_50(void)
@@ -247,6 +240,32 @@ void test_tableLookup_roundUp(void)
   TEST_ASSERT_EQUAL_UINT8(14, testTable.get_value_cache.lastYBinMax);
 }
 
+void test_tableLookup_large_values(void)
+{
+  // This is a sanity unit test to make sure we don't suffer from
+  // integer overflow when we're interpolating 'large' values on the edge
+  // of a bin.
+  static const PROGMEM uint8_t values2[] = {
+// 0  1   2   3 
+  1,  1,  1,  1, // 0
+  1,  1,  1,  1, // 1
+  1,  1,  UINT8_MAX-1, UINT8_MAX, // 2
+  1,  1,  UINT8_MAX,   UINT8_MAX, // 3
+  };
+ static const table3d_axis_t xaxis[] = { 100, 200, 300, 3300 };
+ static const table3d_axis_t yaxis[] = { 100, 200, 300, 3300 };
+
+  table3d4RpmLoad testTable2;
+  loadAxis(testTable2.axisX.begin(), xaxis);
+  loadAxis(testTable2.axisY.begin(), yaxis);
+  loadValues(testTable2.values.begin(), values2);
+
+  uint16_t tempVE = get3DTableValue(&testTable2, 3250, 3250);
+  TEST_ASSERT_EQUAL_UINT8(UINT8_MAX, tempVE);
+  TEST_ASSERT_EQUAL_UINT8(0, testTable2.get_value_cache.lastXBinMax);
+  TEST_ASSERT_EQUAL_UINT8(0, testTable2.get_value_cache.lastYBinMax);
+}
+
 void test_all_incrementing(void)
 {
   //Test the when going up both the load and RPM axis that the returned value is always equal or higher to the previous one
@@ -295,6 +314,7 @@ void testTables()
     RUN_TEST(test_tableLookup_underMinX);
     RUN_TEST(test_tableLookup_underMinY);
     RUN_TEST(test_tableLookup_roundUp);
+    RUN_TEST(test_tableLookup_large_values);
   #if !defined(ARDUINO)
     RUN_TEST(test_all_incrementing);
   #endif

@@ -83,6 +83,13 @@ table3d_value_t __attribute__((noclone)) get3DTableValue(struct table3DGetValueC
       const QU1X8_t n = mulQU1X8(p, q);
       const QU1X8_t o = mulQU1X8(QU1X8_ONE-p, QU1X8_ONE-q);
       const QU1X8_t r = mulQU1X8(p, QU1X8_ONE-q);
+
+      // The math below only works if the table values are 8 bit
+      // and the fixed point math use 8 (or less) bits for storing
+      // it's fractional part.
+      //
+      // If not we will hit integer overflow.
+      static_assert(sizeof(decltype(A))==1 && QU1X8_INTEGER_SHIFT<=8, "get3DTableValue: table values must be 8 bit");
       pValueCache->lastOutput = ( (A * m) + (B * n) + (C * o) + (D * r) ) >> QU1X8_INTEGER_SHIFT;
     }
 
