@@ -33,7 +33,7 @@ void test_corrections_WUE_active(void)
 {
   //Check for WUE being active
   currentStatus.coolant = 0;
-  ((uint8_t*)WUETable.axisX)[9] = 120 + CALIBRATION_TEMPERATURE_OFFSET; //Set a WUE end value of 120
+  WUETable.axisX[9] = 120 + CALIBRATION_TEMPERATURE_OFFSET; //Set a WUE end value of 120
   correctionWUE();
   TEST_ASSERT_BIT_HIGH(BIT_ENGINE_WARMUP, currentStatus.engine);
 }
@@ -42,7 +42,7 @@ void test_corrections_WUE_inactive(void)
 {
   //Check for WUE being inactive due to the temp being too high
   currentStatus.coolant = 200;
-  ((uint8_t*)WUETable.axisX)[9] = 120 + CALIBRATION_TEMPERATURE_OFFSET; //Set a WUE end value of 120
+  WUETable.axisX[9] = 120 + CALIBRATION_TEMPERATURE_OFFSET; //Set a WUE end value of 120
   correctionWUE();
   TEST_ASSERT_BIT_LOW(BIT_ENGINE_WARMUP, currentStatus.engine);
 }
@@ -51,8 +51,8 @@ void test_corrections_WUE_inactive_value(void)
 {
   //Check for WUE being set to the final row of the WUE curve if the coolant is above the max WUE temp
   currentStatus.coolant = 200;
-  ((uint8_t*)WUETable.axisX)[9] = 100;
-  ((uint8_t*)WUETable.values)[9] = 123; //Use a value other than 100 here to ensure we are using the non-default value
+  WUETable.axisX[9] = 100;
+  WUETable.values[9] = 123; //Use a value other than 100 here to ensure we are using the non-default value
 
   //Force invalidate the cache
   WUETable.cache.cacheTime = currentStatus.secl - 1;
@@ -65,19 +65,19 @@ void test_corrections_WUE_active_value(void)
   //Check for WUE being made active and returning a correct interpolated value
   currentStatus.coolant = 80;
   //Set some fake values in the table axis. Target value will fall between points 6 and 7
-  ((uint8_t*)WUETable.axisX)[0] = 0;
-  ((uint8_t*)WUETable.axisX)[1] = 0;
-  ((uint8_t*)WUETable.axisX)[2] = 0;
-  ((uint8_t*)WUETable.axisX)[3] = 0;
-  ((uint8_t*)WUETable.axisX)[4] = 0;
-  ((uint8_t*)WUETable.axisX)[5] = 0;
-  ((uint8_t*)WUETable.axisX)[6] = 70 + CALIBRATION_TEMPERATURE_OFFSET;
-  ((uint8_t*)WUETable.axisX)[7] = 90 + CALIBRATION_TEMPERATURE_OFFSET;
-  ((uint8_t*)WUETable.axisX)[8] = 100 + CALIBRATION_TEMPERATURE_OFFSET;
-  ((uint8_t*)WUETable.axisX)[9] = 120 + CALIBRATION_TEMPERATURE_OFFSET;
+  WUETable.axisX[0] = 0;
+  WUETable.axisX[1] = 0;
+  WUETable.axisX[2] = 0;
+  WUETable.axisX[3] = 0;
+  WUETable.axisX[4] = 0;
+  WUETable.axisX[5] = 0;
+  WUETable.axisX[6] = 70 + CALIBRATION_TEMPERATURE_OFFSET;
+  WUETable.axisX[7] = 90 + CALIBRATION_TEMPERATURE_OFFSET;
+  WUETable.axisX[8] = 100 + CALIBRATION_TEMPERATURE_OFFSET;
+  WUETable.axisX[9] = 120 + CALIBRATION_TEMPERATURE_OFFSET;
 
-  ((uint8_t*)WUETable.values)[6] = 120;
-  ((uint8_t*)WUETable.values)[7] = 130;
+  WUETable.values[6] = 120;
+  WUETable.values[7] = 130;
 
   //Force invalidate the cache
   WUETable.cache.cacheTime = currentStatus.secl - 1;

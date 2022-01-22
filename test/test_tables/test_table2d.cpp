@@ -20,11 +20,10 @@ static int16_t table2d_axis_s16[TEST_TABLE2D_SIZE] = {
     123, 2539, 5531, 7537, 11329, 16363, 21323, 26357, 32029,
 };
 
-// static table2D table2d_u8_u8;
-static table2D<uint8_t, uint8_t, TEST_TABLE2D_SIZE> table2d_u8_u8(table2d_axis_u8, table2d_data_u8);
-static table2D<int16_t, uint8_t, TEST_TABLE2D_SIZE> table2d_u8_s16(table2d_axis_s16, table2d_data_u8);
-static table2D<uint8_t, int16_t, TEST_TABLE2D_SIZE> table2d_s16_u8(table2d_axis_u8, table2d_data_s16);
-static table2D<int16_t, int16_t, TEST_TABLE2D_SIZE> table2d_s16_s16(table2d_axis_s16, table2d_data_s16);
+static table2d<uint8_t, uint8_t, TEST_TABLE2D_SIZE> table2d_u8_u8(&table2d_axis_u8, &table2d_data_u8);
+static table2d<int16_t, uint8_t, TEST_TABLE2D_SIZE> table2d_u8_s16(&table2d_axis_s16, &table2d_data_u8);
+static table2d<uint8_t, int16_t, TEST_TABLE2D_SIZE> table2d_s16_u8(&table2d_axis_u8, &table2d_data_s16);
+static table2d<int16_t, int16_t, TEST_TABLE2D_SIZE> table2d_s16_s16(&table2d_axis_s16, &table2d_data_s16);
 
 void test_table2dLookup_50pct(void)
 {

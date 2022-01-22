@@ -30,12 +30,12 @@ struct table2d
   typedef axis_t axis_type;
   typedef value_t value_type;
 
-  value_t *values;
-  axis_t *axisX;
+  value_t (&values)[sizeT];
+  axis_t (&axisX)[sizeT];
   table2d_lookup_cache<axis_t, value_t> cache;
 
-  table2d(axis_t (&axisBin)[sizeT], value_t (&curve)[sizeT])
-    : values(curve), axisX(axisBin)
+  inline constexpr table2d(axis_t (*pAxisBin)[sizeT], value_t (*pCurve)[sizeT])
+    : values(*pCurve), axisX(*pAxisBin)
   {
   }
 };
