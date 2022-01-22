@@ -32,11 +32,11 @@ static long FeedForwardTerm;
 static unsigned long idle_pwm_target_value;
 static long idle_cl_target_rpm;
 
-static table2du8u8_10 iacPWMTable(configPage6.iacBins, configPage6.iacOLPWMVal);
-static table2du8u8_10 iacStepTable(configPage6.iacBins, configPage6.iacOLStepVal);
+static table2du8u8_10 iacPWMTable(&configPage6.iacBins, &configPage6.iacOLPWMVal);
+static table2du8u8_10 iacStepTable(&configPage6.iacBins, &configPage6.iacOLStepVal);
 //Open loop tables specifically for cranking
-static table2du8u8_4 iacCrankStepsTable(configPage6.iacCrankBins, configPage6.iacCrankSteps);
-static table2du8u8_4 iacCrankDutyTable(configPage6.iacCrankBins, configPage6.iacCrankDuty);
+static table2du8u8_4 iacCrankStepsTable(&configPage6.iacCrankBins, &configPage6.iacCrankSteps);
+static table2du8u8_4 iacCrankDutyTable(&configPage6.iacCrankBins, &configPage6.iacCrankDuty);
 
 /*
 These functions cover the PWM and stepper idle control

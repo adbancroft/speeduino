@@ -23,34 +23,34 @@ struct table3d8RpmLoad vvt2Table; ///< 8x8 vvt2 map
 struct table3d8RpmLoad wmiTable; ///< 8x8 wmi map
 struct table3d4RpmLoad dwellTable; ///< 4x4 Dwell map
 
-table2du8u8_4 taeTable(configPage4.taeBins, configPage4.taeValues); ///< 4 bin TPS Acceleration Enrichment map (2D)
-table2du8u8_4 maeTable(configPage4.maeBins, configPage4.maeRates);
-table2du8u8_10 WUETable(configPage4.wueBins, configPage2.wueValues); ///< 10 bin Warm Up Enrichment map (2D)
-table2du8u8_4 ASETable(configPage2.aseBins, configPage2.asePct); ///< 4 bin After Start Enrichment map (2D)
-table2du8u8_4 ASECountTable(configPage2.aseBins, configPage2.aseCount); ///< 4 bin After Start duration map (2D)
-table2du8u8_4 PrimingPulseTable(configPage2.primeBins, configPage2.primePulse); ///< 4 bin Priming pulsewidth map (2D)
-table2du8u8_4 crankingEnrichTable(configPage10.crankingEnrichBins, configPage10.crankingEnrichValues); ///< 4 bin cranking Enrichment map (2D)
-table2du8u8_6 dwellVCorrectionTable(configPage6.voltageCorrectionBins, configPage4.dwellCorrectionValues); ///< 6 bin dwell voltage correction (2D)
-table2du8u8_6 injectorVCorrectionTable(configPage6.voltageCorrectionBins, configPage6.injVoltageCorrectionValues); ///< 6 bin injector voltage correction (2D)
-table2du8u16_4 injectorAngleTable(configPage2.injAngRPM, configPage2.injAng); ///< 4 bin injector angle curve (2D)
-table2du8u8_9 IATDensityCorrectionTable(configPage6.airDenBins, configPage6.airDenRates); ///< 9 bin inlet air temperature density correction (2D)
-table2du8u8_8 baroFuelTable(configPage4.baroFuelBins, configPage4.baroFuelValues); ///< 8 bin baro correction curve (2D)
-table2du8u8_6 IATRetardTable(configPage4.iatRetBins, configPage4.iatRetValues); ///< 6 bin ignition adjustment based on inlet air temperature  (2D)
-table2du8u8_10 idleTargetTable(configPage6.iacBins, configPage6.iacCLValues); ///< 10 bin idle target table for idle timing (2D)
-table2du8u8_6 idleAdvanceTable(configPage4.idleAdvBins, configPage4.idleAdvValues); ///< 6 bin idle advance adjustment table based on RPM difference  (2D)
-table2du8u8_6 CLTAdvanceTable(configPage4.cltAdvBins, configPage4.cltAdvValues); ///< 6 bin ignition adjustment based on coolant temperature  (2D)
-table2du8u8_8 rotarySplitTable(configPage10.rotarySplitBins, configPage10.rotarySplitValues); ///< 8 bin ignition split curve for rotary leading/trailing  (2D)
-table2du8u8_6 flexFuelTable(configPage10.flexFuelBins, configPage10.flexFuelAdj);  ///< 6 bin flex fuel correction table for fuel adjustments (2D)
-table2du8u8_6 flexAdvTable(configPage10.flexAdvBins, configPage10.flexAdvAdj);   ///< 6 bin flex fuel correction table for timing advance (2D)
-table2du8s16_6 flexBoostTable(configPage10.flexBoostBins, configPage10.flexBoostAdj); ///< 6 bin flex fuel correction table for boost adjustments (2D)
-table2du8u8_6 fuelTempTable(configPage10.fuelTempBins, configPage10.fuelTempValues);  ///< 6 bin flex fuel correction table for fuel adjustments (2D)
-table2du8u8_6 knockWindowStartTable(configPage10.knock_window_rpms, configPage10.knock_window_angle);
-table2du8u8_6 knockWindowDurationTable(configPage10.knock_window_rpms, configPage10.knock_window_dur);
-table2du8u8_4 oilPressureProtectTable(configPage10.oilPressureProtRPM, configPage10.oilPressureProtMins);
-table2du8u8_6 wmiAdvTable(configPage10.wmiAdvBins, configPage10.wmiAdvAdj); //6 bin wmi correction table for timing advance (2D)
-table2du8u8_6 coolantProtectTable(configPage9.coolantProtRPM, configPage9.coolantProtTemp); //6 bin coolant temperature protection table for engine protection (2D)
-table2du8u8_4 fanPWMTable(configPage6.fanPWMBins, configPage9.PWMFanDuty);
-table2di8u8_4 rollingCutTable(configPage15.rollingProtRPMDelta, configPage15.rollingProtCutPercent);
+table2du8u8_4 taeTable(&configPage4.taeBins, &configPage4.taeValues); ///< 4 bin TPS Acceleration Enrichment map (2D)
+table2du8u8_4 maeTable(&configPage4.maeBins, &configPage4.maeRates);
+table2du8u8_10 WUETable(&configPage4.wueBins, &configPage2.wueValues); ///< 10 bin Warm Up Enrichment map (2D)
+table2du8u8_4 ASETable(&configPage2.aseBins, &configPage2.asePct); ///< 4 bin After Start Enrichment map (2D)
+table2du8u8_4 ASECountTable(&configPage2.aseBins, &configPage2.aseCount); ///< 4 bin After Start duration map (2D)
+table2du8u8_4 PrimingPulseTable(&configPage2.primeBins, &configPage2.primePulse); ///< 4 bin Priming pulsewidth map (2D)
+table2du8u8_4 crankingEnrichTable(&configPage10.crankingEnrichBins, &configPage10.crankingEnrichValues); ///< 4 bin cranking Enrichment map (2D)
+table2du8u8_6 dwellVCorrectionTable(&configPage6.voltageCorrectionBins, &configPage4.dwellCorrectionValues); ///< 6 bin dwell voltage correction (2D)
+table2du8u8_6 injectorVCorrectionTable(&configPage6.voltageCorrectionBins, &configPage6.injVoltageCorrectionValues); ///< 6 bin injector voltage correction (2D)
+table2du8u16_4 injectorAngleTable(&configPage2.injAngRPM, &configPage2.injAng); ///< 4 bin injector angle curve (2D)
+table2du8u8_9 IATDensityCorrectionTable(&configPage6.airDenBins, &configPage6.airDenRates); ///< 9 bin inlet air temperature density correction (2D)
+table2du8u8_8 baroFuelTable(&configPage4.baroFuelBins, &configPage4.baroFuelValues); ///< 8 bin baro correction curve (2D)
+table2du8u8_6 IATRetardTable(&configPage4.iatRetBins, &configPage4.iatRetValues); ///< 6 bin ignition adjustment based on inlet air temperature  (2D)
+table2du8u8_10 idleTargetTable(&configPage6.iacBins, &configPage6.iacCLValues); ///< 10 bin idle target table for idle timing (2D)
+table2du8u8_6 idleAdvanceTable(&configPage4.idleAdvBins, &configPage4.idleAdvValues); ///< 6 bin idle advance adjustment table based on RPM difference  (2D)
+table2du8u8_6 CLTAdvanceTable(&configPage4.cltAdvBins, &configPage4.cltAdvValues); ///< 6 bin ignition adjustment based on coolant temperature  (2D)
+table2du8u8_8 rotarySplitTable(&configPage10.rotarySplitBins, &configPage10.rotarySplitValues); ///< 8 bin ignition split curve for rotary leading/trailing  (2D)
+table2du8u8_6 flexFuelTable(&configPage10.flexFuelBins, &configPage10.flexFuelAdj);  ///< 6 bin flex fuel correction table for fuel adjustments (2D)
+table2du8u8_6 flexAdvTable(&configPage10.flexAdvBins, &configPage10.flexAdvAdj);   ///< 6 bin flex fuel correction table for timing advance (2D)
+table2du8s16_6 flexBoostTable(&configPage10.flexBoostBins, &configPage10.flexBoostAdj); ///< 6 bin flex fuel correction table for boost adjustments (2D)
+table2du8u8_6 fuelTempTable(&configPage10.fuelTempBins, &configPage10.fuelTempValues);  ///< 6 bin flex fuel correction table for fuel adjustments (2D)
+table2du8u8_6 knockWindowStartTable(&configPage10.knock_window_rpms, &configPage10.knock_window_angle);
+table2du8u8_6 knockWindowDurationTable(&configPage10.knock_window_rpms, &configPage10.knock_window_dur);
+table2du8u8_4 oilPressureProtectTable(&configPage10.oilPressureProtRPM, &configPage10.oilPressureProtMins);
+table2du8u8_6 wmiAdvTable(&configPage10.wmiAdvBins, &configPage10.wmiAdvAdj); //6 bin wmi correction table for timing advance (2D)
+table2du8u8_6 coolantProtectTable(&configPage9.coolantProtRPM, &configPage9.coolantProtTemp); //6 bin coolant temperature protection table for engine protection (2D)
+table2du8u8_4 fanPWMTable(&configPage6.fanPWMBins, &configPage9.PWMFanDuty);
+table2di8u8_4 rollingCutTable(&configPage15.rollingProtRPMDelta, &configPage15.rollingProtCutPercent);
 
 
 //These are variables used across multiple files
@@ -89,10 +89,10 @@ struct config15 configPage15;
 
 uint16_t cltCalibration_bins[32];
 uint16_t cltCalibration_values[32];
-table2du16u16_32 cltCalibrationTable(cltCalibration_bins, cltCalibration_values);
+table2du16u16_32 cltCalibrationTable(&cltCalibration_bins, &cltCalibration_values);
 uint16_t iatCalibration_bins[32];
 uint16_t iatCalibration_values[32];
-table2du16u16_32 iatCalibrationTable(iatCalibration_bins, iatCalibration_values);
+table2du16u16_32 iatCalibrationTable(&iatCalibration_bins, &iatCalibration_values);
 uint16_t o2Calibration_bins[32];
 uint8_t o2Calibration_values[32];
-table2du16u16_32 o2CalibrationTable(o2Calibration_bins, o2Calibration_values); 
+table2du16u8_32 o2CalibrationTable(&o2Calibration_bins, &o2Calibration_values); 
