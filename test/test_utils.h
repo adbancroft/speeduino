@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <unity.h>
-#include "maths.h"
+#include "math/muldiv.h"
 
 // Unity macro to reduce memory usage (RAM, .bss)
 //

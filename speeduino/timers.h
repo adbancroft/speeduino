@@ -22,7 +22,7 @@ Hence we will preload the timer with 131 cycles to leave 125 until overflow (1ms
 #include "pin_mapping.h"
 #include "port_pin.h"
 #include "board_definition.h"
-#include "globals.h"
+#include "maths.h"
 
 #define SET_COMPARE(compare, value) compare = (COMPARE_TYPE)(value) // It is important that we cast this to the actual overflow limit of the timer. The compare variables type can be bigger than the timer overflow.
 

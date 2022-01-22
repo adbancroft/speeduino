@@ -1,4 +1,4 @@
-#include "maths.h"
+#include "math/rescale.h"
 #include <unity.h>
 #include <stdio.h>
 
