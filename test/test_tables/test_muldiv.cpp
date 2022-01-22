@@ -1,6 +1,6 @@
 #include <unity.h>
 #include <stdio.h>
-#include "maths.h"
+#include "math/muldiv.h"
 #include "timer.hpp"
 
 template <typename T> inline T get_b(T a, T max)

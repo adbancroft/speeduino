@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "currentstatus.h"
 #include <type_traits>
-#include "maths.h"
+#include "math/rescale.h"
 #include "find_bin.h"
 
 template <typename axis_t, typename value_t>
@@ -78,7 +78,7 @@ value_t table2D_getValue(table2d<axis_t, value_t, sizeT> *fromTable, axis_t X_in
   return fromTable->cache.lastOutput;
 }
 
-#include "saturated_cast.hpp"
+#include "math/saturated_cast.hpp"
 
 /*
  * @brief Lookup a value in a curve, interpolating if necessary

@@ -2,7 +2,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "maths.h"
+#include "math/muldiv.h"
 
 template <typename T>
 T constexpr intermediate(T const& min, T const& max, uint8_t const& frac)

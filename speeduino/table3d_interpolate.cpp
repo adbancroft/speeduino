@@ -1,40 +1,8 @@
 #include "table3d_interpolate.h"
 #include "find_bin.h"
-#include "maths.h"
+#include "math/muldiv.h"
+#include "math/FixedPoint.h"
 #include <type_traits>
-
-// ========================= Fixed point math =========================
-
-// An unsigned fixed point number type with 1 integer bit & 8 fractional bits.
-// See https://en.wikipedia.org/wiki/Q_(number_format).
-// This is specialised for the number range 0..1 - a generic fixed point
-// class would miss some important optimisations. Specifically, we can avoid
-// type promotion during multiplication.
-typedef uint16_t QU1X8_t;
-static constexpr uint8_t QU1X8_INTEGER_SHIFT = 8U;
-static constexpr QU1X8_t QU1X8_ONE = (QU1X8_t)1U << (QU1X8_t)QU1X8_INTEGER_SHIFT;
-static constexpr QU1X8_t QU1X8_HALF = (QU1X8_t)1U << (QU1X8_t)(QU1X8_INTEGER_SHIFT- (QU1X8_t)1U);
-
-static inline QU1X8_t mulQU1X8(QU1X8_t a, QU1X8_t b)
-{
-    // 1x1 == 1....but the real reason for this is to avoid 16-bit multiplication overflow.
-    //
-    // We are using uint16_t as our underlying fixed point type. If we follow the regular
-    // code path, we'd need to promote to uint32_t to avoid overflow.
-    //
-    // The overflow can only happen when *both* the X & Y inputs
-    // are at the edge of a bin. 
-    //
-    // This is a rare condition, so most of the time we can use 16-bit multiplication and gain performance
-    if (a==QU1X8_ONE && b==QU1X8_ONE)
-    {
-        return QU1X8_ONE;
-    }
-  // Add the equivalent of 0.5 to the final calculation pre-rounding.
-  // This will have the effect of rounding to the nearest integer, rather
-  // than always rounding down.
-  return ((a * b) + QU1X8_HALF) >> QU1X8_INTEGER_SHIFT;
-}
 
 // ============================= Axis value to bin % =========================
 
@@ -45,16 +13,11 @@ static inline QU1X8_t compute_bin_position(table3d_axis_t value, const table3d_d
   table3d_axis_t binMaxValue = pAxis[bin];
   if (value>=binMaxValue) { return QU1X8_ONE; }
 
+  // Since the axis values are in increasing order, we can use unsigned math
   typedef typename std::make_unsigned<table3d_axis_t>::type utable3d_axis_t;
 
-  // Since we can have bins of any width, we need to use 
-  // 24.8 fixed point to avoid overflow
   utable3d_axis_t binWidth = binMaxValue-binMinValue;
   utable3d_axis_t binDistance = value - binMinValue;
-  // Since we are computing the ratio (0 to 1), p is guarenteed to be
-  // less than binWidth and thus the division below will result in a value
-  // <=1. So we can reduce the data type from 24.8 (uint32_t) to 1.8 (uint16_t)
-  // return p / binWidth; 
   return (QU1X8_t)muldiv(binDistance, QU1X8_ONE, binWidth); 
 }
 
