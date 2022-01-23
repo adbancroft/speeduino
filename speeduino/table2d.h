@@ -67,9 +67,10 @@ value_t table2D_getValue(table2d<axis_t, value_t, sizeT> *fromTable, axis_t X_in
   //Check whether the X input is the same as last time this ran
   if( (X_in != fromTable->cache.lastInput) || (fromTable->cache.cacheTime != getCacheTime()) )
   {
-    fromTable->cache.lastXMax = find_bin(X_in, fromTable->axisX, 0, sizeT-1, fromTable->cache.lastXMax);
+    bin<axis_t> bin = find_bin(X_in, fromTable->axisX, 0, sizeT-1, fromTable->cache.lastXMax);
+    fromTable->cache.lastXMax = bin.maxIdx;
     fromTable->cache.lastOutput = rescale(X_in, 
-                                          fromTable->axisX[fromTable->cache.lastXMax-1], fromTable->axisX[fromTable->cache.lastXMax], 
+                                          bin.min, bin.max, 
                                           fromTable->values[fromTable->cache.lastXMax - 1], fromTable->values[fromTable->cache.lastXMax]);
     fromTable->cache.lastInput = X_in;
     fromTable->cache.cacheTime = getCacheTime(); //As we're not using the cache value, set the current secl value to track when this new value was calc'd

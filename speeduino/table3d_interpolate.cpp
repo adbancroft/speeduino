@@ -6,18 +6,16 @@
 
 // ============================= Axis value to bin % =========================
 
-static inline QU1X8_t compute_bin_position(table3d_axis_t value, const table3d_dim_t &bin, const table3d_axis_t *pAxis)
+static inline QU1X8_t compute_bin_position(table3d_axis_t value, const bin<table3d_axis_t> &bin)
 {
-  table3d_axis_t binMinValue = pAxis[bin-1U];
-  if (value<=binMinValue) { return 0; }
-  table3d_axis_t binMaxValue = pAxis[bin];
-  if (value>=binMaxValue) { return QU1X8_ONE; }
+  if (value<=bin.min) { return 0u; }
+  if (value>=bin.max) { return QU1X8_ONE; }
 
   // Since the axis values are in increasing order, we can use unsigned math
   typedef typename std::make_unsigned<table3d_axis_t>::type utable3d_axis_t;
 
-  utable3d_axis_t binWidth = binMaxValue-binMinValue;
-  utable3d_axis_t binDistance = value - binMinValue;
+  utable3d_axis_t binWidth = bin.max - bin.min;
+  utable3d_axis_t binDistance = value - bin.min;
   return (QU1X8_t)muldiv(binDistance, QU1X8_ONE, binWidth); 
 }
 
@@ -47,8 +45,10 @@ table3d_value_t __attribute__((noclone)) get3DTableValue(struct table3DGetValueC
     pValueCache->last_lookup.y = Y_in;
 
     // Figure out where on the axes the incoming coord are
-    pValueCache->lastXBinMax = find_bin(X_in, pXAxis, axisSize-1, 0, pValueCache->lastXBinMax);
-    pValueCache->lastYBinMax = find_bin(Y_in, pYAxis, axisSize-1, 0, pValueCache->lastYBinMax);
+    bin<table3d_axis_t> xBin = find_bin(X_in, pXAxis, axisSize-1, 0, pValueCache->lastXBinMax);
+    pValueCache->lastXBinMax = xBin.maxIdx;
+    bin<table3d_axis_t> yBin = find_bin(Y_in, pYAxis, axisSize-1, 0, pValueCache->lastYBinMax);
+    pValueCache->lastYBinMax = yBin.maxIdx;
 
     /*
     At this point we have the 4 corners of the map where the interpolated value will fall in
@@ -76,8 +76,8 @@ table3d_value_t __attribute__((noclone)) get3DTableValue(struct table3DGetValueC
     {
       //Create some normalised position values
       //These are essentially percentages (between 0 and 1) of where the desired value falls between the nearest bins on each axis
-      const QU1X8_t p = compute_bin_position(X_in, pValueCache->lastXBinMax, pXAxis);
-      const QU1X8_t q = compute_bin_position(Y_in, pValueCache->lastYBinMax, pYAxis);
+      const QU1X8_t p = compute_bin_position(X_in, xBin);
+      const QU1X8_t q = compute_bin_position(Y_in, yBin);
 
       const QU1X8_t m = mulQU1X8(QU1X8_ONE-p, q);
       const QU1X8_t n = mulQU1X8(p, q);
