@@ -5,7 +5,7 @@
 #if defined(__AVR__)
 #include <Arduino.h>
 #else
-#include <sys/time.h>
+#include <time.h>
 #endif
 
 #if !defined(MILLIS_PER_SEC)
@@ -24,8 +24,8 @@ private:
     uint32_t start_time;
     uint32_t end_time;
 #else
-    struct timeval start_time;
-    struct timeval end_time;
+    struct timespec start_time;
+    struct timespec end_time;
 #endif
 
 public:
@@ -37,7 +37,7 @@ public:
 #if defined(__AVR__)
         start_time = micros();
 #else 
-        gettimeofday(&start_time, NULL);
+        clock_gettime(CLOCK_MONOTONIC, &start_time);    
 #endif
     }
 
@@ -45,7 +45,7 @@ public:
 #if defined(__AVR__)
         end_time = micros();
 #else 
-        gettimeofday(&end_time, NULL);
+        clock_gettime(CLOCK_MONOTONIC, &end_time);
 #endif        
     }
 
@@ -53,7 +53,7 @@ public:
 #if defined(__AVR__)
         return end_time-start_time;
 #else 
-        return (uint32_t)(((end_time.tv_sec - start_time.tv_sec) * MICROS_PER_SEC) + (end_time.tv_usec - start_time.tv_usec));
+        return (uint32_t)(((end_time.tv_sec - start_time.tv_sec) * MICROS_PER_SEC) + (end_time.tv_nsec - start_time.tv_nsec) * NANOS_PER_MICRO);
 #endif 
     }
 };

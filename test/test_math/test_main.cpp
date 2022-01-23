@@ -1,16 +1,24 @@
 #include <unity.h>
-#include "tests_tables.h"
-#include "test_table2d.h"
-#include "test_find_bin.h"
+#include "test_saturated_cast.h"
+#include "test_muldiv.h"
+#include "test_rescale.h"
+#include "tests_crankmaths.h"
+
+
+extern void testPercent(void);
+extern void testDivision(void);
 
 
 void run_tests(void)
 {
     UNITY_BEGIN();    // IMPORTANT LINE!
 
-    testTables();
-    testTable2d();
-    testFindBin();
+    test_saturated_cast();
+    testmuldiv();
+    testrescale();
+    testCrankMaths();
+    testPercent();
+    testDivision();
 
     UNITY_END(); // stop unit testing    
 }
@@ -38,9 +46,6 @@ void loop()
     delay(250);
 }
 #else
-
-#include "table3d_interpolate.cpp"
-#include "currentstatus.cpp"
 
 // Native build
 int main(int argc, char **argv) {

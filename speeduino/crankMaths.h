@@ -43,7 +43,7 @@ static inline int16_t injectorLimits(int16_t angle)
  * This is dictated by the use of uint16_t as the base type for storing
  * angle<->time conversion factor (degreesPerMicro)
 */
-#define MIN_RPM UINT16_C((MICROS_PER_DEG_1_RPM/(UINT16_MAX/16UL))+1UL)
+#define MIN_RPM ((uint16_t)((MICROS_PER_DEG_1_RPM/(UINT16_MAX/16UL))+1U))
 
 /**
  * @brief Set the revolution time, from which the degree<-->angle conversions are derived
