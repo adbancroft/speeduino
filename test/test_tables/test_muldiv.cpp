@@ -74,7 +74,7 @@ void test_muldiv_perf_t(uint16_t iters, const char *msgTag, T min, T max, T step
         {
             T b = get_b(a, max);
             T div = get_div(a, b);
-            checkSumNative += muldiv_simple<T, TPromote>(a, b, div);
+            checkSumNative += muldiv_detail::muldiv_simple<T, TPromote>(a, b, div);
         }
     }
     native_timer.stop();

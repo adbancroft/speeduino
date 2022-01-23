@@ -1,17 +1,23 @@
 #pragma once
 
+/** \file
+ * @brief Fixed point math support 
+ */
+
 #include <stdint.h>
 
-// An unsigned fixed point number type with 1 integer bit & 8 fractional bits.
-// See https://en.wikipedia.org/wiki/Q_(number_format).
-// This is specialized for the number range 0..1 - a generic fixed point
-// class would miss some important optimizations. Specifically, we can avoid
-// type promotion during multiplication.
+/** @brief An unsigned fixed point number type with 1 integer bit & 8 fractional bits.
+ * See https://en.wikipedia.org/wiki/Q_(number_format).
+ * This is specialized for the number range 0..1 - a generic fixed point
+ * class would miss some important optimizations. Specifically, we can avoid
+ * type promotion during multiplication.
+ * */
 typedef uint16_t QU1X8_t;
 static constexpr uint8_t QU1X8_INTEGER_SHIFT = 8;
 static constexpr QU1X8_t QU1X8_ONE = 1U << QU1X8_INTEGER_SHIFT;
 static constexpr QU1X8_t QU1X8_HALF = 1U << (QU1X8_INTEGER_SHIFT-1);
 
+/** @brief Multiply 2 QU1X8_t fractions */
 inline QU1X8_t mulQU1X8(QU1X8_t a, QU1X8_t b)
 {
     // 1x1 == 1....but the real reason for this is to avoid 16-bit multiplication overflow.
