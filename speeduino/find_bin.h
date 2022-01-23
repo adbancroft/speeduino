@@ -16,7 +16,14 @@ enum stride {
 };
 
 template <typename T>
-inline uint8_t linear_bin_search( const T value,          // Value to search for
+struct bin {
+    T min;
+    T max;
+    uint8_t maxIdx;
+};
+
+template <typename T>
+inline bin<T> linear_bin_search( const T value,          // Value to search for
                                   const T *pAxis,         // The axis to search
                                   uint8_t minBinIndex,    // Axis index of the element with the lowest value (at one end of the array)
                                   uint8_t maxElement)     // Axis index of the element with the highest value (at the other end of the array)
@@ -38,7 +45,7 @@ inline uint8_t linear_bin_search( const T value,          // Value to search for
     vMax = vMin;
     vMin = *pIter;
   }
-  return maxElement;
+  return { .min = vMin, .max = vMax, .maxIdx = maxElement };
 }
 
 
@@ -46,7 +53,7 @@ inline uint8_t linear_bin_search( const T value,          // Value to search for
 // E.g. 4 in { 1, 3, 5, 7, 9 } would be 2
 // We assume the axis is in order.
 template <typename T>
-inline uint8_t find_bin(
+inline bin<T> find_bin(
   const T value,          // Value to search for
   const T *pAxis,         // The axis to search
   uint8_t minElement,     // Axis index of the element with the lowest value (at one end of the array)
@@ -76,19 +83,19 @@ inline uint8_t find_bin(
   pMax = pAxis + lastBinMax;
   if (is_in_bin(value, *(pMax - direction), *pMax))
   {
-    return lastBinMax;
+    return { .min = *(pMax - direction), .max = *pMax, .maxIdx = lastBinMax };
   }
   // Check the bin above the last one
   pMax = pMax - direction;
   if (lastBinMax!=minBinIndex && is_in_bin(value, *(pMax - direction), *pMax))
   {
-    return lastBinMax-direction;    
+    return { .min = *(pMax - direction), .max = *pMax, .maxIdx = (uint8_t)(lastBinMax-direction) };
   }
   // Check the bin below the last one
   pMax += direction*2;
   if (lastBinMax!=maxElement && is_in_bin(value, *(pMax - direction), *pMax))
   {
-    return lastBinMax+direction;
+    return { .min = *(pMax - direction), .max = *pMax, .maxIdx = (uint8_t)(lastBinMax+direction) };
   }
 
   // Check if outside array limits - won't happen often in the real world
@@ -96,12 +103,12 @@ inline uint8_t find_bin(
   // At or above maximum - clamp to final value
   if (value>=pAxis[maxElement])
   {
-    return maxElement;
+    return { .min = pAxis[maxElement - direction], .max = pAxis[maxElement], .maxIdx = maxElement };
   }
   // At or below minimum - clamp to lowest value
   if (value<=pAxis[minElement])
   {
-    return minElement+direction;
+    return { .min = pAxis[minElement], .max = pAxis[minElement+direction], .maxIdx = (uint8_t)(minElement+direction) };
   }
 
   // No hits above, so run a linear search.
