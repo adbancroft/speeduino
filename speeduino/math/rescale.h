@@ -4,6 +4,11 @@
 #include "muldiv.h"
 #include "bit_shifts.h"
 
+/** \file
+ * @brief Optimised integer rescaling
+ */
+
+
 //This is a dedicated function that specifically handles the case of mapping 0-1023 values into a 0 to X range
 //This is a common case because it means converting from a standard 10-bit analog input to a byte or 10-bit analog into 0-511 (Eg the temperature readings)
 #define fastMap1023toX(x, out_max) ( rshift<10>((uint32_t)(x) * (out_max)) )
