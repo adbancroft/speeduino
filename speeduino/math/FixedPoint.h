@@ -12,13 +12,13 @@
  * class would miss some important optimizations. Specifically, we can avoid
  * type promotion during multiplication.
  * */
-typedef uint16_t QU1X8_t;
-static constexpr uint8_t QU1X8_INTEGER_SHIFT = 8;
-static constexpr QU1X8_t QU1X8_ONE = 1U << QU1X8_INTEGER_SHIFT;
-static constexpr QU1X8_t QU1X8_HALF = 1U << (QU1X8_INTEGER_SHIFT-1);
+using QU1X8_t = uint16_t;
+static constexpr uint8_t QU1X8_INTEGER_SHIFT = 8u;
+static constexpr QU1X8_t QU1X8_ONE = (uint16_t)1U << (uint16_t)QU1X8_INTEGER_SHIFT;
+static constexpr QU1X8_t QU1X8_HALF = (uint16_t)1U <<((uint16_t)QU1X8_INTEGER_SHIFT-1U);
 
 /** @brief Multiply 2 QU1X8_t fractions */
-inline QU1X8_t mulQU1X8(QU1X8_t a, QU1X8_t b)
+static inline QU1X8_t mulQU1X8(QU1X8_t a, QU1X8_t b)
 {
     // 1x1 == 1....but the real reason for this is to avoid 16-bit multiplication overflow.
     //

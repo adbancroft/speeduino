@@ -49,18 +49,18 @@ static inline to_t rescale(const from_t fromValue, const from_t fromMin, const f
     if (fromValue<=fromMin) { return toMin; }
     if (fromValue>=fromMax) { return toMax; }
 
-    u_common_t fromDistance = fromValue - fromMin;
-    u_common_t fromWidth = fromMax - fromMin;
+    u_common_t fromDistance = fromValue - fromMin; //cppcheck-suppress misra-c2012-17.7; false positive
+    u_common_t fromWidth = fromMax - fromMin; //cppcheck-suppress misra-c2012-17.7; false positive
 
     // If the scale-to range is inverted we convert to unsigned and invert the result
     // This helps performance and simplifies the code.
     if (toMax<toMin)
     {
-        u_common_t toWidth = toMin - toMax;
-        u_common_t scaled = muldiv(toWidth, fromDistance, fromWidth);
+        u_common_t toWidth = toMin - toMax; //cppcheck-suppress misra-c2012-17.7; false positive
+        u_common_t scaled = muldiv(toWidth, fromDistance, fromWidth); //cppcheck-suppress misra-c2012-17.7; false positive
         return toMin - scaled;
     }
-    u_common_t toWidth = toMax - toMin;
-    u_common_t scaled = muldiv(toWidth, fromDistance, fromWidth);
+    u_common_t toWidth = toMax - toMin; //cppcheck-suppress misra-c2012-17.7; false positive
+    u_common_t scaled = muldiv(toWidth, fromDistance, fromWidth); //cppcheck-suppress misra-c2012-17.7; false positive
     return toMin + scaled;  
 }

@@ -11,7 +11,7 @@
 /** @cond */
 namespace muldiv_detail {
 template <typename T, typename I>
-inline T muldiv_simple(T a, T b, T div)
+static inline T muldiv_simple(T a, T b, T div)
 {
     static_assert(std::is_integral<T>::value, "T must be an integral type");
     return ((I)a * b) / div;
@@ -45,7 +45,7 @@ inline T muldiv_simple(T a, T b, T div)
  * @return The result of (a*b)/c
  * @{
  * */
-inline int8_t muldiv(int8_t a, int8_t b, int8_t div)
+static inline int8_t muldiv(int8_t a, int8_t b, int8_t div)
 {
     // By the time we condtionally check for potential overflow, including
     // accounting for negative operands, we are just as quick promoting
@@ -53,7 +53,7 @@ inline int8_t muldiv(int8_t a, int8_t b, int8_t div)
     return muldiv_detail::muldiv_simple<int8_t, int16_t>(a, b, div);
 }
 
-inline uint8_t muldiv(uint8_t a, uint8_t b, uint8_t div)
+static inline uint8_t muldiv(uint8_t a, uint8_t b, uint8_t div)
 {
     // By the time we condtionally check for potential overflow,
     // we are just as quick promoting to int16_t & applying the 
@@ -61,7 +61,7 @@ inline uint8_t muldiv(uint8_t a, uint8_t b, uint8_t div)
     return muldiv_detail::muldiv_simple<uint8_t, uint16_t>(a, b, div);
 }
 
-inline int16_t muldiv(const int16_t a, const int16_t b, const int16_t div)
+static inline int16_t muldiv(const int16_t a, const int16_t b, const int16_t div)
 {
     constexpr int16_t overflow_threshold = 182; // sqrt(INT16_MAX) + 1
     if (__builtin_abs(a)<overflow_threshold && __builtin_abs(b)<overflow_threshold)
@@ -72,17 +72,17 @@ inline int16_t muldiv(const int16_t a, const int16_t b, const int16_t div)
     return muldiv_detail::muldiv_simple<int16_t, int32_t>(a, b, div);
 }
 
-inline uint16_t muldiv(const uint16_t a, const uint16_t b, const uint16_t div)
+static inline uint16_t muldiv(const uint16_t a, const uint16_t b, const uint16_t div)
 {
     return udiv_32_16((uint32_t)a * (uint32_t)b, div);
 }
 
-inline int32_t muldiv(const int32_t a, const int32_t b, const int32_t div)
+static inline int32_t muldiv(const int32_t a, const int32_t b, const int32_t div)
 {
     return muldiv_detail::muldiv_simple<int32_t, int32_t>(a, b, div);
 }
 
-inline uint32_t muldiv(const uint32_t a, const uint32_t b, const uint32_t div)
+static inline uint32_t muldiv(const uint32_t a, const uint32_t b, const uint32_t div)
 {
     uint32_t dividend = a * b;
 #ifdef USE_LIBDIVIDE    
