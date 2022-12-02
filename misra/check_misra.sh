@@ -74,6 +74,7 @@ cppcheck_parameters=( --inline-suppr
                       -DARDUINO_ARCH_AVR 
                       -DARDUINO=10808 
                       -DAVR=1
+                      -DPOP_MINMAX=
                       # This is defined in the AVR headers, which aren't included.
                       # cppcheck will not do type checking on unknown types.
                       # It's used a lot and it's unsigned, which can trigger a lot

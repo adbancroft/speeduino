@@ -3,8 +3,9 @@
 #include <stdint.h>
 #include <type_traits>
 #include "currentstatus.h"
-#include "math/rescale.h"
 #include "find_bin.h"
+#include "math/rescale.h"
+#include "math/saturated_cast.hpp"
 
 template <typename axis_t, typename value_t>
 struct table2d_lookup_cache 
@@ -26,32 +27,32 @@ struct table2d
   static_assert(std::is_integral<axis_t>::value, "T must be an integral type");
   static_assert(std::is_integral<value_t>::value, "T must be an integral type");
 
-  static constexpr uint8_t size = sizeT;
-  typedef axis_t axis_type;
-  typedef value_t value_type;
+  static constexpr uint8_t num_bins = sizeT;
+  using axis_type = axis_t;
+  using value_type = value_t;
 
   value_t (&values)[sizeT];
   axis_t (&axisX)[sizeT];
   table2d_lookup_cache<axis_t, value_t> cache;
 
-  inline constexpr table2d(axis_t (*pAxisBin)[sizeT], value_t (*pCurve)[sizeT])
-    : values(*pCurve), axisX(*pAxisBin)
+  constexpr table2d(axis_t (*pAxisBin)[sizeT], value_t (*pCurve)[sizeT])
+    : values(*pCurve), axisX(*pAxisBin) //cppcheck-suppress misra-c2012-10.4
   {
   }
 };
 
-typedef table2d<uint8_t, uint8_t, 4> table2du8u8_4;
-typedef table2d<int8_t, uint8_t, 4> table2di8u8_4;
-typedef table2d<uint8_t, uint8_t, 10> table2du8u8_10;
-typedef table2d<uint8_t, uint8_t, 6> table2du8u8_6;
-typedef table2d<uint8_t, uint8_t, 9> table2du8u8_9;
-typedef table2d<uint8_t, uint8_t, 8> table2du8u8_8;
-typedef table2d<uint8_t, uint16_t, 4> table2du8u16_4;
-typedef table2d<uint8_t, int16_t, 6> table2du8s16_6;
-typedef table2d<uint16_t, uint16_t, 32> table2du16u16_32;
-typedef table2d<uint16_t, uint8_t, 32> table2du16u8_32;
+using table2du8u8_4 = table2d<uint8_t, uint8_t, 4>;
+using table2di8u8_4 = table2d<int8_t, uint8_t, 4>;
+using table2du8u8_10 = table2d<uint8_t, uint8_t, 10>;
+using table2du8u8_6 = table2d<uint8_t, uint8_t, 6>;
+using table2du8u8_9 = table2d<uint8_t, uint8_t, 9>;
+using table2du8u8_8 = table2d<uint8_t, uint8_t, 8>;
+using table2du8u16_4 = table2d<uint8_t, uint16_t, 4>;
+using table2du8s16_6 = table2d<uint8_t, int16_t, 6>;
+using table2du16u16_32 = table2d<uint16_t, uint16_t, 32>;
+using table2du16u8_32 = table2d<uint16_t, uint8_t, 32>;
 
-static inline uint8_t getCacheTime() {
+static inline uint8_t getCacheTime(void) {
   return currentStatus.secl;
 }
 
@@ -79,13 +80,12 @@ value_t table2D_getValue(table2d<axis_t, value_t, sizeT> *fromTable, axis_t X_in
   return fromTable->cache.lastOutput;
 }
 
-#include "math/saturated_cast.hpp"
-
 /*
  * @brief Lookup a value in a curve, interpolating if necessary
  */
 template <typename axis_t, typename value_t, uint8_t sizeT, typename axis_query_t>
-inline value_t table2D_getValue(table2d<axis_t, value_t, sizeT> *fromTable, axis_query_t X_in)
+//cppcheck-suppress misra-c2012-8.2; false positive
+static inline value_t table2D_getValue(table2d<axis_t, value_t, sizeT> *fromTable, axis_query_t X_in)
 {
   static_assert(std::is_integral<axis_t>::value, "T must be an integral type");
   static_assert(std::is_integral<value_t>::value, "T must be an integral type");

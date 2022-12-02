@@ -45,9 +45,9 @@ table3d_value_t __attribute__((noclone)) get3DTableValue(struct table3DGetValueC
     pValueCache->last_lookup.y = Y_in;
 
     // Figure out where on the axes the incoming coord are
-    bin<table3d_axis_t> xBin = find_bin(X_in, pXAxis, axisSize-1, 0, pValueCache->lastXBinMax);
+    bin<table3d_axis_t> xBin = find_bin(X_in, pXAxis, axisSize-1U, 0, pValueCache->lastXBinMax);
     pValueCache->lastXBinMax = xBin.maxIdx;
-    bin<table3d_axis_t> yBin = find_bin(Y_in, pYAxis, axisSize-1, 0, pValueCache->lastYBinMax);
+    bin<table3d_axis_t> yBin = find_bin(Y_in, pYAxis, axisSize-1U, 0, pValueCache->lastYBinMax);
     pValueCache->lastYBinMax = yBin.maxIdx;
 
     /*
@@ -89,7 +89,7 @@ table3d_value_t __attribute__((noclone)) get3DTableValue(struct table3DGetValueC
       // it's fractional part.
       //
       // If not we will hit integer overflow.
-      static_assert(sizeof(decltype(A))==1 && QU1X8_INTEGER_SHIFT<=8, "get3DTableValue: table values must be 8 bit");
+      static_assert(sizeof(decltype(A))==1U && QU1X8_INTEGER_SHIFT<=8U, "get3DTableValue: table values must be 8 bit");
       pValueCache->lastOutput = ( (A * m) + (B * n) + (C * o) + (D * r) ) >> QU1X8_INTEGER_SHIFT;
     }
 
