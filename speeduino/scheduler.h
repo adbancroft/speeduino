@@ -194,6 +194,9 @@ struct IgnitionSchedule : public Schedule {
   using Schedule::Schedule;
 
   volatile unsigned long startTime; /**< The system time (in uS) that the schedule started, used by the overdwell protection in timers.ino */
+  int16_t startAngle; ///< Interim calculated value
+  int16_t endAngle; ///< Interim calculated value
+  int16_t channelIgnDegrees; ///< The number of crank degrees until cylinder is at TDC
 };
 
 static inline  __attribute__((always_inline)) void setIgnitionSchedule(IgnitionSchedule &schedule, uint32_t timeout, uint32_t duration) 
