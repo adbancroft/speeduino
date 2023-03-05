@@ -56,8 +56,6 @@ void beginInjectorPriming(void);
 void disablePendingFuelSchedule(byte channel);
 void disablePendingIgnSchedule(byte channel);
 
-void refreshIgnitionSchedule1(unsigned long timeToEnd);
-
 /** \enum ScheduleStatus
  * @brief The current state of a schedule
  * */
