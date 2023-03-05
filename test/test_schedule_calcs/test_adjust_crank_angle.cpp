@@ -15,9 +15,10 @@ void test_adjust_crank_angle_pending_below_minrevolutions()
 
     schedule._compare = 101;
     schedule._counter = 100;
+    schedule.endAngle = 359;
 
     // Should do nothing.
-    adjustCrankAngle(schedule, 0, 359, 180);
+    adjustCrankAngle(schedule, 180);
 
     TEST_ASSERT_EQUAL(101, schedule._compare);
     TEST_ASSERT_EQUAL(100, schedule._counter);
@@ -31,16 +32,18 @@ void test_adjust_crank_angle_pending_above_minrevolutions()
     auto compare = decltype(+IGN4_COMPARE){0};
     IgnitionSchedule schedule(counter, compare);
     
-    schedule.Status = PENDING;
     currentStatus.startRevolutions = 2000;
     // timePerDegreex16 = 666;
 
     schedule._compare = 101;
     schedule._counter = 100;
+    schedule.Status = PENDING;
+
     constexpr uint16_t newCrankAngle = 180;
     constexpr uint16_t chargeAngle = 359;
+    schedule.startAngle = chargeAngle;
 
-    adjustCrankAngle(schedule, chargeAngle, 0, newCrankAngle);
+    adjustCrankAngle(schedule, newCrankAngle);
 
     TEST_ASSERT_EQUAL(schedule._counter+uS_TO_TIMER_COMPARE(angleToTimeMicroSecPerDegree(chargeAngle-newCrankAngle)), schedule._compare);
     TEST_ASSERT_EQUAL(100, schedule._counter);
@@ -61,8 +64,9 @@ void test_adjust_crank_angle_running()
     schedule._counter = 100;
     constexpr uint16_t newCrankAngle = 180;
     constexpr uint16_t chargeAngle = 359;
+    schedule.endAngle = chargeAngle;
 
-    adjustCrankAngle(schedule, 0, chargeAngle, newCrankAngle);
+    adjustCrankAngle(schedule, newCrankAngle);
 
     TEST_ASSERT_EQUAL(schedule._counter+uS_TO_TIMER_COMPARE(angleToTimeMicroSecPerDegree(chargeAngle-newCrankAngle)), schedule._compare);
     TEST_ASSERT_EQUAL(100, schedule._counter);
