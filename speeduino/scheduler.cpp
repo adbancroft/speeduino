@@ -193,7 +193,7 @@ void _setFuelScheduleRunning(FuelSchedule &schedule, unsigned long timeout, unsi
   schedule.pTimerEnable();
 }
 
-void _setFuelScheduleNext(FuelSchedule &schedule, unsigned long timeout, unsigned long duration)
+void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration)
 {
   noInterrupts();
   //The duration of the pulsewidth cannot be longer than the maximum timer period. This is unlikely as pulse widths should never get that long, but it's here for safety
@@ -222,19 +222,6 @@ void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, unsigned long timeo
   interrupts();
   schedule.pTimerEnable();
 }
-
-void _setIgnitionScheduleNext(IgnitionSchedule &schedule, unsigned long timeout, unsigned long duration)
-{
-  //If the schedule is already running, we can set the next schedule so it is ready to go
-  //This is required in cases of high rpm and high DC where there otherwise would not be enough time to set the schedule
-  noInterrupts();
-  schedule.nextStartCompare = schedule._counter + uS_TO_TIMER_COMPARE(timeout);
-  if(duration >= MAX_TIMER_PERIOD) { schedule.duration = MAX_TIMER_PERIOD - 1; }
-  else { schedule.duration = duration; }
-  schedule.hasNextSchedule = true;
-  interrupts();
-}
-
 
 void refreshIgnitionSchedule1(unsigned long timeToEnd)
 {
