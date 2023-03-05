@@ -183,11 +183,8 @@ void _setFuelScheduleRunning(FuelSchedule &schedule, unsigned long timeout, unsi
   noInterrupts();
 
   //The duration of the pulsewidth cannot be longer than the maximum timer period. This is unlikely as pulse widths should never get that long, but it's here for safety
-  if(duration >= MAX_TIMER_PERIOD) { schedule.duration = MAX_TIMER_PERIOD - 1; }
-  else { schedule.duration = duration; }
-
-  COMPARE_TYPE startCompare = schedule._counter + uS_TO_TIMER_COMPARE(timeout);
-  SET_COMPARE(schedule._compare, startCompare);
+  schedule.Duration = uS_TO_TIMER_COMPARE(duration);
+  SET_COMPARE(schedule._compare, schedule._counter + (COMPARE_TYPE)uS_TO_TIMER_COMPARE(timeout));
   schedule.Status = PENDING; //Turn this schedule on
   interrupts();
   schedule.pTimerEnable();
@@ -195,26 +192,18 @@ void _setFuelScheduleRunning(FuelSchedule &schedule, unsigned long timeout, unsi
 
 void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration)
 {
-  noInterrupts();
-  //The duration of the pulsewidth cannot be longer than the maximum timer period. This is unlikely as pulse widths should never get that long, but it's here for safety
-  //Duration can safely be set here as the schedule is already running at the previous duration value already used
-  if(duration >= MAX_TIMER_PERIOD) { schedule.duration = MAX_TIMER_PERIOD - 1; }
-  else { schedule.duration = duration; }
-
+   //If the schedule is already running, we can set the next schedule so it is ready to go
+  //This is required in cases of high rpm and high DC where there otherwise would not be enough time to set the schedule
   schedule.nextStartCompare = schedule._counter + uS_TO_TIMER_COMPARE(timeout);
-  schedule.hasNextSchedule = true;
-  interrupts();
+  schedule.nextDuration = uS_TO_TIMER_COMPARE(duration);
+  schedule.hasNextSchedule = true;  
 }
 
 void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, unsigned long timeout, unsigned long duration)
 {
-  //The duration of the dwell cannot be longer than the maximum timer period. This is unlikely as dwell timess should never get that long, but it's here for safety
-  if(duration >= MAX_TIMER_PERIOD) { schedule.duration = MAX_TIMER_PERIOD - 1; }
-  else { schedule.duration = duration; }
-
   noInterrupts();
-  COMPARE_TYPE timeout_timer_compare = schedule._counter + uS_TO_TIMER_COMPARE(timeout); //As there is a tick every 4uS, there are timeout/4 ticks until the interrupt should be triggered ( >>2 divides by 4)
-  SET_COMPARE(schedule._compare, timeout_timer_compare);
+  schedule.Duration = uS_TO_TIMER_COMPARE(duration);
+  SET_COMPARE(schedule._compare, schedule._counter + uS_TO_TIMER_COMPARE(timeout));
   schedule.Status = PENDING; //Turn this schedule on
   interrupts();
   schedule.pTimerEnable();
@@ -222,13 +211,13 @@ void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, unsigned long timeo
 
 void refreshIgnitionSchedule1(unsigned long timeToEnd)
 {
-  if( (ignitionSchedule1.Status == RUNNING) && (timeToEnd < ignitionSchedule1.duration) )
+  if( (ignitionSchedule1.Status == RUNNING) && (uS_TO_TIMER_COMPARE(timeToEnd) < ignitionSchedule1.Duration) )
   //Must have the threshold check here otherwise it can cause a condition where the compare fires twice, once after the other, both for the end
   //if( (timeToEnd < ignitionSchedule1.duration) && (timeToEnd > IGNITION_REFRESH_THRESHOLD) )
   {
     noInterrupts();
-    ignitionSchedule1.endCompare = IGN1_COUNTER + uS_TO_TIMER_COMPARE(timeToEnd);
-    SET_COMPARE(IGN1_COMPARE, ignitionSchedule1.endCompare);
+    ignitionSchedule1.Duration = uS_TO_TIMER_COMPARE(timeToEnd);
+    SET_COMPARE(ignitionSchedule1._compare, ignitionSchedule1._counter + ignitionSchedule1.Duration);
     interrupts();
   }
 }
@@ -279,7 +268,7 @@ static inline __attribute__((always_inline)) void fuelScheduleISR(FuelSchedule &
   {
     schedule.pStartCallback();
     schedule.Status = RUNNING; //Set the status to be in progress (ie The start callback has been called, but not the end callback)
-    SET_COMPARE(schedule._compare, schedule._counter + uS_TO_TIMER_COMPARE(schedule.duration) ); //Doing this here prevents a potential overflow on restarts
+    SET_COMPARE(schedule._compare, schedule._counter + schedule.Duration); //Doing this here prevents a potential overflow on restarts
   }
   else if (schedule.Status == RUNNING)
   {
@@ -406,23 +395,22 @@ static inline __attribute__((always_inline)) void ignitionScheduleISR(IgnitionSc
     schedule.pStartCallback();
     schedule.Status = RUNNING; //Set the status to be in progress (ie The start callback has been called, but not the end callback)
     schedule.startTime = micros();
-    if(schedule.endScheduleSetByDecoder == true) { SET_COMPARE(schedule._compare, schedule.endCompare); }
-    else { SET_COMPARE(schedule._compare, schedule._counter + uS_TO_TIMER_COMPARE(schedule.duration) ); } //Doing this here prevents a potential overflow on restarts
+    SET_COMPARE(schedule._compare, schedule._counter + schedule.Duration);
   }
   else if (schedule.Status == RUNNING)
   {
     schedule.pEndCallback();
     schedule.Status = OFF; //Turn off the schedule
-    schedule.endScheduleSetByDecoder = false;
     ignitionCount = ignitionCount + 1; //Increment the ignition counter
     currentStatus.actualDwell = DWELL_AVERAGE( (micros() - schedule.startTime) );
 
     //If there is a next schedule queued up, activate it
     if(schedule.hasNextSchedule == true)
     {
-      SET_COMPARE(schedule._compare, schedule.nextStartCompare);
-      schedule.Status = PENDING;
-      schedule.hasNextSchedule = false;
+        SET_COMPARE(schedule._compare, schedule.nextStartCompare);
+        schedule.Duration = schedule.nextDuration;
+        schedule.Status = PENDING;
+        schedule.hasNextSchedule = false;
     }
     else
     { 
