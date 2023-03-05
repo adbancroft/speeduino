@@ -164,14 +164,13 @@ struct Schedule {
   {
   }
 
-  volatile unsigned long duration;///< Scheduled duration (uS ?)
+  volatile COMPARE_TYPE Duration; ///< Scheduled duration (timer ticks)
   volatile ScheduleStatus Status; ///< Schedule status: OFF, PENDING, STAGED, RUNNING
-  void (*pStartCallback)(void);        ///< Start Callback function for schedule
-  void (*pEndCallback)(void);          ///< End Callback function for schedule
-  volatile COMPARE_TYPE endCompare;   ///< The counter value of the timer when this will end
+  void (*pStartCallback)(void);   ///< Start Callback function for schedule
+  void (*pEndCallback)(void);     ///< End Callback function for schedule
 
-  COMPARE_TYPE nextStartCompare;      ///< Planned start of next schedule (when current schedule is RUNNING)
-  COMPARE_TYPE nextEndCompare;        ///< Planned end of next schedule (when current schedule is RUNNING)
+  volatile COMPARE_TYPE nextStartCompare;      ///< Planned start of next schedule (when current schedule is RUNNING)
+  volatile COMPARE_TYPE nextDuration;        ///< Planned end of next schedule (when current schedule is RUNNING)
   volatile bool hasNextSchedule = false; ///< Enable flag for planned next schedule (when current schedule is RUNNING)
   
   counter_t &_counter;       ///< **Reference** to the counter register. E.g. TCNT3
@@ -191,7 +190,6 @@ struct IgnitionSchedule : public Schedule {
   using Schedule::Schedule;
 
   volatile unsigned long startTime; /**< The system time (in uS) that the schedule started, used by the overdwell protection in timers.ino */
-  volatile bool endScheduleSetByDecoder = false;
 };
 
 void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, unsigned long timeout, unsigned long duration);
@@ -202,6 +200,10 @@ inline __attribute__((always_inline)) void setIgnitionSchedule(IgnitionSchedule 
   {
     ATOMIC() 
     {
+      if (unlikely(duration > MAX_TIMER_PERIOD)) 
+      {
+        duration = MAX_TIMER_PERIOD - 1UL; //Safety check to ensure the duration is not longer than the maximum timer period
+      }
       if(schedule.Status != RUNNING) 
       { //Check that we're not already part way through a schedule
         _setIgnitionScheduleRunning(schedule, timeout, duration);
@@ -232,6 +234,10 @@ inline __attribute__((always_inline)) void setFuelSchedule(FuelSchedule &schedul
   if(likely(timeout < MAX_TIMER_PERIOD))
   {
     ATOMIC() {
+      if (unlikely(duration > MAX_TIMER_PERIOD)) 
+      {
+        duration = MAX_TIMER_PERIOD - 1UL; //Safety check to ensure the duration is not longer than the maximum timer period
+      }      
       if(schedule.Status != RUNNING) 
       { //Check that we're not already part way through a schedule
         _setFuelScheduleRunning(schedule, timeout, duration);
