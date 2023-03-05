@@ -186,8 +186,8 @@ void _setFuelScheduleRunning(FuelSchedule &schedule, unsigned long timeout, unsi
   if(duration >= MAX_TIMER_PERIOD) { schedule.duration = MAX_TIMER_PERIOD - 1; }
   else { schedule.duration = duration; }
 
-  schedule.startCompare = schedule._counter + uS_TO_TIMER_COMPARE(timeout);
-  SET_COMPARE(schedule._compare, schedule.startCompare);
+  COMPARE_TYPE startCompare = schedule._counter + uS_TO_TIMER_COMPARE(timeout);
+  SET_COMPARE(schedule._compare, startCompare);
   schedule.Status = PENDING; //Turn this schedule on
   interrupts();
   schedule.pTimerEnable();
@@ -212,12 +212,9 @@ void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, unsigned long timeo
   if(duration >= MAX_TIMER_PERIOD) { schedule.duration = MAX_TIMER_PERIOD - 1; }
   else { schedule.duration = duration; }
 
-  COMPARE_TYPE timeout_timer_compare = uS_TO_TIMER_COMPARE(timeout);
-
   noInterrupts();
-  schedule.startCompare = schedule._counter + timeout_timer_compare; //As there is a tick every 4uS, there are timeout/4 ticks until the interrupt should be triggered ( >>2 divides by 4)
-  //if(schedule.endScheduleSetByDecoder == false) { schedule.endCompare = schedule.startCompare + uS_TO_TIMER_COMPARE(schedule.duration); } //The .endCompare value is also set by the per tooth timing in decoders.ino. The check here is so that it's not getting overridden. 
-  SET_COMPARE(schedule._compare, schedule.startCompare);
+  COMPARE_TYPE timeout_timer_compare = schedule._counter + uS_TO_TIMER_COMPARE(timeout); //As there is a tick every 4uS, there are timeout/4 ticks until the interrupt should be triggered ( >>2 divides by 4)
+  SET_COMPARE(schedule._compare, timeout_timer_compare);
   schedule.Status = PENDING; //Turn this schedule on
   interrupts();
   schedule.pTimerEnable();
