@@ -63,4 +63,12 @@ int16_t ProgrammableIOGetData(uint16_t index);
 #define PP_INC_11 12
 #define PP_INC_12 13
 
+#if defined(__GNUC__) && (__GNUC__ >= 4) && (__GNUC_MINOR__ >= 3)
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
+#else
+#define likely(x)       (x)
+#define unlikely(x)     (x) 
+#endif
+
 #endif // UTILS_H
