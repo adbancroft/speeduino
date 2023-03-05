@@ -23,15 +23,13 @@ struct inj_test_parameters
     uint32_t running;       // Expected delay when channel status is RUNNING
 };
 
-static void nullInjCallback(void) { }
-
 static void test_calc_inj_timeout(const inj_test_parameters &parameters)
 {
     static constexpr uint16_t injAngle = 355;
     char msg[150];
     uint16_t PWdivTimerPerDegree = timeToAngleDegPerMicroSec(parameters.pw);
 
-    FuelSchedule schedule(FUEL2_COUNTER, FUEL2_COMPARE, nullInjCallback, nullInjCallback);
+    FuelSchedule schedule(FUEL2_COUNTER, FUEL2_COMPARE);
     uint16_t startAngle = 0;
     /*
     //Pending schedules are no longer tested as will always return 0;
