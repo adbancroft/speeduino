@@ -219,19 +219,6 @@ void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, unsigned long timeo
   schedule.Status = PENDING; //Turn this schedule on
 }
 
-void refreshIgnitionSchedule1(unsigned long timeToEnd)
-{
-  if( isRunning(ignitionSchedule1) && (uS_TO_TIMER_COMPARE(timeToEnd) < ignitionSchedule1.Duration) )
-  //Must have the threshold check here otherwise it can cause a condition where the compare fires twice, once after the other, both for the end
-  //if( (timeToEnd < ignitionSchedule1.duration) && (timeToEnd > IGNITION_REFRESH_THRESHOLD) )
-  {
-    noInterrupts();
-    ignitionSchedule1.Duration = uS_TO_TIMER_COMPARE(timeToEnd);
-    ignitionSchedule1._compare = ignitionSchedule1._counter + ignitionSchedule1.Duration;
-    interrupts();
-  }
-}
-
 /** Perform the injector priming pulses.
  * Set these to run at an arbitrary time in the future (100us).
  * The prime pulse value is in ms*10, so need to multiple by 100 to get to uS
