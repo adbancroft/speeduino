@@ -312,15 +312,6 @@ constexpr uint8_t UQ1X15_Shift = 15U;
 extern UQ1X15_t degreesPerMicro;
 constexpr uint8_t degreesPerMicro_Shift = UQ1X15_Shift;
 
-extern uint16_t ignition1EndTooth;
-extern uint16_t ignition2EndTooth;
-extern uint16_t ignition3EndTooth;
-extern uint16_t ignition4EndTooth;
-extern uint16_t ignition5EndTooth;
-extern uint16_t ignition6EndTooth;
-extern uint16_t ignition7EndTooth;
-extern uint16_t ignition8EndTooth;
-
 extern int16_t toothAngles[24]; //An array for storing fixed tooth angles. Currently sized at 24 for the GM 24X decoder, but may grow later if there are other decoders that use this style
 
 #define CRANK_SPEED 0U

@@ -114,10 +114,18 @@ uint16_t ignition1EndTooth = 0;
 uint16_t ignition2EndTooth = 0;
 uint16_t ignition3EndTooth = 0;
 uint16_t ignition4EndTooth = 0;
+#if IGN_CHANNELS >= 5
 uint16_t ignition5EndTooth = 0;
+#endif
+#if IGN_CHANNELS >= 6
 uint16_t ignition6EndTooth = 0;
+#endif
+#if IGN_CHANNELS >= 7
 uint16_t ignition7EndTooth = 0;
+#endif
+#if IGN_CHANNELS >= 8
 uint16_t ignition8EndTooth = 0;
+#endif
 
 int16_t toothAngles[24]; //An array for storing fixed tooth angles. Currently sized at 24 for the GM 24X decoder, but may grow later if there are other decoders that use this style
 
