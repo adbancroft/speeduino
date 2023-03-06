@@ -22,7 +22,7 @@ void test_adjust_crank_angle_pending_below_minrevolutions()
 
     TEST_ASSERT_EQUAL(101, schedule._compare);
     TEST_ASSERT_EQUAL(100, schedule._counter);
-    TEST_ASSERT_FALSE(schedule.endScheduleSetByDecoder);
+    TEST_ASSERT_NOT_EQUAL(PENDING_WITH_OVERRIDE, schedule.Status);
 }
 
 
@@ -47,7 +47,7 @@ void test_adjust_crank_angle_pending_above_minrevolutions()
 
     TEST_ASSERT_EQUAL(schedule._counter+uS_TO_TIMER_COMPARE(angleToTimeMicroSecPerDegree(chargeAngle-newCrankAngle)), schedule._compare);
     TEST_ASSERT_EQUAL(100, schedule._counter);
-    TEST_ASSERT_TRUE(schedule.endScheduleSetByDecoder);
+    TEST_ASSERT_EQUAL(PENDING_WITH_OVERRIDE, schedule.Status);
 }
 
 void test_adjust_crank_angle_running()
@@ -70,7 +70,7 @@ void test_adjust_crank_angle_running()
 
     TEST_ASSERT_EQUAL(schedule._counter+uS_TO_TIMER_COMPARE(angleToTimeMicroSecPerDegree(chargeAngle-newCrankAngle)), schedule._compare);
     TEST_ASSERT_EQUAL(100, schedule._counter);
-    TEST_ASSERT_FALSE(schedule.endScheduleSetByDecoder);
+    TEST_ASSERT_NOT_EQUAL(PENDING_WITH_OVERRIDE, schedule.Status);
 }
 
 void test_adjust_crank_angle()

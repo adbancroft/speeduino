@@ -27,7 +27,7 @@ void movetoNextState(Schedule &schedule,
                     scheduleStateTranstionFunc runningToOff,
                     scheduleStateTranstionFunc runningToPending)
 {
-  if (schedule.Status == PENDING) //Check to see if this schedule is turn on
+  if (isPending(schedule)) //Check to see if this schedule is turn on
   {
     pendingToRunning(&schedule);
   }
