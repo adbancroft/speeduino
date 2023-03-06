@@ -145,8 +145,8 @@ struct IgnitionSchedule : public Schedule {
   using Schedule::Schedule;
 
   volatile uint32_t startTime; /**< The system time (in uS) that the schedule started, used by the overdwell protection in timers.ino */
-  int16_t startAngle; ///< Interim calculated value
-  int16_t endAngle; ///< Interim calculated value
+  int16_t startAngle;        ///< Angle the coil should begin charging.
+  int16_t endAngle;          ///< Angle the spark should fire at.
   int16_t channelIgnDegrees; ///< The number of crank degrees until cylinder is at TDC  
 };
 
@@ -164,6 +164,15 @@ static inline __attribute__((always_inline)) void setIgnitionSchedule(IgnitionSc
   }
   interrupts();
 }
+
+/**
+ * @brief Called once per millisecond by an **external** timer. The over dwell protection system
+ * runs independently of the standard ignition schedules and monitors the time that each ignition 
+ * output has been active. If the active time exceeds this amount, the output will be ended to
+ * prevent damage to coils.
+ */
+void applyOverDwellProtection(void);
+
 
 /**
  * @brief Shared ignition schedule timer ISR *implementation*. Should be called by the actual ignition timer ISRs
@@ -188,7 +197,6 @@ extern IgnitionSchedule ignitionSchedule7;
 extern IgnitionSchedule ignitionSchedule8;
 #endif
 
-void applyOverDwellProtection(void);
 
 /** Fuel injection schedule.
 * Fuel schedules don't use the callback pointers, or the startTime/endScheduleSetByDecoder variables.
