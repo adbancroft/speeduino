@@ -49,8 +49,13 @@ See page 136 of the processors datasheet: http://www.atmel.com/Images/doc2549.pd
 #define USE_IGN_REFRESH
 #define IGNITION_REFRESH_THRESHOLD  30 //Time in uS that the refresh functions will check to ensure there is enough time before changing the end compare
 
+/** @brief Initialize all schedulers to the OFF state */
 void initialiseSchedulers(void);
+
+/** @brief Start the timers that drive schedulers  */
 void startSchedulers(void);
+
+/** @brief Start fuel system  priming the fuel */
 void beginInjectorPriming(void);
 
 void disablePendingFuelSchedule(byte channel);
@@ -93,7 +98,7 @@ enum ScheduleStatus {
  * 
  * @par Timers are modelled as registers
  * Once set, Schedule instances are usually driven externally by a timer
- * ISR calling moveToNextState()
+ * ISR.
  */
 struct Schedule {
   // Deduce the real types of the counter and compare registers.
@@ -137,16 +142,46 @@ static inline bool isRunning(const Schedule &schedule) {
   return (bool)(schedule.Status & flags);
 }
 
+/// @cond 
+// Private function - not for use external to the scheduler code
 void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration);
+/// @endcond
 
+/**
+ * @brief Set the schedule callbacks. I.e the functions called when the action
+ * needs to start & stop
+ * 
+ * @param schedule Schedule to modify
+ * @param pStartCallback The new start callback - called when the schedule switches to RUNNING status
+ * @param pEndCallback The new end callback - called when the schedule switches to from RUNNING to OFF status
+ */
 void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback);
 
+/**
+ * @brief Is the schedule in pending state?
+ * I.e. waiting for a timer interrupt to start the scheduled action. E.g. open an injector
+ */
 static inline bool isPending(const Schedule &schedule) {
   static constexpr uint8_t flags = PENDING | PENDING_WITH_OVERRIDE;
   return (bool)(schedule.Status & flags);
 }
 
-/** Ignition schedule.
+/** @brief An ignition schedule.
+ *
+ * Goal is to fire the spark as close to the requested angle as possible.
+ * 
+ * \code 
+ *   <--------------- Delay ---------------><---- Charge Coil ---->
+ *                                                                ^
+ *                                                              Spark
+ * \endcode
+ * 
+ * Terminology: dwell is the period when the ignition system applies an electric
+ * current to the ignition coil's primary winding in order to charge up the coil
+ * so it can generate a spark. 
+ * 
+ * Note that dwell times use uint16_t & therefore maximum dwell is 65.535ms. 
+ * This limit is imposed elsewhere in Speeduino also.
  */
 struct IgnitionSchedule : public Schedule {
 
@@ -158,8 +193,17 @@ struct IgnitionSchedule : public Schedule {
   int16_t channelIgnDegrees; ///< The number of crank degrees until cylinder is at TDC  
 };
 
+/// @cond 
+// Private function - not for use external to the scheduler code
 void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, uint32_t timeout, uint32_t duration);
+/// @endcond
 
+/** @brief Set the next schedule for the ignition channel.
+ * 
+ * @param schedule The ignition channel
+ * @param delay The time to wait in µS until starting to charge the coil
+ * @param durationMicros The coil dwell time in µS
+ */
 static inline __attribute__((always_inline)) void setIgnitionSchedule(IgnitionSchedule &schedule, uint32_t timeout, uint32_t duration) {
   ATOMIC() {
     if(!isRunning(schedule)) { //Check that we're not already part way through a schedule
@@ -174,10 +218,13 @@ static inline __attribute__((always_inline)) void setIgnitionSchedule(IgnitionSc
 }
 
 /**
- * @brief Called once per millisecond by an **external** timer. The over dwell protection system
- * runs independently of the standard ignition schedules and monitors the time that each ignition 
- * output has been active. If the active time exceeds this amount, the output will be ended to
- * prevent damage to coils.
+ * @brief Check that no ignition channel has been charging the coil for too long
+ * 
+ * The over dwell protection system runs independently of the standard ignition 
+ * schedules and monitors the time that each ignition output has been active. If the 
+ * active time exceeds this amount, the output will be ended to prevent damage to coils.
+ * 
+ * @note Must be called once per millisecond by an **external** timer.
  */
 void applyOverDwellProtection(void);
 
@@ -216,7 +263,10 @@ struct FuelSchedule : public Schedule {
 
 };
 
+/// @cond 
+// Private function - not for use external to the scheduler code
 void _setFuelScheduleRunning(FuelSchedule &schedule, uint32_t timeout, uint32_t duration);
+/// @endcond
 
 static inline __attribute__((always_inline)) void setFuelSchedule(FuelSchedule &schedule, uint32_t timeout, uint32_t duration) {
     //Check whether timeout exceeds the maximum future time. This can potentially occur on sequential setups when below ~115rpm
