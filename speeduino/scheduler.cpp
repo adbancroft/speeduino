@@ -189,7 +189,7 @@ void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidC
   schedule.pEndCallback = pEndCallback;
 }
 
-void _setFuelScheduleRunning(FuelSchedule &schedule, unsigned long timeout, unsigned long duration)
+void _setFuelScheduleRunning(FuelSchedule &schedule, uint32_t timeout, uint32_t duration)
 {
   //The following must be enclosed in the noInterupts block to avoid contention caused if the relevant interrupt fires before the state is fully set
   schedule.Duration = uS_TO_TIMER_COMPARE(duration);
@@ -207,7 +207,7 @@ void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration)
   schedule.Status = RUNNING_WITHNEXT;
 }
 
-void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, unsigned long timeout, unsigned long duration)
+void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, uint32_t timeout, uint32_t duration)
 {
   schedule.Duration = uS_TO_TIMER_COMPARE(duration);
   // If the schedule was PENDING, the comparator could have been set by the 
@@ -225,7 +225,7 @@ void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, unsigned long timeo
  */
 extern void beginInjectorPriming(void)
 {
-  unsigned long primingValue = (unsigned long)table2D_getValue(&PrimingPulseTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
+  uint32_t primingValue = (uint32_t)table2D_getValue(&PrimingPulseTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
   if( (primingValue > 0U) && (currentStatus.TPS < configPage4.floodClear) )
   {
     primingValue = primingValue * 100UL * 5UL; //to achieve long enough priming pulses, the values in tuner studio are divided by 0.5 instead of 0.1, so multiplier of 5 is required.
