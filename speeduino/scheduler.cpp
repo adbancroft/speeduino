@@ -191,50 +191,6 @@ void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidC
 }
 
 
-TESTABLE_INLINE_STATIC void applyChannelOverDwellProtection(IgnitionSchedule &schedule, uint32_t targetOverdwellTime) {
-  //Check first whether each spark output is currently on. Only check it's dwell time if it is
-  ATOMIC() {
-    if (isRunning(schedule) && (schedule.startTime < targetOverdwellTime)) { 
-      schedule.pEndCallback(); schedule.Status = OFF; 
-    }
-  }
-}
-
-TESTABLE_INLINE_STATIC bool isOverDwellActive(const config4 &page4, const statuses &current){
-  bool isCrankLocked = page4.ignCranklock && (current.RPM < current.crankRPM); //Dwell limiter is disabled during cranking on setups using the locked cranking timing. WE HAVE to do the RPM check here as relying on the engine cranking bit can be potentially too slow in updating
-  return (page4.useDwellLim) && likely(!isCrankLocked);
-}
-
-void applyOverDwellProtection(void)
-{
-  if (isOverDwellActive(configPage4, currentStatus)) {
-    uint32_t targetOverdwellTime = micros() - dwellLimit_uS; //Set a target time in the past that all coil charging must have begun after. If the coil charge began before this time, it's been running too long
-
-    applyChannelOverDwellProtection(ignitionSchedule1, targetOverdwellTime);
-#if IGN_CHANNELS >= 2
-    applyChannelOverDwellProtection(ignitionSchedule2, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 3
-    applyChannelOverDwellProtection(ignitionSchedule3, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 4
-    applyChannelOverDwellProtection(ignitionSchedule4, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 5
-    applyChannelOverDwellProtection(ignitionSchedule5, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 6
-    applyChannelOverDwellProtection(ignitionSchedule6, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 7
-    applyChannelOverDwellProtection(ignitionSchedule7, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 8
-    applyChannelOverDwellProtection(ignitionSchedule8, targetOverdwellTime);
-#endif
-  }
-}
-
 /** Perform the injector priming pulses.
  * Set these to run at an arbitrary time in the future (100us).
  * The prime pulse value is in ms*10, so need to multiple by 100 to get to uS
@@ -416,4 +372,48 @@ void disablePendingIgnSchedule(byte channel)
     default:break;
   }
   interrupts();
+}
+
+TESTABLE_INLINE_STATIC void applyChannelOverDwellProtection(IgnitionSchedule &schedule, uint32_t targetOverdwellTime) {
+  //Check first whether each spark output is currently on. Only check it's dwell time if it is
+  ATOMIC() {
+    if (isRunning(schedule) && unlikely(schedule.startTime < targetOverdwellTime)) { 
+      ignitionRunningToOff(&schedule); //Call the end function to disable the spark output
+    }
+  }
+}
+
+TESTABLE_INLINE_STATIC bool isOverDwellActive(const config4 &page4, const statuses &current){
+  bool isCrankLocked = page4.ignCranklock && (current.RPM < current.crankRPM); //Dwell limiter is disabled during cranking on setups using the locked cranking timing. WE HAVE to do the RPM check here as relying on the engine cranking bit can be potentially too slow in updating
+  return (page4.useDwellLim) && likely(!isCrankLocked);
+}
+
+void applyOverDwellProtection(void)
+{
+  if (likely(isOverDwellActive(configPage4, currentStatus))) {
+    uint32_t targetOverdwellTime = micros() - (configPage4.dwellLimit * 1000U); //Convert to uS
+
+    applyChannelOverDwellProtection(ignitionSchedule1, targetOverdwellTime);
+#if IGN_CHANNELS >= 2
+    applyChannelOverDwellProtection(ignitionSchedule2, targetOverdwellTime);
+#endif
+#if IGN_CHANNELS >= 3
+    applyChannelOverDwellProtection(ignitionSchedule3, targetOverdwellTime);
+#endif
+#if IGN_CHANNELS >= 4
+    applyChannelOverDwellProtection(ignitionSchedule4, targetOverdwellTime);
+#endif
+#if IGN_CHANNELS >= 5
+    applyChannelOverDwellProtection(ignitionSchedule5, targetOverdwellTime);
+#endif
+#if IGN_CHANNELS >= 6
+    applyChannelOverDwellProtection(ignitionSchedule6, targetOverdwellTime);
+#endif
+#if IGN_CHANNELS >= 7
+    applyChannelOverDwellProtection(ignitionSchedule7, targetOverdwellTime);
+#endif
+#if IGN_CHANNELS >= 8
+    applyChannelOverDwellProtection(ignitionSchedule8, targetOverdwellTime);
+#endif
+  }
 }
