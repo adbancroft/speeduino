@@ -22,13 +22,13 @@ extern int channel8InjDegrees; /**< The number of crank degrees until cylinder 8
 
 static inline uint16_t calculateInjectorStartAngle(uint16_t PWdivTimerPerDegree, int16_t injChannelDegrees, uint16_t injAngle);
 
-static inline uint32_t calculateInjectorTimeout(const FuelSchedule &schedule, int channelInjDegrees, int injectorStartAngle, int crankAngle);
+static inline uint32_t calculateInjectorTimeout(const FuelSchedule &schedule, int16_t channelInjDegrees, int16_t injectorStartAngle, int16_t crankAngle);
 
-static inline void calculateIgnitionAngle(IgnitionSchedule &schedule, int dwellAngle, int8_t advance);
+static inline void calculateIgnitionAngle(IgnitionSchedule &schedule, int16_t dwellAngle, int8_t advance);
 
 // Ignition for rotary.
-static inline void calculateIgnitionTrailingRotary(IgnitionSchedule &leading, int dwellAngle, int rotarySplitDegrees, IgnitionSchedule &trailing);
+static inline void calculateIgnitionTrailingRotary(IgnitionSchedule &leading, int16_t dwellAngle, int16_t rotarySplitDegrees, IgnitionSchedule &trailing);
 
-static inline uint32_t calculateIgnitionTimeout(const IgnitionSchedule &schedule, int crankAngle);
+static inline uint32_t calculateIgnitionTimeout(const IgnitionSchedule &schedule, int16_t crankAngle);
 
 #include "schedule_calcs.hpp"
