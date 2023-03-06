@@ -154,9 +154,9 @@ struct IgnitionSchedule : public Schedule {
   int16_t channelIgnDegrees; ///< The number of crank degrees until cylinder is at TDC
 };
 
-void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, unsigned long timeout, unsigned long duration);
+void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, uint32_t timeout, uint32_t duration);
 
-static inline __attribute__((always_inline)) void setIgnitionSchedule(IgnitionSchedule &schedule, unsigned long timeout, unsigned long duration) {
+static inline __attribute__((always_inline)) void setIgnitionSchedule(IgnitionSchedule &schedule, uint32_t timeout, uint32_t duration) {
   ATOMIC() {
     if(!isRunning(schedule)) { //Check that we're not already part way through a schedule
       _setIgnitionScheduleRunning(schedule, timeout, duration);
@@ -202,10 +202,10 @@ struct FuelSchedule : public Schedule {
 
 };
 
-void _setFuelScheduleRunning(FuelSchedule &schedule, unsigned long timeout, unsigned long duration);
+void _setFuelScheduleRunning(FuelSchedule &schedule, uint32_t timeout, uint32_t duration);
 
-static inline __attribute__((always_inline)) void setFuelSchedule(FuelSchedule &schedule, unsigned long timeout, unsigned long duration) {
-  // Check whether timeout exceeds the maximum future time. This can potentially occur on sequential setups when below ~115rpm
+static inline __attribute__((always_inline)) void setFuelSchedule(FuelSchedule &schedule, uint32_t timeout, uint32_t duration) {
+    //Check whether timeout exceeds the maximum future time. This can potentially occur on sequential setups when below ~115rpm
   if(timeout < MAX_TIMER_PERIOD) {
     ATOMIC() {
       if(!isRunning(schedule)) { //Check that we're not already part way through a schedule
