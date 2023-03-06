@@ -99,14 +99,14 @@ static inline void adjustCrankAngle(IgnitionSchedule &schedule, int16_t crankAng
     COMPARE_TYPE ticksToSpark = (COMPARE_TYPE)uS_TO_TIMER_COMPARE( timeToSpark );
     schedule._compare = schedule._counter + ticksToSpark; 
   }
-  else if((schedule.Status==PENDING) && (currentStatus.startRevolutions > MIN_CYCLES_FOR_CORRECTION) ) { 
+  else if((isPending(schedule)) && (currentStatus.startRevolutions > MIN_CYCLES_FOR_CORRECTION) ) { 
     // We are waiting for the timer to fire & start charging the coil.
     // Keep dwell (I.e. duration) constant (for better spark) - instead adjust the waiting period so 
     // the spark fires at the requested crank angle.
     uint32_t timeToRun = angleToTimeMicroSecPerDegree( ignitionLimits(schedule.startAngle-crankAngle) );
     COMPARE_TYPE ticksToRun = (COMPARE_TYPE)uS_TO_TIMER_COMPARE( timeToRun );
     schedule._compare = schedule._counter + ticksToRun; 
-    schedule.endScheduleSetByDecoder = true;
+    schedule.Status = PENDING_WITH_OVERRIDE;
   } else {
     // Schedule isn't on, so no adjustment possible
     // But keep the MISRA police happy.
