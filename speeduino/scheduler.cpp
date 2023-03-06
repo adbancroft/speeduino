@@ -195,8 +195,8 @@ void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidC
  */
 extern void beginInjectorPriming(void)
 {
-  unsigned long primingValue = table2D_getValue(&PrimingPulseTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
-  if( (primingValue > 0U) && (currentStatus.TPS <= configPage4.floodClear) )
+  uint32_t primingValue = (uint32_t)table2D_getValue(&PrimingPulseTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
+  if( (primingValue > UINT32_C(0)) && (currentStatus.TPS <= configPage4.floodClear) )
   {
     primingValue = primingValue * 100UL * 5UL; //to achieve long enough priming pulses, the values in tuner studio are divided by 0.5 instead of 0.1, so multiplier of 5 is required.
     if ( maxInjOutputs >= 1U ) { setFuelSchedule(fuelSchedule1, 100U, primingValue); }
