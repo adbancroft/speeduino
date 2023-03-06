@@ -4,6 +4,11 @@
 #include "renix.h"
 #include "schedule_calcs.h"
 
+extern uint16_t ignition1EndTooth;
+extern uint16_t ignition2EndTooth;
+extern uint16_t ignition3EndTooth;
+extern uint16_t ignition4EndTooth;
+
 void test_setup_renix44()
 {
     //Setup a renix 44 tooth wheel

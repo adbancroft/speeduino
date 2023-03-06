@@ -113,6 +113,8 @@ enum ScheduleStatus {
   OFF, 
   /** The delay phase of the schedule is active */
   PENDING,
+  /** The delay phase of the schedule is active */
+  PENDING_WITH_OVERRIDE,
   /** The schedule action is running */
   RUNNING,
   /** The schedule is running, with a next schedule queued up */
@@ -183,6 +185,9 @@ void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration);
 
 void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback);
 
+static inline bool isPending(const Schedule &schedule) {
+  return schedule.Status==PENDING || schedule.Status==PENDING_WITH_OVERRIDE;
+}
 
 /** Ignition schedule.
  */
@@ -190,12 +195,10 @@ struct IgnitionSchedule : public Schedule {
 
   using Schedule::Schedule;
 
-  volatile unsigned long startTime; /**< The system time (in uS) that the schedule started, used by the overdwell protection in timers.ino */
-  volatile bool endScheduleSetByDecoder = false;
-
+  volatile uint32_t startTime; /**< The system time (in uS) that the schedule started, used by the overdwell protection in timers.ino */
   int16_t startAngle; ///< Interim calculated value
   int16_t endAngle; ///< Interim calculated value
-  int16_t channelIgnDegrees; ///< The number of crank degrees until cylinder is at TDC
+  int16_t channelIgnDegrees; ///< The number of crank degrees until cylinder is at TDC  
 };
 
 void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, uint32_t timeout, uint32_t duration);
