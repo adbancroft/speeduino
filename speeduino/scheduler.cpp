@@ -220,11 +220,50 @@ void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, uint32_t timeout, u
   schedule.Status = PENDING; //Turn this schedule on
 }
 
+static inline void applyOverDwellCheck(IgnitionSchedule &schedule, uint32_t targetOverdwellTime) {
+  //Check first whether each spark output is currently on. Only check it's dwell time if it is
+  if (isRunning(schedule) && (schedule.startTime < targetOverdwellTime)) { 
+    schedule.pEndCallback(); schedule.Status = OFF; 
+  }
+}
+
+void applyOverDwellProtection(void)
+{
+  bool isCrankLocked = configPage4.ignCranklock && (currentStatus.RPM < currentStatus.crankRPM); //Dwell limiter is disabled during cranking on setups using the locked cranking timing. WE HAVE to do the RPM check here as relying on the engine cranking bit can be potentially too slow in updating
+
+  if ((configPage4.useDwellLim == 1) && (isCrankLocked != true)) {
+    uint32_t targetOverdwellTime = micros() - dwellLimit_uS; //Set a target time in the past that all coil charging must have begun after. If the coil charge began before this time, it's been running too long
+
+    applyOverDwellCheck(ignitionSchedule1, targetOverdwellTime);
+#if IGN_CHANNELS >= 2
+    applyOverDwellCheck(ignitionSchedule2, targetOverdwellTime);
+#endif
+#if IGN_CHANNELS >= 3
+    applyOverDwellCheck(ignitionSchedule3, targetOverdwellTime);
+#endif
+#if IGN_CHANNELS >= 4
+    applyOverDwellCheck(ignitionSchedule4, targetOverdwellTime);
+#endif
+#if IGN_CHANNELS >= 5
+    applyOverDwellCheck(ignitionSchedule5, targetOverdwellTime);
+#endif
+#if IGN_CHANNELS >= 6
+    applyOverDwellCheck(ignitionSchedule6, targetOverdwellTime);
+#endif
+#if IGN_CHANNELS >= 7
+    applyOverDwellCheck(ignitionSchedule7, targetOverdwellTime);
+#endif
+#if IGN_CHANNELS >= 8
+    applyOverDwellCheck(ignitionSchedule8, targetOverdwellTime);
+#endif
+  }
+}
+
 /** Perform the injector priming pulses.
  * Set these to run at an arbitrary time in the future (100us).
  * The prime pulse value is in ms*10, so need to multiple by 100 to get to uS
  */
-extern void beginInjectorPriming(void)
+void beginInjectorPriming(void)
 {
   uint32_t primingValue = (uint32_t)table2D_getValue(&PrimingPulseTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
   if( (primingValue > 0U) && (currentStatus.TPS < configPage4.floodClear) )
