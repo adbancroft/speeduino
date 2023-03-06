@@ -216,6 +216,8 @@ static inline void setIgnitionSchedule(IgnitionSchedule &schedule, uint32_t time
   interrupts();
 }
 
+void applyOverDwellProtection(void);
+
 /** Fuel injection schedule.
 * Fuel schedules don't use the callback pointers, or the startTime/endScheduleSetByDecoder variables.
 * They are removed in this struct to save RAM.
