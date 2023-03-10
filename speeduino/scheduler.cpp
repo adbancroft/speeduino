@@ -87,9 +87,9 @@ static void reset(FuelSchedule &schedule)
 static void reset(IgnitionSchedule &schedule) 
 {
     reset((Schedule&)schedule);
-    schedule.startAngle = 0;
-    schedule.endAngle = 0;
-    schedule.channelIgnDegrees = 0;
+    schedule.chargeAngle = 0;
+    schedule.dischargeAngle = 0;
+    schedule.channelDegrees = 0;
 }
 
 void initialiseSchedulers(void)
@@ -225,7 +225,7 @@ void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, uint32_t timeout, u
 
 static inline void applyChannelOverDwellProtection(IgnitionSchedule &schedule, uint32_t targetOverdwellTime) {
   if (isRunning(schedule)) {
-    if (schedule.startTime < targetOverdwellTime) {
+    if (schedule._startTime < targetOverdwellTime) {
       schedule.pEndCallback(); 
       schedule.Status = OFF;     
     }
@@ -494,7 +494,7 @@ FUEL_INTERRUPT(8, TIMER5_COMPB_vect)
  */
 static inline void onEndIgnitionEvent(IgnitionSchedule *pSchedule) {
   ignitionCount = ignitionCount + 1U; //Increment the ignition counter
-  int32_t elapsed = (int32_t)(micros() - pSchedule->startTime);
+  int32_t elapsed = (int32_t)(micros() - pSchedule->_startTime);
   currentStatus.actualDwell = DWELL_AVERAGE( elapsed );
 }
 
@@ -504,7 +504,7 @@ static inline void ignitionPendingToRunning(Schedule *pSchedule) {
 
   // cppcheck-suppress misra-c2012-11.3 ; A cast from pointer to base to pointer to derived must point to the same location
   IgnitionSchedule *pIgnition = (IgnitionSchedule *)pSchedule;
-  pIgnition->startTime = micros();
+  pIgnition->_startTime = micros();
 }
 
 /** @brief Called when the supplied schedule transitions from a RUNNING state to OFF */

@@ -24,7 +24,7 @@ static inline uint16_t calculateInjectorStartAngle(uint16_t PWdivTimerPerDegree,
 
 static inline uint32_t calculateInjectorTimeout(const FuelSchedule &schedule, int16_t channelInjDegrees, int16_t injectorStartAngle, int16_t crankAngle);
 
-static inline void calculateIgnitionAngle(IgnitionSchedule &schedule, int16_t dwellAngle, int8_t advance);
+static inline void calculateIgnitionAngles(IgnitionSchedule &schedule, int16_t dwellAngle, int8_t advance);
 
 // Ignition for rotary.
 static inline void calculateIgnitionTrailingRotary(IgnitionSchedule &leading, int16_t dwellAngle, int16_t rotarySplitDegrees, IgnitionSchedule &trailing);

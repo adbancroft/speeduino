@@ -230,10 +230,10 @@ struct IgnitionSchedule : public Schedule {
 
   using Schedule::Schedule;
 
-  volatile uint32_t startTime; /**< The system time (in uS) that the schedule started, used by the overdwell protection in timers.ino */
-  int16_t startAngle;        ///< Angle the coil should begin charging.
-  int16_t endAngle;          ///< Angle the spark should fire at.
-  int16_t channelIgnDegrees; ///< The number of crank degrees until cylinder is at TDC  
+  volatile uint32_t _startTime; /**< The system time (in uS) that the schedule started, used by the overdwell protection in timers.ino */
+  int16_t chargeAngle;        ///< Angle the coil should begin charging.
+  int16_t dischargeAngle;          ///< Angle the coil should discharge at. I.e. spark.
+  int16_t channelDegrees;    ///< The number of crank degrees until cylinder is at TDC  
 };
 
 /// @cond 
@@ -272,7 +272,7 @@ static inline void setIgnitionSchedule(IgnitionSchedule &schedule, uint32_t dela
 void applyOverDwellProtection(void);
 
 /** Fuel injection schedule.
-* Fuel schedules don't use the callback pointers, or the startTime/endScheduleSetByDecoder variables.
+* Fuel schedules don't use the callback pointers, or the _startTime/endScheduleSetByDecoder variables.
 * They are removed in this struct to save RAM.
 */
 struct FuelSchedule : public Schedule {
