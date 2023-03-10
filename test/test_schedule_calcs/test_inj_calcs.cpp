@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <unity.h>
 #include "test_calcs_common.h"
-#include "schedule_calcs.h"
+#include "scheduler.h"
 #include "crankMaths.h"
 
 #define _countof(x) (sizeof(x) / sizeof (x[0]))

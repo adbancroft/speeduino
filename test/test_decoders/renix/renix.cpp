@@ -2,7 +2,7 @@
 #include <globals.h>
 #include <unity.h>
 #include "renix.h"
-#include "schedule_calcs.h"
+#include "scheduler.h"
 
 extern uint16_t ignition1EndTooth;
 extern uint16_t ignition2EndTooth;

@@ -3,7 +3,6 @@
 #include <unity.h>
 #include "Nissan360.h"
 #include "scheduler.h"
-#include "schedule_calcs.h"
 
 extern uint16_t ignition1EndTooth;
 extern uint16_t ignition2EndTooth;

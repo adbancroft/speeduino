@@ -41,7 +41,6 @@ A full copy of the license may be found in the projects root directory
 #include "scheduler.h"
 #include "crankMaths.h"
 #include "timers.h"
-#include "schedule_calcs.h"
 
 void nullTriggerHandler (void){return;} //initialisation function for triggerhandlers, does exactly nothing
 uint16_t nullGetRPM(void){return 0;} //initialisation function for getRpm, returns safe value of 0
