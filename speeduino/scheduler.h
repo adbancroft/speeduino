@@ -301,8 +301,9 @@ struct FuelSchedule : public Schedule {
 
   using Schedule::Schedule;
 
-  int16_t channelDegrees;
-  uint16_t pw;
+  int16_t channelDegrees;      ///< The number of crank degrees until cylinder is at TDC  
+  uint16_t pw;                 ///< Pulse width in uS
+  table3d6RpmLoad trimTable;   ///< 6x6 Fuel trim map
 };
 
 static inline void setFuelSchedule(FuelSchedule &schedule, uint32_t timeout, uint32_t duration) {
