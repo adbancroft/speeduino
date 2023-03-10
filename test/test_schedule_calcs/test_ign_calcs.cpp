@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <unity.h>
 #include "test_calcs_common.h"
-#include "schedule_calcs.h"
+#include "scheduler.h"
 #include "crankMaths.h"
 #include "decoders.h"
 #include "../test_utils.h"
@@ -45,11 +45,11 @@ static void test_calc_ign_timeout(const ign_test_parameters &test_params)
     
     sprintf_P(msg, PSTR("PENDING advanceAngle: %" PRIi8 ", channelAngle: %" PRIu16 ", crankAngle: %" PRIu16 ", dischargeAngle: %" PRIi16), test_params.advanceAngle, test_params.channelAngle, test_params.crankAngle, schedule.dischargeAngle);
     schedule.Status = PENDING;
-    TEST_ASSERT_INT32_WITHIN_MESSAGE(1, test_params.pending, calculateIgnitionTimeout(schedule, test_params.crankAngle), msg);
+    TEST_ASSERT_INT32_WITHIN_MESSAGE(1, test_params.pending, _calculateIgnitionTimeout(schedule, test_params.crankAngle), msg);
     
     sprintf_P(msg, PSTR("RUNNING advanceAngle: %" PRIi8 ", channelAngle: %" PRIu16 ", crankAngle: %" PRIu16 ", dischargeAngle: %" PRIi16), test_params.advanceAngle, test_params.channelAngle, test_params.crankAngle, schedule.dischargeAngle);
     schedule.Status = RUNNING;
-    TEST_ASSERT_INT32_WITHIN_MESSAGE(1, test_params.running, calculateIgnitionTimeout(schedule, test_params.crankAngle), msg);
+    TEST_ASSERT_INT32_WITHIN_MESSAGE(1, test_params.running, _calculateIgnitionTimeout(schedule, test_params.crankAngle), msg);
 }
 
 static void test_calc_ign_timeout(const ign_test_parameters *pStart, const ign_test_parameters *pEnd)

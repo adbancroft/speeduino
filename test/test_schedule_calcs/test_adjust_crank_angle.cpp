@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <unity.h>
 #include "scheduler.h"
-#include "schedule_calcs.h"
+#include "scheduler.h"
 #include "../test_utils.h"
 
 void test_adjust_crank_angle_pending_below_minrevolutions()

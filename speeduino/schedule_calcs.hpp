@@ -87,7 +87,7 @@ static inline void calculateIgnitionTrailingRotary(IgnitionSchedule &leading, ui
   trailing.chargeAngle = (int16_t)ignitionLimits(trailing.dischargeAngle - (int16_t)dwellAngle); 
 }
 
-static inline uint32_t calculateIgnitionTimeout(const IgnitionSchedule &schedule, int16_t crankAngle)
+static inline uint32_t _calculateIgnitionTimeout(const IgnitionSchedule &schedule, int16_t crankAngle)
 {
   return _calculateAngularTime(schedule, schedule.channelDegrees, schedule.chargeAngle, crankAngle, CRANK_ANGLE_MAX_IGN);
 }

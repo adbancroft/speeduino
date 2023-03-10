@@ -2,7 +2,7 @@
 #include <globals.h>
 #include <unity.h>
 #include "missing_tooth.h"
-#include "schedule_calcs.h"
+#include "scheduler.h"
 #include "../../test_utils.h"
 
 void test_setup_36_1()

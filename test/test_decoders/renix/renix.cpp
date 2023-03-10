@@ -2,7 +2,7 @@
 #include <globals.h>
 #include <unity.h>
 #include "renix.h"
-#include "schedule_calcs.h"
+#include "scheduler.h"
 #include "../../test_utils.h"
 
 extern uint16_t ignition1EndTooth; //The end tooth for the first ignition channel

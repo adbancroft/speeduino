@@ -246,7 +246,33 @@ static inline  __attribute__((always_inline)) void _setIgnitionScheduleDuration(
 {
   _setSchedule(schedule, timeout, duration, CRANK_ANGLE_MAX_IGN);
 }
+/**
+ * @brief Calculate the time in uS from now to when the coil should start charging.
+ * 
+ * @param schedule The ignition channel
+ * @param crankAngle The current crank angle
+ * @return uint32_t 
+ */
+static inline uint32_t _calculateIgnitionTimeout(const IgnitionSchedule &schedule, int16_t crankAngle);
+
 /// @endcond
+
+/** @brief Set the next schedule for the ignition channel.
+ * 
+ * @param schedule The ignition channel
+ * @param crankAngle The current crank angle
+ * @param dwellDuration The coil dwell time in µS
+ */
+static inline void setIgnitionSchedule(IgnitionSchedule &schedule, int16_t crankAngle, uint32_t dwellDuration) {
+  // Do not override the per-tooth timing
+  if (schedule.Status!=PENDING) {
+    uint32_t delay = _calculateIgnitionTimeout(schedule, crankAngle);
+
+    if (delay > 0U) {
+      _setIgnitionScheduleDuration(schedule, delay, dwellDuration);
+    }
+  }
+}
 
 /**
  * @brief Check that no ignition channel has been charging the coil for too long
@@ -313,6 +339,26 @@ static inline  __attribute__((always_inline)) void setFuelSchedule(FuelSchedule 
  */
 void moveToNextState(FuelSchedule &schedule);
 
+/**
+ * @brief Compute the injector open angle for an injection channel
+ * 
+ * @param pwDegrees How many crank degrees the calculated PW will take at the current speed
+ * @param tdcOffset The number of crank degrees until cylinder is at TDC (at rest)
+ * @param injAngle The requested injection angle
+ * @return uint16_t 
+ */
+static inline uint16_t calculateInjectorStartAngle(uint16_t pwDegrees, int16_t tdcOffset, uint16_t injAngle);
+
+/**
+ * @brief Calculate the time in uS from now to when the injector should be opened.
+ * 
+ * @param schedule The ignition channel
+ * @param openAngle The angle at which to open the injector
+ * @param crankAngle The current crank angle
+ * @return uint32_t 
+ */
+static inline uint32_t calculateInjectorTimeout(const FuelSchedule &schedule, int16_t openAngle, int16_t crankAngle);
+
 extern FuelSchedule fuelSchedule1;
 extern FuelSchedule fuelSchedule2;
 extern FuelSchedule fuelSchedule3;
@@ -329,5 +375,7 @@ extern FuelSchedule fuelSchedule7;
 #if INJ_CHANNELS >= 8
 extern FuelSchedule fuelSchedule8;
 #endif
+
+#include "schedule_calcs.hpp"
 
 #endif // SCHEDULER_H
