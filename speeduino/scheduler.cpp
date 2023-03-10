@@ -69,8 +69,7 @@ IgnitionSchedule ignitionSchedule8(IGN8_COUNTER, IGN8_COMPARE);
 static void reset(Schedule &schedule)
 {
     schedule.Status = OFF;
-    schedule.pStartCallback = nullCallback;
-    schedule.pEndCallback = nullCallback;
+    setCallbacks(schedule, nullCallback, nullCallback);
 }
 
 static void reset(FuelSchedule &schedule) 
@@ -217,6 +216,12 @@ static inline bool hasNextSchedule(const Schedule &schedule) {
 
 static inline void clearNextSchedule(Schedule &schedule) {
   schedule.nextDuration = 0;
+}
+
+void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback)
+{
+  schedule.pStartCallback = pStartCallback;
+  schedule.pEndCallback = pEndCallback;
 }
 
 void _setFuelScheduleRunning(FuelSchedule &schedule, unsigned long timeout, unsigned long duration)
