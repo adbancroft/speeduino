@@ -2,7 +2,7 @@
 #include <unity.h>
 #include "globals.h"
 #include "init.h"
-#include "schedule_calcs.h"
+#include "scheduler.h"
 #include "scheduledIO.h"
 #include "../test_utils.h"
 #include "storage.h"

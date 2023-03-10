@@ -28,7 +28,6 @@ A full copy of the license may be found in the projects root directory
 #include "scheduler.h"
 #include "scheduledIO.h"
 #include "timers.h"
-#include "schedule_calcs.h"
 #include "schedule_state_machine.h"
 
 FuelSchedule fuelSchedule1(FUEL1_COUNTER, FUEL1_COMPARE); //cppcheck-suppress misra-c2012-8.4
