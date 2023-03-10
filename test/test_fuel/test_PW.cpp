@@ -4,6 +4,7 @@
 #include "test_PW.h"
 // #include "init.h"
 #include "../test_utils.h"
+#include "scheduler.h"
 
 #define PW_ALLOWED_ERROR  30
 
@@ -147,8 +148,8 @@ void test_PW_4Cyl_PW0(void)
   configPage10.stagingEnabled = false; //Staging must be off or channels 3 and 4 will be used
 
   loop();
-  TEST_ASSERT_EQUAL(0, currentStatus.PW3);
-  TEST_ASSERT_EQUAL(0, currentStatus.PW4);
+  TEST_ASSERT_EQUAL(0, fuelSchedule3.pw);
+  TEST_ASSERT_EQUAL(0, fuelSchedule4.pw);
 }
 
 extern uint16_t calculatePWLimit(void); 

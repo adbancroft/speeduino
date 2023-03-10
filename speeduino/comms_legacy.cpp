@@ -20,6 +20,7 @@ A full copy of the license may be found in the projects root directory
 #include "logger.h"
 #include "table3d_axis_io.h"
 #include "board_definition.h"
+#include "scheduler.h"
 #ifdef RTC_ENABLED
   #include "rtc_common.h"
 #endif
@@ -770,10 +771,10 @@ void sendValuesLegacy(void)
 
   bytestosend -= primarySerial.write(currentStatus.secl>>8);
   bytestosend -= primarySerial.write(currentStatus.secl);
-  bytestosend -= primarySerial.write(currentStatus.PW1>>8);
-  bytestosend -= primarySerial.write(currentStatus.PW1);
-  bytestosend -= primarySerial.write(currentStatus.PW2>>8);
-  bytestosend -= primarySerial.write(currentStatus.PW2);
+  bytestosend -= primarySerial.write(fuelSchedule1.pw>>8);
+  bytestosend -= primarySerial.write(fuelSchedule1.pw);
+  bytestosend -= primarySerial.write(fuelSchedule2.pw>>8);
+  bytestosend -= primarySerial.write(fuelSchedule2.pw);
   bytestosend -= primarySerial.write(currentStatus.RPM>>8);
   bytestosend -= primarySerial.write(currentStatus.RPM);
 
