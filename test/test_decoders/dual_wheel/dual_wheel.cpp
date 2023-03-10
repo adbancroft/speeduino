@@ -2,7 +2,7 @@
 #include <globals.h>
 #include <unity.h>
 #include "dual_wheel.h"
-#include "schedule_calcs.h"
+#include "scheduler.h"
 #include "../../test_utils.h"
 
 

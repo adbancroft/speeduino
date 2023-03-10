@@ -3,7 +3,6 @@
 #include <unity.h>
 #include "test_ngc.h"
 #include "scheduler.h"
-#include "schedule_calcs.h"
 #include "../../test_utils.h"
 
 extern uint16_t ignition1EndTooth;
