@@ -43,6 +43,7 @@ See page 136 of the processors datasheet: http://www.atmel.com/Images/doc2549.pd
 
 #include "board_definition.h"
 #include "scheduledIO.h"
+#include "table3d.h"
 
 // Inlining seems to be very important for AVR performance
 #if defined(CORE_AVR)
@@ -281,8 +282,9 @@ struct FuelSchedule : public Schedule {
 
   using Schedule::Schedule;
 
-  int16_t channelDegrees;
-  uint16_t pw;
+  int16_t channelDegrees;      ///< The number of crank degrees until cylinder is at TDC  
+  uint16_t pw;                 ///< Pulse width in uS
+  table3d6RpmLoad trimTable;   ///< 6x6 Fuel trim map
 };
 
 static SCHEDULE_INLINE void setFuelSchedule(FuelSchedule &schedule, uint32_t timeout, uint32_t duration) {
