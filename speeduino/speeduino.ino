@@ -771,7 +771,7 @@ void __attribute__((always_inline)) loop(void)
 
       // if(Serial && false)
       // {
-      //   if(ignitionSchedule1.startAngle > crankAngle)
+      //   if(ignitionSchedule1.chargeAngle > crankAngle)
       //   {
       //     noInterrupts();
       //     Serial.print("Time2LastTooth:"); Serial.println(micros()-toothLastToothTime);
@@ -780,8 +780,8 @@ void __attribute__((always_inline)) loop(void)
       //     Serial.print("RPM:"); Serial.println(currentStatus.RPM);
       //     Serial.print("Tooth:"); Serial.println(toothCurrentCount);
       //     Serial.print("timePerDegree:"); Serial.println(timePerDegree);
-      //     Serial.print("IGN1Angle:"); Serial.println(ignitionSchedule1.startAngle);
-      //     Serial.print("TimeToIGN1:"); Serial.println(angleToTime((ignitionSchedule1.startAngle - crankAngle), CRANKMATH_METHOD_INTERVAL_REV));
+      //     Serial.print("IGN1Angle:"); Serial.println(ignitionSchedule1.chargeAngle);
+      //     Serial.print("TimeToIGN1:"); Serial.println(angleToTime((ignitionSchedule1.chargeAngle - crankAngle), CRANKMATH_METHOD_INTERVAL_REV));
       //     interrupts();
       //   }
       // }
@@ -1040,21 +1040,21 @@ void __attribute__((always_inline)) loop(void)
         //This is a safety step to prevent the ignition start time occurring AFTER the target tooth pulse has already occurred. It simply moves the start time forward a little, which is compensated for by the increase in the dwell time
         if(currentStatus.RPM < 250)
         {
-          ignitionSchedule1.startAngle -= 5;
-          ignitionSchedule2.startAngle -= 5;
-          ignitionSchedule3.startAngle -= 5;
-          ignitionSchedule4.startAngle -= 5;
+          ignitionSchedule1.chargeAngle -= 5;
+          ignitionSchedule2.chargeAngle -= 5;
+          ignitionSchedule3.chargeAngle -= 5;
+          ignitionSchedule4.chargeAngle -= 5;
 #if IGN_CHANNELS >= 5
-          ignitionSchedule5.startAngle -= 5;
+          ignitionSchedule5.chargeAngle -= 5;
 #endif
 #if IGN_CHANNELS >= 6          
-          ignitionSchedule6.startAngle -= 5;
+          ignitionSchedule6.chargeAngle -= 5;
 #endif
 #if IGN_CHANNELS >= 7
-          ignitionSchedule7.startAngle -= 5;
+          ignitionSchedule7.chargeAngle -= 5;
 #endif
 #if IGN_CHANNELS >= 8
-          ignitionSchedule8.startAngle -= 5;
+          ignitionSchedule8.chargeAngle -= 5;
 #endif
         }
       }
@@ -1063,7 +1063,6 @@ void __attribute__((always_inline)) loop(void)
       if(ignitionChannelsOn > 0)
       {
         //Refresh the current crank angle info
-        //ignition1StartAngle = 335;
         crankAngle = ignitionLimits(getCrankAngle()); //Refresh the crank angle info
 
 #if IGN_CHANNELS >= 1
@@ -1076,13 +1075,13 @@ void __attribute__((always_inline)) loop(void)
 #endif
 
 #if defined(USE_IGN_REFRESH)
-        if( isRunning(ignitionSchedule1) && (ignitionSchedule1.endAngle > crankAngle) && (configPage4.StgCycles == 0) && (configPage2.perToothIgn != true) )
+        if( isRunning(ignitionSchedule1) && (ignitionSchedule1.dischargeAngle > crankAngle) && (configPage4.StgCycles == 0) && (configPage2.perToothIgn != true) )
         {
           crankAngle = ignitionLimits(getCrankAngle()); //Refresh the crank angle info
 
           adjustCrankAngle(ignitionSchedule1, crankAngle);
         }
-  #endif
+#endif
         
 #if IGN_CHANNELS >= 2
         if (maxIgnOutputs >= 2)
@@ -1342,31 +1341,31 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
   {
     //1 cylinder
     case 1:
-      calculateIgnitionAngle(ignitionSchedule1, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule1, dwellAngle, currentStatus.advance);
       break;
     //2 cylinders
     case 2:
-      calculateIgnitionAngle(ignitionSchedule1, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngle(ignitionSchedule2, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule1, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule2, dwellAngle, currentStatus.advance);
       break;
     //3 cylinders
     case 3:
-      calculateIgnitionAngle(ignitionSchedule1, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngle(ignitionSchedule2, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngle(ignitionSchedule3, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule1, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule2, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule3, dwellAngle, currentStatus.advance);
       break;
     //4 cylinders
     case 4:
-      calculateIgnitionAngle(ignitionSchedule1, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngle(ignitionSchedule2, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule1, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule2, dwellAngle, currentStatus.advance);
 
       #if IGN_CHANNELS >= 4
       if((configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && currentStatus.hasSync)
       {
         if( CRANK_ANGLE_MAX_IGN != 720 ) { changeHalfToFullSync(); }
 
-        calculateIgnitionAngle(ignitionSchedule3, dwellAngle, currentStatus.advance);
-        calculateIgnitionAngle(ignitionSchedule4, dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedule3, dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedule4, dwellAngle, currentStatus.advance);
       }
       else if(configPage4.sparkMode == IGN_MODE_ROTARY)
       {
@@ -1385,28 +1384,28 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
       break;
     //5 cylinders
     case 5:
-      calculateIgnitionAngle(ignitionSchedule1, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngle(ignitionSchedule2, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngle(ignitionSchedule3, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngle(ignitionSchedule4, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule1, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule2, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule3, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule4, dwellAngle, currentStatus.advance);
 #if (IGN_CHANNELS >= 5)
-      calculateIgnitionAngle(ignitionSchedule5, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule5, dwellAngle, currentStatus.advance);
 #endif
       break;
     //6 cylinders
     case 6:
-      calculateIgnitionAngle(ignitionSchedule1, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngle(ignitionSchedule2, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngle(ignitionSchedule3, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule1, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule2, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule3, dwellAngle, currentStatus.advance);
 
       #if IGN_CHANNELS >= 6
       if((configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && currentStatus.hasSync)
       {
         if( CRANK_ANGLE_MAX_IGN != 720 ) { changeHalfToFullSync(); }
 
-        calculateIgnitionAngle(ignitionSchedule4, dwellAngle, currentStatus.advance);
-        calculateIgnitionAngle(ignitionSchedule5, dwellAngle, currentStatus.advance);
-        calculateIgnitionAngle(ignitionSchedule6, dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedule4, dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedule5, dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedule6, dwellAngle, currentStatus.advance);
       }
       else
       {
@@ -1416,20 +1415,20 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
       break;
     //8 cylinders
     case 8:
-      calculateIgnitionAngle(ignitionSchedule1, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngle(ignitionSchedule2, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngle(ignitionSchedule3, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngle(ignitionSchedule4, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule1, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule2, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule3, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedule4, dwellAngle, currentStatus.advance);
 
       #if IGN_CHANNELS >= 8
       if((configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && currentStatus.hasSync)
       {
         if( CRANK_ANGLE_MAX_IGN != 720 ) { changeHalfToFullSync(); }
 
-        calculateIgnitionAngle(ignitionSchedule5, dwellAngle, currentStatus.advance);
-        calculateIgnitionAngle(ignitionSchedule6, dwellAngle, currentStatus.advance);
-        calculateIgnitionAngle(ignitionSchedule7, dwellAngle, currentStatus.advance);
-        calculateIgnitionAngle(ignitionSchedule8, dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedule5, dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedule6, dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedule7, dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedule8, dwellAngle, currentStatus.advance);
       }
       else
       {
