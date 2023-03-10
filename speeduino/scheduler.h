@@ -261,14 +261,21 @@ struct IgnitionSchedule : public Schedule {
  */
 void applyOverDwellProtection(void);
 
-/** Fuel injection schedule.
-* Fuel schedules don't use the callback pointers, or the _startTime/endScheduleSetByDecoder variables.
-* They are removed in this struct to save RAM.
-*/
+/** @brief A fuel injection schedule.
+ *
+ * Goal is to open & close the injector as accurately as possible.
+ * 
+ * \code 
+ *   <--------------- Delay ---------------><---- Injecting ---->
+ *                                          ^                   ^
+ *                                        Open                Close
+ * \endcode
+ */
 struct FuelSchedule : public Schedule {
 
   using Schedule::Schedule;
 
+  int16_t channelDegrees;
 };
 
 static inline void setFuelSchedule(FuelSchedule &schedule, uint32_t timeout, uint32_t duration) {

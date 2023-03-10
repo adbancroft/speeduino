@@ -56,9 +56,9 @@ static inline uint32_t _calculateAngularTime(const Schedule &schedule, uint16_t 
             maxAngle);
 }
 
-static inline uint32_t calculateInjectorTimeout(const FuelSchedule &schedule, int channelInjDegrees, int openAngle, int crankAngle)
+static inline uint32_t calculateInjectorTimeout(const FuelSchedule &schedule, int16_t injectorStartAngle, int16_t crankAngle)
 {
-  return _calculateAngularTime(schedule, channelInjDegrees, openAngle, crankAngle, CRANK_ANGLE_MAX_INJ);
+  return _calculateAngularTime(schedule, schedule.channelDegrees, injectorStartAngle, crankAngle, CRANK_ANGLE_MAX_INJ);
 }
 
 
