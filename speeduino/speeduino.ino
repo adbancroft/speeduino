@@ -66,7 +66,7 @@ void setup(void)
   initialiseAll();
 }
 
-inline uint16_t applyFuelTrimToPW(trimTable3d *pTrimTable, int16_t fuelLoad, int16_t RPM, uint16_t currentPW)
+inline uint16_t applyFuelTrimToPW(table3d6RpmLoad *pTrimTable, int16_t fuelLoad, int16_t RPM, uint16_t currentPW)
 {
     uint8_t pw1percent = 100U + get3DTableValue(pTrimTable, fuelLoad, RPM) - OFFSET_FUELTRIM;
     return percentage(pw1percent, currentPW);
@@ -572,8 +572,8 @@ void __attribute__((always_inline)) loop(void)
           
           if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0) )
           {
-            fuelSchedule1.pw = applyFuelTrimToPW(&trim1Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule1.pw);
-            fuelSchedule2.pw = applyFuelTrimToPW(&trim2Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule2.pw);
+            fuelSchedule1.pw = applyFuelTrimToPW(&fuelSchedule1.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule1.pw);
+            fuelSchedule2.pw = applyFuelTrimToPW(&fuelSchedule2.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule2.pw);
           }
           else if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
           {
@@ -593,9 +593,9 @@ void __attribute__((always_inline)) loop(void)
           
           if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0) )
           {
-            fuelSchedule1.pw = applyFuelTrimToPW(&trim1Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule1.pw);
-            fuelSchedule2.pw = applyFuelTrimToPW(&trim2Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule2.pw);
-            fuelSchedule3.pw = applyFuelTrimToPW(&trim3Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule3.pw);
+            fuelSchedule1.pw = applyFuelTrimToPW(&fuelSchedule1.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule1.pw);
+            fuelSchedule2.pw = applyFuelTrimToPW(&fuelSchedule2.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule2.pw);
+            fuelSchedule3.pw = applyFuelTrimToPW(&fuelSchedule3.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule3.pw);
 
             #if INJ_CHANNELS >= 6
               if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
@@ -641,10 +641,10 @@ void __attribute__((always_inline)) loop(void)
 
             if(configPage6.fuelTrimEnabled > 0)
             {
-              fuelSchedule1.pw = applyFuelTrimToPW(&trim1Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule1.pw);
-              fuelSchedule2.pw = applyFuelTrimToPW(&trim2Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule2.pw);
-              fuelSchedule3.pw = applyFuelTrimToPW(&trim3Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule3.pw);
-              fuelSchedule4.pw = applyFuelTrimToPW(&trim4Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule4.pw);
+              fuelSchedule1.pw = applyFuelTrimToPW(&fuelSchedule1.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule1.pw);
+              fuelSchedule2.pw = applyFuelTrimToPW(&fuelSchedule2.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule2.pw);
+              fuelSchedule3.pw = applyFuelTrimToPW(&fuelSchedule3.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule3.pw);
+              fuelSchedule4.pw = applyFuelTrimToPW(&fuelSchedule4.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule4.pw);
             }
           }
           else if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
@@ -693,12 +693,12 @@ void __attribute__((always_inline)) loop(void)
 
               if(configPage6.fuelTrimEnabled > 0)
               {
-                fuelSchedule1.pw = applyFuelTrimToPW(&trim1Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule1.pw);
-                fuelSchedule2.pw = applyFuelTrimToPW(&trim2Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule2.pw);
-                fuelSchedule3.pw = applyFuelTrimToPW(&trim3Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule3.pw);
-                fuelSchedule4.pw = applyFuelTrimToPW(&trim4Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule4.pw);
-                fuelSchedule5.pw = applyFuelTrimToPW(&trim5Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule5.pw);
-                fuelSchedule6.pw = applyFuelTrimToPW(&trim6Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule6.pw);
+                fuelSchedule1.pw = applyFuelTrimToPW(&fuelSchedule1.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule1.pw);
+                fuelSchedule2.pw = applyFuelTrimToPW(&fuelSchedule2.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule2.pw);
+                fuelSchedule3.pw = applyFuelTrimToPW(&fuelSchedule3.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule3.pw);
+                fuelSchedule4.pw = applyFuelTrimToPW(&fuelSchedule4.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule4.pw);
+                fuelSchedule5.pw = applyFuelTrimToPW(&fuelSchedule5.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule5.pw);
+                fuelSchedule6.pw = applyFuelTrimToPW(&fuelSchedule6.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule6.pw);
               }
 
               //Staging is possible with sequential on 8 channel boards by using outputs 7 + 8 for the staged injectors
@@ -744,14 +744,14 @@ void __attribute__((always_inline)) loop(void)
 
               if(configPage6.fuelTrimEnabled > 0)
               {
-                fuelSchedule1.pw = applyFuelTrimToPW(&trim1Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule1.pw);
-                fuelSchedule2.pw = applyFuelTrimToPW(&trim2Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule2.pw);
-                fuelSchedule3.pw = applyFuelTrimToPW(&trim3Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule3.pw);
-                fuelSchedule4.pw = applyFuelTrimToPW(&trim4Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule4.pw);
-                fuelSchedule5.pw = applyFuelTrimToPW(&trim5Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule5.pw);
-                fuelSchedule6.pw = applyFuelTrimToPW(&trim6Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule6.pw);
-                fuelSchedule7.pw = applyFuelTrimToPW(&trim7Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule7.pw);
-                fuelSchedule8.pw = applyFuelTrimToPW(&trim8Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule8.pw);
+                fuelSchedule1.pw = applyFuelTrimToPW(&fuelSchedule1.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule1.pw);
+                fuelSchedule2.pw = applyFuelTrimToPW(&fuelSchedule2.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule2.pw);
+                fuelSchedule3.pw = applyFuelTrimToPW(&fuelSchedule3.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule3.pw);
+                fuelSchedule4.pw = applyFuelTrimToPW(&fuelSchedule4.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule4.pw);
+                fuelSchedule5.pw = applyFuelTrimToPW(&fuelSchedule5.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule5.pw);
+                fuelSchedule6.pw = applyFuelTrimToPW(&fuelSchedule6.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule6.pw);
+                fuelSchedule7.pw = applyFuelTrimToPW(&fuelSchedule7.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule7.pw);
+                fuelSchedule8.pw = applyFuelTrimToPW(&fuelSchedule8.trimTable, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule8.pw);
               }
             }
             else

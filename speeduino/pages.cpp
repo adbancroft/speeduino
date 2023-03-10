@@ -2,6 +2,7 @@
 #include "globals.h"
 #include "utilities.h"
 #include "table3d_axis_io.h"
+#include "scheduler.h"
 
 // Maps from virtual page "addresses" to addresses/bytes of real in memory entities
 //
@@ -333,15 +334,23 @@ page_iterator_t map_page_offset_to_entity(uint8_t pageNumber, uint16_t offset)
 
     case seqFuelPage:
     {
-      CHECK_TABLE(seqFuelPage, offset, &trim1Table, 0)
-      CHECK_TABLE(seqFuelPage, offset, &trim2Table, 1)
-      CHECK_TABLE(seqFuelPage, offset, &trim3Table, 2)
-      CHECK_TABLE(seqFuelPage, offset, &trim4Table, 3)
-      CHECK_TABLE(seqFuelPage, offset, &trim5Table, 4)
-      CHECK_TABLE(seqFuelPage, offset, &trim6Table, 5)
-      CHECK_TABLE(seqFuelPage, offset, &trim7Table, 6)
-      CHECK_TABLE(seqFuelPage, offset, &trim8Table, 7)
-      END_OF_PAGE(seqFuelPage, 8)
+      CHECK_TABLE(seqFuelPage, offset, &fuelSchedule1.trimTable, 0)
+      CHECK_TABLE(seqFuelPage, offset, &fuelSchedule2.trimTable, 1)
+      CHECK_TABLE(seqFuelPage, offset, &fuelSchedule3.trimTable, 2)
+      CHECK_TABLE(seqFuelPage, offset, &fuelSchedule4.trimTable, 3)
+#if INJ_CHANNELS >= 5
+      CHECK_TABLE(seqFuelPage, offset, &fuelSchedule5.trimTable, 4)
+#endif
+#if INJ_CHANNELS >= 6
+      CHECK_TABLE(seqFuelPage, offset, &fuelSchedule6.trimTable, 5)
+#endif
+#if INJ_CHANNELS >= 7
+      CHECK_TABLE(seqFuelPage, offset, &fuelSchedule7.trimTable, 6)
+#endif
+#if INJ_CHANNELS >= 8
+      CHECK_TABLE(seqFuelPage, offset, &fuelSchedule8.trimTable, 7)
+#endif
+      END_OF_PAGE(seqFuelPage, INJ_CHANNELS)
     }
 
     case fuelMap2Page:

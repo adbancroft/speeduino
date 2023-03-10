@@ -14,6 +14,7 @@
 #include "updates.h"
 #include "pages.h"
 #include "comms_CAN.h"
+#include "scheduler.h"
 #include EEPROM_LIB_H //This is defined in the board .h files
 
 void doUpdates(void)
@@ -545,14 +546,22 @@ void doUpdates(void)
     {
       multiplyTableLoad(&fuelTable,  fuelTable.type_key,  4);
       multiplyTableLoad(&afrTable,   afrTable.type_key,   4);
-      multiplyTableLoad(&trim1Table, trim1Table.type_key, 4);
-      multiplyTableLoad(&trim2Table, trim2Table.type_key, 4);
-      multiplyTableLoad(&trim3Table, trim3Table.type_key, 4);
-      multiplyTableLoad(&trim4Table, trim4Table.type_key, 4);
-      multiplyTableLoad(&trim5Table, trim5Table.type_key, 4);
-      multiplyTableLoad(&trim6Table, trim6Table.type_key, 4);
-      multiplyTableLoad(&trim7Table, trim7Table.type_key, 4);
-      multiplyTableLoad(&trim8Table, trim8Table.type_key, 4);
+      multiplyTableLoad(&fuelSchedule1.trimTable, fuelSchedule1.trimTable.type_key, 4);
+      multiplyTableLoad(&fuelSchedule2.trimTable, fuelSchedule2.trimTable.type_key, 4);
+      multiplyTableLoad(&fuelSchedule3.trimTable, fuelSchedule3.trimTable.type_key, 4);
+      multiplyTableLoad(&fuelSchedule4.trimTable, fuelSchedule4.trimTable.type_key, 4);
+#if INJ_CHANNELS >= 5
+      multiplyTableLoad(&fuelSchedule5.trimTable, fuelSchedule5.trimTable.type_key, 4);
+#endif
+#if INJ_CHANNELS >= 5
+      multiplyTableLoad(&fuelSchedule6.trimTable, fuelSchedule6.trimTable.type_key, 4);
+#endif
+#if INJ_CHANNELS >= 5
+      multiplyTableLoad(&fuelSchedule7.trimTable, fuelSchedule7.trimTable.type_key, 4);
+#endif
+#if INJ_CHANNELS >= 5
+      multiplyTableLoad(&fuelSchedule8.trimTable, fuelSchedule8.trimTable.type_key, 4);
+#endif
       if(configPage4.sparkMode == IGN_MODE_ROTARY)
       { 
         for(uint8_t x = 0; x < 8; x++)
