@@ -89,9 +89,9 @@ static void reset(FuelSchedule &schedule)
 static void reset(IgnitionSchedule &schedule) 
 {
     reset((Schedule&)schedule);
-    schedule.startAngle = 0;
-    schedule.endAngle = 0;
-    schedule.channelIgnDegrees = 0;
+    schedule.chargeAngle = 0;
+    schedule.dischargeAngle = 0;
+    schedule.channelDegrees = 0;
 }
 
 void initialiseSchedulers(void)
@@ -259,7 +259,7 @@ void moveToNextState(FuelSchedule &schedule)
  */
 static inline void onEndIgnitionEvent(IgnitionSchedule *pSchedule) {
   ignitionCount = ignitionCount + 1U; //Increment the ignition counter
-  int32_t elapsed = (int32_t)(micros() - pSchedule->startTime);
+  int32_t elapsed = (int32_t)(micros() - pSchedule->_startTime);
   currentStatus.actualDwell = (uint16_t)DWELL_AVERAGE( elapsed );
 }
 
@@ -269,7 +269,7 @@ static inline void ignitionPendingToRunning(Schedule *pSchedule) {
 
   // cppcheck-suppress misra-c2012-11.3 ; A cast from pointer to base to pointer to derived must point to the same location
   IgnitionSchedule *pIgnition = (IgnitionSchedule *)pSchedule;
-  pIgnition->startTime = micros();
+  pIgnition->_startTime = micros();
 }
 
 /** @brief Called when the supplied schedule transitions from a RUNNING state to OFF */
@@ -377,7 +377,7 @@ void disablePendingIgnSchedule(byte channel)
 TESTABLE_INLINE_STATIC void applyChannelOverDwellProtection(IgnitionSchedule &schedule, uint32_t targetOverdwellTime) {
   //Check first whether each spark output is currently on. Only check it's dwell time if it is
   ATOMIC() {
-    if (isRunning(schedule) && unlikely(schedule.startTime < targetOverdwellTime)) { 
+    if (isRunning(schedule) && unlikely(schedule._startTime < targetOverdwellTime)) { 
       ignitionRunningToOff(&schedule); //Call the end function to disable the spark output
     }
   }

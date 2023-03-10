@@ -9,16 +9,16 @@
 
 void prepareForInitialiseAll(uint8_t boardId);
 
-static void assert_ignition_channel(uint16_t angle, uint8_t channel, int channelInjDegrees, voidVoidCallback startFunction, voidVoidCallback endFunction)
+static void assert_ignition_channel(uint16_t angle, uint8_t channel, const IgnitionSchedule &schedule)
 {
   char msg[32];
 
-  sprintf_P(msg, PSTR("channe%" PRIu8 "1InjDegrees"), channel+1);
-  TEST_ASSERT_EQUAL_MESSAGE(angle, channelInjDegrees, msg);
+  sprintf_P(msg, PSTR("channe%" PRIu8 "Degrees"), channel+1);
+  TEST_ASSERT_EQUAL_MESSAGE(angle, schedule.channelDegrees, msg);
   sprintf_P(msg, PSTR("ign%" PRIu8 "StartFunction"), channel+1);
-  TEST_ASSERT_TRUE_MESSAGE(channel>=maxIgnOutputs || (startFunction!=nullCallback), msg);
+  TEST_ASSERT_TRUE_MESSAGE(channel>=maxIgnOutputs || (schedule.pStartCallback!=nullCallback), msg);
   sprintf_P(msg, PSTR("ign%" PRIu8 "EndFunction"), channel+1);
-  TEST_ASSERT_TRUE_MESSAGE(channel>=maxIgnOutputs || (endFunction!=nullCallback), msg);
+  TEST_ASSERT_TRUE_MESSAGE(channel>=maxIgnOutputs || (schedule.pEndCallback!=nullCallback), msg);
 }
 
 static void assert_ignition_schedules(uint16_t crankAngle, uint16_t expectedOutputs, const uint16_t angle[])
@@ -30,21 +30,21 @@ static void assert_ignition_schedules(uint16_t crankAngle, uint16_t expectedOutp
   strcpy_P(msg, PSTR("maxIgnOutputs"));
   TEST_ASSERT_EQUAL_UINT16_MESSAGE(expectedOutputs, maxIgnOutputs, msg);
 
-  assert_ignition_channel(angle[0], 0, ignitionSchedule1.channelIgnDegrees, ignitionSchedule1.pStartCallback, ignitionSchedule1.pEndCallback);
-  assert_ignition_channel(angle[1], 1, ignitionSchedule2.channelIgnDegrees, ignitionSchedule2.pStartCallback, ignitionSchedule2.pEndCallback);
-  assert_ignition_channel(angle[2], 2, ignitionSchedule3.channelIgnDegrees, ignitionSchedule3.pStartCallback, ignitionSchedule3.pEndCallback);
-  assert_ignition_channel(angle[3], 3, ignitionSchedule4.channelIgnDegrees, ignitionSchedule4.pStartCallback, ignitionSchedule4.pEndCallback);
+  assert_ignition_channel(angle[0], 0, ignitionSchedule1);
+  assert_ignition_channel(angle[1], 1, ignitionSchedule2);
+  assert_ignition_channel(angle[2], 2, ignitionSchedule3);
+  assert_ignition_channel(angle[3], 3, ignitionSchedule4);
 #if IGN_CHANNELS>=5
-  assert_ignition_channel(angle[4], 4, ignitionSchedule5.channelIgnDegrees, ignitionSchedule5.pStartCallback, ignitionSchedule5.pEndCallback);
+  assert_ignition_channel(angle[4], 4, ignitionSchedule5);
 #endif
 #if IGN_CHANNELS>=6
-  assert_ignition_channel(angle[5], 5, ignitionSchedule6.channelIgnDegrees, ignitionSchedule6.pStartCallback, ignitionSchedule6.pEndCallback);
+  assert_ignition_channel(angle[5], 5, ignitionSchedule6);
 #endif
 #if IGN_CHANNELS>=7
-  assert_ignition_channel(angle[6], 6, ignitionSchedule7.channelIgnDegrees, ignitionSchedule7.pStartCallback, ignitionSchedule7.pEndCallback);
+  assert_ignition_channel(angle[6], 6, ignitionSchedule7);
 #endif
 #if IGN_CHANNELS>=8
-  assert_ignition_channel(angle[7], 7, ignitionSchedule8.channelIgnDegrees, ignitionSchedule8.pStartCallback, ignitionSchedule8.pEndCallback);
+  assert_ignition_channel(angle[7], 7, ignitionSchedule8);
 #endif 
 }
 
