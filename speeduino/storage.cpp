@@ -12,7 +12,7 @@ A full copy of the license may be found in the projects root directory
 #include "storage.h"
 #include "pages.h"
 #include "table3d_axis_io.h"
-
+#include "scheduler.h"
 
 #define EEPROM_DATA_VERSION   0
 
@@ -251,14 +251,22 @@ void writeConfig(uint8_t pageNum)
       | Fuel trim tables (See storage.h for data layout) - Page 9
       | 6x6 tables itself + the 6 values along each of the axis
       -----------------------------------------------------*/
-      result = writeTable(&trim1Table, decltype(trim1Table)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP1));
-      result = writeTable(&trim2Table, decltype(trim2Table)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP2));
-      result = writeTable(&trim3Table, decltype(trim3Table)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP3));
-      result = writeTable(&trim4Table, decltype(trim4Table)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP4));
-      result = writeTable(&trim5Table, decltype(trim5Table)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP5));
-      result = writeTable(&trim6Table, decltype(trim6Table)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP6));
-      result = writeTable(&trim7Table, decltype(trim7Table)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP7));
-      result = writeTable(&trim8Table, decltype(trim8Table)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP8));
+      result = writeTable(&fuelSchedule1.trimTable, decltype(fuelSchedule1.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP1));
+      result = writeTable(&fuelSchedule2.trimTable, decltype(fuelSchedule2.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP2));
+      result = writeTable(&fuelSchedule3.trimTable, decltype(fuelSchedule3.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP3));
+      result = writeTable(&fuelSchedule4.trimTable, decltype(fuelSchedule4.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP4));
+#if INJ_CHANNELS >= 5
+      result = writeTable(&fuelSchedule5.trimTable, decltype(fuelSchedule5.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP5));
+#endif
+#if INJ_CHANNELS >= 6
+      result = writeTable(&fuelSchedule6.trimTable, decltype(fuelSchedule6.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP6));
+#endif
+#if INJ_CHANNELS >= 7
+      result = writeTable(&fuelSchedule7.trimTable, decltype(fuelSchedule7.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP7));
+#endif
+#if INJ_CHANNELS >= 8
+      result = writeTable(&fuelSchedule8.trimTable, decltype(fuelSchedule8.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP8));
+#endif
       break;
 
     case canbusPage:
@@ -438,14 +446,22 @@ void loadConfig(void)
 
   //*********************************************************************************************************************************************************************************
   // Fuel trim tables load
-  loadTable(&trim1Table, decltype(trim1Table)::type_key, EEPROM_CONFIG8_MAP1);
-  loadTable(&trim2Table, decltype(trim2Table)::type_key, EEPROM_CONFIG8_MAP2);
-  loadTable(&trim3Table, decltype(trim3Table)::type_key, EEPROM_CONFIG8_MAP3);
-  loadTable(&trim4Table, decltype(trim4Table)::type_key, EEPROM_CONFIG8_MAP4);
-  loadTable(&trim5Table, decltype(trim5Table)::type_key, EEPROM_CONFIG8_MAP5);
-  loadTable(&trim6Table, decltype(trim6Table)::type_key, EEPROM_CONFIG8_MAP6);
-  loadTable(&trim7Table, decltype(trim7Table)::type_key, EEPROM_CONFIG8_MAP7);
-  loadTable(&trim8Table, decltype(trim8Table)::type_key, EEPROM_CONFIG8_MAP8);
+  loadTable(&fuelSchedule1.trimTable, decltype(fuelSchedule1.trimTable)::type_key, EEPROM_CONFIG8_MAP1);
+  loadTable(&fuelSchedule2.trimTable, decltype(fuelSchedule2.trimTable)::type_key, EEPROM_CONFIG8_MAP2);
+  loadTable(&fuelSchedule3.trimTable, decltype(fuelSchedule3.trimTable)::type_key, EEPROM_CONFIG8_MAP3);
+  loadTable(&fuelSchedule4.trimTable, decltype(fuelSchedule4.trimTable)::type_key, EEPROM_CONFIG8_MAP4);
+#if INJ_CHANNELS >= 5
+  loadTable(&fuelSchedule5.trimTable, decltype(fuelSchedule5.trimTable)::type_key, EEPROM_CONFIG8_MAP5);
+#endif
+#if INJ_CHANNELS >= 6
+  loadTable(&fuelSchedule6.trimTable, decltype(fuelSchedule6.trimTable)::type_key, EEPROM_CONFIG8_MAP6);
+#endif
+#if INJ_CHANNELS >= 7
+  loadTable(&fuelSchedule7.trimTable, decltype(fuelSchedule7.trimTable)::type_key, EEPROM_CONFIG8_MAP7);
+#endif
+#if INJ_CHANNELS >= 8
+  loadTable(&fuelSchedule8.trimTable, decltype(fuelSchedule8.trimTable)::type_key, EEPROM_CONFIG8_MAP8);
+#endif
 
   //*********************************************************************************************************************************************************************************
   //canbus control page load

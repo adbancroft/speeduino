@@ -1139,7 +1139,7 @@ void sendPageASCII(void)
 
     case seqFuelPage:
       primarySerial.println(F("\nTrim 1 Table"));
-      serial_print_3dtable(&trim1Table, trim1Table.type_key);
+      serial_print_3dtable(&fuelSchedule1.trimTable, fuelSchedule1.trimTable.type_key);
       break;
 
     case canbusPage:
