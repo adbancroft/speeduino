@@ -302,6 +302,7 @@ struct FuelSchedule : public Schedule {
   using Schedule::Schedule;
 
   int16_t channelDegrees;
+  uint16_t pw;
 };
 
 static inline void setFuelSchedule(FuelSchedule &schedule, uint32_t timeout, uint32_t duration) {
