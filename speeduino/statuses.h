@@ -169,14 +169,6 @@ struct statuses {
   volatile byte status4; ///< Status bits (See BIT_STATUS4_* defines on top of this file)
   volatile byte status5;  ///< Status 5 ... (See also @ref config10 Status 5* members and BIT_STATU5_* defines)
   uint8_t engine; ///< Engine status bits (See BIT_ENGINE_* defines on top of this file)
-  unsigned int PW1; ///< In uS
-  unsigned int PW2; ///< In uS
-  unsigned int PW3; ///< In uS
-  unsigned int PW4; ///< In uS
-  unsigned int PW5; ///< In uS
-  unsigned int PW6; ///< In uS
-  unsigned int PW7; ///< In uS
-  unsigned int PW8; ///< In uS
   volatile byte runSecs; /**< Counter of seconds since cranking commenced (Maxes out at 255 to prevent overflow) */
   volatile byte secl; /**< Counter incrementing once per second. Will overflow after 255 and begin again. This is used by TunerStudio to maintain comms sync */
   volatile uint16_t loopsPerSecond; /**< A performance indicator showing the number of main loops that are being executed each second */ 

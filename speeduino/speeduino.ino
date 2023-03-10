@@ -209,7 +209,7 @@ void __attribute__((always_inline)) loop(void)
       //We reach here if the time between teeth is too great. This VERY likely means the engine has stopped
       currentStatus.RPM = 0;
       currentStatus.RPMdiv100 = 0;
-      currentStatus.PW1 = 0;
+      fuelSchedule1.pw = 0;
       currentStatus.VE = 0;
       currentStatus.VE2 = 0;
       resetDecoder();
@@ -500,7 +500,7 @@ void __attribute__((always_inline)) loop(void)
       currentStatus.afrTarget = calculateAfrTarget(afrTable, currentStatus, configPage2, configPage6);
       currentStatus.corrections = correctionsFuel();
 
-      currentStatus.PW1 = PW(req_fuel_uS, currentStatus.VE, currentStatus.MAP, currentStatus.corrections, inj_opentime_uS);
+      fuelSchedule1.pw = PW(req_fuel_uS, currentStatus.VE, currentStatus.MAP, currentStatus.corrections, inj_opentime_uS);
 
       //Manual adder for nitrous. These are not in correctionsFuel() because they are direct adders to the ms value, not % based
       if( (currentStatus.nitrous_status == NITROUS_STAGE1) || (currentStatus.nitrous_status == NITROUS_BOTH) )
@@ -508,14 +508,14 @@ void __attribute__((always_inline)) loop(void)
         int16_t adderRange = (configPage10.n2o_stage1_maxRPM - configPage10.n2o_stage1_minRPM) * 100;
         int16_t adderPercent = ((currentStatus.RPM - (configPage10.n2o_stage1_minRPM * 100)) * 100) / adderRange; //The percentage of the way through the RPM range
         adderPercent = 100 - adderPercent; //Flip the percentage as we go from a higher adder to a lower adder as the RPMs rise
-        currentStatus.PW1 = currentStatus.PW1 + (configPage10.n2o_stage1_adderMax + percentage(adderPercent, (configPage10.n2o_stage1_adderMin - configPage10.n2o_stage1_adderMax))) * 100; //Calculate the above percentage of the calculated ms value.
+        fuelSchedule1.pw = fuelSchedule1.pw + (configPage10.n2o_stage1_adderMax + percentage(adderPercent, (configPage10.n2o_stage1_adderMin - configPage10.n2o_stage1_adderMax))) * 100; //Calculate the above percentage of the calculated ms value.
       }
       if( (currentStatus.nitrous_status == NITROUS_STAGE2) || (currentStatus.nitrous_status == NITROUS_BOTH) )
       {
         int16_t adderRange = (configPage10.n2o_stage2_maxRPM - configPage10.n2o_stage2_minRPM) * 100;
         int16_t adderPercent = ((currentStatus.RPM - (configPage10.n2o_stage2_minRPM * 100)) * 100) / adderRange; //The percentage of the way through the RPM range
         adderPercent = 100 - adderPercent; //Flip the percentage as we go from a higher adder to a lower adder as the RPMs rise
-        currentStatus.PW1 = currentStatus.PW1 + (configPage10.n2o_stage2_adderMax + percentage(adderPercent, (configPage10.n2o_stage2_adderMin - configPage10.n2o_stage2_adderMax))) * 100; //Calculate the above percentage of the calculated ms value.
+        fuelSchedule1.pw = fuelSchedule1.pw + (configPage10.n2o_stage2_adderMax + percentage(adderPercent, (configPage10.n2o_stage2_adderMin - configPage10.n2o_stage2_adderMax))) * 100; //Calculate the above percentage of the calculated ms value.
       }
 
       int injector1StartAngle = 0;
@@ -539,7 +539,7 @@ void __attribute__((always_inline)) loop(void)
       //Check that the duty cycle of the chosen pulsewidth isn't too high.
       uint16_t pwLimit = calculatePWLimit();
       //Apply the pwLimit if staging is disabled and engine is not cranking
-      if( (!BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) && (configPage10.stagingEnabled == false) ) { if (currentStatus.PW1 > pwLimit) { currentStatus.PW1 = pwLimit; } }
+      if( (!BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) && (configPage10.stagingEnabled == false) ) { if (fuelSchedule1.pw > pwLimit) { fuelSchedule1.pw = pwLimit; } }
 
       calculateStaging(pwLimit);
 
@@ -548,7 +548,7 @@ void __attribute__((always_inline)) loop(void)
       currentStatus.injAngle = table2D_getValue(&injectorAngleTable, currentStatus.RPMdiv100);
       if(currentStatus.injAngle > uint16_t(CRANK_ANGLE_MAX_INJ)) { currentStatus.injAngle = uint16_t(CRANK_ANGLE_MAX_INJ); }
 
-      unsigned int PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW1); //How many crank degrees the calculated PW will take at the current speed
+      unsigned int PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule1.pw); //How many crank degrees the calculated PW will take at the current speed
 
       injector1StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule1.channelDegrees, currentStatus.injAngle);
 
@@ -560,7 +560,7 @@ void __attribute__((always_inline)) loop(void)
           //The only thing that needs to be done for single cylinder is to check for staging. 
           if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
           {
-            PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW2); //Need to redo this for PW2 as it will be dramatically different to PW1 when staging
+            PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule2.pw); //Need to redo this for PW2 as it will be dramatically different to PW1 when staging
             //injector3StartAngle = calculateInjector3StartAngle(PWdivTimerPerDegree);
             injector2StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule1.channelDegrees, currentStatus.injAngle);
           }
@@ -572,16 +572,15 @@ void __attribute__((always_inline)) loop(void)
           
           if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0) )
           {
-            currentStatus.PW1 = applyFuelTrimToPW(&trim1Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW1);
-            currentStatus.PW2 = applyFuelTrimToPW(&trim2Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW2);
+            fuelSchedule1.pw = applyFuelTrimToPW(&trim1Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule1.pw);
+            fuelSchedule2.pw = applyFuelTrimToPW(&trim2Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule2.pw);
           }
           else if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
           {
-            PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW3);  //Need to redo this for PW3 as it will be dramatically different to PW1 when staging
+            PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule3.pw); //Need to redo this for PW3 as it will be dramatically different to PW1 when staging
             injector3StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule1.channelDegrees, currentStatus.injAngle);
-            injector4StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule2.channelDegrees, currentStatus.injAngle);
-
             injector4StartAngle = injector3StartAngle + (CRANK_ANGLE_MAX_INJ / 2); //Phase this either 180 or 360 degrees out from inj3 (In reality this will always be 180 as you can't have sequential and staged currently)
+
             if(injector4StartAngle > (uint16_t)CRANK_ANGLE_MAX_INJ) { injector4StartAngle -= CRANK_ANGLE_MAX_INJ; }
           }
           break;
@@ -594,14 +593,14 @@ void __attribute__((always_inline)) loop(void)
           
           if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0) )
           {
-            currentStatus.PW1 = applyFuelTrimToPW(&trim1Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW1);
-            currentStatus.PW2 = applyFuelTrimToPW(&trim2Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW2);
-            currentStatus.PW3 = applyFuelTrimToPW(&trim3Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW3);
+            fuelSchedule1.pw = applyFuelTrimToPW(&trim1Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule1.pw);
+            fuelSchedule2.pw = applyFuelTrimToPW(&trim2Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule2.pw);
+            fuelSchedule3.pw = applyFuelTrimToPW(&trim3Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule3.pw);
 
             #if INJ_CHANNELS >= 6
               if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
               {
-                PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW6);
+                PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule6.pw); //Need to redo this for PW4 as it will be dramatically different to PW1 when staging
                 injector4StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule1.channelDegrees, currentStatus.injAngle);
                 injector5StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule2.channelDegrees, currentStatus.injAngle);
                 injector6StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule3.channelDegrees, currentStatus.injAngle);
@@ -610,7 +609,7 @@ void __attribute__((always_inline)) loop(void)
           }
           else if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
           {
-            PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW4); //Need to redo this for PW3 as it will be dramatically different to PW1 when staging
+            PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule4.pw); //Need to redo this for PW4 as it will be dramatically different to PW1 when staging
             injector4StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule1.channelDegrees, currentStatus.injAngle);
             #if INJ_CHANNELS >= 6
               injector5StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule2.channelDegrees, currentStatus.injAngle);
@@ -632,7 +631,7 @@ void __attribute__((always_inline)) loop(void)
             #if INJ_CHANNELS >= 8
               if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
               {
-                PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW5); //Need to redo this for PW5 as it will be dramatically different to PW1 when staging
+                PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule5.pw); //Need to redo this for PW3 as it will be dramatically different to PW1 when staging
                 injector5StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule1.channelDegrees, currentStatus.injAngle);
                 injector6StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule2.channelDegrees, currentStatus.injAngle);
                 injector7StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule3.channelDegrees, currentStatus.injAngle);
@@ -642,15 +641,15 @@ void __attribute__((always_inline)) loop(void)
 
             if(configPage6.fuelTrimEnabled > 0)
             {
-              currentStatus.PW1 = applyFuelTrimToPW(&trim1Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW1);
-              currentStatus.PW2 = applyFuelTrimToPW(&trim2Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW2);
-              currentStatus.PW3 = applyFuelTrimToPW(&trim3Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW3);
-              currentStatus.PW4 = applyFuelTrimToPW(&trim4Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW4);
+              fuelSchedule1.pw = applyFuelTrimToPW(&trim1Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule1.pw);
+              fuelSchedule2.pw = applyFuelTrimToPW(&trim2Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule2.pw);
+              fuelSchedule3.pw = applyFuelTrimToPW(&trim3Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule3.pw);
+              fuelSchedule4.pw = applyFuelTrimToPW(&trim4Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule4.pw);
             }
           }
           else if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
           {
-            PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW3); //Need to redo this for PW3 as it will be dramatically different to PW1 when staging
+            PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule3.pw); //Need to redo this for PW3 as it will be dramatically different to PW1 when staging
             injector3StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule1.channelDegrees, currentStatus.injAngle);
             injector4StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule2.channelDegrees, currentStatus.injAngle);
           }
@@ -672,7 +671,7 @@ void __attribute__((always_inline)) loop(void)
           #if INJ_CHANNELS >= 6
             if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
             {
-              PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW6);
+              PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule6.pw); //Need to redo this for PW3 as it will be dramatically different to PW1 when staging
               injector6StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule6.channelDegrees, currentStatus.injAngle);
             }
           #endif
@@ -694,19 +693,19 @@ void __attribute__((always_inline)) loop(void)
 
               if(configPage6.fuelTrimEnabled > 0)
               {
-                currentStatus.PW1 = applyFuelTrimToPW(&trim1Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW1);
-                currentStatus.PW2 = applyFuelTrimToPW(&trim2Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW2);
-                currentStatus.PW3 = applyFuelTrimToPW(&trim3Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW3);
-                currentStatus.PW4 = applyFuelTrimToPW(&trim4Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW4);
-                currentStatus.PW5 = applyFuelTrimToPW(&trim5Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW5);
-                currentStatus.PW6 = applyFuelTrimToPW(&trim6Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW6);
+                fuelSchedule1.pw = applyFuelTrimToPW(&trim1Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule1.pw);
+                fuelSchedule2.pw = applyFuelTrimToPW(&trim2Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule2.pw);
+                fuelSchedule3.pw = applyFuelTrimToPW(&trim3Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule3.pw);
+                fuelSchedule4.pw = applyFuelTrimToPW(&trim4Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule4.pw);
+                fuelSchedule5.pw = applyFuelTrimToPW(&trim5Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule5.pw);
+                fuelSchedule6.pw = applyFuelTrimToPW(&trim6Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule6.pw);
               }
 
               //Staging is possible with sequential on 8 channel boards by using outputs 7 + 8 for the staged injectors
               #if INJ_CHANNELS >= 8
                 if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
                 {
-                  PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW6);
+                  PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule6.pw); //Need to redo this for staging PW as it will be dramatically different to PW1 when staging
                   injector4StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule1.channelDegrees, currentStatus.injAngle);
                   injector5StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule2.channelDegrees, currentStatus.injAngle);
                   injector6StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule3.channelDegrees, currentStatus.injAngle);
@@ -719,7 +718,7 @@ void __attribute__((always_inline)) loop(void)
 
               if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
               {
-                PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW6);
+                PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule6.pw); //Need to redo this for staging PW as it will be dramatically different to PW1 when staging
                 injector4StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule1.channelDegrees, currentStatus.injAngle);
                 injector5StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule2.channelDegrees, currentStatus.injAngle);
                 injector6StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule3.channelDegrees, currentStatus.injAngle); 
@@ -745,14 +744,14 @@ void __attribute__((always_inline)) loop(void)
 
               if(configPage6.fuelTrimEnabled > 0)
               {
-                currentStatus.PW1 = applyFuelTrimToPW(&trim1Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW1);
-                currentStatus.PW2 = applyFuelTrimToPW(&trim2Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW2);
-                currentStatus.PW3 = applyFuelTrimToPW(&trim3Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW3);
-                currentStatus.PW4 = applyFuelTrimToPW(&trim4Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW4);
-                currentStatus.PW5 = applyFuelTrimToPW(&trim5Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW5);
-                currentStatus.PW6 = applyFuelTrimToPW(&trim6Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW6);
-                currentStatus.PW7 = applyFuelTrimToPW(&trim7Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW7);
-                currentStatus.PW8 = applyFuelTrimToPW(&trim8Table, currentStatus.fuelLoad, currentStatus.RPM, currentStatus.PW8);
+                fuelSchedule1.pw = applyFuelTrimToPW(&trim1Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule1.pw);
+                fuelSchedule2.pw = applyFuelTrimToPW(&trim2Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule2.pw);
+                fuelSchedule3.pw = applyFuelTrimToPW(&trim3Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule3.pw);
+                fuelSchedule4.pw = applyFuelTrimToPW(&trim4Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule4.pw);
+                fuelSchedule5.pw = applyFuelTrimToPW(&trim5Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule5.pw);
+                fuelSchedule6.pw = applyFuelTrimToPW(&trim6Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule6.pw);
+                fuelSchedule7.pw = applyFuelTrimToPW(&trim7Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule7.pw);
+                fuelSchedule8.pw = applyFuelTrimToPW(&trim8Table, currentStatus.fuelLoad, currentStatus.RPM, fuelSchedule8.pw);
               }
             }
             else
@@ -761,7 +760,7 @@ void __attribute__((always_inline)) loop(void)
 
               if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
               {
-                PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW6);
+                PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule6.pw); //Need to redo this for staging PW as it will be dramatically different to PW1 when staging
                 injector5StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule1.channelDegrees, currentStatus.injAngle);
                 injector6StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule2.channelDegrees, currentStatus.injAngle);
                 injector7StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule3.channelDegrees, currentStatus.injAngle);
@@ -954,14 +953,14 @@ void __attribute__((always_inline)) loop(void)
 
 
 #if INJ_CHANNELS >= 1
-      if( (maxInjOutputs >= 1) && (currentStatus.PW1 >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ1_CMD_BIT)) )
+      if( (maxInjOutputs >= 1) && (fuelSchedule1.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ1_CMD_BIT)) )
       {
         uint32_t timeOut = calculateInjectorTimeout(fuelSchedule1, injector1StartAngle, crankAngle);
         if (timeOut>0U)
         {
             setFuelSchedule(fuelSchedule1, 
                       timeOut,
-                      (unsigned long)currentStatus.PW1
+                      (unsigned long)fuelSchedule1.pw
                       );
         }
       }
@@ -978,98 +977,98 @@ void __attribute__((always_inline)) loop(void)
         |------------------------------------------------------------------------------------------
         */
 #if INJ_CHANNELS >= 2
-        if( (maxInjOutputs >= 2) && (currentStatus.PW2 >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ2_CMD_BIT)) )
+        if( (maxInjOutputs >= 2) && (fuelSchedule2.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ2_CMD_BIT)) )
         {
           uint32_t timeOut = calculateInjectorTimeout(fuelSchedule2, injector2StartAngle, crankAngle);
           if ( timeOut>0U )
           {
             setFuelSchedule(fuelSchedule2, 
                       timeOut,
-                      (unsigned long)currentStatus.PW2
+                      (unsigned long)fuelSchedule2.pw
                       );
           }
         }
 #endif
 
 #if INJ_CHANNELS >= 3
-        if( (maxInjOutputs >= 3) && (currentStatus.PW3 >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ3_CMD_BIT)) )
+        if( (maxInjOutputs >= 3) && (fuelSchedule3.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ3_CMD_BIT)) )
         {
           uint32_t timeOut = calculateInjectorTimeout(fuelSchedule3, injector3StartAngle, crankAngle);
           if ( timeOut>0U )
           {
             setFuelSchedule(fuelSchedule3, 
                       timeOut,
-                      (unsigned long)currentStatus.PW3
+                      (unsigned long)fuelSchedule3.pw
                       );
           }
         }
 #endif
 
 #if INJ_CHANNELS >= 4
-        if( (maxInjOutputs >= 4) && (currentStatus.PW4 >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ4_CMD_BIT)) )
+        if( (maxInjOutputs >= 4) && (fuelSchedule4.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ4_CMD_BIT)) )
         {
           uint32_t timeOut = calculateInjectorTimeout(fuelSchedule4, injector4StartAngle, crankAngle);
           if ( timeOut>0U )
           {
             setFuelSchedule(fuelSchedule4, 
                       timeOut,
-                      (unsigned long)currentStatus.PW4
+                      (unsigned long)fuelSchedule4.pw
                       );
           }
         }
 #endif
 
 #if INJ_CHANNELS >= 5
-        if( (maxInjOutputs >= 5) && (currentStatus.PW5 >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ5_CMD_BIT)) )
+        if( (maxInjOutputs >= 5) && (fuelSchedule5.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ5_CMD_BIT)) )
         {
           uint32_t timeOut = calculateInjectorTimeout(fuelSchedule5, injector5StartAngle, crankAngle);
           if ( timeOut>0U )
           {
             setFuelSchedule(fuelSchedule5, 
                       timeOut,
-                      (unsigned long)currentStatus.PW5
+                      (unsigned long)fuelSchedule5.pw
                       );
           }
         }
 #endif
 
 #if INJ_CHANNELS >= 6
-        if( (maxInjOutputs >= 6) && (currentStatus.PW6 >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ6_CMD_BIT)) )
+        if( (maxInjOutputs >= 6) && (fuelSchedule6.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ6_CMD_BIT)) )
         {
           uint32_t timeOut = calculateInjectorTimeout(fuelSchedule6, injector6StartAngle, crankAngle);
           if ( timeOut>0U )
           {
             setFuelSchedule(fuelSchedule6, 
                       timeOut,
-                      (unsigned long)currentStatus.PW6
+                      (unsigned long)fuelSchedule6.pw
                       );
           }
         }
 #endif
 
 #if INJ_CHANNELS >= 7
-        if( (maxInjOutputs >= 7) && (currentStatus.PW7 >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ7_CMD_BIT)) )
+        if( (maxInjOutputs >= 7) && (fuelSchedule7.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ7_CMD_BIT)) )
         {
           uint32_t timeOut = calculateInjectorTimeout(fuelSchedule7, injector7StartAngle, crankAngle);
           if ( timeOut>0U )
           {
             setFuelSchedule(fuelSchedule7, 
                       timeOut,
-                      (unsigned long)currentStatus.PW7
+                      (unsigned long)fuelSchedule7.pw
                       );
           }
         }
 #endif
 
 #if INJ_CHANNELS >= 8
-        if( (maxInjOutputs >= 8) && (currentStatus.PW8 >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ8_CMD_BIT)) )
+        if( (maxInjOutputs >= 8) && (fuelSchedule8.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ8_CMD_BIT)) )
         {
           uint32_t timeOut = calculateInjectorTimeout(fuelSchedule8, injector8StartAngle, crankAngle);
           if ( timeOut>0U )
           {
             setFuelSchedule(fuelSchedule8, 
                       timeOut,
-                      (unsigned long)currentStatus.PW8
+                      (unsigned long)fuelSchedule8.pw
                       );
           }
         }
@@ -1375,52 +1374,52 @@ void calculateStaging(uint32_t pwLimit)
 {
   //Calculate staging pulsewidths if used
   //To run staged injection, the number of cylinders must be less than or equal to the injector channels (ie Assuming you're running paired injection, you need at least as many injector channels as you have cylinders, half for the primaries and half for the secondaries)
-  if( (configPage10.stagingEnabled == true) && (configPage2.nCylinders <= INJ_CHANNELS || configPage2.injType == INJ_TYPE_TBODY) && (currentStatus.PW1 > inj_opentime_uS) ) //Final check is to ensure that DFCO isn't active, which would cause an overflow below (See #267)
+  if( (configPage10.stagingEnabled == true) && (configPage2.nCylinders <= INJ_CHANNELS || configPage2.injType == INJ_TYPE_TBODY) && (fuelSchedule1.pw > inj_opentime_uS) ) //Final check is to ensure that DFCO isn't active, which would cause an overflow below (See #267)
   {
     //Scale the 'full' pulsewidth by each of the injector capacities
-    currentStatus.PW1 -= inj_opentime_uS; //Subtract the opening time from PW1 as it needs to be multiplied out again by the pri/sec req_fuel values below. It is added on again after that calculation. 
-    uint32_t tempPW1 = div100((uint32_t)currentStatus.PW1 * staged_req_fuel_mult_pri);
+    fuelSchedule1.pw -= inj_opentime_uS; //Subtract the opening time from PW1 as it needs to be multiplied out again by the pri/sec req_fuel values below. It is added on again after that calculation. 
+    uint32_t tempPW1 = div100((uint32_t)fuelSchedule1.pw * staged_req_fuel_mult_pri);
 
     if(configPage10.stagingMode == STAGING_MODE_TABLE)
     {
-      uint32_t tempPW3 = div100((uint32_t)currentStatus.PW1 * staged_req_fuel_mult_sec); //This is ONLY needed in in table mode. Auto mode only calculates the difference.
+      uint32_t tempPW3 = div100((uint32_t)fuelSchedule1.pw * staged_req_fuel_mult_sec); //This is ONLY needed in in table mode. Auto mode only calculates the difference.
 
       uint8_t stagingSplit = get3DTableValue(&stagingTable, currentStatus.fuelLoad, currentStatus.RPM);
-      currentStatus.PW1 = div100((100U - stagingSplit) * tempPW1);
-      currentStatus.PW1 += inj_opentime_uS; 
+      fuelSchedule1.pw = div100((100U - stagingSplit) * tempPW1);
+      fuelSchedule1.pw += inj_opentime_uS; 
 
       //PW2 is used temporarily to hold the secondary injector pulsewidth. It will be assigned to the correct channel below
       if(stagingSplit > 0) 
       { 
         BIT_SET(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Set the staging active flag
-        currentStatus.PW2 = div100(stagingSplit * tempPW3); 
-        currentStatus.PW2 += inj_opentime_uS;
+        fuelSchedule2.pw = div100(stagingSplit * tempPW3); 
+        fuelSchedule2.pw += inj_opentime_uS;
       }
       else
       {
         BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Clear the staging active flag
-        currentStatus.PW2 = 0; 
+        fuelSchedule2.pw = 0; 
       }
     }
     else if(configPage10.stagingMode == STAGING_MODE_AUTO)
     {
-      currentStatus.PW1 = tempPW1;
+      fuelSchedule1.pw = tempPW1;
       //If automatic mode, the primary injectors are used all the way up to their limit (Configured by the pulsewidth limit setting)
       //If they exceed their limit, the extra duty is passed to the secondaries
       if(tempPW1 > pwLimit)
       {
         BIT_SET(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Set the staging active flag
         uint32_t extraPW = tempPW1 - pwLimit + inj_opentime_uS; //The open time must be added here AND below because tempPW1 does not include an open time. The addition of it here takes into account the fact that pwLlimit does not contain an allowance for an open time. 
-        currentStatus.PW1 = pwLimit;
-        currentStatus.PW2 = udiv_32_16(extraPW * staged_req_fuel_mult_sec, staged_req_fuel_mult_pri); //Convert the 'left over' fuel amount from primary injector scaling to secondary
-        currentStatus.PW2 += inj_opentime_uS;
+        fuelSchedule1.pw = pwLimit;
+        fuelSchedule2.pw = udiv_32_16(extraPW * staged_req_fuel_mult_sec, staged_req_fuel_mult_pri); //Convert the 'left over' fuel amount from primary injector scaling to secondary
+        fuelSchedule2.pw += inj_opentime_uS;
       }
       else 
       {
         //If tempPW1 < pwLImit it means that the entire fuel load can be handled by the primaries and staging is inactive. 
-        currentStatus.PW1 += inj_opentime_uS; //Add the open time back in
+        fuelSchedule1.pw += inj_opentime_uS; //Add the open time back in
         BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Clear the staging active flag 
-        currentStatus.PW2 = 0; //Secondary PW is simply set to 0 as it is not required
+        fuelSchedule2.pw = 0; 
       } 
     }
 
@@ -1432,48 +1431,50 @@ void calculateStaging(uint32_t pwLimit)
         break;
       case 2:
         //Primary pulsewidth on channels 1 and 2, secondary on channels 3 and 4
-        currentStatus.PW3 = currentStatus.PW2;
-        currentStatus.PW4 = currentStatus.PW2;
-        currentStatus.PW2 = currentStatus.PW1;
+        fuelSchedule3.pw = fuelSchedule2.pw;
+        fuelSchedule4.pw = fuelSchedule2.pw;
+        fuelSchedule2.pw = fuelSchedule1.pw;
         break;
       case 3:
         //6 channels required for 'normal' 3 cylinder staging support
         #if INJ_CHANNELS >= 6
           //Primary pulsewidth on channels 1, 2 and 3, secondary on channels 4, 5 and 6
-          currentStatus.PW4 = currentStatus.PW2;
-          currentStatus.PW5 = currentStatus.PW2;
-          currentStatus.PW6 = currentStatus.PW2;
+          fuelSchedule4.pw = fuelSchedule2.pw;
+          fuelSchedule5.pw = fuelSchedule2.pw;
+          fuelSchedule6.pw = fuelSchedule2.pw;
         #else
           //If there are not enough channels, then primary pulsewidth is on channels 1, 2 and 3, secondary on channel 4
-          currentStatus.PW4 = currentStatus.PW2;
+          fuelSchedule4.pw = fuelSchedule2.pw;
         #endif
-        currentStatus.PW2 = currentStatus.PW1;
-        currentStatus.PW3 = currentStatus.PW1;
+        fuelSchedule2.pw = fuelSchedule1.pw;
+        fuelSchedule3.pw = fuelSchedule1.pw;
         break;
       case 4:
         if( (configPage2.injLayout == INJ_SEQUENTIAL) || (configPage2.injLayout == INJ_SEMISEQUENTIAL) )
         {
           //Staging with 4 cylinders semi/sequential requires 8 total channels
           #if INJ_CHANNELS >= 8
-            currentStatus.PW5 = currentStatus.PW2;
-            currentStatus.PW6 = currentStatus.PW2;
-            currentStatus.PW7 = currentStatus.PW2;
-            currentStatus.PW8 = currentStatus.PW2;
+            fuelSchedule5.pw = fuelSchedule2.pw;
+            fuelSchedule6.pw = fuelSchedule2.pw;
+            fuelSchedule7.pw = fuelSchedule2.pw;
+            fuelSchedule8.pw = fuelSchedule2.pw;
 
-            currentStatus.PW2 = currentStatus.PW1;
-            currentStatus.PW3 = currentStatus.PW1;
-            currentStatus.PW4 = currentStatus.PW1;
+            fuelSchedule2.pw = fuelSchedule1.pw;
+            fuelSchedule3.pw = fuelSchedule1.pw;
+            fuelSchedule4.pw = fuelSchedule1.pw;
           #else
             //This is an invalid config as there are not enough outputs to support sequential + staging
-            //Put the staging output to the non-existent channel 5
-            currentStatus.PW5 = currentStatus.PW2;
+            //Put the staging output to the non-existant channel 5
+#if INJ_CHANNELS >= 5            
+            fuelSchedule5.pw = fuelSchedule2.pw;
+#endif
           #endif
         }
         else
         {
-          currentStatus.PW3 = currentStatus.PW2;
-          currentStatus.PW4 = currentStatus.PW2;
-          currentStatus.PW2 = currentStatus.PW1;
+          fuelSchedule3.pw = fuelSchedule2.pw;
+          fuelSchedule4.pw = fuelSchedule2.pw;
+          fuelSchedule2.pw = fuelSchedule1.pw;
         }
         break;
         
@@ -1482,16 +1483,16 @@ void calculateStaging(uint32_t pwLimit)
         #if INJ_CHANNELS >= 5
           if (configPage2.injLayout != INJ_SEQUENTIAL)
           {
-            currentStatus.PW5 = currentStatus.PW2;
+            fuelSchedule5.pw = fuelSchedule2.pw;
           }
           #if INJ_CHANNELS >= 6
-            currentStatus.PW6 = currentStatus.PW2;
+            fuelSchedule6.pw = fuelSchedule2.pw;
           #endif
         #endif
         
-          currentStatus.PW2 = currentStatus.PW1;
-          currentStatus.PW3 = currentStatus.PW1;
-          currentStatus.PW4 = currentStatus.PW1;
+          fuelSchedule2.pw = fuelSchedule1.pw;
+          fuelSchedule3.pw = fuelSchedule1.pw;
+          fuelSchedule4.pw = fuelSchedule1.pw;
         break;
 
       case 6:
@@ -1499,25 +1500,25 @@ void calculateStaging(uint32_t pwLimit)
           //8 cylinder staging only if not sequential
           if (configPage2.injLayout != INJ_SEQUENTIAL)
           {
-            currentStatus.PW4 = currentStatus.PW2;
-            currentStatus.PW5 = currentStatus.PW2;
-            currentStatus.PW6 = currentStatus.PW2;
+            fuelSchedule4.pw = fuelSchedule2.pw;
+            fuelSchedule5.pw = fuelSchedule2.pw;
+            fuelSchedule6.pw = fuelSchedule2.pw;
           }
           #if INJ_CHANNELS >= 8
           else
             {
               //If there are 8 channels, then the 6 cylinder sequential option is available by using channels 7 + 8 for staging
-              currentStatus.PW7 = currentStatus.PW2;
-              currentStatus.PW8 = currentStatus.PW2;
+              fuelSchedule7.pw = fuelSchedule2.pw;
+              fuelSchedule8.pw = fuelSchedule2.pw;
 
-              currentStatus.PW4 = currentStatus.PW1;
-              currentStatus.PW5 = currentStatus.PW1;
-              currentStatus.PW6 = currentStatus.PW1;
+              fuelSchedule4.pw = fuelSchedule1.pw;
+              fuelSchedule5.pw = fuelSchedule1.pw;
+              fuelSchedule6.pw = fuelSchedule1.pw;
             }
           #endif
         #endif
-        currentStatus.PW2 = currentStatus.PW1;
-        currentStatus.PW3 = currentStatus.PW1;
+        fuelSchedule2.pw = fuelSchedule1.pw;
+        fuelSchedule3.pw = fuelSchedule1.pw;
         break;
 
       case 8:
@@ -1525,42 +1526,49 @@ void calculateStaging(uint32_t pwLimit)
           //8 cylinder staging only if not sequential
           if (configPage2.injLayout != INJ_SEQUENTIAL)
           {
-            currentStatus.PW5 = currentStatus.PW2;
-            currentStatus.PW6 = currentStatus.PW2;
-            currentStatus.PW7 = currentStatus.PW2;
-            currentStatus.PW8 = currentStatus.PW2;
+            fuelSchedule5.pw = fuelSchedule2.pw;
+            fuelSchedule6.pw = fuelSchedule2.pw;
+            fuelSchedule7.pw = fuelSchedule2.pw;
+            fuelSchedule8.pw = fuelSchedule2.pw;
           }
         #endif
-        currentStatus.PW2 = currentStatus.PW1;
-        currentStatus.PW3 = currentStatus.PW1;
-        currentStatus.PW4 = currentStatus.PW1;
+        fuelSchedule2.pw = fuelSchedule1.pw;
+        fuelSchedule3.pw = fuelSchedule1.pw;
+        fuelSchedule4.pw = fuelSchedule1.pw;
         break;
 
       default:
         //Assume 4 cylinder non-seq for default
-        currentStatus.PW3 = currentStatus.PW2;
-        currentStatus.PW4 = currentStatus.PW2;
-        currentStatus.PW2 = currentStatus.PW1;
+        fuelSchedule3.pw = fuelSchedule2.pw;
+        fuelSchedule4.pw = fuelSchedule2.pw;
+        fuelSchedule2.pw = fuelSchedule1.pw;
         break;
     }
   }
   else 
   { 
-    if(maxInjOutputs >= 2) { currentStatus.PW2 = currentStatus.PW1; }
-    else { currentStatus.PW2 = 0; }
-    if(maxInjOutputs >= 3) { currentStatus.PW3 = currentStatus.PW1; }
-    else { currentStatus.PW3 = 0; }
-    if(maxInjOutputs >= 4) { currentStatus.PW4 = currentStatus.PW1; }
-    else { currentStatus.PW4 = 0; }
-    if(maxInjOutputs >= 5) { currentStatus.PW5 = currentStatus.PW1; }
-    else { currentStatus.PW5 = 0; }
-    if(maxInjOutputs >= 6) { currentStatus.PW6 = currentStatus.PW1; }
-    else { currentStatus.PW6 = 0; }
-    if(maxInjOutputs >= 7) { currentStatus.PW7 = currentStatus.PW1; }
-    else { currentStatus.PW7 = 0; }
-    if(maxInjOutputs >= 8) { currentStatus.PW8 = currentStatus.PW1; }
-    else { currentStatus.PW8 = 0; }
-
+    if(maxInjOutputs >= 2) { fuelSchedule2.pw = fuelSchedule1.pw; }
+    else { fuelSchedule2.pw = 0; }
+    if(maxInjOutputs >= 3) { fuelSchedule3.pw = fuelSchedule1.pw; }
+    else { fuelSchedule3.pw = 0; }
+    if(maxInjOutputs >= 4) { fuelSchedule4.pw = fuelSchedule1.pw; }
+    else { fuelSchedule4.pw = 0; }
+#if INJ_CHANNELS >= 5
+    if(maxInjOutputs >= 5) { fuelSchedule5.pw = fuelSchedule1.pw; }
+    else { fuelSchedule5.pw = 0; }
+#endif
+#if INJ_CHANNELS >= 6
+    if(maxInjOutputs >= 6) { fuelSchedule6.pw = fuelSchedule1.pw; }
+    else { fuelSchedule6.pw = 0; }
+#endif
+#if INJ_CHANNELS >= 7
+      if(maxInjOutputs >= 7) { fuelSchedule7.pw = fuelSchedule1.pw; }
+    else { fuelSchedule7.pw = 0; }
+#endif
+#if INJ_CHANNELS >= 5
+      if(maxInjOutputs >= 8) { fuelSchedule8.pw = fuelSchedule1.pw; }
+    else { fuelSchedule8.pw = 0; }
+#endif
     BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Clear the staging active flag
     
   } 
