@@ -100,7 +100,7 @@ static inline uint32_t calculateIgnitionTimeout(const IgnitionSchedule &schedule
 static inline void adjustCrankAngle(IgnitionSchedule &schedule, int16_t crankAngle) {
   constexpr uint8_t MIN_CYCLES_FOR_CORRECTION = 6U;
 
-  if( isRunning(schedule) ) { 
+  if( isRunning(schedule) && (schedule.dischargeAngle>crankAngle) ) { 
     // Coil is charging so change the charge time so the spark fires at
     // the requested crank angle (this could reduce dwell time & potentially
     // result in a weaker spark).
@@ -108,7 +108,7 @@ static inline void adjustCrankAngle(IgnitionSchedule &schedule, int16_t crankAng
     COMPARE_TYPE ticksToSpark = (COMPARE_TYPE)uS_TO_TIMER_COMPARE( timeToSpark );
     schedule._compare = schedule._counter + ticksToSpark; 
   }
-  else if((isPending(schedule)) && (currentStatus.startRevolutions > MIN_CYCLES_FOR_CORRECTION) ) { 
+  else if((isPending(schedule)) && (currentStatus.startRevolutions > MIN_CYCLES_FOR_CORRECTION) && (schedule.chargeAngle>crankAngle) ) { 
     // We are waiting for the timer to fire & start charging the coil.
     // Keep dwell (I.e. duration) constant (for better spark) - instead adjust the waiting period so 
     // the spark fires at the requested crank angle.
