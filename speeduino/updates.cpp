@@ -13,6 +13,7 @@
 #include "sensors.h"
 #include "updates.h"
 #include "pages.h"
+#include "scheduler.h"
 #include EEPROM_LIB_H //This is defined in the board .h files
 
 void doUpdates(void)
