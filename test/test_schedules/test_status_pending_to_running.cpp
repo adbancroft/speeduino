@@ -10,10 +10,10 @@
 void test_status_pending_to_running_inj(FuelSchedule &schedule)
 {
     initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, schedule.Status);
+    TEST_ASSERT_EQUAL(OFF, schedule._status);
     setFuelSchedule(schedule, TIMEOUT, DURATION);
     while(isPending(schedule)) /*Wait*/ ;
-    TEST_ASSERT_EQUAL(RUNNING, schedule.Status);
+    TEST_ASSERT_EQUAL(RUNNING, schedule._status);
 }
 
 void test_status_pending_to_running_inj1(void)
@@ -67,10 +67,10 @@ void test_status_pending_to_running_inj8(void)
 void test_status_pending_to_running_ign(IgnitionSchedule &schedule)
 {
     initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, schedule.Status);
+    TEST_ASSERT_EQUAL(OFF, schedule._status);
     _setSchedule(schedule, TIMEOUT, DURATION);
     while(isPending(schedule)) /*Wait*/ ;
-    TEST_ASSERT_EQUAL(RUNNING, schedule.Status);
+    TEST_ASSERT_EQUAL(RUNNING, schedule._status);
 }
 
 void test_status_pending_to_running_ign1(void)
