@@ -40,9 +40,7 @@ See page 136 of the processors datasheet: http://www.atmel.com/Images/doc2549.pd
 */
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
-
 #include <SimplyAtomic.h>
-#include "globals.h"
 #include "board_definition.h"
 #include "scheduledIO.h"
 #include "table3d.h"
@@ -231,12 +229,16 @@ static SCHEDULE_INLINE uint32_t calculateIgnitionTimeout(const IgnitionSchedule 
  * @param dwellDuration The coil dwell time in µS
  */
 static SCHEDULE_INLINE void setIgnitionSchedule(IgnitionSchedule &schedule, int16_t crankAngle, uint32_t dwellDuration) {
-  // Do not override the per-tooth timing
+  // Do not override the per-tooth timing - quick & dirty check
   if (schedule.Status!=PENDING_WITH_OVERRIDE) {
     uint32_t delay = calculateIgnitionTimeout(schedule, crankAngle);
 
-    if (delay > 0U) {
-      _setSchedule(schedule, delay, dwellDuration);
+    // Need to check status again, this time atomically
+    // (similar to double checked locking pattern)
+    ATOMIC() {
+      if ((delay > 0U) && (schedule.Status!=PENDING_WITH_OVERRIDE)) {
+        _setSchedule(schedule, delay, dwellDuration);
+      }
     }
   }
 }
@@ -296,7 +298,9 @@ struct FuelSchedule : public Schedule {
 };
 
 static SCHEDULE_INLINE void setFuelSchedule(FuelSchedule &schedule, uint32_t timeout, uint32_t duration) {
-  _setSchedule(schedule, timeout, duration);
+  ATOMIC() {
+    _setSchedule(schedule, timeout, duration);
+  }
 }
 
 /**

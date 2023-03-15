@@ -1,9 +1,8 @@
 #ifndef AUX_H
 #define AUX_H
 
-#include "board_definition.h"
-
 #include <SimplyAtomic.h>
+#include "board_definition.h"
 
 void initialiseAuxPWM(void);
 void boostControl(void);

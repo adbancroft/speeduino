@@ -190,10 +190,12 @@ void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration)
 }
 
 static inline void applyChannelOverDwellProtection(IgnitionSchedule &schedule, uint32_t targetOverdwellTime) {
+  ATOMIC() {  
   if (isRunning(schedule)) {
     if (schedule._startTime < targetOverdwellTime) {
       schedule.pEndCallback(); 
       schedule.Status = OFF;     
+      }
     }
   }
 }
@@ -332,56 +334,58 @@ void moveToNextState(IgnitionSchedule &schedule)
 ///@}
 
 static void disableScheduleIfPending(Schedule &schedule) {
+  ATOMIC() {
   if(schedule.Status != RUNNING) { schedule.Status = OFF; }  
+  }
 }
 
 void disablePendingFuelSchedule(byte channel)
 {
-  noInterrupts();
-  switch(channel)
-  {
-    case 0: disableScheduleIfPending(fuelSchedule1); break;
-    case 1: disableScheduleIfPending(fuelSchedule2); break;
-    case 2: disableScheduleIfPending(fuelSchedule3); break;
-    case 3: disableScheduleIfPending(fuelSchedule4); break;
-#if (INJ_CHANNELS >= 5)
-    case 4: disableScheduleIfPending(fuelSchedule5); break;
-#endif
-#if (INJ_CHANNELS >= 6)
-    case 5: disableScheduleIfPending(fuelSchedule6); break;
-#endif
-#if (INJ_CHANNELS >= 7)
-    case 6: disableScheduleIfPending(fuelSchedule7); break;
-#endif
-#if (INJ_CHANNELS >= 8)
-    case 7: disableScheduleIfPending(fuelSchedule8); break;
-#endif
-    default: break;
+  ATOMIC() {
+    switch(channel)
+    {
+      case 0: disableScheduleIfPending(fuelSchedule1); break;
+      case 1: disableScheduleIfPending(fuelSchedule2); break;
+      case 2: disableScheduleIfPending(fuelSchedule3); break;
+      case 3: disableScheduleIfPending(fuelSchedule4); break;
+  #if (INJ_CHANNELS >= 5)
+      case 4: disableScheduleIfPending(fuelSchedule5); break;
+  #endif
+  #if (INJ_CHANNELS >= 6)
+      case 5: disableScheduleIfPending(fuelSchedule6); break;
+  #endif
+  #if (INJ_CHANNELS >= 7)
+      case 6: disableScheduleIfPending(fuelSchedule7); break;
+  #endif
+  #if (INJ_CHANNELS >= 8)
+      case 7: disableScheduleIfPending(fuelSchedule8); break;
+  #endif
+      default: break;
+    }
   }
-  interrupts();
 }
 void disablePendingIgnSchedule(byte channel)
 {
-  noInterrupts();
-  switch(channel)
-  {
-    case 0: disableScheduleIfPending(ignitionSchedule1); break;
-    case 1: disableScheduleIfPending(ignitionSchedule2); break;
-    case 2: disableScheduleIfPending(ignitionSchedule3); break;
-    case 3: disableScheduleIfPending(ignitionSchedule4); break;
-#if (IGN_CHANNELS >= 5)
-    case 4: disableScheduleIfPending(ignitionSchedule5); break;
-#endif
-#if (IGN_CHANNELS >= 6)
-    case 5: disableScheduleIfPending(ignitionSchedule6); break;
-#endif
-#if (IGN_CHANNELS >= 7)
-    case 6: disableScheduleIfPending(ignitionSchedule7); break;
-#endif
-#if (IGN_CHANNELS >= 8)
-    case 7: disableScheduleIfPending(ignitionSchedule8); break;
-#endif
-    default:break;
+  ATOMIC() {
+    switch(channel)
+    {
+      case 0: disableScheduleIfPending(ignitionSchedule1); break;
+      case 1: disableScheduleIfPending(ignitionSchedule2); break;
+      case 2: disableScheduleIfPending(ignitionSchedule3); break;
+      case 3: disableScheduleIfPending(ignitionSchedule4); break;
+  #if (IGN_CHANNELS >= 5)
+      case 4: disableScheduleIfPending(ignitionSchedule5); break;
+  #endif
+  #if (IGN_CHANNELS >= 6)
+      case 5: disableScheduleIfPending(ignitionSchedule6); break;
+  #endif
+  #if (IGN_CHANNELS >= 7)
+      case 6: disableScheduleIfPending(ignitionSchedule7); break;
+  #endif
+  #if (IGN_CHANNELS >= 8)
+      case 7: disableScheduleIfPending(ignitionSchedule8); break;
+  #endif
+      default:break;
+    }
   }
-  interrupts();
 }
