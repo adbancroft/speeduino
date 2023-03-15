@@ -109,6 +109,19 @@
 //This can only be included after the above section
 #include BOARD_H //Note that this is not a real file, it is defined in globals.h. 
 
+// AVR & Teensy both support the AVR atomic macros
+#if defined(CORE_AVR) || defined(CORE_TEENSY)
+#include <util/atomic.h>
+#else
+// All others make a no-op
+#define ATOMIC_BLOCK(type)
+#define NONATOMIC_BLOCK(type)
+#define	ATOMIC_RESTORESTATE
+#define	ATOMIC_FORCEON
+#define	NONATOMIC_RESTORESTATE 
+#define	NONATOMIC_FORCEOFF
+#endif
+
 //Handy bitsetting macros
 #define BIT_SET(a,b) ((a) |= (1U<<(b)))
 #define BIT_CLEAR(a,b) ((a) &= ~(1U<<(b)))

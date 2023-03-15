@@ -193,10 +193,12 @@ void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration)
 }
 
 static inline void applyChannelOverDwellProtection(IgnitionSchedule &schedule, uint32_t targetOverdwellTime) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {  
   if (isRunning(schedule)) {
     if (schedule._startTime < targetOverdwellTime) {
       schedule.pEndCallback(); 
       schedule.Status = OFF;     
+      }
     }
   }
 }
@@ -555,7 +557,9 @@ IGNITION_INTERRUPT(8, TIMER3_COMPB_vect)
 ///@}
 
 static void disableScheduleIfPending(Schedule &schedule) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
   if(schedule.Status != RUNNING) { schedule.Status = OFF; }  
+  }
 }
 
 void disablePendingFuelSchedule(byte channel)

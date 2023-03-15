@@ -15,6 +15,7 @@
 #include "pages.h"
 #include "scheduler.h"
 #include EEPROM_LIB_H //This is defined in the board .h files
+#include "scheduler.h"
 
 void doUpdates(void)
 {
