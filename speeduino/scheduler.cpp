@@ -63,20 +63,20 @@ IgnitionSchedule ignitionSchedule7(IGN7_COUNTER, IGN7_COMPARE); //cppcheck-suppr
 IgnitionSchedule ignitionSchedule8(IGN8_COUNTER, IGN8_COMPARE); //cppcheck-suppress misra-c2012-8.4
 #endif
 
-Schedule::Schedule(counter_t &counter, compare_t &compare)
-  : Duration(0U)
-  , Status(OFF)
-  , pStartCallback(nullCallback)
-  , pEndCallback(nullCallback)
-  , nextStartCompare(0U)
-  , _counter(counter)
-  , _compare(compare) 
+Schedule::Schedule(counter_t &_counter, compare_t &_compare)
+  : _duration(0U)
+  , _status(OFF)
+  , _pStartCallback(nullCallback)
+  , _pEndCallback(nullCallback)
+  , _nextStartCompare(0U)
+  , _counter(_counter)
+  , _compare(_compare) 
 {
 }
 
 static void reset(Schedule &schedule)
 {
-    schedule.Status = OFF;
+    schedule._status = OFF;
     setCallbacks(schedule, nullCallback, nullCallback);
 }
 
@@ -168,8 +168,8 @@ void startSchedulers(void)
 
 void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback)
 {
-  schedule.pStartCallback = pStartCallback;
-  schedule.pEndCallback = pEndCallback;
+  schedule._pStartCallback = pStartCallback;
+  schedule._pEndCallback = pEndCallback;
 }
 
 
@@ -281,35 +281,35 @@ void disablePendingFuelSchedule(byte channel)
   switch(channel)
   {
     case 0:
-      if(fuelSchedule1.Status == PENDING) { fuelSchedule1.Status = OFF; }
+      if(fuelSchedule1._status == PENDING) { fuelSchedule1._status = OFF; }
       break;
     case 1:
-      if(fuelSchedule2.Status == PENDING) { fuelSchedule2.Status = OFF; }
+      if(fuelSchedule2._status == PENDING) { fuelSchedule2._status = OFF; }
       break;
     case 2: 
-      if(fuelSchedule3.Status == PENDING) { fuelSchedule3.Status = OFF; }
+      if(fuelSchedule3._status == PENDING) { fuelSchedule3._status = OFF; }
       break;
     case 3:
-      if(fuelSchedule4.Status == PENDING) { fuelSchedule4.Status = OFF; }
+      if(fuelSchedule4._status == PENDING) { fuelSchedule4._status = OFF; }
       break;
     case 4:
 #if (INJ_CHANNELS >= 5)
-      if(fuelSchedule5.Status == PENDING) { fuelSchedule5.Status = OFF; }
+      if(fuelSchedule5._status == PENDING) { fuelSchedule5._status = OFF; }
 #endif
       break;
     case 5:
 #if (INJ_CHANNELS >= 6)
-      if(fuelSchedule6.Status == PENDING) { fuelSchedule6.Status = OFF; }
+      if(fuelSchedule6._status == PENDING) { fuelSchedule6._status = OFF; }
 #endif
       break;
     case 6:
 #if (INJ_CHANNELS >= 7)
-      if(fuelSchedule7.Status == PENDING) { fuelSchedule7.Status = OFF; }
+      if(fuelSchedule7._status == PENDING) { fuelSchedule7._status = OFF; }
 #endif
       break;
     case 7:
 #if (INJ_CHANNELS >= 8)
-      if(fuelSchedule8.Status == PENDING) { fuelSchedule8.Status = OFF; }
+      if(fuelSchedule8._status == PENDING) { fuelSchedule8._status = OFF; }
 #endif
       break;
     default: break;
@@ -322,33 +322,33 @@ void disablePendingIgnSchedule(byte channel)
   switch(channel)
   {
     case 0:
-      if(ignitionSchedule1.Status == PENDING) { ignitionSchedule1.Status = OFF; }
+      if(ignitionSchedule1._status == PENDING) { ignitionSchedule1._status = OFF; }
       break;
     case 1:
-      if(ignitionSchedule2.Status == PENDING) { ignitionSchedule2.Status = OFF; }
+      if(ignitionSchedule2._status == PENDING) { ignitionSchedule2._status = OFF; }
       break;
     case 2: 
-      if(ignitionSchedule3.Status == PENDING) { ignitionSchedule3.Status = OFF; }
+      if(ignitionSchedule3._status == PENDING) { ignitionSchedule3._status = OFF; }
       break;
     case 3:
-      if(ignitionSchedule4.Status == PENDING) { ignitionSchedule4.Status = OFF; }
+      if(ignitionSchedule4._status == PENDING) { ignitionSchedule4._status = OFF; }
       break;
     case 4:
-      if(ignitionSchedule5.Status == PENDING) { ignitionSchedule5.Status = OFF; }
+      if(ignitionSchedule5._status == PENDING) { ignitionSchedule5._status = OFF; }
       break;
 #if IGN_CHANNELS >= 6      
     case 6:
-      if(ignitionSchedule6.Status == PENDING) { ignitionSchedule6.Status = OFF; }
+      if(ignitionSchedule6._status == PENDING) { ignitionSchedule6._status = OFF; }
       break;
 #endif
 #if IGN_CHANNELS >= 7      
     case 7:
-      if(ignitionSchedule7.Status == PENDING) { ignitionSchedule7.Status = OFF; }
+      if(ignitionSchedule7._status == PENDING) { ignitionSchedule7._status = OFF; }
       break;
 #endif
 #if IGN_CHANNELS >= 8      
     case 8:
-      if(ignitionSchedule8.Status == PENDING) { ignitionSchedule8.Status = OFF; }
+      if(ignitionSchedule8._status == PENDING) { ignitionSchedule8._status = OFF; }
       break;
 #endif
     default:break;

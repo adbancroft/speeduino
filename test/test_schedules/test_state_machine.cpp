@@ -16,21 +16,21 @@ static void test_defaultPendingToRunning(void) {
     Schedule schedule(IGN1_COUNTER, IGN1_COMPARE);
     setCallbacks(schedule, startCallback, endCallback);
 
-    schedule.Status = PENDING;
+    schedule._status = PENDING;
     startCount = 0;
     endCount = 0;
     ATOMIC() {
         IGN1_TIMER_DISABLE();
-        schedule.Duration = uS_TO_TIMER_COMPARE(2048); 
+        schedule._duration = uS_TO_TIMER_COMPARE(2048); 
 #if defined(CORE_AVR)        
         COUNTER_TYPE counterPreAction = schedule._counter;
 #endif
        
         defaultPendingToRunning(&schedule);
 
-        TEST_ASSERT_EQUAL(RUNNING, schedule.Status);
+        TEST_ASSERT_EQUAL(RUNNING, schedule._status);
 #if defined(CORE_AVR)        
-        TEST_ASSERT_UINT32_WITHIN(TIMER_VARIANCE, counterPreAction+schedule.Duration, schedule._compare);
+        TEST_ASSERT_UINT32_WITHIN(TIMER_VARIANCE, counterPreAction+schedule._duration, schedule._compare);
 #endif
         TEST_ASSERT_EQUAL(1, startCount);
         TEST_ASSERT_EQUAL(0, endCount);
@@ -41,23 +41,23 @@ static void test_defaultRunningToOff(void) {
     Schedule schedule(IGN1_COUNTER, IGN1_COMPARE);
     setCallbacks(schedule, startCallback, endCallback);
 
-    schedule.Status = RUNNING;
+    schedule._status = RUNNING;
     startCount = 0;
     endCount = 0;
     
     defaultRunningToOff(&schedule);
 
-    TEST_ASSERT_EQUAL(OFF, schedule.Status);
+    TEST_ASSERT_EQUAL(OFF, schedule._status);
     TEST_ASSERT_EQUAL(0, startCount);
     TEST_ASSERT_EQUAL(1, endCount);
 
-    schedule.Status = RUNNING_WITHNEXT;
+    schedule._status = RUNNING_WITHNEXT;
     startCount = 0;
     endCount = 0;
     
     defaultRunningToOff(&schedule);
 
-    TEST_ASSERT_EQUAL(OFF, schedule.Status);
+    TEST_ASSERT_EQUAL(OFF, schedule._status);
     TEST_ASSERT_EQUAL(0, startCount);
     TEST_ASSERT_EQUAL(1, endCount);
 }
@@ -66,19 +66,19 @@ static void test_defaultRunningToPending(void) {
     Schedule schedule(IGN1_COUNTER, IGN1_COMPARE);
     setCallbacks(schedule, startCallback, endCallback);
 
-    schedule.Status = RUNNING;
+    schedule._status = RUNNING;
     startCount = 0;
     endCount = 0;
    
     ATOMIC() {
         IGN1_TIMER_DISABLE();
-        schedule.nextStartCompare = schedule._counter + uS_TO_TIMER_COMPARE(2048); 
+        schedule._nextStartCompare = schedule._counter + uS_TO_TIMER_COMPARE(2048); 
 
         defaultRunningToPending(&schedule);
 
-        TEST_ASSERT_EQUAL(PENDING, schedule.Status);
+        TEST_ASSERT_EQUAL(PENDING, schedule._status);
 #if defined(CORE_AVR)        
-        TEST_ASSERT_UINT32_WITHIN(TIMER_VARIANCE, schedule.nextStartCompare, schedule._compare);
+        TEST_ASSERT_UINT32_WITHIN(TIMER_VARIANCE, schedule._nextStartCompare, schedule._compare);
 #endif
         TEST_ASSERT_EQUAL(0, startCount);
         TEST_ASSERT_EQUAL(1, endCount);
@@ -110,7 +110,7 @@ static void test_movetoNextState_pendingToRunning(void) {
     Schedule schedule(IGN1_COUNTER, IGN1_COMPARE);
     setCallbacks(schedule, startCallback, endCallback);
 
-    schedule.Status = PENDING;
+    schedule._status = PENDING;
     pendingToRunningCount = 0;
     pPendingToRunningSchedule = NULL;
     runningToOffCount = 0;
@@ -132,7 +132,7 @@ static void test_movetoNextState_runningToOff(void) {
     Schedule schedule(IGN1_COUNTER, IGN1_COMPARE);
     setCallbacks(schedule, startCallback, endCallback);
 
-    schedule.Status = RUNNING;
+    schedule._status = RUNNING;
     pendingToRunningCount = 0;
     pPendingToRunningSchedule = NULL;
     runningToOffCount = 0;
@@ -154,7 +154,7 @@ static void test_movetoNextState_runningToPending(void) {
     Schedule schedule(IGN1_COUNTER, IGN1_COMPARE);
     setCallbacks(schedule, startCallback, endCallback);
 
-    schedule.Status = RUNNING_WITHNEXT;
+    schedule._status = RUNNING_WITHNEXT;
     pendingToRunningCount = 0;
     pPendingToRunningSchedule = NULL;
     runningToOffCount = 0;
@@ -176,7 +176,7 @@ static void test_movetoNextState_off(void) {
     Schedule schedule(IGN1_COUNTER, IGN1_COMPARE);
     setCallbacks(schedule, startCallback, endCallback);
 
-    schedule.Status = OFF;
+    schedule._status = OFF;
     pendingToRunningCount = 0;
     pPendingToRunningSchedule = NULL;
     runningToOffCount = 0;

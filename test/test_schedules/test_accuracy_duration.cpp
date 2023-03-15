@@ -17,7 +17,7 @@ void test_accuracy_duration_inj(FuelSchedule &schedule)
     initialiseSchedulers();
     setCallbacks(schedule, startCallback, endCallback);
     setFuelSchedule(schedule, TIMEOUT, DURATION);
-    while(schedule.Status != OFF) /*Wait*/ ;
+    while(schedule._status != OFF) /*Wait*/ ;
     TEST_ASSERT_UINT32_WITHIN(DELTA, DURATION, end_time - start_time);
 }
 
@@ -74,7 +74,7 @@ void test_accuracy_duration_ign(IgnitionSchedule &schedule)
     initialiseSchedulers();
     setCallbacks(schedule, startCallback, endCallback);
     _setIgnitionScheduleDuration(schedule, TIMEOUT, DURATION);
-    while(schedule.Status != OFF) /*Wait*/ ;
+    while(schedule._status != OFF) /*Wait*/ ;
     TEST_ASSERT_UINT32_WITHIN(DELTA, DURATION, end_time - start_time);    
 
 }

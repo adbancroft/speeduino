@@ -124,12 +124,12 @@ struct Schedule {
    *  * Status==PENDING: this is the duration that will be used when the schedule moves to the RUNNING state 
    *  * Status==RUNNING_WITHNEXT: this is the duration that will be used after the current schedule finishes and the queued up scheduled starts 
    */
-  volatile COMPARE_TYPE Duration;   ///< 
-  volatile ScheduleStatus Status;   ///< Schedule status
-  voidVoidCallback pStartCallback;  ///< Start Callback function for schedule
-  voidVoidCallback pEndCallback;    ///< End Callback function for schedule
+  volatile COMPARE_TYPE _duration;   ///< Scheduled duration (timer ticks)
+  volatile ScheduleStatus _status;   ///< Schedule status: OFF, PENDING, RUNNING
+  voidVoidCallback _pStartCallback;  ///< Start Callback function for schedule
+  voidVoidCallback _pEndCallback;    ///< End Callback function for schedule
 
-  volatile COUNTER_TYPE nextStartCompare;    ///< Planned start of next schedule (when current schedule is RUNNING_WITHNEXT)
+  volatile COUNTER_TYPE _nextStartCompare;    ///< Planned start of next schedule (when current schedule is RUNNING_WITHNEXT)
   
   counter_t &_counter;       ///< **Reference** to the counter register. E.g. TCNT3
   compare_t &_compare;       ///< **Reference**to the compare register. E.g. OCR3A
@@ -143,7 +143,7 @@ static inline bool isRunning(const Schedule &schedule) {
   // Using flags and bitwise AND (&) to check multiple states is much quicker
   // than a logical or (||) (one less branch & 30% less instructions)
   static constexpr uint8_t flags = RUNNING | RUNNING_WITHNEXT;
-  return (bool)(schedule.Status & flags);
+  return (bool)(schedule._status & flags);
 }
 
 /// @cond 
@@ -152,19 +152,19 @@ static inline bool isRunning(const Schedule &schedule) {
 static inline void _setScheduleRunning(Schedule &schedule, uint32_t timeout, uint32_t duration)
 {
   //The following must be enclosed in the noInterupts block to avoid contention caused if the relevant interrupt fires before the state is fully set
-  schedule.Duration = uS_TO_TIMER_COMPARE(duration);
+  schedule._duration = uS_TO_TIMER_COMPARE(duration);
   schedule._compare = schedule._counter + uS_TO_TIMER_COMPARE(timeout);
-  schedule.Status = PENDING; //Turn this schedule on
+  schedule._status = PENDING; //Turn this schedule on
 }
 
 static inline void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration)
 {
    //If the schedule is already running, we can set the next schedule so it is ready to go
   //This is required in cases of high rpm and high DC where there otherwise would not be enough time to set the schedule
-  schedule.nextStartCompare = schedule._counter + uS_TO_TIMER_COMPARE(timeout);
+  schedule._nextStartCompare = schedule._counter + uS_TO_TIMER_COMPARE(timeout);
   // Schedule must already be running, so safe to reuse this.
-  schedule.Duration = uS_TO_TIMER_COMPARE(duration);
-  schedule.Status = RUNNING_WITHNEXT;
+  schedule._duration = uS_TO_TIMER_COMPARE(duration);
+  schedule._status = RUNNING_WITHNEXT;
 }
 
 static inline  __attribute__((always_inline)) void _setSchedule(Schedule &schedule, uint32_t timeout, uint32_t duration, uint16_t maxAngle)
@@ -265,13 +265,10 @@ static inline uint32_t _calculateIgnitionTimeout(const IgnitionSchedule &schedul
  * @param dwellDuration The coil dwell time in µS
  */
 static inline void setIgnitionSchedule(IgnitionSchedule &schedule, int16_t crankAngle, uint32_t dwellDuration) {
-  // Do not override the per-tooth timing
-  if (schedule.Status!=PENDING) {
-    uint32_t delay = _calculateIgnitionTimeout(schedule, crankAngle);
+  uint32_t delay = _calculateIgnitionTimeout(schedule, crankAngle);
 
-    if (delay > 0U) {
-      _setIgnitionScheduleDuration(schedule, delay, dwellDuration);
-    }
+  if (delay > 0U) {
+    _setIgnitionScheduleDuration(schedule, delay, dwellDuration);
   }
 }
 
@@ -309,6 +306,17 @@ extern IgnitionSchedule ignitionSchedule7;
 extern IgnitionSchedule ignitionSchedule8;
 #endif
 
+/**
+ * @brief Adjust the crank angle used to originally set the schedule.
+ * 
+ * The assumption here is that we have a more accurate crank angle than
+ * was originally passed to calculateIgnitionTimeout. So we can increase the
+ * spark accuracy
+ * 
+ * @param schedule The schedule to modify 
+ * @param crankAngle The new crank angle in degrees
+ */
+static inline void adjustCrankAngle(IgnitionSchedule &schedule, int16_t crankAngle);
 
 /** @brief A fuel injection schedule.
  *

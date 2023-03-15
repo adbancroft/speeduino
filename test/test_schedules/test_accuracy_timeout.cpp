@@ -19,7 +19,7 @@ void test_accuracy_timeout_inj(FuelSchedule &schedule)
     setCallbacks(schedule, startCallback, endCallback);
     start_time = micros();
     setFuelSchedule(schedule, TIMEOUT, DURATION);
-    while(schedule.Status == PENDING) /*Wait*/ ;
+    while(schedule._status == PENDING) /*Wait*/ ;
     TEST_ASSERT_UINT32_WITHIN(DELTA, TIMEOUT, end_time - start_time);
 }
 
@@ -77,7 +77,7 @@ void test_accuracy_timeout_ign(IgnitionSchedule &schedule)
     setCallbacks(schedule, startCallback, endCallback);
     start_time = micros();
     _setIgnitionScheduleDuration(schedule, TIMEOUT, DURATION);
-    while(schedule.Status == PENDING) /*Wait*/ ;
+    while(schedule._status == PENDING) /*Wait*/ ;
     TEST_ASSERT_UINT32_WITHIN(DELTA, TIMEOUT, end_time - start_time);
 }
 
