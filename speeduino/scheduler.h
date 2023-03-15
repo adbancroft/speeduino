@@ -150,14 +150,14 @@ void _setSchedulePending(Schedule &schedule, uint32_t timeout, uint32_t duration
 
 static SCHEDULE_INLINE void _setSchedule(Schedule &schedule, uint32_t timeout, uint32_t duration) {
   if(timeout<MAX_TIMER_PERIOD && duration<MAX_TIMER_PERIOD) {
-    noInterrupts();
-    if(!isRunning(schedule)) { //Check that we're not already part way through a schedule
-      _setSchedulePending(schedule, timeout, duration);
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      if(!isRunning(schedule)) { //Check that we're not already part way through a schedule
+        _setSchedulePending(schedule, timeout, duration);
+      }
+      else {
+        _setScheduleNext(schedule, timeout, duration);
+      }
     }
-    else {
-      _setScheduleNext(schedule, timeout, duration);
-    }
-    interrupts();
   }
 }
 /// @endcond
@@ -223,12 +223,16 @@ static SCHEDULE_INLINE uint32_t calculateIgnitionTimeout(const IgnitionSchedule 
  * @param dwellDuration The coil dwell time in µS
  */
 static SCHEDULE_INLINE void setIgnitionSchedule(IgnitionSchedule &schedule, int16_t crankAngle, uint32_t dwellDuration) {
-  // Do not override the per-tooth timing
+  // Do not override the per-tooth timing - quick & dirty check
   if (schedule.Status!=PENDING_WITH_OVERRIDE) {
     uint32_t delay = calculateIgnitionTimeout(schedule, crankAngle);
 
-    if (delay > 0U) {
-      _setSchedule(schedule, delay, dwellDuration);
+    // Need to check status again, this time atomically
+    // (similar to double checked locking pattern)
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      if ((delay > 0U) && (schedule.Status!=PENDING_WITH_OVERRIDE)) {
+        _setSchedule(schedule, delay, dwellDuration);
+      }
     }
   }
 }

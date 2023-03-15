@@ -3,10 +3,6 @@
 
 #include "board_definition.h"
 
-#if defined(CORE_AVR)
-#include <util/atomic.h>
-#endif
-
 void initialiseAuxPWM(void);
 void boostControl(void);
 void boostDisable(void);
