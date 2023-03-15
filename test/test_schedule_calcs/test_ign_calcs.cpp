@@ -42,12 +42,12 @@ static void test_calc_ign_timeout(const ign_test_parameters &test_params)
     TEST_ASSERT_EQUAL_MESSAGE(test_params.expectedStartAngle, schedule.chargeAngle, "startAngle");
     TEST_ASSERT_EQUAL_MESSAGE(test_params.expectedEndAngle, schedule.dischargeAngle, "dischargeAngle");
     
-    sprintf_P(msg, PSTR("PENDING advanceAngle: %" PRIi8 ", channelAngle: %" PRIu16 ", crankAngle: %" PRIu16 ", dischargeAngle: %" PRIi16), test_params.advanceAngle, test_params.channelAngle, test_params.crankAngle, schedule.dischargeAngle);
-    schedule.Status = PENDING;
+    sprintf_P(msg, PSTR("PENDING advanceAngle: %" PRIi8 ", channelAngle: % " PRIu16 ", crankAngle: %" PRIu16 ", endAngle: %" PRIi16), test_params.advanceAngle, test_params.channelAngle, test_params.crankAngle, schedule.dischargeAngle);
+    schedule._status = PENDING;
     TEST_ASSERT_INT32_WITHIN_MESSAGE(1, test_params.pending, calculateIgnitionTimeout(schedule, test_params.crankAngle), msg);
     
-    sprintf_P(msg, PSTR("RUNNING advanceAngle: %" PRIi8 ", channelAngle: %" PRIu16 ", crankAngle: %" PRIu16 ", dischargeAngle: %" PRIi16), test_params.advanceAngle, test_params.channelAngle, test_params.crankAngle, schedule.dischargeAngle);
-    schedule.Status = RUNNING;
+    sprintf_P(msg, PSTR("RUNNING advanceAngle: %" PRIi8 ", channelAngle: % " PRIu16 ", crankAngle: %" PRIu16 ", endAngle: %" PRIi16), test_params.advanceAngle, test_params.channelAngle, test_params.crankAngle, schedule.dischargeAngle);
+    schedule._status = RUNNING;
     TEST_ASSERT_INT32_WITHIN_MESSAGE(1, test_params.running, calculateIgnitionTimeout(schedule, test_params.crankAngle), msg);
 }
 

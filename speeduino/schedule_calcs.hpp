@@ -107,6 +107,7 @@ static SCHEDULE_INLINE void adjustCrankAngle(IgnitionSchedule &schedule, int16_t
       // result in a weaker spark).
       uint32_t timeToSpark = angleToTimeMicroSecPerDegree( ignitionLimits(schedule.dischargeAngle-crankAngle) );
       COMPARE_TYPE ticksToSpark = (COMPARE_TYPE)uS_TO_TIMER_COMPARE( timeToSpark );
+      schedule._duration = ticksToSpark; 
       schedule._compare = schedule._counter + ticksToSpark; 
     }
     else if((isPending(schedule)) && (currentStatus.startRevolutions > MIN_CYCLES_FOR_CORRECTION) && (schedule.chargeAngle>crankAngle) ) { 
@@ -116,7 +117,7 @@ static SCHEDULE_INLINE void adjustCrankAngle(IgnitionSchedule &schedule, int16_t
       uint32_t timeToRun = angleToTimeMicroSecPerDegree( ignitionLimits(schedule.chargeAngle-crankAngle) );
       COMPARE_TYPE ticksToRun = (COMPARE_TYPE)uS_TO_TIMER_COMPARE( timeToRun );
       schedule._compare = schedule._counter + ticksToRun; 
-      schedule.Status = PENDING_WITH_OVERRIDE;
+      schedule._status = PENDING_WITH_OVERRIDE;
     } else {
       // Schedule isn't on, so no adjustment possible
       // But keep the MISRA police happy.

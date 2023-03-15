@@ -2,24 +2,24 @@
 #include "timers.h"
 
 void defaultPendingToRunning(Schedule *schedule) {
-  schedule->pStartCallback();
-  schedule->Status = RUNNING; //Set the status to be in progress (ie The start callback has been called, but not the end callback)
-  schedule->_compare = schedule->_counter + schedule->Duration;
+  schedule->_pStartCallback();
+  schedule->_status = RUNNING; //Set the status to be in progress (ie The start callback has been called, but not the end callback)
+  schedule->_compare = schedule->_counter + schedule->_duration;
 }
 
 void defaultRunningToOff(Schedule *schedule) {
-  schedule->pEndCallback();
-  schedule->Status = OFF;
+  schedule->_pEndCallback();
+  schedule->_status = OFF;
 }
 
 void defaultRunningToPending(Schedule *schedule) {
-  schedule->pEndCallback();
-  schedule->_compare = schedule->nextStartCompare;
-  schedule->Status = PENDING;
+  schedule->_pEndCallback();
+  schedule->_compare = schedule->_nextStartCompare;
+  schedule->_status = PENDING;
 }
 
 static inline bool hasNextSchedule(const Schedule &schedule) {
-  return schedule.Status==RUNNING_WITHNEXT;
+  return schedule._status==RUNNING_WITHNEXT;
 }
 
 void movetoNextState(Schedule &schedule, 

@@ -128,19 +128,19 @@ struct Schedule {
    *  * Status==PENDING: this is the duration that will be used when the schedule moves to the RUNNING state 
    *  * Status==RUNNING_WITHNEXT: this is the duration that will be used after the current schedule finishes and the queued up scheduled starts 
    */
-  volatile COMPARE_TYPE Duration;   ///< 
-  volatile ScheduleStatus Status;   ///< Schedule status
-  voidVoidCallback pStartCallback;  ///< Start Callback function for schedule
-  voidVoidCallback pEndCallback;    ///< End Callback function for schedule
+  volatile COMPARE_TYPE _duration;   ///< Scheduled duration (timer ticks)
+  volatile ScheduleStatus _status;   ///< Schedule status: OFF, PENDING, RUNNING
+  voidVoidCallback _pStartCallback;  ///< Start Callback function for schedule
+  voidVoidCallback _pEndCallback;    ///< End Callback function for schedule
 
-  volatile COUNTER_TYPE nextStartCompare;    ///< Planned start of next schedule (when current schedule is RUNNING_WITHNEXT)
+  volatile COUNTER_TYPE _nextStartCompare;    ///< Planned start of next schedule (when current schedule is RUNNING_WITHNEXT)
   
   counter_t &_counter;       ///< **Reference** to the counter register. E.g. TCNT3
   compare_t &_compare;       ///< **Reference**to the compare register. E.g. OCR3A
 };
 
 static SCHEDULE_INLINE bool isRunning(const Schedule &schedule) {
-  return schedule.Status==RUNNING || schedule.Status==RUNNING_WITHNEXT;
+  return schedule._status==RUNNING || schedule._status==RUNNING_WITHNEXT;
 }
 
 /// @cond 
@@ -150,7 +150,7 @@ void _setSchedulePending(Schedule &schedule, uint32_t timeout, uint32_t duration
 
 static SCHEDULE_INLINE void _setSchedule(Schedule &schedule, uint32_t timeout, uint32_t duration) {
   if(timeout<MAX_TIMER_PERIOD && duration<MAX_TIMER_PERIOD) {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {    
       if(!isRunning(schedule)) { //Check that we're not already part way through a schedule
         _setSchedulePending(schedule, timeout, duration);
       }
@@ -177,7 +177,7 @@ void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidC
  * I.e. waiting for a timer interrupt to start the scheduled action. E.g. open an injector
  */
 static SCHEDULE_INLINE bool isPending(const Schedule &schedule) {
-  return schedule.Status==PENDING || schedule.Status==PENDING_WITH_OVERRIDE;
+  return schedule._status==PENDING || schedule._status==PENDING_WITH_OVERRIDE;
 }
 
 /** @brief An ignition schedule.
@@ -224,13 +224,13 @@ static SCHEDULE_INLINE uint32_t calculateIgnitionTimeout(const IgnitionSchedule 
  */
 static SCHEDULE_INLINE void setIgnitionSchedule(IgnitionSchedule &schedule, int16_t crankAngle, uint32_t dwellDuration) {
   // Do not override the per-tooth timing - quick & dirty check
-  if (schedule.Status!=PENDING_WITH_OVERRIDE) {
+  if (schedule._status!=PENDING_WITH_OVERRIDE) {
     uint32_t delay = calculateIgnitionTimeout(schedule, crankAngle);
 
     // Need to check status again, this time atomically
     // (similar to double checked locking pattern)
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-      if ((delay > 0U) && (schedule.Status!=PENDING_WITH_OVERRIDE)) {
+      if ((delay > 0U) && (schedule._status!=PENDING_WITH_OVERRIDE)) {
         _setSchedule(schedule, delay, dwellDuration);
       }
     }
@@ -271,6 +271,17 @@ extern IgnitionSchedule ignitionSchedule7;
 extern IgnitionSchedule ignitionSchedule8;
 #endif
 
+/**
+ * @brief Adjust the crank angle used to originally set the schedule.
+ * 
+ * The assumption here is that we have a more accurate crank angle than
+ * was originally passed to calculateIgnitionTimeout. So we can increase the
+ * spark accuracy
+ * 
+ * @param schedule The schedule to modify 
+ * @param crankAngle The new crank angle in degrees
+ */
+static inline void adjustCrankAngle(IgnitionSchedule &schedule, int16_t crankAngle);
 
 /** @brief A fuel injection schedule.
  *
