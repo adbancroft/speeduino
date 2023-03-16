@@ -203,7 +203,7 @@ static inline void applyChannelOverDwellProtection(IgnitionSchedule &schedule, u
 void applyOverDwellProtection(void)
 {
   bool isCrankLocked = configPage4.ignCranklock && (currentStatus.RPM < currentStatus.crankRPM); //Dwell limiter is disabled during cranking on setups using the locked cranking timing. WE HAVE to do the RPM check here as relying on the engine cranking bit can be potentially too slow in updating
-  if ((configPage4.useDwellLim) && (isCrankLocked != true)) {
+  if ((configPage4.useDwellLim!=0) && (isCrankLocked != true)) {
     uint32_t targetOverdwellTime = micros() - configPage4.dwellLimit * 1000U;
     
     applyChannelOverDwellProtection(ignitionSchedule1, targetOverdwellTime);
@@ -240,28 +240,28 @@ void beginInjectorPriming(void)
   uint32_t primingValue = (uint32_t)table2D_getValue(&PrimingPulseTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
   if( (primingValue > 0U) && (currentStatus.TPS < configPage4.floodClear) )
   {
-    primingValue = primingValue * 100UL * 5UL; //to achieve long enough priming pulses, the values in tuner studio are divided by 0.5 instead of 0.1, so multiplier of 5 is required.
-    if ( maxInjOutputs >= 1U ) { setFuelSchedule(fuelSchedule1, 100U, primingValue); }
+    primingValue = primingValue * 100U * 5U; //to achieve long enough priming pulses, the values in tuner studio are divided by 0.5 instead of 0.1, so multiplier of 5 is required.
+    if ( maxInjOutputs >= 1U ) { _setSchedule(fuelSchedule1, 100, primingValue); }
 #if (INJ_CHANNELS >= 2)
-    if ( maxInjOutputs >= 2U ) { setFuelSchedule(fuelSchedule2, 100U, primingValue); }
+    if ( maxInjOutputs >= 2U ) { _setSchedule(fuelSchedule2, 100, primingValue); }
 #endif
 #if (INJ_CHANNELS >= 3)
-    if ( maxInjOutputs >= 3U ) { setFuelSchedule(fuelSchedule3, 100U, primingValue); }
+    if ( maxInjOutputs >= 3U ) { _setSchedule(fuelSchedule3, 100, primingValue); }
 #endif
 #if (INJ_CHANNELS >= 4)
-    if ( maxInjOutputs >= 4U ) { setFuelSchedule(fuelSchedule4, 100U, primingValue); }
+    if ( maxInjOutputs >= 4U ) { _setSchedule(fuelSchedule4, 100, primingValue); }
 #endif
 #if (INJ_CHANNELS >= 5)
-    if ( maxInjOutputs >= 5U ) { setFuelSchedule(fuelSchedule5, 100U, primingValue); }
+    if ( maxInjOutputs >= 5U ) { _setSchedule(fuelSchedule5, 100, primingValue); }
 #endif
 #if (INJ_CHANNELS >= 6)
-    if ( maxInjOutputs >= 6U ) { setFuelSchedule(fuelSchedule6, 100U, primingValue); }
+    if ( maxInjOutputs >= 6U ) { _setSchedule(fuelSchedule6, 100, primingValue); }
 #endif
 #if (INJ_CHANNELS >= 7)
-    if ( maxInjOutputs >= 7U) { setFuelSchedule(fuelSchedule7, 100U, primingValue); }
+    if ( maxInjOutputs >= 7U ) { _setSchedule(fuelSchedule7, 100, primingValue); }
 #endif
 #if (INJ_CHANNELS >= 8)
-    if ( maxInjOutputs >= 8U ) { setFuelSchedule(fuelSchedule8, 100U, primingValue); }
+    if ( maxInjOutputs >= 8U ) { _setSchedule(fuelSchedule8, 100, primingValue); }
 #endif
   }
 }

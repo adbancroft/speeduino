@@ -213,6 +213,8 @@ struct IgnitionSchedule : public Schedule {
   int16_t channelDegrees;    ///< The number of crank degrees until cylinder is at TDC  
 };
 
+/// @cond 
+// Private functions - not for use external to the scheduler code
 /**
  * @brief Calculate the time in uS from now to when the coil should start charging.
  * 
@@ -220,7 +222,8 @@ struct IgnitionSchedule : public Schedule {
  * @param crankAngle The current crank angle
  * @return uint32_t 
  */
-static SCHEDULE_INLINE uint32_t calculateIgnitionTimeout(const IgnitionSchedule &schedule, int16_t crankAngle);
+static SCHEDULE_INLINE uint32_t _calculateIgnitionTimeout(const IgnitionSchedule &schedule, int16_t crankAngle);
+/// @endcond
 
 /** @brief Set the next schedule for the ignition channel.
  * 
@@ -231,7 +234,7 @@ static SCHEDULE_INLINE uint32_t calculateIgnitionTimeout(const IgnitionSchedule 
 static SCHEDULE_INLINE void setIgnitionSchedule(IgnitionSchedule &schedule, int16_t crankAngle, uint32_t dwellDuration) {
   // Do not override the per-tooth timing - quick & dirty check
   if (schedule._status!=PENDING_WITH_OVERRIDE) {
-    uint32_t delay = calculateIgnitionTimeout(schedule, crankAngle);
+    uint32_t delay = _calculateIgnitionTimeout(schedule, crankAngle);
 
     // Need to check status again, this time atomically
     // (similar to double checked locking pattern)
@@ -308,9 +311,32 @@ struct FuelSchedule : public Schedule {
   table3d6RpmLoad trimTable;   ///< 6x6 Fuel trim map
 };
 
-static SCHEDULE_INLINE void setFuelSchedule(FuelSchedule &schedule, uint32_t timeout, uint32_t duration) {
+/**
+ * @brief Calculate the time in uS from now to when the injector should be opened.
+ * 
+ * @param schedule The ignition channel
+ * @param openAngle The angle at which to open the injector
+ * @param crankAngle The current crank angle
+ * @return uint32_t 
+ */
+static SCHEDULE_INLINE uint32_t _calculateInjectorTimeout(const FuelSchedule &schedule, int16_t openAngle, int16_t crankAngle);
+
+/// @endcond
+
+/** @brief Set the next schedule for the fuel channel. 
+ * Pulse width is determined by the pw field.
+ * 
+ * @param schedule The fuel channel
+ * @param openAngle The angle to open the fuel injector
+ * @param crankAngle The current crank angle
+ */
+static SCHEDULE_INLINE void setFuelSchedule(FuelSchedule &schedule, uint16_t openAngle, int16_t crankAngle) {
+  uint32_t delay = _calculateInjectorTimeout(schedule, openAngle, crankAngle);  
+
   ATOMIC() {
-    _setSchedule(schedule, timeout, duration);
+    if (delay > 0U) {
+      _setSchedule(schedule, delay, schedule.pw);
+    }
   }
 }
 
@@ -330,17 +356,7 @@ void moveToNextState(FuelSchedule &schedule);
  * @param injAngle The requested injection angle
  * @return uint16_t 
  */
-static SCHEDULE_INLINE uint16_t calculateInjectorStartAngle(uint16_t pwDegrees, int16_t tdcOffset, uint16_t injAngle);
-
-/**
- * @brief Calculate the time in uS from now to when the injector should be opened.
- * 
- * @param schedule The ignition channel
- * @param openAngle The angle at which to open the injector
- * @param crankAngle The current crank angle
- * @return uint32_t 
- */
-static SCHEDULE_INLINE uint32_t calculateInjectorTimeout(const FuelSchedule &schedule, int16_t openAngle, int16_t crankAngle);
+static SCHEDULE_INLINE uint16_t calculateInjectorStartAngle(uint16_t pwDegrees, uint16_t tdcOffset, uint16_t injAngle);
 
 extern FuelSchedule fuelSchedule1;
 extern FuelSchedule fuelSchedule2;

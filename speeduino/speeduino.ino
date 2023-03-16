@@ -286,6 +286,12 @@ static inline __attribute__((flatten, always_inline)) void setIgnitionSchedules(
 #endif
 } 
 
+static SCHEDULE_INLINE void setFuelSchedule(FuelSchedule &schedule, uint8_t index, uint16_t injectorStartAngle, uint16_t crankAngle) {
+  if( (maxInjOutputs > index) && (schedule.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ1_CMD_BIT+index)) ) {
+    setFuelSchedule(schedule, injectorStartAngle, crankAngle);
+  }
+}
+
 /** Speeduino main loop.
  * 
  * Main loop chores (roughly in the order that they are performed):
@@ -1120,128 +1126,25 @@ void __attribute__((always_inline)) loop(void)
       }
 
 
-#if INJ_CHANNELS >= 1
-      if( (maxInjOutputs >= 1) && (fuelSchedule1.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ1_CMD_BIT)) )
+      if (!BIT_CHECK(currentStatus.status1, BIT_STATUS1_BOOSTCUT))
       {
-        uint32_t timeOut = calculateInjectorTimeout(fuelSchedule1, injector1StartAngle, crankAngle);
-        if (timeOut>0U)
-        {
-            setFuelSchedule(fuelSchedule1, 
-                      timeOut,
-                      (unsigned long)fuelSchedule1.pw
-                      );
-        }
+        setFuelSchedule(fuelSchedule1, 0, injector1StartAngle, crankAngle);
+        setFuelSchedule(fuelSchedule2, 1, injector2StartAngle, crankAngle);
+        setFuelSchedule(fuelSchedule3, 2, injector3StartAngle, crankAngle);
+        setFuelSchedule(fuelSchedule4, 3, injector4StartAngle, crankAngle);
+#if (INJ_CHANNELS >= 5)
+        setFuelSchedule(fuelSchedule5, 4, injector5StartAngle, crankAngle);
+#endif
+#if (INJ_CHANNELS >= 6)
+        setFuelSchedule(fuelSchedule6, 5, injector6StartAngle, crankAngle);
+#endif
+#if (INJ_CHANNELS >= 7)
+        setFuelSchedule(fuelSchedule7, 6, injector7StartAngle, crankAngle);
+#endif
+#if (INJ_CHANNELS >= 8)
+        setFuelSchedule(fuelSchedule8, 7, injector8StartAngle, crankAngle);
+#endif        
       }
-#endif
-
-        /*-----------------------------------------------------------------------------------------
-        | A Note on tempCrankAngle and tempStartAngle:
-        |   The use of tempCrankAngle/tempStartAngle is described below. It is then used in the same way for channels 2, 3 and 4+ on both injectors and ignition
-        |   Essentially, these 2 variables are used to realign the current crank angle and the desired start angle around 0 degrees for the given cylinder/output
-        |   Eg: If cylinder 2 TDC is 180 degrees after cylinder 1 (Eg a standard 4 cylinder engine), then tempCrankAngle is 180* less than the current crank angle and
-        |       tempStartAngle is the desired open time less 180*. Thus the cylinder is being treated relative to its own TDC, regardless of its offset
-        |
-        |   This is done to avoid problems with very short of very long times until tempStartAngle.
-        |------------------------------------------------------------------------------------------
-        */
-#if INJ_CHANNELS >= 2
-        if( (maxInjOutputs >= 2) && (fuelSchedule2.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ2_CMD_BIT)) )
-        {
-          uint32_t timeOut = calculateInjectorTimeout(fuelSchedule2, injector2StartAngle, crankAngle);
-          if ( timeOut>0U )
-          {
-            setFuelSchedule(fuelSchedule2, 
-                      timeOut,
-                      (unsigned long)fuelSchedule2.pw
-                      );
-          }
-        }
-#endif
-
-#if INJ_CHANNELS >= 3
-        if( (maxInjOutputs >= 3) && (fuelSchedule3.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ3_CMD_BIT)) )
-        {
-          uint32_t timeOut = calculateInjectorTimeout(fuelSchedule3, injector3StartAngle, crankAngle);
-          if ( timeOut>0U )
-          {
-            setFuelSchedule(fuelSchedule3, 
-                      timeOut,
-                      (unsigned long)fuelSchedule3.pw
-                      );
-          }
-        }
-#endif
-
-#if INJ_CHANNELS >= 4
-        if( (maxInjOutputs >= 4) && (fuelSchedule4.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ4_CMD_BIT)) )
-        {
-          uint32_t timeOut = calculateInjectorTimeout(fuelSchedule4, injector4StartAngle, crankAngle);
-          if ( timeOut>0U )
-          {
-            setFuelSchedule(fuelSchedule4, 
-                      timeOut,
-                      (unsigned long)fuelSchedule4.pw
-                      );
-          }
-        }
-#endif
-
-#if INJ_CHANNELS >= 5
-        if( (maxInjOutputs >= 5) && (fuelSchedule5.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ5_CMD_BIT)) )
-        {
-          uint32_t timeOut = calculateInjectorTimeout(fuelSchedule5, injector5StartAngle, crankAngle);
-          if ( timeOut>0U )
-          {
-            setFuelSchedule(fuelSchedule5, 
-                      timeOut,
-                      (unsigned long)fuelSchedule5.pw
-                      );
-          }
-        }
-#endif
-
-#if INJ_CHANNELS >= 6
-        if( (maxInjOutputs >= 6) && (fuelSchedule6.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ6_CMD_BIT)) )
-        {
-          uint32_t timeOut = calculateInjectorTimeout(fuelSchedule6, injector6StartAngle, crankAngle);
-          if ( timeOut>0U )
-          {
-            setFuelSchedule(fuelSchedule6, 
-                      timeOut,
-                      (unsigned long)fuelSchedule6.pw
-                      );
-          }
-        }
-#endif
-
-#if INJ_CHANNELS >= 7
-        if( (maxInjOutputs >= 7) && (fuelSchedule7.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ7_CMD_BIT)) )
-        {
-          uint32_t timeOut = calculateInjectorTimeout(fuelSchedule7, injector7StartAngle, crankAngle);
-          if ( timeOut>0U )
-          {
-            setFuelSchedule(fuelSchedule7, 
-                      timeOut,
-                      (unsigned long)fuelSchedule7.pw
-                      );
-          }
-        }
-#endif
-
-#if INJ_CHANNELS >= 8
-        if( (maxInjOutputs >= 8) && (fuelSchedule8.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, INJ8_CMD_BIT)) )
-        {
-          uint32_t timeOut = calculateInjectorTimeout(fuelSchedule8, injector8StartAngle, crankAngle);
-          if ( timeOut>0U )
-          {
-            setFuelSchedule(fuelSchedule8, 
-                      timeOut,
-                      (unsigned long)fuelSchedule8.pw
-                      );
-          }
-        }
-#endif
-
       //***********************************************************************************************
       //| BEGIN IGNITION SCHEDULES
       //Same as above, except for ignition
