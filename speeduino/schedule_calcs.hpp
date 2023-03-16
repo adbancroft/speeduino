@@ -6,7 +6,7 @@
 #include "maths.h"
 #include "timers.h"
 
-static SCHEDULE_INLINE uint16_t calculateInjectorStartAngle(uint16_t pwDegrees, int16_t injChannelDegrees, uint16_t injAngle)
+static SCHEDULE_INLINE uint16_t calculateInjectorStartAngle(uint16_t pwDegrees, uint16_t tdcOffset, uint16_t injAngle)
 {
   // 0<=injAngle<=720°
   // 0<=injChannelDegrees<=720°
@@ -14,7 +14,7 @@ static SCHEDULE_INLINE uint16_t calculateInjectorStartAngle(uint16_t pwDegrees, 
   // 45<=CRANK_ANGLE_MAX_INJ<=720
   // (CRANK_ANGLE_MAX_INJ can be as small as 360/nCylinders. E.g. 45° for 8 cylinder)
 
-  uint16_t startAngle = (uint16_t)injAngle + (uint16_t)injChannelDegrees;
+  uint16_t startAngle = (uint16_t)injAngle + (uint16_t)tdcOffset;
   // Avoid underflow
   while (startAngle<pwDegrees) { startAngle = startAngle + (uint16_t)CRANK_ANGLE_MAX_INJ; }
   // Guaranteed to be >=0.
@@ -30,7 +30,6 @@ static SCHEDULE_INLINE uint32_t _calculateAngularTime(const Schedule &schedule, 
   if (delta<0 && isRunning(schedule)) {
     delta = delta + (int16_t)maxAngle; 
   } 
-
   return delta<0 ? 0U : angleToTimeMicroSecPerDegree((uint16_t)delta);
 }
 
@@ -56,7 +55,7 @@ static SCHEDULE_INLINE uint32_t _calculateAngularTime(const Schedule &schedule, 
             maxAngle);
 }
 
-static SCHEDULE_INLINE uint32_t calculateInjectorTimeout(const FuelSchedule &schedule, int16_t injectorStartAngle, int16_t crankAngle)
+static SCHEDULE_INLINE uint32_t _calculateInjectorTimeout(const FuelSchedule &schedule, int16_t injectorStartAngle, int16_t crankAngle)
 {
   return _calculateAngularTime(schedule, schedule.channelDegrees, injectorStartAngle, crankAngle, CRANK_ANGLE_MAX_INJ);
 }
@@ -87,7 +86,7 @@ static SCHEDULE_INLINE void calculateIgnitionTrailingRotary(IgnitionSchedule &le
   trailing.chargeAngle = (int16_t)ignitionLimits(trailing.dischargeAngle - dwellAngle); 
 }
 
-static SCHEDULE_INLINE uint32_t calculateIgnitionTimeout(const IgnitionSchedule &schedule, int16_t crankAngle)
+static SCHEDULE_INLINE uint32_t _calculateIgnitionTimeout(const IgnitionSchedule &schedule, int16_t crankAngle)
 {
   return _calculateAngularTime(schedule, schedule.channelDegrees, schedule.chargeAngle, crankAngle, CRANK_ANGLE_MAX_IGN);
 }
@@ -105,7 +104,7 @@ static SCHEDULE_INLINE void adjustCrankAngle(IgnitionSchedule &schedule, int16_t
       // Coil is charging so change the charge time so the spark fires at
       // the requested crank angle (this could reduce dwell time & potentially
       // result in a weaker spark).
-      uint32_t timeToSpark = angleToTimeMicroSecPerDegree( ignitionLimits(schedule.dischargeAngle-crankAngle) );
+      uint32_t timeToSpark = angleToTimeMicroSecPerDegree(ignitionLimits(schedule.dischargeAngle-crankAngle) );
       COMPARE_TYPE ticksToSpark = (COMPARE_TYPE)uS_TO_TIMER_COMPARE( timeToSpark );
       schedule._duration = ticksToSpark; 
       schedule._compare = schedule._counter + ticksToSpark; 
@@ -114,7 +113,7 @@ static SCHEDULE_INLINE void adjustCrankAngle(IgnitionSchedule &schedule, int16_t
       // We are waiting for the timer to fire & start charging the coil.
       // Keep dwell constant (for better spark) - instead adjust the waiting period so 
       // the spark fires at the requested crank angle.
-      uint32_t timeToRun = angleToTimeMicroSecPerDegree( ignitionLimits(schedule.chargeAngle-crankAngle) );
+      uint32_t timeToRun = angleToTimeMicroSecPerDegree(ignitionLimits(schedule.chargeAngle-crankAngle) );
       COMPARE_TYPE ticksToRun = (COMPARE_TYPE)uS_TO_TIMER_COMPARE( timeToRun );
       schedule._compare = schedule._counter + ticksToRun; 
       schedule._status = PENDING_WITH_OVERRIDE;
