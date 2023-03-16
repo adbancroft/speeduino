@@ -11,7 +11,7 @@ void test_status_pending_to_running_inj(FuelSchedule &schedule)
 {
     initialiseSchedulers();
     TEST_ASSERT_EQUAL(OFF, schedule._status);
-    setFuelSchedule(schedule, TIMEOUT, DURATION);
+    _setFuelScheduleDuration(schedule, TIMEOUT, DURATION);
     while(isPending(schedule)) /*Wait*/ ;
     TEST_ASSERT_EQUAL(RUNNING, schedule._status);
 }
