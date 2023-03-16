@@ -368,7 +368,7 @@ static inline uint16_t calculateInjectorStartAngle(uint16_t pwDegrees, int16_t t
  * @param crankAngle The current crank angle
  * @return uint32_t 
  */
-static inline uint32_t calculateInjectorTimeout(const FuelSchedule &schedule, int16_t openAngle, int16_t crankAngle);
+static inline uint32_t _calculateInjectorTimeout(const FuelSchedule &schedule, int16_t openAngle, int16_t crankAngle);
 
 extern FuelSchedule fuelSchedule1;
 extern FuelSchedule fuelSchedule2;
