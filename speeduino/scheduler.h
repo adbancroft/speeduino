@@ -237,28 +237,29 @@ struct IgnitionSchedule : public Schedule {
 };
 
 /// @cond 
-// Private function - not for use external to the scheduler code
+// Private functions - not for use external to the scheduler code
 void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, uint32_t timeout, uint32_t duration);
-/// @endcond
 
 /** @brief Set the next schedule for the ignition channel.
  * 
  * @param schedule The ignition channel
  * @param delay The time to wait in µS until starting to charge the coil
- * @param durationMicros The coil dwell time in µS
+ * @param dwellDuration The coil dwell time in µS
  */
-static inline void setIgnitionSchedule(IgnitionSchedule &schedule, uint32_t delay, uint32_t durationMicros) {
+static inline void _setIgnitionScheduleDuration(IgnitionSchedule &schedule, uint32_t delay, uint32_t dwellDuration) {
   noInterrupts();
   if(!isRunning(schedule)) { //Check that we're not already part way through a schedule
-    _setIgnitionScheduleRunning(schedule, delay, durationMicros);
+    _setIgnitionScheduleRunning(schedule, delay, dwellDuration);
+  }
   // Check whether timeout exceeds the maximum future time. This can potentially occur on sequential setups when below ~115rpm
-  } else if(delay < MAX_TIMER_PERIOD){
-    _setScheduleNext(schedule, delay, durationMicros);
+  else if(delay < MAX_TIMER_PERIOD){
+    _setScheduleNext(schedule, delay, dwellDuration);
   } else {
     // Keep MISRA checker happy
   }
   interrupts();
 }
+/// @endcond
 
 /**
  * @brief Check that no ignition channel has been charging the coil for too long
