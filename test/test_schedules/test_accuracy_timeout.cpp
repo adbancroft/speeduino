@@ -76,7 +76,7 @@ void test_accuracy_timeout_ign(IgnitionSchedule &schedule)
     initialiseSchedulers();
     setCallbacks(schedule, startCallback, endCallback);
     start_time = micros();
-    setIgnitionSchedule(schedule, TIMEOUT, DURATION);
+    _setIgnitionScheduleDuration(schedule, TIMEOUT, DURATION);
     while(schedule.Status == PENDING) /*Wait*/ ;
     TEST_ASSERT_UINT32_WITHIN(DELTA, TIMEOUT, end_time - start_time);
 }
