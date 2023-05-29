@@ -1098,134 +1098,20 @@ void initialiseAll(void)
     if(configPage2.strokes == FOUR_STROKE) { CRANK_ANGLE_MAX_INJ = 720 / currentStatus.nSquirts; }
     else { CRANK_ANGLE_MAX_INJ = 360 / currentStatus.nSquirts; }
 
-    switch (configPage2.nCylinders) {
-    case 1:
-        //Sequential ignition works identically on a 1 cylinder whether it's odd or even fire. 
-        if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) ) { CRANK_ANGLE_MAX_IGN = 720; }
-
-        if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) )
-        {
-          CRANK_ANGLE_MAX_INJ = 720;
-          currentStatus.nSquirts = 1;
-          req_fuel_uS = req_fuel_uS * 2;
-        }
-        break;
-
-    case 2:
-        //Sequential ignition works identically on a 2 cylinder whether it's odd or even fire (With the default being a 180 degree second cylinder).
-        if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) ) { CRANK_ANGLE_MAX_IGN = 720; }
-
-        if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) )
-        {
-          CRANK_ANGLE_MAX_INJ = 720;
-          currentStatus.nSquirts = 1;
-          req_fuel_uS = req_fuel_uS * 2;
-        }
-        break;
-
-    case 3:
-        if (configPage2.engineType == EVEN_FIRE )
-        {
-          //Sequential and Single channel modes both run over 720 crank degrees, but only on 4 stroke engines.
-          if( ( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) || (configPage4.sparkMode == IGN_MODE_SINGLE) ) && (configPage2.strokes == FOUR_STROKE) )
-          {
-            CRANK_ANGLE_MAX_IGN = 720;
-          }
-        }
-
-        if (configPage2.injLayout == INJ_SEQUENTIAL)
-        {
-          currentStatus.nSquirts = 1;
-
-          if(configPage2.strokes == TWO_STROKE)
-          {
-            CRANK_ANGLE_MAX_INJ = 360;
-          }
-          else
-          {
-            req_fuel_uS = req_fuel_uS * 2;
-            CRANK_ANGLE_MAX_INJ = 720;
-          }
-        }
-        break;
-
-    case 4:
-        if (configPage2.engineType == EVEN_FIRE )
-        {
-          if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) )
-          {
-            CRANK_ANGLE_MAX_IGN = 720;
-          }
-        }
-
-        if (configPage2.injLayout == INJ_SEQUENTIAL)
-        {
-          CRANK_ANGLE_MAX_INJ = 720;
-          currentStatus.nSquirts = 1;
-          req_fuel_uS = req_fuel_uS * 2;
-        }
-        break;
-    case 5:
-
-        if(configPage4.sparkMode == IGN_MODE_SEQUENTIAL)
-        {
-          CRANK_ANGLE_MAX_IGN = 720;
-        }
-
-    #if INJ_CHANNELS >= 5
-        if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) )
-        {
-          CRANK_ANGLE_MAX_INJ = 720;
-          currentStatus.nSquirts = 1;
-          req_fuel_uS = req_fuel_uS * 2;
-        }
-    #endif
-        break;
-
-    case 6:
-    #if IGN_CHANNELS >= 6
-        if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL))
-        {
-          CRANK_ANGLE_MAX_IGN = 720;
-        }
-    #endif
-
-    #if INJ_CHANNELS >= 6
-        if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) )
-        {
-          CRANK_ANGLE_MAX_INJ = 720;
-          currentStatus.nSquirts = 1;
-          req_fuel_uS = req_fuel_uS * 2;
-        }
-    #endif
-        break;
-
-    case 8:
-        if( (configPage4.sparkMode == IGN_MODE_SINGLE))
-        {
-          CRANK_ANGLE_MAX_IGN = 360;
-        }
-
-
-    #if IGN_CHANNELS >= 8
-        if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL))
-        {
-          CRANK_ANGLE_MAX_IGN = 720;
-        }
-    #endif
-
-    #if INJ_CHANNELS >= 8
-        if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) )
-        {
-          CRANK_ANGLE_MAX_INJ = 720;
-          currentStatus.nSquirts = 1;
-          req_fuel_uS = req_fuel_uS * 2;
-        }
-    #endif
-        break;
-
-    default:
-        break;
+    if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) && (configPage2.nCylinders<=INJ_CHANNELS))
+    {
+      CRANK_ANGLE_MAX_INJ = 720;
+      currentStatus.nSquirts = 1;
+      req_fuel_uS = req_fuel_uS * 2;
+    }
+    if (configPage4.sparkMode == IGN_MODE_SEQUENTIAL)
+    {
+      bool oddFireSequential = (configPage2.engineType == ODD_FIRE) && (configPage2.nCylinders<=2);
+      bool evenFireSequential = (configPage2.engineType == EVEN_FIRE) && (configPage2.nCylinders<=IGN_CHANNELS);
+      if (oddFireSequential || evenFireSequential)
+      {
+        CRANK_ANGLE_MAX_IGN = 720;
+      }
     }
 
     currentStatus.status3 |= currentStatus.nSquirts << BIT_STATUS3_NSQUIRTS1; //Top 3 bits of the status3 variable are the number of squirts. This must be done after the above section due to nSquirts being forced to 1 for sequential
