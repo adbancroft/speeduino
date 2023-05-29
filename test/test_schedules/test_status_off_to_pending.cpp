@@ -9,142 +9,116 @@
 
 static void emptyCallback(void) {  }
 
-void test_status_off_to_pending_inj1(void)
+static void test_status_off_to_pending(FuelSchedule &schedule)
 {
     initialiseSchedulers();
-    setFuelSchedule(fuelSchedule1, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, fuelSchedule1._status);
+    setFuelSchedule(schedule, TIMEOUT, DURATION);
+    TEST_ASSERT_EQUAL(PENDING, schedule._status);
 }
 
-void test_status_off_to_pending_inj2(void)
+static void test_status_off_to_pending_inj1(void)
 {
-    initialiseSchedulers();
-    setFuelSchedule(fuelSchedule2, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, fuelSchedule2._status);
+    test_status_off_to_pending(fuelSchedule1);
 }
 
-void test_status_off_to_pending_inj3(void)
+static void test_status_off_to_pending_inj2(void)
 {
-    initialiseSchedulers();
-    setFuelSchedule(fuelSchedule3, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, fuelSchedule3._status);
+    test_status_off_to_pending(fuelSchedule2);
 }
 
-void test_status_off_to_pending_inj4(void)
+static void test_status_off_to_pending_inj3(void)
 {
-    initialiseSchedulers();
-    setFuelSchedule(fuelSchedule4, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, fuelSchedule4._status);
+    test_status_off_to_pending(fuelSchedule3);
 }
 
+static void test_status_off_to_pending_inj4(void)
+{
+    test_status_off_to_pending(fuelSchedule4);
+}
+
+static void test_status_off_to_pending_inj5(void)
+{
 #if INJ_CHANNELS >= 5
-void test_status_off_to_pending_inj5(void)
-{
-    initialiseSchedulers();
-    setFuelSchedule(fuelSchedule5, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, fuelSchedule5._status);
-}
+    test_status_off_to_pending(fuelSchedule5);
 #endif
+}
 
+static void test_status_off_to_pending_inj6(void)
+{
 #if INJ_CHANNELS >= 6
-void test_status_off_to_pending_inj6(void)
-{
-    initialiseSchedulers();
-    setFuelSchedule(fuelSchedule6, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, fuelSchedule6._status);
-}
+    test_status_off_to_pending(fuelSchedule6);
 #endif
+}
 
+static void test_status_off_to_pending_inj7(void)
+{
 #if INJ_CHANNELS >= 7
-void test_status_off_to_pending_inj7(void)
-{
-    initialiseSchedulers();
-    setFuelSchedule(fuelSchedule7, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, fuelSchedule7._status);
-}
+    test_status_off_to_pending(fuelSchedule7);
 #endif
+}
 
+static void test_status_off_to_pending_inj8(void)
+{
 #if INJ_CHANNELS >= 8
-void test_status_off_to_pending_inj8(void)
-{
-    initialiseSchedulers();
-    setFuelSchedule(fuelSchedule8, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, fuelSchedule8._status);
-}
+    test_status_off_to_pending(fuelSchedule8);
 #endif
-
-
-void test_status_off_to_pending_ign1(void)
-{
-    initialiseSchedulers();
-    setCallbacks(ignitionSchedule1, emptyCallback, emptyCallback);
-    _setIgnitionScheduleDuration(ignitionSchedule1, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, ignitionSchedule1._status);
 }
 
-void test_status_off_to_pending_ign2(void)
+static void test_status_off_to_pending(IgnitionSchedule &schedule)
 {
     initialiseSchedulers();
-    setCallbacks(ignitionSchedule2, emptyCallback, emptyCallback);
-    _setIgnitionScheduleDuration(ignitionSchedule2, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, ignitionSchedule2._status);
+    setCallbacks(schedule, emptyCallback, emptyCallback);
+    _setIgnitionScheduleDuration(schedule, TIMEOUT, DURATION);
+    TEST_ASSERT_EQUAL(PENDING, schedule._status);
 }
 
-void test_status_off_to_pending_ign3(void)
+static void test_status_off_to_pending_ign1(void)
 {
-    initialiseSchedulers();
-    setCallbacks(ignitionSchedule3, emptyCallback, emptyCallback);
-    _setIgnitionScheduleDuration(ignitionSchedule3, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, ignitionSchedule3._status);
+    test_status_off_to_pending(ignitionSchedule1);
 }
 
-void test_status_off_to_pending_ign4(void)
+static void test_status_off_to_pending_ign2(void)
 {
-    initialiseSchedulers();
-    setCallbacks(ignitionSchedule4, emptyCallback, emptyCallback);
-    _setIgnitionScheduleDuration(ignitionSchedule4, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, ignitionSchedule4._status);
+    test_status_off_to_pending(ignitionSchedule2);
 }
 
+static void test_status_off_to_pending_ign3(void)
+{
+    test_status_off_to_pending(ignitionSchedule3);
+}
+
+static void test_status_off_to_pending_ign4(void)
+{
+    test_status_off_to_pending(ignitionSchedule4);
+}
+
+static void test_status_off_to_pending_ign5(void)
+{
 #if IGN_CHANNELS >= 5
-void test_status_off_to_pending_ign5(void)
-{
-    initialiseSchedulers();
-    setCallbacks(ignitionSchedule5, emptyCallback, emptyCallback);
-    _setIgnitionScheduleDuration(ignitionSchedule5, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, ignitionSchedule5._status);
-}
+    test_status_off_to_pending(ignitionSchedule5);
 #endif
+}
 
+static void test_status_off_to_pending_ign6(void)
+{
 #if IGN_CHANNELS >= 6
-void test_status_off_to_pending_ign6(void)
-{
-    initialiseSchedulers();
-    setCallbacks(ignitionSchedule6, emptyCallback, emptyCallback);
-    _setIgnitionScheduleDuration(ignitionSchedule6, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, ignitionSchedule6._status);
-}
+    test_status_off_to_pending(ignitionSchedule6);
 #endif
+}
 
+static void test_status_off_to_pending_ign7(void)
+{
 #if IGN_CHANNELS >= 7
-void test_status_off_to_pending_ign7(void)
-{
-    initialiseSchedulers();
-    setCallbacks(ignitionSchedule7, emptyCallback, emptyCallback);
-    _setIgnitionScheduleDuration(ignitionSchedule7, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, ignitionSchedule7._status);
-}
+    test_status_off_to_pending(ignitionSchedule7);
 #endif
+}
 
-#if IGN_CHANNELS >= 8
-void test_status_off_to_pending_ign8(void)
+static void test_status_off_to_pending_ign8(void)
 {
-    initialiseSchedulers();
-    setCallbacks(ignitionSchedule8, emptyCallback, emptyCallback);
-    _setIgnitionScheduleDuration(ignitionSchedule8, TIMEOUT, DURATION);
-    TEST_ASSERT_EQUAL(PENDING, ignitionSchedule8._status);
-}
+#if IGN_CHANNELS >= 8
+    test_status_off_to_pending(ignitionSchedule8);
 #endif
+}
 
 void test_status_off_to_pending(void)
 {
@@ -154,34 +128,18 @@ void test_status_off_to_pending(void)
     RUN_TEST(test_status_off_to_pending_inj2);
     RUN_TEST(test_status_off_to_pending_inj3);
     RUN_TEST(test_status_off_to_pending_inj4);
-#if INJ_CHANNELS >= 5
     RUN_TEST(test_status_off_to_pending_inj5);
-#endif
-#if INJ_CHANNELS >= 6
     RUN_TEST(test_status_off_to_pending_inj6);
-#endif
-#if INJ_CHANNELS >= 7
     RUN_TEST(test_status_off_to_pending_inj7);
-#endif
-#if INJ_CHANNELS >= 8
     RUN_TEST(test_status_off_to_pending_inj8);
-#endif
 
     RUN_TEST(test_status_off_to_pending_ign1);
     RUN_TEST(test_status_off_to_pending_ign2);
     RUN_TEST(test_status_off_to_pending_ign3);
     RUN_TEST(test_status_off_to_pending_ign4);
-#if IGN_CHANNELS >= 5    
     RUN_TEST(test_status_off_to_pending_ign5);
-#endif
-#if IGN_CHANNELS >= 6
     RUN_TEST(test_status_off_to_pending_ign6);
-#endif
-#if IGN_CHANNELS >= 7
     RUN_TEST(test_status_off_to_pending_ign7);
-#endif
-#if IGN_CHANNELS >= 8
     RUN_TEST(test_status_off_to_pending_ign8);
-#endif
   }
 }

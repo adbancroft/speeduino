@@ -1,120 +1,115 @@
 #include <Arduino.h>
 #include <unity.h>
-#include "../test_utils.h"
 #include "scheduler.h"
+#include "../test_utils.h"
+
+static void test_status_initial_off(FuelSchedule &schedule) 
+{
+    initialiseSchedulers();
+    TEST_ASSERT_EQUAL(OFF, schedule._status);
+}
 
 void test_status_initial_off_inj1(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, fuelSchedule1._status);
+    test_status_initial_off(fuelSchedule1);
 }
 
 void test_status_initial_off_inj2(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, fuelSchedule2._status);
+    test_status_initial_off(fuelSchedule2);
 }
 
 void test_status_initial_off_inj3(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, fuelSchedule3._status);
+    test_status_initial_off(fuelSchedule3);
 }
 
 void test_status_initial_off_inj4(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, fuelSchedule4._status);
+    test_status_initial_off(fuelSchedule4);
 }
 
-#if INJ_CHANNELS >= 5
 void test_status_initial_off_inj5(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, fuelSchedule5._status);
+#if ING_CHANNELS >= 5
+    test_status_initial_off(fuelSchedule5);
+#endif
 }
-#endif 
 
-#if INJ_CHANNELS >= 6
 void test_status_initial_off_inj6(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, fuelSchedule6._status);
+#if ING_CHANNELS >= 6
+    test_status_initial_off(fuelSchedule6);
+#endif
 }
-#endif 
 
-#if INJ_CHANNELS >= 7
 void test_status_initial_off_inj7(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, fuelSchedule7._status);
+#if ING_CHANNELS >= 7
+    test_status_initial_off(fuelSchedule7);
+#endif
 }
-#endif 
 
-#if INJ_CHANNELS >= 8
 void test_status_initial_off_inj8(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, fuelSchedule8._status);
+#if ING_CHANNELS >= 8
+    test_status_initial_off(fuelSchedule8);
+#endif
 }
-#endif 
 
+static void test_status_initial_off(IgnitionSchedule &schedule) 
+{
+    initialiseSchedulers();
+    TEST_ASSERT_EQUAL(OFF, schedule._status);
+}
 
 void test_status_initial_off_ign1(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, ignitionSchedule1._status);
+    test_status_initial_off(ignitionSchedule1);
 }
 
 void test_status_initial_off_ign2(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, ignitionSchedule2._status);
+    test_status_initial_off(ignitionSchedule2);
 }
 
 void test_status_initial_off_ign3(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, ignitionSchedule3._status);
+    test_status_initial_off(ignitionSchedule3);
 }
 
 void test_status_initial_off_ign4(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, ignitionSchedule4._status);
+    test_status_initial_off(ignitionSchedule4);
 }
 
-#if IGN_CHANNELS >= 5
 void test_status_initial_off_ign5(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, ignitionSchedule5._status);
-}
+#if IGN_CHANNELS >= 5
+    test_status_initial_off(ignitionSchedule5);
 #endif
+}
 
-#if IGN_CHANNELS >= 6
 void test_status_initial_off_ign6(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, ignitionSchedule6._status);
-}
+#if IGN_CHANNELS >= 6
+    test_status_initial_off(ignitionSchedule6);
 #endif
+}
 
-#if IGN_CHANNELS >= 7
 void test_status_initial_off_ign7(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, ignitionSchedule7._status);
-}
+#if IGN_CHANNELS >= 7
+    test_status_initial_off(ignitionSchedule7);
 #endif
+}
 
-#if IGN_CHANNELS >= 8
 void test_status_initial_off_ign8(void)
 {
-    initialiseSchedulers();
-    TEST_ASSERT_EQUAL(OFF, ignitionSchedule8._status);
-}
+#if IGN_CHANNELS >= 8
+    test_status_initial_off(ignitionSchedule8);
 #endif
+}
 
 void test_status_initial_off(void)
 {
@@ -124,34 +119,18 @@ void test_status_initial_off(void)
     RUN_TEST(test_status_initial_off_inj2);
     RUN_TEST(test_status_initial_off_inj3);
     RUN_TEST(test_status_initial_off_inj4);
-#if INJ_CHANNELS >= 5
     RUN_TEST(test_status_initial_off_inj5);
-#endif 
-#if INJ_CHANNELS >= 6
     RUN_TEST(test_status_initial_off_inj6);
-#endif 
-#if INJ_CHANNELS >= 7
     RUN_TEST(test_status_initial_off_inj7);
-#endif 
-#if INJ_CHANNELS >= 8
     RUN_TEST(test_status_initial_off_inj8);
-#endif 
 
     RUN_TEST(test_status_initial_off_ign1);
     RUN_TEST(test_status_initial_off_ign2);
     RUN_TEST(test_status_initial_off_ign3);
     RUN_TEST(test_status_initial_off_ign4);
-#if IGN_CHANNELS >= 5
     RUN_TEST(test_status_initial_off_ign5);
-#endif
-#if IGN_CHANNELS >= 6
     RUN_TEST(test_status_initial_off_ign6);
-#endif
-#if IGN_CHANNELS >= 7
     RUN_TEST(test_status_initial_off_ign7);
-#endif
-#if IGN_CHANNELS >= 8
     RUN_TEST(test_status_initial_off_ign8);
-#endif
   }
 }
