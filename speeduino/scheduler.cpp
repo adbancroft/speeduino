@@ -93,41 +93,50 @@ static void reset(IgnitionSchedule &schedule)
     schedule.channelDegrees = 0;
 }
 
-void initialiseSchedulers(void)
+void resetFuelSchedulers(void)
 {
-    reset(fuelSchedule1);
-    reset(fuelSchedule2);
-    reset(fuelSchedule3);
-    reset(fuelSchedule4);
+  reset(fuelSchedule1);
+  reset(fuelSchedule2);
+  reset(fuelSchedule3);
+  reset(fuelSchedule4);
 #if INJ_CHANNELS >= 5
-    reset(fuelSchedule5);
+  reset(fuelSchedule5);
 #endif
 #if INJ_CHANNELS >= 6
-    reset(fuelSchedule6);
+  reset(fuelSchedule6);
 #endif
 #if INJ_CHANNELS >= 7
-    reset(fuelSchedule7);
+  reset(fuelSchedule7);
 #endif
 #if INJ_CHANNELS >= 8
-    reset(fuelSchedule8);
+  reset(fuelSchedule8);
 #endif
+}
 
-    reset(ignitionSchedule1);
-    reset(ignitionSchedule2);
-    reset(ignitionSchedule3);
-    reset(ignitionSchedule4);
+void resetIgnitionSchedulers(void)
+{
+  reset(ignitionSchedule1);
+  reset(ignitionSchedule2);
+  reset(ignitionSchedule3);
+  reset(ignitionSchedule4);
 #if (IGN_CHANNELS >= 5)
-    reset(ignitionSchedule5);
+  reset(ignitionSchedule5);
 #endif
 #if IGN_CHANNELS >= 6
-    reset(ignitionSchedule6);
+  reset(ignitionSchedule6);
 #endif
 #if IGN_CHANNELS >= 7
-    reset(ignitionSchedule7);
+  reset(ignitionSchedule7);
 #endif
 #if IGN_CHANNELS >= 8
-    reset(ignitionSchedule8);
+  reset(ignitionSchedule8);
 #endif
+}
+
+void initialiseSchedulers()
+{
+  resetFuelSchedulers();
+  resetIgnitionSchedulers();
 }
 
 void startSchedulers(void)
