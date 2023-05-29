@@ -11,7 +11,7 @@ static void emptyCallback(void) {  }
 
 static void test_status_off_to_pending(FuelSchedule &schedule)
 {
-    initialiseSchedulers();
+    resetFuelSchedulers();
     setFuelSchedule(schedule, TIMEOUT, DURATION);
     TEST_ASSERT_EQUAL(PENDING, schedule._status);
 }
@@ -66,7 +66,7 @@ static void test_status_off_to_pending_inj8(void)
 
 static void test_status_off_to_pending(IgnitionSchedule &schedule)
 {
-    initialiseSchedulers();
+    resetIgnitionSchedulers();
     setCallbacks(schedule, emptyCallback, emptyCallback);
     _setIgnitionScheduleDuration(schedule, TIMEOUT, DURATION);
     TEST_ASSERT_EQUAL(PENDING, schedule._status);

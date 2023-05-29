@@ -9,7 +9,7 @@
 
 static void test_status_running_to_off(FuelSchedule &schedule)
 {
-    initialiseSchedulers();
+    resetFuelSchedulers();
     setFuelSchedule(schedule, TIMEOUT, DURATION);
     while( (schedule._status == PENDING) || (schedule._status == RUNNING) ) /*Wait*/ ;
     TEST_ASSERT_EQUAL(OFF, schedule._status);
@@ -65,7 +65,7 @@ static void test_status_running_to_off_inj8(void)
 
 static void test_status_running_to_off(IgnitionSchedule &schedule)
 {
-    initialiseSchedulers();
+    resetIgnitionSchedulers();
     
     _setIgnitionScheduleDuration(schedule, TIMEOUT, DURATION);
     while( (schedule._status == PENDING) || (schedule._status == RUNNING) ) /*Wait*/ ;

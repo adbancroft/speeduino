@@ -9,7 +9,7 @@
 
 static void test_status_pending_to_running(FuelSchedule &schedule)
 {
-    initialiseSchedulers();
+    resetFuelSchedulers();
     setFuelSchedule(schedule, TIMEOUT, DURATION);
     while(schedule._status == PENDING) /*Wait*/ ;
     TEST_ASSERT_EQUAL(RUNNING, schedule._status);
@@ -65,7 +65,7 @@ static void test_status_pending_to_running_inj8(void)
 
 static void test_status_pending_to_running(IgnitionSchedule &schedule)
 {
-    initialiseSchedulers();
+    resetIgnitionSchedulers();
     _setIgnitionScheduleDuration(schedule, TIMEOUT, DURATION);
     while(schedule._status == PENDING) /*Wait*/ ;
     TEST_ASSERT_EQUAL(RUNNING, schedule._status);
