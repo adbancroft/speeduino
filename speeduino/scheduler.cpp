@@ -29,6 +29,7 @@ A full copy of the license may be found in the projects root directory
 #include "scheduledIO.h"
 #include "timers.h"
 #include "schedule_state_machine.h"
+#include "speeduino.h"
 
 FuelSchedule fuelSchedule1(FUEL1_COUNTER, FUEL1_COMPARE); //cppcheck-suppress misra-c2012-8.4
 FuelSchedule fuelSchedule2(FUEL2_COUNTER, FUEL2_COMPARE); //cppcheck-suppress misra-c2012-8.4
@@ -153,13 +154,506 @@ void startFuelSchedulers(void)
 #endif
 }
 
+
+static void turnOffInjectors(void)
+{
+  closeInjector1();
+  closeInjector2();
+  closeInjector3();
+  closeInjector4();
+  closeInjector5();
+  #if (INJ_CHANNELS >= 6)
+  closeInjector6();
+  #endif
+  #if (INJ_CHANNELS >= 7)
+  closeInjector7();
+  #endif
+  #if (INJ_CHANNELS >= 8)
+  closeInjector8();
+  #endif
+}
+
+static void setFuelChannelAngles(void)
+{
+  switch (configPage2.nCylinders) {
+  case 1:
+      fuelSchedule1.channelDegrees = 0;
+      maxInjOutputs = 1;
+
+      //Check if injector staging is enabled
+      if(configPage10.stagingEnabled == true)
+      {
+        maxInjOutputs = 2;
+        fuelSchedule2.channelDegrees = fuelSchedule1.channelDegrees;
+      }
+      break;
+
+  case 2:
+      fuelSchedule1.channelDegrees = 0;
+      maxInjOutputs = 2;
+      //The below are true regardless of whether this is running sequential or not
+      if (configPage2.engineType == EVEN_FIRE ) { fuelSchedule2.channelDegrees = 180; }
+      else { fuelSchedule2.channelDegrees = configPage2.oddfire2; }
+
+      if (!configPage2.injTiming) 
+      { 
+        //For simultaneous, all squirts happen at the same time
+        fuelSchedule1.channelDegrees = 0;
+        fuelSchedule2.channelDegrees = 0; 
+      }
+
+      //Check if injector staging is enabled
+      if(configPage10.stagingEnabled == true)
+      {
+        maxInjOutputs = 4;
+
+        fuelSchedule3.channelDegrees = fuelSchedule1.channelDegrees;
+        fuelSchedule4.channelDegrees = fuelSchedule2.channelDegrees;
+      }
+      break;
+
+  case 3:
+        //For alternating injection, the squirt occurs at different times for each channel
+      if( (configPage2.injLayout == INJ_SEMISEQUENTIAL) || (configPage2.injLayout == INJ_PAIRED) )
+      {
+        fuelSchedule1.channelDegrees = 0;
+        fuelSchedule2.channelDegrees = 120;
+        fuelSchedule3.channelDegrees = 240;
+
+        if(configPage2.injType == INJ_TYPE_PORT)
+        { 
+          //Force nSquirts to 2 for individual port injection. This prevents TunerStudio forcing the value to 3 even when this isn't wanted. 
+          currentStatus.nSquirts = 2;
+          if(configPage2.strokes == FOUR_STROKE) { CRANK_ANGLE_MAX_INJ = 360; }
+          else { CRANK_ANGLE_MAX_INJ = 180; }
+        }        
+
+        //Adjust the injection angles based on the number of squirts
+        if (currentStatus.nSquirts > 2)
+        {
+          fuelSchedule2.channelDegrees = (fuelSchedule2.channelDegrees * 2) / currentStatus.nSquirts;
+          fuelSchedule3.channelDegrees = (fuelSchedule3.channelDegrees * 2) / currentStatus.nSquirts;
+        }
+
+        if (!configPage2.injTiming) 
+        { 
+          //For simultaneous, all squirts happen at the same time
+          fuelSchedule1.channelDegrees = 0;
+          fuelSchedule2.channelDegrees = 0;
+          fuelSchedule3.channelDegrees = 0; 
+        } 
+      }
+      else if (configPage2.injLayout == INJ_SEQUENTIAL)
+      {
+        if(configPage2.strokes == TWO_STROKE)
+        {
+          fuelSchedule1.channelDegrees = 0;
+          fuelSchedule2.channelDegrees = 120;
+          fuelSchedule3.channelDegrees = 240;
+        }
+        else
+        {
+          fuelSchedule1.channelDegrees = 0;
+          fuelSchedule2.channelDegrees = 240;
+          fuelSchedule3.channelDegrees = 480;
+        }
+      }
+      else
+      {
+        //Should never happen, but default values
+        fuelSchedule1.channelDegrees = 0;
+        fuelSchedule2.channelDegrees = 120;
+        fuelSchedule3.channelDegrees = 240;
+      }
+
+      maxInjOutputs = 3;
+
+      //Check if injector staging is enabled
+      if(configPage10.stagingEnabled == true)
+      {
+        #if INJ_CHANNELS >= 6
+          maxInjOutputs = 6;
+
+          fuelSchedule4.channelDegrees = fuelSchedule1.channelDegrees;
+          fuelSchedule5.channelDegrees = fuelSchedule2.channelDegrees;
+          fuelSchedule6.channelDegrees = fuelSchedule3.channelDegrees;
+        #else
+          //Staged output is on channel 4
+          maxInjOutputs = 4;
+          fuelSchedule4.channelDegrees = fuelSchedule1.channelDegrees;
+        #endif
+      }
+      break;
+
+  case 4:
+      fuelSchedule1.channelDegrees = 0;
+      maxInjOutputs = 2;
+
+      //For alternating injection, the squirt occurs at different times for each channel
+      if( (configPage2.injLayout == INJ_SEMISEQUENTIAL) || (configPage2.injLayout == INJ_PAIRED) || (configPage2.strokes == TWO_STROKE) )
+      {
+        fuelSchedule2.channelDegrees = 180;
+
+        if (!configPage2.injTiming) 
+        { 
+          //For simultaneous, all squirts happen at the same time
+          fuelSchedule1.channelDegrees = 0;
+          fuelSchedule2.channelDegrees = 0; 
+        }
+        else if (currentStatus.nSquirts > 2)
+        {
+          //Adjust the injection angles based on the number of squirts
+          fuelSchedule2.channelDegrees = (fuelSchedule2.channelDegrees * 2) / currentStatus.nSquirts;
+        }
+        else { } //Do nothing, default values are correct
+      }
+      else if (configPage2.injLayout == INJ_SEQUENTIAL)
+      {
+        fuelSchedule2.channelDegrees = 180;
+        fuelSchedule3.channelDegrees = 360;
+        fuelSchedule4.channelDegrees = 540;
+        
+        maxInjOutputs = 4;
+      }
+      else
+      {
+        //Should never happen, but default values
+      }
+
+      //Check if injector staging is enabled
+      if(configPage10.stagingEnabled == true)
+      {
+        maxInjOutputs = 4;
+
+        if( (configPage2.injLayout == INJ_SEQUENTIAL) || (configPage2.injLayout == INJ_SEMISEQUENTIAL) )
+        {
+          //Staging with 4 cylinders semi/sequential requires 8 total channels
+          #if INJ_CHANNELS >= 8
+          maxInjOutputs = 8;
+          fuelSchedule5.channelDegrees = fuelSchedule1.channelDegrees;
+          fuelSchedule6.channelDegrees = fuelSchedule2.channelDegrees;
+          fuelSchedule7.channelDegrees = fuelSchedule3.channelDegrees;
+          fuelSchedule8.channelDegrees = fuelSchedule4.channelDegrees;
+          #elif INJ_CHANNELS >= 5
+          //This is an invalid config as there are not enough outputs to support sequential + staging
+          //Put the staging output to the non-existant channel 5
+          maxInjOutputs = 5;
+          fuelSchedule5.channelDegrees = fuelSchedule1.channelDegrees;
+          #endif
+        }
+        else
+        {
+          fuelSchedule3.channelDegrees = fuelSchedule1.channelDegrees;
+          fuelSchedule4.channelDegrees = fuelSchedule2.channelDegrees;
+        }
+      }
+      break;
+
+  case 5:
+      maxInjOutputs = 4;
+      //For alternating injection, the squirt occurs at different times for each channel
+      if( (configPage2.injLayout == INJ_SEMISEQUENTIAL) || (configPage2.injLayout == INJ_PAIRED) || (configPage2.strokes == TWO_STROKE) )
+      {
+        if (!configPage2.injTiming) 
+        { 
+          //For simultaneous, all squirts happen at the same time
+          fuelSchedule1.channelDegrees = 0;
+          fuelSchedule2.channelDegrees = 0;
+          fuelSchedule3.channelDegrees = 0;
+          fuelSchedule4.channelDegrees = 0;
+#if (INJ_CHANNELS >= 5)
+          fuelSchedule5.channelDegrees = 0; 
+          maxInjOutputs = 5;
+#endif
+        }
+        else
+        {
+          fuelSchedule1.channelDegrees = 0;
+          fuelSchedule2.channelDegrees = 72;
+          fuelSchedule3.channelDegrees = 144;
+          fuelSchedule4.channelDegrees = 216;
+#if (INJ_CHANNELS >= 5)
+          fuelSchedule5.channelDegrees = 288;
+          maxInjOutputs = 5;
+#endif
+
+          //Divide by currentStatus.nSquirts ?
+        }
+      }
+  #if INJ_CHANNELS >= 5
+      else if (configPage2.injLayout == INJ_SEQUENTIAL)
+      {
+        fuelSchedule1.channelDegrees = 0;
+        fuelSchedule2.channelDegrees = 144;
+        fuelSchedule3.channelDegrees = 288;
+        fuelSchedule4.channelDegrees = 432;
+        fuelSchedule5.channelDegrees = 576;
+        maxInjOutputs = 5;
+      }
+  #endif
+#if INJ_CHANNELS >= 6
+          if(configPage10.stagingEnabled == true) { maxInjOutputs = 6; }
+#endif
+      break;
+
+  case 6:
+      maxInjOutputs = 3;
+
+      //For alternating injection, the squirt occurs at different times for each channel
+      if( (configPage2.injLayout == INJ_SEMISEQUENTIAL) || (configPage2.injLayout == INJ_PAIRED) )
+      {
+        fuelSchedule1.channelDegrees = 0;
+        fuelSchedule2.channelDegrees = 120;
+        fuelSchedule3.channelDegrees = 240;
+        if (!configPage2.injTiming)
+        {
+          //For simultaneous, all squirts happen at the same time
+          fuelSchedule1.channelDegrees = 0;
+          fuelSchedule2.channelDegrees = 0;
+          fuelSchedule3.channelDegrees = 0;
+        }
+        else if (currentStatus.nSquirts > 2)
+        {
+          //Adjust the injection angles based on the number of squirts
+          fuelSchedule2.channelDegrees = (fuelSchedule2.channelDegrees * 2) / currentStatus.nSquirts;
+          fuelSchedule3.channelDegrees = (fuelSchedule3.channelDegrees * 2) / currentStatus.nSquirts;
+        }
+      }
+
+  #if INJ_CHANNELS >= 6
+      if (configPage2.injLayout == INJ_SEQUENTIAL)
+      {
+        fuelSchedule1.channelDegrees = 0;
+        fuelSchedule2.channelDegrees = 120;
+        fuelSchedule3.channelDegrees = 240;
+        fuelSchedule4.channelDegrees = 360;
+        fuelSchedule5.channelDegrees = 480;
+        fuelSchedule6.channelDegrees = 600;
+
+        maxInjOutputs = 6;
+      }
+      else if(configPage10.stagingEnabled == true) //Check if injector staging is enabled
+      {
+        maxInjOutputs = 6;
+
+        if( (configPage2.injLayout == INJ_SEQUENTIAL) || (configPage2.injLayout == INJ_SEMISEQUENTIAL) )
+        {
+          //Staging with 6 cylinders semi/sequential requires 7 total channels
+          #if INJ_CHANNELS >= 7
+            maxInjOutputs = 7;
+
+            fuelSchedule5.channelDegrees = fuelSchedule1.channelDegrees;
+            fuelSchedule6.channelDegrees = fuelSchedule2.channelDegrees;
+            fuelSchedule7.channelDegrees = fuelSchedule3.channelDegrees;
+            fuelSchedule8.channelDegrees = fuelSchedule4.channelDegrees;
+          #else
+            //This is an invalid config as there are not enough outputs to support sequential + staging
+            //Put the staging output to the non-existant channel 7
+            maxInjOutputs = 6;
+          #endif
+        }
+      }
+  #endif
+      break;
+
+  case 8:
+      maxInjOutputs = 4;
+      //For alternating injection, the squirt occurs at different times for each channel
+      if( (configPage2.injLayout == INJ_SEMISEQUENTIAL) || (configPage2.injLayout == INJ_PAIRED) )
+      {
+        fuelSchedule1.channelDegrees = 0;
+        fuelSchedule2.channelDegrees = 90;
+        fuelSchedule3.channelDegrees = 180;
+        fuelSchedule4.channelDegrees = 270;
+
+        if (!configPage2.injTiming)
+        {
+          //For simultaneous, all squirts happen at the same time
+          fuelSchedule1.channelDegrees = 0;
+          fuelSchedule2.channelDegrees = 0;
+          fuelSchedule3.channelDegrees = 0;
+          fuelSchedule4.channelDegrees = 0;
+        }
+        else if (currentStatus.nSquirts > 2)
+        {
+          //Adjust the injection angles based on the number of squirts
+          fuelSchedule2.channelDegrees = (fuelSchedule2.channelDegrees * 2) / currentStatus.nSquirts;
+          fuelSchedule3.channelDegrees = (fuelSchedule3.channelDegrees * 2) / currentStatus.nSquirts;
+          fuelSchedule4.channelDegrees = (fuelSchedule4.channelDegrees * 2) / currentStatus.nSquirts;
+        }
+      }
+
+  #if INJ_CHANNELS >= 8
+      else if (configPage2.injLayout == INJ_SEQUENTIAL)
+      {
+        fuelSchedule1.channelDegrees = 0;
+        fuelSchedule2.channelDegrees = 90;
+        fuelSchedule3.channelDegrees = 180;
+        fuelSchedule4.channelDegrees = 270;
+        fuelSchedule5.channelDegrees = 360;
+        fuelSchedule6.channelDegrees = 450;
+        fuelSchedule7.channelDegrees = 540;
+        fuelSchedule8.channelDegrees = 630;
+        maxInjOutputs = 8;
+      }
+  #endif
+      break;
+  default: //Handle this better!!!
+      fuelSchedule1.channelDegrees = 0;
+      fuelSchedule2.channelDegrees = 180;
+      maxInjOutputs = 2;
+      break;
+  }  
+
+  //Special case:
+  //3 or 5 squirts per cycle MUST be tracked over 720 degrees. This is because the angles for them (Eg 720/3=240) are not evenly divisible into 360
+  //This is ONLY the case on 4 stroke systems
+  if( (currentStatus.nSquirts == 3) || (currentStatus.nSquirts == 5) )
+  {
+    if(configPage2.strokes == FOUR_STROKE) { CRANK_ANGLE_MAX_INJ = 720U/currentStatus.nSquirts; }
+  }  
+}
+
+static void setFuelScheduleCallbacks(void)
+{
+  switch(configPage2.injLayout)
+  {
+  case INJ_PAIRED:
+      //Paired injection
+      setCallbacks(fuelSchedule1, openInjector1, closeInjector1);
+      setCallbacks(fuelSchedule2, openInjector2, closeInjector2);
+      setCallbacks(fuelSchedule3, openInjector3, closeInjector3);
+      setCallbacks(fuelSchedule4, openInjector4, closeInjector4);
+  #if INJ_CHANNELS >= 5
+      setCallbacks(fuelSchedule5, openInjector5, closeInjector5);
+  #endif
+      break;
+
+  case INJ_SEMISEQUENTIAL:
+      //Semi-Sequential injection. Currently possible with 4, 6 and 8 cylinders. 5 cylinder is a special case
+      if( configPage2.nCylinders == 4 )
+      {
+        if(configPage4.inj4cylPairing == INJ_PAIR_13_24)
+        {
+          setCallbacks(fuelSchedule1, openInjector1and3, closeInjector1and3);
+          setCallbacks(fuelSchedule2, openInjector2and4, closeInjector2and4);
+        }
+        else
+        {
+          setCallbacks(fuelSchedule1, openInjector1and4, closeInjector1and4);
+          setCallbacks(fuelSchedule2, openInjector2and3, closeInjector2and3);
+        }
+      }
+      else if( configPage2.nCylinders == 5 ) //This is similar to the paired injection but uses five injector outputs instead of four
+      {
+        setCallbacks(fuelSchedule1, openInjector1, closeInjector1);
+        setCallbacks(fuelSchedule2, openInjector2, closeInjector2);
+        setCallbacks(fuelSchedule3, openInjector3and5, closeInjector3and5);
+        setCallbacks(fuelSchedule4, openInjector4, closeInjector4);
+      }
+      else if( configPage2.nCylinders == 6 )
+      {
+        setCallbacks(fuelSchedule1, openInjector1and4, closeInjector1and4);
+        setCallbacks(fuelSchedule2, openInjector2and5, closeInjector2and5);
+        setCallbacks(fuelSchedule3, openInjector3and6, closeInjector3and6);
+      }
+      else if( configPage2.nCylinders == 8 )
+      {
+        setCallbacks(fuelSchedule1, openInjector1and5, closeInjector1and5);
+        setCallbacks(fuelSchedule2, openInjector2and6, closeInjector2and6);
+        setCallbacks(fuelSchedule3, openInjector3and7, closeInjector3and7);
+        setCallbacks(fuelSchedule4, openInjector4and8, closeInjector4and8);
+      }
+      else
+      {
+        //Fall back to paired injection
+        setCallbacks(fuelSchedule1, openInjector1, closeInjector1);
+        setCallbacks(fuelSchedule2, openInjector2, closeInjector2);
+        setCallbacks(fuelSchedule3, openInjector3, closeInjector3);
+        setCallbacks(fuelSchedule4, openInjector4, closeInjector4);
+  #if INJ_CHANNELS >= 5
+        setCallbacks(fuelSchedule5, openInjector5, closeInjector5);
+  #endif
+      }
+      break;
+
+  case INJ_SEQUENTIAL:
+      //Sequential injection
+      setCallbacks(fuelSchedule1, openInjector1, closeInjector1);
+      setCallbacks(fuelSchedule2, openInjector2, closeInjector2);
+      setCallbacks(fuelSchedule3, openInjector3, closeInjector3);
+      setCallbacks(fuelSchedule4, openInjector4, closeInjector4);
+  #if INJ_CHANNELS >= 5
+      setCallbacks(fuelSchedule5, openInjector5, closeInjector5);
+  #endif
+  #if INJ_CHANNELS >= 6
+      setCallbacks(fuelSchedule6, openInjector6, closeInjector6);
+  #endif
+  #if INJ_CHANNELS >= 7
+      setCallbacks(fuelSchedule7, openInjector7, closeInjector7);
+  #endif
+  #if INJ_CHANNELS >= 8
+      setCallbacks(fuelSchedule8, openInjector8, closeInjector8);
+  #endif
+      break;
+
+  default:
+      //Paired injection
+      setCallbacks(fuelSchedule1, openInjector1, closeInjector1);
+      setCallbacks(fuelSchedule2, openInjector2, closeInjector2);
+      setCallbacks(fuelSchedule3, openInjector3, closeInjector3);
+      setCallbacks(fuelSchedule4, openInjector4, closeInjector4);
+  #if INJ_CHANNELS >= 5
+      setCallbacks(fuelSchedule5, openInjector5, closeInjector5);
+  #endif
+      break;
+  }
+}
+
+static void initialiseFuelContext(void) 
+{
+  if(configPage2.strokes == FOUR_STROKE)
+  {
+    //Default is 1 squirt per revolution, so we halve the given req-fuel figure (Which would be over 2 revolutions)
+    req_fuel_uS = req_fuel_uS / 2; //The req_fuel calculation above gives the total required fuel (At VE 100%) in the full cycle. If we're doing more than 1 squirt per cycle then we need to split the amount accordingly. (Note that in a non-sequential 4-stroke setup you cannot have less than 2 squirts as you cannot determine the stroke to make the single squirt on)
+  }
+
+  if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) && (configPage2.nCylinders<=INJ_CHANNELS))
+  {
+    CRANK_ANGLE_MAX_INJ = 720;
+    currentStatus.nSquirts = 1;
+    req_fuel_uS = req_fuel_uS * 2;
+  }
+  else
+  {
+    currentStatus.nSquirts = max(1, configPage2.nCylinders / configPage2.divider); //The number of squirts being requested. This is manually overridden below for sequential setups (Due to TS req_fuel calc limitations)
+    if ((configPage2.injLayout == INJ_SEQUENTIAL) && configPage2.nCylinders==3) {
+      currentStatus.nSquirts = 1;
+    }
+    CRANK_ANGLE_MAX_INJ = (configPage2.strokes == FOUR_STROKE ? 720 : 360) / currentStatus.nSquirts;
+  }
+  currentStatus.status3 |= currentStatus.nSquirts << BIT_STATUS3_NSQUIRTS1; //Top 3 bits of the status3 variable are the number of squirts. This must be done after the above section due to nSquirts being forced to 1 for sequential
+}
+
+void initialiseFuelSchedulers(void)
+{
+  resetFuelSchedulers();
+  turnOffInjectors();
+  initialiseFuelContext();
+  setFuelChannelAngles();
+  setFuelScheduleCallbacks();
+  startFuelSchedulers();
+}
+
 void startIgnitionSchedulers(void)
 {
   IGN1_TIMER_ENABLE();
   IGN2_TIMER_ENABLE();
   IGN3_TIMER_ENABLE();
   IGN4_TIMER_ENABLE();
+#if IGN_CHANNELS >= 5
   IGN5_TIMER_ENABLE();
+#endif
 #if IGN_CHANNELS >= 6
   IGN6_TIMER_ENABLE();
 #endif
@@ -172,9 +666,360 @@ void startIgnitionSchedulers(void)
 }
 
 
-void startSchedulers(void)
+static void turnOffCoils(void)
 {
-  startFuelSchedulers();
+  //End all coil charges to ensure no stray sparks on startup
+  endCoil1Charge();
+  endCoil2Charge();
+  endCoil3Charge();
+  endCoil4Charge();
+  endCoil5Charge();
+  #if (IGN_CHANNELS >= 6)
+  endCoil6Charge();
+  #endif
+  #if (IGN_CHANNELS >= 7)
+  endCoil7Charge();
+  #endif
+  #if (IGN_CHANNELS >= 8)
+  endCoil8Charge();
+  #endif
+}
+
+static void setIgnitionChannelAngles(void)
+{
+  switch (configPage2.nCylinders) {
+  case 1:
+      ignitionSchedule1.channelDegrees = 0;
+      maxIgnOutputs = 1;
+      break;
+
+  case 2:
+      ignitionSchedule1.channelDegrees = 0;
+      maxIgnOutputs = 2;
+      if (configPage2.engineType == EVEN_FIRE ) { ignitionSchedule2.channelDegrees = 180; }
+      else { ignitionSchedule2.channelDegrees = configPage2.oddfire2; }
+      break;
+
+  case 3:
+      ignitionSchedule1.channelDegrees = 0;
+      maxIgnOutputs = 3;
+      if (configPage2.engineType == EVEN_FIRE )
+      {
+        //Sequential and Single channel modes both run over 720 crank degrees, but only on 4 stroke engines.
+        if( ( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) || (configPage4.sparkMode == IGN_MODE_SINGLE) ) && (configPage2.strokes == FOUR_STROKE) )
+        {
+          ignitionSchedule2.channelDegrees = 240;
+          ignitionSchedule3.channelDegrees = 480;
+        }
+        else
+        {
+          ignitionSchedule2.channelDegrees = 120;
+          ignitionSchedule3.channelDegrees = 240;
+        }
+      }
+      else
+      {
+        ignitionSchedule2.channelDegrees = configPage2.oddfire2;
+        ignitionSchedule3.channelDegrees = configPage2.oddfire3;
+      }
+      break;
+
+  case 4:
+      ignitionSchedule1.channelDegrees = 0;
+      maxIgnOutputs = 2; //Default value for 4 cylinder, may be changed below
+      if (configPage2.engineType == EVEN_FIRE )
+      {
+        ignitionSchedule2.channelDegrees = 180;
+
+        if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) )
+        {
+          ignitionSchedule3.channelDegrees = 360;
+          ignitionSchedule4.channelDegrees = 540;
+          maxIgnOutputs = 4;
+        }
+        if(configPage4.sparkMode == IGN_MODE_ROTARY)
+        {
+          //Rotary uses the ign 3 and 4 schedules for the trailing spark. They are offset from the ign 1 and 2 channels respectively and so use the same degrees as them
+          ignitionSchedule3.channelDegrees = 0;
+          ignitionSchedule4.channelDegrees = 180;
+          maxIgnOutputs = 4;
+
+          configPage4.IgInv = GOING_LOW; //Force Going Low ignition mode (Going high is never used for rotary)
+        }
+      }
+      else
+      {
+        ignitionSchedule2.channelDegrees = configPage2.oddfire2;
+        ignitionSchedule3.channelDegrees = configPage2.oddfire3;
+        ignitionSchedule4.channelDegrees = configPage2.oddfire4;
+        maxIgnOutputs = 4;
+      }
+      break;
+
+  case 5:
+      ignitionSchedule1.channelDegrees = 0;
+      ignitionSchedule2.channelDegrees = 72;
+      ignitionSchedule3.channelDegrees = 144;
+      ignitionSchedule4.channelDegrees = 216;
+#if (IGN_CHANNELS >= 5)
+      ignitionSchedule5.channelDegrees = 288;
+      maxIgnOutputs = 5; //Only 4 actual outputs, so that's all that can be cut
+#else
+      maxIgnOutputs = 4; //Only 4 actual outputs, so that's all that can be cut
+#endif
+
+      if(configPage4.sparkMode == IGN_MODE_SEQUENTIAL)
+      {
+        ignitionSchedule2.channelDegrees = 144;
+        ignitionSchedule3.channelDegrees = 288;
+        ignitionSchedule4.channelDegrees = 432;
+#if (IGN_CHANNELS >= 5)
+          ignitionSchedule5.channelDegrees = 576;
+#endif
+      }
+      break;
+
+  case 6:
+      ignitionSchedule1.channelDegrees = 0;
+      ignitionSchedule2.channelDegrees = 120;
+      ignitionSchedule3.channelDegrees = 240;
+      maxIgnOutputs = 3;
+
+  #if IGN_CHANNELS >= 6
+      if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL))
+      {
+        ignitionSchedule4.channelDegrees = 360;
+        ignitionSchedule5.channelDegrees = 480;
+        ignitionSchedule6.channelDegrees = 600;
+        maxIgnOutputs = 6;
+      }
+  #endif
+      break;
+
+  case 8:
+      ignitionSchedule1.channelDegrees = 0;
+      ignitionSchedule2.channelDegrees = 90;
+      ignitionSchedule3.channelDegrees = 180;
+      ignitionSchedule4.channelDegrees = 270;
+      maxIgnOutputs = 4;
+
+      if(configPage4.sparkMode == IGN_MODE_SINGLE)
+      {
+        maxIgnOutputs = 4;
+      }
+  
+  #if IGN_CHANNELS >= 8
+      if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL))
+      {
+        ignitionSchedule5.channelDegrees = 360;
+        ignitionSchedule6.channelDegrees = 450;
+        ignitionSchedule7.channelDegrees = 540;
+        ignitionSchedule8.channelDegrees = 630;
+        maxIgnOutputs = 8;
+      }
+  #endif
+      break;
+
+  default:
+      break;
+  }
+}
+
+static void setIgnitionScheduleCallbacks(void)
+{
+  switch(configPage4.sparkMode)
+  {
+  case IGN_MODE_WASTED:
+      //Wasted Spark (Normal mode)
+      setCallbacks(ignitionSchedule1, beginCoil1Charge, endCoil1Charge);
+      setCallbacks(ignitionSchedule2, beginCoil2Charge, endCoil2Charge);
+      setCallbacks(ignitionSchedule3, beginCoil3Charge, endCoil3Charge);
+      setCallbacks(ignitionSchedule4, beginCoil4Charge, endCoil4Charge);
+#if IGN_CHANNELS >= 5
+      setCallbacks(ignitionSchedule5, beginCoil5Charge, endCoil5Charge);
+#endif
+      break;
+
+  case IGN_MODE_SINGLE:
+      //Single channel mode. All ignition pulses are on channel 1
+      setCallbacks(ignitionSchedule1, beginCoil1Charge, endCoil1Charge);
+      setCallbacks(ignitionSchedule2, beginCoil1Charge, endCoil1Charge);
+      setCallbacks(ignitionSchedule3, beginCoil1Charge, endCoil1Charge);
+      setCallbacks(ignitionSchedule4, beginCoil1Charge, endCoil1Charge);
+#if IGN_CHANNELS >= 5
+      setCallbacks(ignitionSchedule5, beginCoil1Charge, endCoil1Charge);
+#endif
+#if IGN_CHANNELS >= 6
+      setCallbacks(ignitionSchedule6, beginCoil1Charge, endCoil1Charge);
+#endif
+#if IGN_CHANNELS >= 7
+      setCallbacks(ignitionSchedule7, beginCoil1Charge, endCoil1Charge);
+#endif
+#if IGN_CHANNELS >= 8
+      setCallbacks(ignitionSchedule8, beginCoil1Charge, endCoil1Charge);
+#endif
+      break;
+
+  case IGN_MODE_WASTEDCOP:
+      //Wasted COP mode. Note, most of the boards can only run this for 4-cyl only.
+      if( configPage2.nCylinders <= 3)
+      {
+          //1-3 cylinder wasted COP is the same as regular wasted mode
+        setCallbacks(ignitionSchedule1, beginCoil1Charge, endCoil1Charge);
+        setCallbacks(ignitionSchedule2, beginCoil2Charge, endCoil2Charge);
+        setCallbacks(ignitionSchedule3, beginCoil3Charge, endCoil3Charge);
+        setCallbacks(ignitionSchedule4, beginCoil4Charge, endCoil4Charge);          
+      }
+      else if( configPage2.nCylinders == 4 )
+      {
+        //Wasted COP mode for 4 cylinders. Ignition channels 1&3 and 2&4 are paired together
+        setCallbacks(ignitionSchedule1, beginCoil1and3Charge, endCoil1and3Charge);
+        setCallbacks(ignitionSchedule2, beginCoil2and4Charge, endCoil2and4Charge);
+
+        setCallbacks(ignitionSchedule3, nullCallback, nullCallback);
+        setCallbacks(ignitionSchedule4, nullCallback, nullCallback);
+      }
+      else if( configPage2.nCylinders == 6 )
+        {
+        //Wasted COP mode for 6 cylinders. Ignition channels 1&4, 2&5 and 3&6 are paired together
+        setCallbacks(ignitionSchedule1, beginCoil1and4Charge, endCoil1and4Charge);
+        setCallbacks(ignitionSchedule2, beginCoil2and5Charge, endCoil2and5Charge);
+        setCallbacks(ignitionSchedule3, beginCoil3and6Charge, endCoil3and6Charge);
+
+        setCallbacks(ignitionSchedule4, nullCallback, nullCallback);
+#if IGN_CHANNELS >= 5
+        setCallbacks(ignitionSchedule5, nullCallback, nullCallback);
+#endif
+#if IGN_CHANNELS >= 6
+        setCallbacks(ignitionSchedule6, nullCallback, nullCallback);
+#endif
+      }
+      else if( configPage2.nCylinders == 8 )
+        {
+        //Wasted COP mode for 8 cylinders. Ignition channels 1&5, 2&6, 3&7 and 4&8 are paired together
+        setCallbacks(ignitionSchedule1, beginCoil1and5Charge, endCoil1and5Charge);
+        setCallbacks(ignitionSchedule2, beginCoil2and6Charge, endCoil2and6Charge);
+        setCallbacks(ignitionSchedule3, beginCoil3and7Charge, endCoil3and7Charge);
+        setCallbacks(ignitionSchedule4, beginCoil4and8Charge, endCoil4and8Charge);
+#if IGN_CHANNELS >= 5
+        setCallbacks(ignitionSchedule5, nullCallback, nullCallback);
+#endif
+#if IGN_CHANNELS >= 6
+        setCallbacks(ignitionSchedule6, nullCallback, nullCallback);
+#endif
+#if IGN_CHANNELS >= 7
+        setCallbacks(ignitionSchedule7, nullCallback, nullCallback);
+#endif
+#if IGN_CHANNELS >= 8
+        setCallbacks(ignitionSchedule8, nullCallback, nullCallback);
+#endif
+      }
+      else
+      {
+        //If the person has inadvertently selected this when running more than 4 cylinders or other than 6 cylinders, just use standard Wasted spark mode
+        setCallbacks(ignitionSchedule1, beginCoil1Charge, endCoil1Charge);
+        setCallbacks(ignitionSchedule2, beginCoil2Charge, endCoil2Charge);
+        setCallbacks(ignitionSchedule3, beginCoil3Charge, endCoil3Charge);
+        setCallbacks(ignitionSchedule4, beginCoil4Charge, endCoil4Charge);
+#if IGN_CHANNELS >= 5
+        setCallbacks(ignitionSchedule5, beginCoil5Charge, endCoil5Charge);
+#endif
+      }
+      break;
+
+  case IGN_MODE_SEQUENTIAL:
+      setCallbacks(ignitionSchedule1, beginCoil1Charge, endCoil1Charge);
+      setCallbacks(ignitionSchedule2, beginCoil2Charge, endCoil2Charge);
+      setCallbacks(ignitionSchedule3, beginCoil3Charge, endCoil3Charge);
+      setCallbacks(ignitionSchedule4, beginCoil4Charge, endCoil4Charge);
+#if IGN_CHANNELS >= 5
+      setCallbacks(ignitionSchedule5, beginCoil5Charge, endCoil5Charge);
+#endif
+#if IGN_CHANNELS >= 6
+      setCallbacks(ignitionSchedule6, beginCoil6Charge, endCoil6Charge);
+#endif
+#if IGN_CHANNELS >= 7
+      setCallbacks(ignitionSchedule7, beginCoil7Charge, endCoil7Charge);
+#endif
+#if IGN_CHANNELS >= 8
+      setCallbacks(ignitionSchedule8, beginCoil8Charge, endCoil8Charge);
+#endif
+      break;
+
+  case IGN_MODE_ROTARY:
+      if(configPage10.rotaryType == ROTARY_IGN_FC)
+      {
+        //Ignition channel 1 is a wasted spark signal for leading signal on both rotors
+        setCallbacks(ignitionSchedule1, beginCoil1Charge, endCoil1Charge);
+        setCallbacks(ignitionSchedule2, beginCoil1Charge, endCoil1Charge);
+
+        setCallbacks(ignitionSchedule3, beginTrailingCoilCharge, endTrailingCoilCharge1);
+        setCallbacks(ignitionSchedule4, beginTrailingCoilCharge, endTrailingCoilCharge2);
+      }
+      else if(configPage10.rotaryType == ROTARY_IGN_FD)
+      {
+        //Ignition channel 1 is a wasted spark signal for leading signal on both rotors
+        setCallbacks(ignitionSchedule1, beginCoil1Charge, endCoil1Charge);
+        setCallbacks(ignitionSchedule2, beginCoil1Charge, endCoil1Charge);
+
+        //Trailing coils have their own channel each
+        //IGN2 = front rotor trailing spark
+        setCallbacks(ignitionSchedule3, beginCoil2Charge, endCoil2Charge);
+        //IGN3 = rear rotor trailing spark
+        setCallbacks(ignitionSchedule4, beginCoil3Charge, endCoil3Charge);
+
+        //IGN4 not used
+      }
+      else if(configPage10.rotaryType == ROTARY_IGN_RX8)
+      {
+        //RX8 outputs are simply 1 coil and 1 output per plug
+
+        //IGN1 is front rotor, leading spark
+        setCallbacks(ignitionSchedule1, beginCoil1Charge, endCoil1Charge);
+        //IGN2 is rear rotor, leading spark
+        setCallbacks(ignitionSchedule2, beginCoil2Charge, endCoil2Charge);
+        //IGN3 = front rotor trailing spark
+        setCallbacks(ignitionSchedule3, beginCoil3Charge, endCoil3Charge);
+        //IGN4 = rear rotor trailing spark
+        setCallbacks(ignitionSchedule4, beginCoil4Charge, endCoil4Charge);
+      }
+      else { } //No action for other RX ignition modes (Future expansion / MISRA compliant). 
+      break;
+
+  default:
+      //Wasted spark (Shouldn't ever happen anyway)
+      setCallbacks(ignitionSchedule1, beginCoil1Charge, endCoil1Charge);
+      setCallbacks(ignitionSchedule2, beginCoil2Charge, endCoil2Charge);
+      setCallbacks(ignitionSchedule3, beginCoil3Charge, endCoil3Charge);
+      setCallbacks(ignitionSchedule4, beginCoil4Charge, endCoil4Charge);
+#if IGN_CHANNELS >= 5
+      setCallbacks(ignitionSchedule5, beginCoil5Charge, endCoil5Charge);
+#endif
+      break;
+  }
+}
+
+static void initialiseIgnitionContext(void)
+{
+  CRANK_ANGLE_MAX_IGN = 360;
+  if (configPage4.sparkMode == IGN_MODE_SEQUENTIAL)
+  {
+    bool oddFireSequential = (configPage2.engineType == ODD_FIRE) && (configPage2.nCylinders<=2);
+    bool evenFireSequential = (configPage2.engineType == EVEN_FIRE) && (configPage2.nCylinders<=IGN_CHANNELS);
+    if (oddFireSequential || evenFireSequential)
+    {
+      CRANK_ANGLE_MAX_IGN = 720;
+    }
+  }
+}
+
+void initialiseIgnitionSchedulers(void)
+{
+  resetIgnitionSchedulers();
+  turnOffCoils();
+  initialiseIgnitionContext();
+  setIgnitionChannelAngles();
+  setIgnitionScheduleCallbacks();  
   startIgnitionSchedulers();
 }
 
