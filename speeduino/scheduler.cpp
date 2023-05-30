@@ -140,7 +140,7 @@ void initialiseSchedulers()
   resetIgnitionSchedulers();
 }
 
-void startSchedulers(void)
+void startFuelSchedulers(void)
 {
   FUEL1_TIMER_ENABLE();
   FUEL2_TIMER_ENABLE();
@@ -158,7 +158,10 @@ void startSchedulers(void)
 #if INJ_CHANNELS >= 8
   FUEL8_TIMER_ENABLE();
 #endif
+}
 
+void startIgnitionSchedulers(void)
+{
   IGN1_TIMER_ENABLE();
   IGN2_TIMER_ENABLE();
   IGN3_TIMER_ENABLE();
@@ -172,7 +175,14 @@ void startSchedulers(void)
 #endif
 #if IGN_CHANNELS >= 8
   IGN8_TIMER_ENABLE();
-#endif  
+#endif
+}
+
+
+void startSchedulers(void)
+{
+  startFuelSchedulers();
+  startIgnitionSchedulers();
 }
 
 void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback)
