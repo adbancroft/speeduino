@@ -56,13 +56,27 @@ See page 136 of the processors datasheet: http://www.atmel.com/Images/doc2549.pd
 #define IGNITION_REFRESH_THRESHOLD  30 //Time in uS that the refresh functions will check to ensure there is enough time before changing the end compare
 
 /** @brief Initialize all fuel schedulers to the OFF state */
+/** @brief Reset all fuel schedulers to the OFF state */
 void resetFuelSchedulers(void);
+
+/** @brief Configure all fuel schedulers based on the current tune
+ * parameters
+ * 
+ * Assumes that all config pages have been configured - typically by
+ * loading the tune from EEPROM
+*/
+void initialiseFuelSchedulers(void);
 
 /** @brief Initialize all ignition schedulers to the OFF state */
 void resetIgnitionSchedulers(void);
 
-/** @brief Start the timers that drive schedulers  */
-void startSchedulers(void);
+/** @brief Configure all ignition schedulers based on the current tune
+ * parameters
+ * 
+ * Assumes that all config pages have been configured - typically by
+ * loading the tune from EEPROM
+*/
+void initialiseIgnitionSchedulers(void);
 
 /** @brief Start fuel system  priming the fuel */
 void beginInjectorPriming(void);
