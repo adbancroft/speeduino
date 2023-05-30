@@ -420,6 +420,14 @@ static void setFuelChannelAngles(void)
       maxInjOutputs = 2;
       break;
   }  
+
+  //Special case:
+  //3 or 5 squirts per cycle MUST be tracked over 720 degrees. This is because the angles for them (Eg 720/3=240) are not evenly divisible into 360
+  //This is ONLY the case on 4 stroke systems
+  if( (currentStatus.nSquirts == 3) || (currentStatus.nSquirts == 5) )
+  {
+    if(configPage2.strokes == FOUR_STROKE) { CRANK_ANGLE_MAX_INJ = 720U/currentStatus.nSquirts; }
+  }  
 }
 
 static void setFuelScheduleCallbacks(void)
@@ -518,10 +526,36 @@ static void setFuelScheduleCallbacks(void)
   }
 }
 
+static void initialiseFuelContext(void) 
+{
+  if(configPage2.strokes == FOUR_STROKE)
+  {
+    //Default is 1 squirt per revolution, so we halve the given req-fuel figure (Which would be over 2 revolutions)
+    req_fuel_uS = req_fuel_uS / 2; //The req_fuel calculation above gives the total required fuel (At VE 100%) in the full cycle. If we're doing more than 1 squirt per cycle then we need to split the amount accordingly. (Note that in a non-sequential 4-stroke setup you cannot have less than 2 squirts as you cannot determine the stroke to make the single squirt on)
+  }
+
+  if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) && (configPage2.nCylinders<=INJ_CHANNELS))
+  {
+    CRANK_ANGLE_MAX_INJ = 720;
+    currentStatus.nSquirts = 1;
+    req_fuel_uS = req_fuel_uS * 2;
+  }
+  else
+  {
+    currentStatus.nSquirts = max(1, configPage2.nCylinders / configPage2.divider); //The number of squirts being requested. This is manually overridden below for sequential setups (Due to TS req_fuel calc limitations)
+    if ((configPage2.injLayout == INJ_SEQUENTIAL) && configPage2.nCylinders==3) {
+      currentStatus.nSquirts = 1;
+    }
+    CRANK_ANGLE_MAX_INJ = (configPage2.strokes == FOUR_STROKE ? 720 : 360) / currentStatus.nSquirts;
+  }
+  currentStatus.status3 |= currentStatus.nSquirts << BIT_STATUS3_NSQUIRTS1; //Top 3 bits of the status3 variable are the number of squirts. This must be done after the above section due to nSquirts being forced to 1 for sequential
+}
+
 static void initialiseFuelSchedulers(void)
 {
   resetFuelSchedulers();
   turnOffInjectors();
+  initialiseFuelContext();
   setFuelChannelAngles();
   setFuelScheduleCallbacks();
 }
@@ -849,10 +883,25 @@ static void setIgnitionScheduleCallbacks(void)
   }
 }
 
+static void initialiseIgnitionContext(void)
+{
+  CRANK_ANGLE_MAX_IGN = 360;
+  if (configPage4.sparkMode == IGN_MODE_SEQUENTIAL)
+  {
+    bool oddFireSequential = (configPage2.engineType == ODD_FIRE) && (configPage2.nCylinders<=2);
+    bool evenFireSequential = (configPage2.engineType == EVEN_FIRE) && (configPage2.nCylinders<=IGN_CHANNELS);
+    if (oddFireSequential || evenFireSequential)
+    {
+      CRANK_ANGLE_MAX_IGN = 720;
+    }
+  }
+}
+
 static void initialiseIgnitionSchedulers(void)
 {
   resetIgnitionSchedulers();
   turnOffCoils();
+  initialiseIgnitionContext();
   setIgnitionChannelAngles();
   setIgnitionScheduleCallbacks();  
 }
@@ -1077,52 +1126,10 @@ void initialiseAll(void)
     if( FLEX_USES_RPM2() ) { attachInterrupt(digitalPinToInterrupt(pinFlex), flexPulse, CHANGE); } //Secondary trigger input can safely be used for Flex sensor
 
     //End crank trigger interrupt attachment
-    if(configPage2.strokes == FOUR_STROKE)
-    {
-      //Default is 1 squirt per revolution, so we halve the given req-fuel figure (Which would be over 2 revolutions)
-      req_fuel_uS = req_fuel_uS / 2; //The req_fuel calculation above gives the total required fuel (At VE 100%) in the full cycle. If we're doing more than 1 squirt per cycle then we need to split the amount accordingly. (Note that in a non-sequential 4-stroke setup you cannot have less than 2 squirts as you cannot determine the stroke to make the single squirt on)
-    }
 
     //Initial values for loop times
     currentLoopTime = micros_safe();
     mainLoopCount = 0;
-
-    if(configPage2.divider == 0) { currentStatus.nSquirts = 2; } //Safety check.
-    else { currentStatus.nSquirts = max(1, configPage2.nCylinders / configPage2.divider); } //The number of squirts being requested. This is manually overridden below for sequential setups (Due to TS req_fuel calc limitations)
-
-    //Calculate the number of degrees between cylinders
-    //Set some default values. These will be updated below if required.
-    CRANK_ANGLE_MAX_IGN = 360;
-    CRANK_ANGLE_MAX_INJ = 360;
-
-    if(configPage2.strokes == FOUR_STROKE) { CRANK_ANGLE_MAX_INJ = 720 / currentStatus.nSquirts; }
-    else { CRANK_ANGLE_MAX_INJ = 360 / currentStatus.nSquirts; }
-
-    if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) && (configPage2.nCylinders<=INJ_CHANNELS))
-    {
-      CRANK_ANGLE_MAX_INJ = 720;
-      currentStatus.nSquirts = 1;
-      req_fuel_uS = req_fuel_uS * 2;
-    }
-    if (configPage4.sparkMode == IGN_MODE_SEQUENTIAL)
-    {
-      bool oddFireSequential = (configPage2.engineType == ODD_FIRE) && (configPage2.nCylinders<=2);
-      bool evenFireSequential = (configPage2.engineType == EVEN_FIRE) && (configPage2.nCylinders<=IGN_CHANNELS);
-      if (oddFireSequential || evenFireSequential)
-      {
-        CRANK_ANGLE_MAX_IGN = 720;
-      }
-    }
-
-    currentStatus.status3 |= currentStatus.nSquirts << BIT_STATUS3_NSQUIRTS1; //Top 3 bits of the status3 variable are the number of squirts. This must be done after the above section due to nSquirts being forced to 1 for sequential
-    
-    //Special case:
-    //3 or 5 squirts per cycle MUST be tracked over 720 degrees. This is because the angles for them (Eg 720/3=240) are not evenly divisible into 360
-    //This is ONLY the case on 4 stroke systems
-    if( (currentStatus.nSquirts == 3) || (currentStatus.nSquirts == 5) )
-    {
-      if(configPage2.strokes == FOUR_STROKE) { CRANK_ANGLE_MAX_INJ = (720U / currentStatus.nSquirts); }
-    }
     
     initialiseFuelSchedulers();
     initialiseIgnitionSchedulers();
