@@ -57,9 +57,6 @@ void resetFuelSchedulers(void);
 /** @brief Initialize all ignition schedulers to the OFF state */
 void resetIgnitionSchedulers(void);
 
-/** @brief Initialize all schedulers to the OFF state */
-void initialiseSchedulers(void);
-
 /** @brief Start the timers that drive schedulers  */
 void startSchedulers(void);
 

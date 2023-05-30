@@ -134,12 +134,6 @@ void resetIgnitionSchedulers(void)
 #endif
 }
 
-void initialiseSchedulers()
-{
-  resetFuelSchedulers();
-  resetIgnitionSchedulers();
-}
-
 void startFuelSchedulers(void)
 {
   FUEL1_TIMER_ENABLE();
