@@ -76,6 +76,12 @@ void beginInjectorPriming(void);
 void disablePendingFuelSchedule(byte channel);
 void disablePendingIgnSchedule(byte channel);
 
+/** @brief ???? */
+void changeHalfToFullSync(void);
+
+/** @brief ???? */
+void changeFullToHalfSync(void);
+
 //The ARM cores use separate functions for their ISRs
 #if defined(ARDUINO_ARCH_STM32) || defined(CORE_TEENSY)
   #define FUEL_INTERRUPT_NAME(index) CONCAT(CONCAT(fuelSchedule, index), Interrupt)
