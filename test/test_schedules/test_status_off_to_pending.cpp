@@ -7,8 +7,6 @@
 #define TIMEOUT 1000
 #define DURATION 1000
 
-static void emptyCallback(void) {  }
-
 static void test_status_off_to_pending(FuelSchedule &schedule)
 {
     resetFuelSchedulers();
@@ -67,7 +65,6 @@ static void test_status_off_to_pending_inj8(void)
 static void test_status_off_to_pending(IgnitionSchedule &schedule)
 {
     resetIgnitionSchedulers();
-    setCallbacks(schedule, emptyCallback, emptyCallback);
     _setIgnitionScheduleDuration(schedule, TIMEOUT, DURATION);
     TEST_ASSERT_EQUAL(PENDING, schedule._status);
 }

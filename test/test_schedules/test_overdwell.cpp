@@ -47,6 +47,8 @@ static void counter_callback(void) {
   ++counter;
 }
 
+extern void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback);
+
 static void test_applyChannelOverDwellProtection_notRunning(void) {
   IgnitionSchedule schedule(IGN1_COUNTER, IGN1_COMPARE);
   counter = 0;

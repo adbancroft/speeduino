@@ -80,6 +80,12 @@ void beginInjectorPriming(void);
 void disablePendingFuelSchedule(byte channel);
 void disablePendingIgnSchedule(byte channel);
 
+/** @brief ???? */
+void changeHalfToFullSync(void);
+
+/** @brief ???? */
+void changeFullToHalfSync(void);
+
 /** \enum ScheduleStatus
  * @brief The current state of a schedule
  * */
@@ -212,17 +218,6 @@ static inline  __attribute__((always_inline)) void _setSchedule(Schedule &schedu
 }
 
 /// @endcond
-
-/**
- * @brief Set the schedule callbacks. I.e the functions called when the action
- * needs to start & stop
- * 
- * @param schedule Schedule to modify
- * @param pStartCallback The new start callback - called when the schedule switches to RUNNING status
- * @param pEndCallback The new end callback - called when the schedule switches to from RUNNING to OFF status
- */
-void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback);
-
 
 /** @brief An ignition schedule.
  *
