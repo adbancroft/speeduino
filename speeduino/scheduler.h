@@ -84,6 +84,12 @@ void beginInjectorPriming(void);
 void disablePendingFuelSchedule(byte channel);
 void disablePendingIgnSchedule(byte channel);
 
+/** @brief ???? */
+void changeHalfToFullSync(void);
+
+/** @brief ???? */
+void changeFullToHalfSync(void);
+
 /** \enum ScheduleStatus
  * @brief The current state of a schedule
  * */
