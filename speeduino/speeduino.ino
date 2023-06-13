@@ -72,6 +72,52 @@ inline uint16_t applyFuelTrimToPW(trimTable3d *pTrimTable, int16_t fuelLoad, int
     return percentage(pw1percent, currentPW);
 }
 
+static inline void setIgnitionSchedule(IgnitionSchedule &schedule, uint8_t index, uint16_t crankAngle, uint16_t totalDwell) {
+  if ((maxIgnOutputs>index) && (BIT_CHECK(ignitionChannelsOn, IGN1_CMD_BIT+index)) ) {
+    setIgnitionSchedule(schedule, crankAngle, totalDwell);
+  }
+}
+
+static inline __attribute__((flatten)) void setIgnitionSchedules(uint16_t crankAngle, uint16_t totalDwell) {
+  setIgnitionSchedule(ignitionSchedule1, 0, crankAngle, totalDwell);
+#if defined(USE_IGN_REFRESH)
+  if( isRunning(ignitionSchedule1) && (ignitionSchedule1.dischargeAngle > (int16_t)crankAngle) && (configPage4.StgCycles == 0) && (configPage2.perToothIgn != true) )
+  {
+    crankAngle = ignitionLimits(getCrankAngle()); //Refresh the crank angle info
+
+    adjustCrankAngle(ignitionSchedule1, crankAngle);
+  }
+#endif
+  
+#if IGN_CHANNELS >= 2
+  setIgnitionSchedule(ignitionSchedule2, 1, crankAngle, totalDwell);
+#endif
+
+#if IGN_CHANNELS >= 3
+  setIgnitionSchedule(ignitionSchedule3, 2, crankAngle, totalDwell);
+#endif
+
+#if IGN_CHANNELS >= 4
+  setIgnitionSchedule(ignitionSchedule4, 3, crankAngle, totalDwell);
+#endif
+
+#if IGN_CHANNELS >= 5
+  setIgnitionSchedule(ignitionSchedule5, 4, crankAngle, totalDwell);
+#endif
+
+#if IGN_CHANNELS >= 6
+  setIgnitionSchedule(ignitionSchedule6, 5, crankAngle, totalDwell);
+#endif
+
+#if IGN_CHANNELS >= 7
+  setIgnitionSchedule(ignitionSchedule7, 6, crankAngle, totalDwell);
+#endif
+
+#if IGN_CHANNELS >= 8
+  setIgnitionSchedule(ignitionSchedule8, 7, crankAngle, totalDwell);
+#endif
+} 
+
 /** Speeduino main loop.
  * 
  * Main loop chores (roughly in the order that they are performed):
@@ -1062,76 +1108,7 @@ void __attribute__((always_inline)) loop(void)
 
       if(ignitionChannelsOn > 0)
       {
-        //Refresh the current crank angle info
-        crankAngle = ignitionLimits(getCrankAngle()); //Refresh the crank angle info
-
-#if IGN_CHANNELS >= 1
-        if ((BIT_CHECK(ignitionChannelsOn, IGN1_CMD_BIT))) 
-        {          
-          setIgnitionSchedule(ignitionSchedule1, crankAngle,
-                    currentStatus.dwell + fixedCrankingOverride);
-        }
-#endif
-
-#if defined(USE_IGN_REFRESH)
-        if( isRunning(ignitionSchedule1) && (ignitionSchedule1.dischargeAngle > crankAngle) && (configPage4.StgCycles == 0) && (configPage2.perToothIgn != true) )
-        {
-          crankAngle = ignitionLimits(getCrankAngle()); //Refresh the crank angle info
-
-          adjustCrankAngle(ignitionSchedule1, crankAngle);
-        }
-#endif
-        
-#if IGN_CHANNELS >= 2
-        if ((maxIgnOutputs >= 2) && (BIT_CHECK(ignitionChannelsOn, IGN2_CMD_BIT))) {
-          setIgnitionSchedule(ignitionSchedule2, crankAngle,
-                    currentStatus.dwell + fixedCrankingOverride);
-        }          
-#endif
-
-#if IGN_CHANNELS >= 3
-        if ((maxIgnOutputs >= 3) && (BIT_CHECK(ignitionChannelsOn, IGN3_CMD_BIT))) {
-          setIgnitionSchedule(ignitionSchedule3, crankAngle,
-                    currentStatus.dwell + fixedCrankingOverride);
-        }
-#endif
-
-#if IGN_CHANNELS >= 4
-        if ((maxIgnOutputs >= 4) && (BIT_CHECK(ignitionChannelsOn, IGN4_CMD_BIT))) {
-          setIgnitionSchedule(ignitionSchedule4, crankAngle,
-                    currentStatus.dwell + fixedCrankingOverride);
-        }          
-#endif
-
-#if IGN_CHANNELS >= 5
-        if ((maxIgnOutputs >= 5) && (BIT_CHECK(ignitionChannelsOn, IGN5_CMD_BIT))) {
-          setIgnitionSchedule(ignitionSchedule5, crankAngle,
-                    currentStatus.dwell + fixedCrankingOverride);
-        }          
-#endif
-
-#if IGN_CHANNELS >= 6
-        if ((maxIgnOutputs >= 6) && (BIT_CHECK(ignitionChannelsOn, IGN6_CMD_BIT))) {
-          setIgnitionSchedule(ignitionSchedule6, crankAngle,
-                    currentStatus.dwell + fixedCrankingOverride);
-        }          
-#endif
-
-#if IGN_CHANNELS >= 7
-        if ((maxIgnOutputs >= 7) && (BIT_CHECK(ignitionChannelsOn, IGN7_CMD_BIT))) {
-          setIgnitionSchedule(ignitionSchedule7, crankAngle,
-                    currentStatus.dwell + fixedCrankingOverride);
-        }          
-
-#endif
-
-#if IGN_CHANNELS >= 8
-        if ((maxIgnOutputs >= 8) && (BIT_CHECK(ignitionChannelsOn, IGN8_CMD_BIT))) {
-          setIgnitionSchedule(ignitionSchedule8, crankAngle,
-                    currentStatus.dwell + fixedCrankingOverride);
-        }          
-#endif
-
+        setIgnitionSchedules(ignitionLimits(getCrankAngle()), currentStatus.dwell + fixedCrankingOverride);
       } //Ignition schedules on
 
       if ( (!BIT_CHECK(currentStatus.status3, BIT_STATUS3_RESET_PREVENT)) && (resetControl == RESET_CONTROL_PREVENT_WHEN_RUNNING) ) 

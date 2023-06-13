@@ -282,23 +282,23 @@ static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check all uses of TOOTH_LOG_SIZE");
 #define BATTV_COR_MODE_WHOLE 0
 #define BATTV_COR_MODE_OPENTIME 1
 
-#define INJ1_CMD_BIT      0
-#define INJ2_CMD_BIT      1
-#define INJ3_CMD_BIT      2
-#define INJ4_CMD_BIT      3
-#define INJ5_CMD_BIT      4
-#define INJ6_CMD_BIT      5
-#define INJ7_CMD_BIT      6
-#define INJ8_CMD_BIT      7
+#define INJ1_CMD_BIT      0U
+#define INJ2_CMD_BIT      1U
+#define INJ3_CMD_BIT      2U
+#define INJ4_CMD_BIT      3U
+#define INJ5_CMD_BIT      4U
+#define INJ6_CMD_BIT      5U
+#define INJ7_CMD_BIT      6U
+#define INJ8_CMD_BIT      7U
 
-#define IGN1_CMD_BIT      0
-#define IGN2_CMD_BIT      1
-#define IGN3_CMD_BIT      2
-#define IGN4_CMD_BIT      3
-#define IGN5_CMD_BIT      4
-#define IGN6_CMD_BIT      5
-#define IGN7_CMD_BIT      6
-#define IGN8_CMD_BIT      7
+#define IGN1_CMD_BIT      0U
+#define IGN2_CMD_BIT      1U
+#define IGN3_CMD_BIT      2U
+#define IGN4_CMD_BIT      3U
+#define IGN5_CMD_BIT      4U
+#define IGN6_CMD_BIT      5U
+#define IGN7_CMD_BIT      6U
+#define IGN8_CMD_BIT      7U
 
 #define ENGINE_PROTECT_BIT_RPM  0
 #define ENGINE_PROTECT_BIT_MAP  1
