@@ -3,11 +3,9 @@
 #include <unity.h>
 #include "Nissan360.h"
 #include "scheduler.h"
+#include "utilities.h"
 
-extern uint16_t ignition1EndTooth;
-extern uint16_t ignition2EndTooth;
-extern uint16_t ignition3EndTooth;
-extern uint16_t ignition4EndTooth;
+extern uint16_t ignitionEndTeeth[_countof(ignitionSchedules)];
 
 void test_nissan360_newIgn_12_trig0_1()
 {
@@ -21,17 +19,17 @@ void test_nissan360_newIgn_12_trig0_1()
 
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     triggerSetEndTeeth_Nissan360();
-    TEST_ASSERT_EQUAL(171, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(171, ignitionEndTeeth[0]);
 
     //Test again with 0 degrees advance
     calculateIgnitionAngles(ignitionSchedules[0], 5, 0);
     triggerSetEndTeeth_Nissan360();
-    TEST_ASSERT_EQUAL(176, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(176, ignitionEndTeeth[0]);
 
     //Test again with 35 degrees advance
     calculateIgnitionAngles(ignitionSchedules[0], 5, 35);
     triggerSetEndTeeth_Nissan360();
-    TEST_ASSERT_EQUAL(158, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(158, ignitionEndTeeth[0]);
 }
 
 void test_nissan360_newIgn_12_trig90_1()
@@ -46,7 +44,7 @@ void test_nissan360_newIgn_12_trig90_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_Nissan360();
-    TEST_ASSERT_EQUAL(126, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(126, ignitionEndTeeth[0]);
 }
 
 void test_nissan360_newIgn_12_trig180_1()
@@ -61,7 +59,7 @@ void test_nissan360_newIgn_12_trig180_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_Nissan360();
-    TEST_ASSERT_EQUAL(81, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(81, ignitionEndTeeth[0]);
 }
 
 void test_nissan360_newIgn_12_trig270_1()
@@ -76,7 +74,7 @@ void test_nissan360_newIgn_12_trig270_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_Nissan360();
-    TEST_ASSERT_EQUAL(36, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(36, ignitionEndTeeth[0]);
 }
 
 void test_nissan360_newIgn_12_trig360_1()
@@ -91,7 +89,7 @@ void test_nissan360_newIgn_12_trig360_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
 
     triggerSetEndTeeth_Nissan360();
-    TEST_ASSERT_EQUAL(351, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(351, ignitionEndTeeth[0]);
 }
 
 void test_nissan360_newIgn_12_trigNeg90_1()
@@ -106,7 +104,7 @@ void test_nissan360_newIgn_12_trigNeg90_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_Nissan360();
-    TEST_ASSERT_EQUAL(216, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(216, ignitionEndTeeth[0]);
 }
 
 void test_nissan360_newIgn_12_trigNeg180_1()
@@ -121,7 +119,7 @@ void test_nissan360_newIgn_12_trigNeg180_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_Nissan360();
-    TEST_ASSERT_EQUAL(261, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(261, ignitionEndTeeth[0]);
 }
 
 void test_nissan360_newIgn_12_trigNeg270_1()
@@ -136,7 +134,7 @@ void test_nissan360_newIgn_12_trigNeg270_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_Nissan360();
-    TEST_ASSERT_EQUAL(306, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(306, ignitionEndTeeth[0]);
 }
 
 void test_nissan360_newIgn_12_trigNeg360_1()
@@ -151,7 +149,7 @@ void test_nissan360_newIgn_12_trigNeg360_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
 
     triggerSetEndTeeth_Nissan360();
-    TEST_ASSERT_EQUAL(351, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(351, ignitionEndTeeth[0]);
 }
 
 void testNissan360()
