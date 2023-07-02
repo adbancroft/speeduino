@@ -14,6 +14,10 @@
 
 #define CRANK_RUN_HYSTER    15U
 
+struct pulseWidths {
+  uint16_t primary;
+  uint16_t secondary;
+};
 
 void calculateStaging(uint32_t);
 void checkLaunchAndFlatShift();

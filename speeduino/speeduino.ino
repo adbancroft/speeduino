@@ -223,10 +223,6 @@ TESTABLE_INLINE_STATIC uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t cor
   return (unsigned int)(intermediate);
 }
 
-struct pulseWidths {
-  uint16_t primary;
-  uint16_t secondary;
-};
 TESTABLE_INLINE_STATIC pulseWidths computePulseWidths(uint16_t pwLimit, uint16_t pwPrimary) {
   uint16_t pwSecondary = 0U;
 
