@@ -78,6 +78,10 @@ extern bool decoderHasSecondary; //Whether or not the pattern uses a secondary i
 extern bool decoderHasFixedCrankingTiming; 
 */
 
+static inline bool isFixedCrankLock(void) {
+  return configPage4.ignCranklock && BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) && (BIT_CHECK(decoderState, BIT_DECODER_HAS_FIXED_CRANKING));
+}
+
 void loggerPrimaryISR(void);
 void loggerSecondaryISR(void);
 void loggerTertiaryISR(void);
