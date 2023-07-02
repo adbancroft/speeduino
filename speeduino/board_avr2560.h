@@ -1,7 +1,6 @@
 #ifndef AVR2560_H
 #define AVR2560_H
 
-#include "globals.h"
 #if defined(CORE_AVR)
 
 #include <avr/interrupt.h>

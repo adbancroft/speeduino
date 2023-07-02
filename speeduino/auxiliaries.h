@@ -1,6 +1,8 @@
 #ifndef AUX_H
 #define AUX_H
 
+#include "atomic.h"
+
 void initialiseAuxPWM(void);
 void boostControl(void);
 void boostDisable(void);

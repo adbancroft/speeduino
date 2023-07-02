@@ -5,6 +5,7 @@
 #include "crankMaths.h"
 #include "maths.h"
 #include "timers.h"
+#include "atomic.h"
 
 static inline void setOpenAngle(FuelSchedule &schedule, uint16_t pwDegrees, uint16_t injAngle)
 {

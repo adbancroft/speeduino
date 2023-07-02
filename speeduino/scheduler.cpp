@@ -30,6 +30,7 @@ A full copy of the license may be found in the projects root directory
 #include "timers.h"
 #include "speeduino.h"
 #include "utilities.h"
+#include "atomic.h"
 
 FuelSchedule fuelSchedules[INJ_CHANNELS] = {
   FuelSchedule(FUEL1_COUNTER, FUEL1_COMPARE),

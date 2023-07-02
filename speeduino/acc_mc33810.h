@@ -1,10 +1,15 @@
 #ifndef MC33810_H
 #define MC33810_H
 
+#include "board_selector.h"
+
+#if defined(OUTPUT_CONTROL_SUPPORTED)
+
 #include <SPI.h>
 #include "globals.h"
-#include BOARD_H //Note that this is not a real file, it is defined in globals.h. 
 
+extern byte pinMC33810_1_CS;
+extern byte pinMC33810_2_CS;
 extern volatile PORT_TYPE *mc33810_1_pin_port;
 extern volatile PINMASK_TYPE mc33810_1_pin_mask;
 extern volatile PORT_TYPE *mc33810_2_pin_port;
@@ -99,5 +104,24 @@ extern uint8_t MC33810_BIT_IGN8;
 #define coil6Toggle_MC33810() MC33810_2_ACTIVE(); BIT_TOGGLE(mc33810_2_requestedState, MC33810_BIT_IGN6); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
 #define coil7Toggle_MC33810() MC33810_2_ACTIVE(); BIT_TOGGLE(mc33810_2_requestedState, MC33810_BIT_IGN7); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
 #define coil8Toggle_MC33810() MC33810_2_ACTIVE(); BIT_TOGGLE(mc33810_2_requestedState, MC33810_BIT_IGN8); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
+
+#define coil1Charging_MC33810()      coil1High_MC33810()
+#define coil1StopCharging_MC33810()  coil1Low_MC33810()
+#define coil2Charging_MC33810()      coil2High_MC33810()
+#define coil2StopCharging_MC33810()  coil2Low_MC33810()
+#define coil3Charging_MC33810()      coil3High_MC33810()
+#define coil3StopCharging_MC33810()  coil3Low_MC33810()
+#define coil4Charging_MC33810()      coil4High_MC33810()
+#define coil4StopCharging_MC33810()  coil4Low_MC33810()
+#define coil5Charging_MC33810()      coil5High_MC33810()
+#define coil5StopCharging_MC33810()  coil5Low_MC33810()
+#define coil6Charging_MC33810()      coil6High_MC33810()
+#define coil6StopCharging_MC33810()  coil6Low_MC33810()
+#define coil7Charging_MC33810()      coil7High_MC33810()
+#define coil7StopCharging_MC33810()  coil7Low_MC33810()
+#define coil8Charging_MC33810()      coil8High_MC33810()
+#define coil8StopCharging_MC33810()  coil8Low_MC33810()
+
+#endif
 
 #endif
