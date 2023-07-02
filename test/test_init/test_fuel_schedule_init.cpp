@@ -13,18 +13,18 @@ void prepareForInitialiseAll(uint8_t boardId);
 
 static constexpr uint16_t reqFuel = 86; // ms * 10
 
-static void __attribute__((noinline)) assert_fuel_channel(bool enabled, uint16_t angle, uint8_t cmdBit, int channelInjDegrees, voidVoidCallback startFunction, voidVoidCallback endFunction)
+static void assert_fuel_channel(bool enabled, uint16_t angle, uint8_t channelIndex, const FuelSchedule &schedule)
 {
   char msg[39];
 
-  sprintf_P(msg, PSTR("channel%" PRIu8 ".InjChannelIsEnabled. Max:%" PRIu8), cmdBit+1, maxInjOutputs);
-  TEST_ASSERT_TRUE_MESSAGE(!enabled || (cmdBit+1)<=maxInjOutputs, msg);
-  sprintf_P(msg, PSTR("channel%" PRIu8 ".InjDegrees"), cmdBit+1);
-  TEST_ASSERT_EQUAL_MESSAGE(angle, channelInjDegrees, msg);
-  sprintf_P(msg, PSTR("inj%" PRIu8 ".StartFunction"), cmdBit+1);
-  TEST_ASSERT_TRUE_MESSAGE(!enabled || (startFunction!=nullCallback), msg);
-  sprintf_P(msg, PSTR("inj%" PRIu8 ".EndFunction"), cmdBit+1);
-  TEST_ASSERT_TRUE_MESSAGE(!enabled || (endFunction!=nullCallback), msg);
+  sprintf_P(msg, PSTR("channel%" PRIu8 ".InjChannelIsEnabled. Max:%" PRIu8), channelIndex+1, maxInjOutputs);
+  TEST_ASSERT_TRUE_MESSAGE(!enabled || (channelIndex+1)<=maxInjOutputs, msg);
+  sprintf_P(msg, PSTR("channel%" PRIu8 "InjDegrees"), channelIndex+1);
+  TEST_ASSERT_EQUAL_MESSAGE(angle, schedule.channelDegrees, msg);
+  sprintf_P(msg, PSTR("inj%" PRIu8 "StartFunction: %" PRId16), channelIndex+1, (int16_t)enabled);
+  TEST_ASSERT_TRUE_MESSAGE(!enabled || (schedule._pStartCallback!=nullCallback), msg);
+  sprintf_P(msg, PSTR("inj%" PRIu8 "EndFunction: %" PRId16), channelIndex+1, (int16_t)enabled);
+  TEST_ASSERT_TRUE_MESSAGE(!enabled || (schedule._pEndCallback!=nullCallback), msg);
 }
 
 static void __attribute__((noinline)) assert_fuel_schedules(uint16_t crankAngle, uint16_t reqFuel, const bool enabled[], const uint16_t angle[])
@@ -36,26 +36,9 @@ static void __attribute__((noinline)) assert_fuel_schedules(uint16_t crankAngle,
   strcpy_P(msg, PSTR("req_fuel_uS"));
   TEST_ASSERT_EQUAL_UINT16_MESSAGE(reqFuel, req_fuel_uS, msg);
 
-  assert_fuel_channel(enabled[0], angle[0], INJ1_CMD_BIT, fuelSchedule1.channelDegrees, fuelSchedule1._pStartCallback, fuelSchedule1._pEndCallback);
-  assert_fuel_channel(enabled[1], angle[1], INJ2_CMD_BIT, fuelSchedule2.channelDegrees, fuelSchedule2._pStartCallback, fuelSchedule2._pEndCallback);
-  assert_fuel_channel(enabled[2], angle[2], INJ3_CMD_BIT, fuelSchedule3.channelDegrees, fuelSchedule3._pStartCallback, fuelSchedule3._pEndCallback);
-  assert_fuel_channel(enabled[3], angle[3], INJ4_CMD_BIT, fuelSchedule4.channelDegrees, fuelSchedule4._pStartCallback, fuelSchedule4._pEndCallback);
-
-#if INJ_CHANNELS>=5
-  assert_fuel_channel(enabled[4], angle[4], INJ5_CMD_BIT, fuelSchedule5.channelDegrees, fuelSchedule5._pStartCallback, fuelSchedule5._pEndCallback);
-#endif
-
-#if INJ_CHANNELS>=6
-  assert_fuel_channel(enabled[5], angle[5], INJ6_CMD_BIT, fuelSchedule6.channelDegrees, fuelSchedule6._pStartCallback, fuelSchedule6._pEndCallback);
-#endif
-
-#if INJ_CHANNELS>=7
-  assert_fuel_channel(enabled[6], angle[6], INJ7_CMD_BIT, fuelSchedule7.channelDegrees, fuelSchedule7._pStartCallback, fuelSchedule7._pEndCallback);
-#endif
-
-#if INJ_CHANNELS>=8
-  assert_fuel_channel(enabled[7], angle[7], INJ8_CMD_BIT, fuelSchedule8.channelDegrees, fuelSchedule8._pStartCallback, fuelSchedule8._pEndCallback);
-#endif 
+  for (uint8_t index=0; index<_countof(fuelSchedules); ++index) {
+    assert_fuel_channel(enabled[index], angle[index], index, fuelSchedules[index]);
+  }
 }
 
 static void cylinder1_stroke4_seq_nostage(void)
