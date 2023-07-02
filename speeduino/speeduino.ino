@@ -49,7 +49,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include RTC_LIB_H //Defined in each boards .h file
 
 TESTABLE_INLINE_STATIC uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen);
-TESTABLE_INLINE_STATIC void calculateStaging(uint16_t pwLimit, uint16_t pwPrimary);
 
 uint16_t req_fuel_uS = 0; /**< The required fuel variable (As calculated by TunerStudio) in uS */
 uint16_t inj_opentime_uS = 0;
@@ -222,6 +221,76 @@ TESTABLE_INLINE_STATIC uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t cor
     }
   }
   return (unsigned int)(intermediate);
+}
+
+struct pulseWidths {
+  uint16_t primary;
+  uint16_t secondary;
+};
+TESTABLE_INLINE_STATIC pulseWidths computePulseWidths(uint16_t pwLimit, uint16_t pwPrimary) {
+  uint16_t pwSecondary = 0U;
+
+  //Calculate staging pulsewidths if used
+  //To run staged injection, the number of cylinders must be less than or equal to the injector channels (ie Assuming you're running paired injection, you need at least as many injector channels as you have cylinders, half for the primaries and half for the secondaries)
+  if( (configPage10.stagingEnabled == true) && (configPage2.nCylinders <= (uint8_t)INJ_CHANNELS || configPage2.injType == INJ_TYPE_TBODY) && (pwPrimary > inj_opentime_uS) ) //Final check is to ensure that DFCO isn't active, which would cause an overflow below (See #267)
+  {
+    //Scale the 'full' pulsewidth by each of the injector capacities
+    pwPrimary -= inj_opentime_uS; //Subtract the opening time from PW1 as it needs to be multiplied out again by the pri/sec req_fuel values below. It is added on again after that calculation. 
+    uint32_t tempPW1 = div100((uint32_t)pwPrimary * staged_req_fuel_mult_pri);
+
+    if(configPage10.stagingMode == STAGING_MODE_TABLE)
+    {
+      uint32_t tempPW3 = div100((uint32_t)pwPrimary * staged_req_fuel_mult_sec); //This is ONLY needed in in table mode. Auto mode only calculates the difference.
+
+      byte stagingSplit = get3DTableValue(&stagingTable, currentStatus.fuelLoad, currentStatus.RPM);
+      pwPrimary = div100((100 - stagingSplit) * tempPW1);
+      pwPrimary += inj_opentime_uS; 
+
+      //PW2 is used temporarily to hold the secondary injector pulsewidth. It will be assigned to the correct channel below
+      if(stagingSplit > 0) 
+      { 
+        pwSecondary = div100(stagingSplit * tempPW3); 
+        pwSecondary += inj_opentime_uS;
+      }
+    }
+    else if(configPage10.stagingMode == STAGING_MODE_AUTO)
+    {
+      pwPrimary = tempPW1;
+      //If automatic mode, the primary injectors are used all the way up to their limit (Configured by the pulsewidth limit setting)
+      //If they exceed their limit, the extra duty is passed to the secondaries
+      if(tempPW1 > pwLimit)
+      {
+        uint32_t extraPW = tempPW1 - pwLimit + inj_opentime_uS; //The open time must be added here AND below because tempPW1 does not include an open time. The addition of it here takes into account the fact that pwLlimit does not contain an allowance for an open time. 
+        pwPrimary = pwLimit;
+        pwSecondary = udiv_32_16(extraPW * staged_req_fuel_mult_sec, staged_req_fuel_mult_pri); //Convert the 'left over' fuel amount from primary injector scaling to secondary
+        pwSecondary += inj_opentime_uS;
+      }
+      else 
+      {
+        //If tempPW1 < pwLImit it means that the entire fuel load can be handled by the primaries and staging is inactive. 
+        pwPrimary += inj_opentime_uS; //Add the open time back in
+      } 
+    }
+  } else {
+      //Apply the pwLimit if staging is disabled and engine is not cranking
+      if( (!BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) ) { 
+        pwPrimary = min(pwPrimary, pwLimit); 
+      }
+  }
+
+  return { pwPrimary, pwSecondary };
+} 
+
+TESTABLE_INLINE_STATIC void applyPWToSchedules(uint16_t primaryPW, uint16_t secondaryPW) {
+  for (uint8_t index=0U; index<maxInjPrimaryOutputs; ++index) {
+    fuelSchedules[index].pw = primaryPW;
+  }
+  for (uint8_t index=maxInjPrimaryOutputs; index<maxInjPrimaryOutputs+maxInjSecondaryOutputs; ++index) {
+    fuelSchedules[index].pw = secondaryPW;
+  }
+  for (uint8_t index=maxInjPrimaryOutputs+maxInjSecondaryOutputs; index<_countof(fuelSchedules); ++index) {
+    fuelSchedules[index].pw = 0U;
+  }
 }
 
 #ifndef UNIT_TEST // Scope guard for unit testing
@@ -728,13 +797,16 @@ void __attribute__((always_inline, hot)) loop(void)
         primaryPW = primaryPW + (configPage10.n2o_stage2_adderMax + percentage(adderPercent, (configPage10.n2o_stage2_adderMin - configPage10.n2o_stage2_adderMax))) * 100; //Calculate the above percentage of the calculated ms value.
       }
       
-      calculateStaging(calculatePWLimit(), primaryPW);
+      auto pulse_widths = computePulseWidths(calculatePWLimit(), primaryPW);
+      BIT_WRITE(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE, pulse_widths.secondary!=0U);
 
       //***********************************************************************************************
       //BEGIN INJECTION TIMING
       currentStatus.injAngle = injectorLimits(table2D_getValue(&injectorAngleTable, currentStatus.RPMdiv100));
 
       matchSyncState(configPage2, currentStatus);
+      
+      applyPWToSchedules(pulse_widths.primary, pulse_widths.secondary);
       applyFuelTrims(configPage2, configPage6, currentStatus);
 
       //***********************************************************************************************
@@ -977,206 +1049,6 @@ static inline void calculateIgnitionAngles(int16_t dwellTime, int8_t advance, in
   // If ignition timing is being tracked per tooth, perform the calcs to get the end teeth
   // This relies on the ignition angles, so can only be called after those are calculated.
   if( (configPage2.perToothIgn == true) ) { triggerSetEndTeeth(); }
-}
-
-TESTABLE_INLINE_STATIC void calculateStaging(uint16_t pwLimit, uint16_t pwPrimary)
-{
-  // Later code relies on pw==0 indicating an excluded/unused channel
-  for (uint8_t index=0; index<_countof(fuelSchedules); ++index) {
-    fuelSchedules[index].pw = 0U;
-  }
-
-  uint16_t pwSecondary = 0U;
-  //Calculate staging pulsewidths if used
-  //To run staged injection, the number of cylinders must be less than or equal to the injector channels (ie Assuming you're running paired injection, you need at least as many injector channels as you have cylinders, half for the primaries and half for the secondaries)
-  if( (configPage10.stagingEnabled == true) && (configPage2.nCylinders <= (uint8_t)INJ_CHANNELS || configPage2.injType == INJ_TYPE_TBODY) && (pwPrimary > inj_opentime_uS) ) //Final check is to ensure that DFCO isn't active, which would cause an overflow below (See #267)
-  {
-    //Scale the 'full' pulsewidth by each of the injector capacities
-    pwPrimary -= inj_opentime_uS; //Subtract the opening time from PW1 as it needs to be multiplied out again by the pri/sec req_fuel values below. It is added on again after that calculation. 
-    uint32_t tempPW1 = div100((uint32_t)pwPrimary * staged_req_fuel_mult_pri);
-
-    if(configPage10.stagingMode == STAGING_MODE_TABLE)
-    {
-      uint32_t tempPW3 = div100((uint32_t)pwPrimary * staged_req_fuel_mult_sec); //This is ONLY needed in in table mode. Auto mode only calculates the difference.
-
-      byte stagingSplit = get3DTableValue(&stagingTable, currentStatus.fuelLoad, currentStatus.RPM);
-      pwPrimary = div100((100 - stagingSplit) * tempPW1);
-      pwPrimary += inj_opentime_uS; 
-
-      //PW2 is used temporarily to hold the secondary injector pulsewidth. It will be assigned to the correct channel below
-      if(stagingSplit > 0) 
-      { 
-        BIT_SET(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Set the staging active flag
-        pwSecondary = div100(stagingSplit * tempPW3); 
-        pwSecondary += inj_opentime_uS;
-      }
-      else
-      {
-        BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Clear the staging active flag
-        pwSecondary = 0; 
-      }
-    }
-    else if(configPage10.stagingMode == STAGING_MODE_AUTO)
-    {
-      pwPrimary = tempPW1;
-      //If automatic mode, the primary injectors are used all the way up to their limit (Configured by the pulsewidth limit setting)
-      //If they exceed their limit, the extra duty is passed to the secondaries
-      if(tempPW1 > pwLimit)
-      {
-        BIT_SET(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Set the staging active flag
-        uint32_t extraPW = tempPW1 - pwLimit + inj_opentime_uS; //The open time must be added here AND below because tempPW1 does not include an open time. The addition of it here takes into account the fact that pwLlimit does not contain an allowance for an open time. 
-        pwPrimary = pwLimit;
-        pwSecondary = udiv_32_16(extraPW * staged_req_fuel_mult_sec, staged_req_fuel_mult_pri); //Convert the 'left over' fuel amount from primary injector scaling to secondary
-        pwSecondary += inj_opentime_uS;
-      }
-      else 
-      {
-        //If tempPW1 < pwLImit it means that the entire fuel load can be handled by the primaries and staging is inactive. 
-        pwPrimary += inj_opentime_uS; //Add the open time back in
-        BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Clear the staging active flag 
-        pwSecondary = 0; 
-      } 
-    }
-  } else {
-      //Apply the pwLimit if staging is disabled and engine is not cranking
-      if( (!BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) ) { 
-        pwPrimary = min(pwPrimary, pwLimit); 
-      }
-  }
-
-  if (pwSecondary>0) {
-    fuelSchedules[0].pw = pwPrimary;
-    //Allocate the primary and secondary pulse widths based on the fuel configuration
-    switch (configPage2.nCylinders) 
-    {
-      case 1:
-        //Nothing required for 1 cylinder, channels are correct already
-        break;
-      case 2:
-        //Primary pulsewidth on channels 1 and 2, secondary on channels 3 and 4
-        fuelSchedules[2].pw = pwSecondary;
-        fuelSchedules[3].pw = pwSecondary;
-        fuelSchedules[1].pw = pwPrimary;
-        break;
-      case 3:
-        //6 channels required for 'normal' 3 cylinder staging support
-        #if INJ_CHANNELS >= 6
-          //Primary pulsewidth on channels 1, 2 and 3, secondary on channels 4, 5 and 6
-          fuelSchedules[3].pw = pwSecondary;
-          fuelSchedules[4].pw = pwSecondary;
-          fuelSchedules[5].pw = pwSecondary;
-        #else
-          //If there are not enough channels, then primary pulsewidth is on channels 1, 2 and 3, secondary on channel 4
-          fuelSchedules[3].pw = pwSecondary;
-        #endif
-        fuelSchedules[1].pw = pwPrimary;
-        fuelSchedules[2].pw = pwPrimary;
-        break;
-      case 4:
-        if( (configPage2.injLayout == INJ_SEQUENTIAL) || (configPage2.injLayout == INJ_SEMISEQUENTIAL) )
-        {
-          //Staging with 4 cylinders semi/sequential requires 8 total channels
-          #if INJ_CHANNELS >= 8
-            fuelSchedules[4].pw = pwSecondary;
-            fuelSchedules[5].pw = pwSecondary;
-            fuelSchedules[6].pw = pwSecondary;
-            fuelSchedules[7].pw = pwSecondary;
-
-            fuelSchedules[1].pw = pwPrimary;
-            fuelSchedules[2].pw = pwPrimary;
-            fuelSchedules[3].pw = pwPrimary;
-          #else
-            //This is an invalid config as there are not enough outputs to support sequential + staging
-            //Put the staging output to the non-existant channel 5
-#if INJ_CHANNELS >= 5            
-            fuelSchedules[4].pw = pwSecondary;
-#endif
-          #endif
-        }
-        else
-        {
-          fuelSchedules[2].pw = pwSecondary;
-          fuelSchedules[3].pw = pwSecondary;
-          fuelSchedules[1].pw = pwPrimary;
-        }
-        break;
-        
-      case 5:
-        //No easily supportable 5 cylinder staging option unless there are at least 5 channels
-        #if INJ_CHANNELS >= 5
-          if (configPage2.injLayout != INJ_SEQUENTIAL)
-          {
-            fuelSchedules[4].pw = pwSecondary;
-          }
-          #if INJ_CHANNELS >= 6
-            fuelSchedules[5].pw = pwSecondary;
-          #endif
-        #endif
-        
-          fuelSchedules[1].pw = pwPrimary;
-          fuelSchedules[2].pw = pwPrimary;
-          fuelSchedules[3].pw = pwPrimary;
-        break;
-
-      case 6:
-        #if INJ_CHANNELS >= 6
-          //8 cylinder staging only if not sequential
-          if (configPage2.injLayout != INJ_SEQUENTIAL)
-          {
-            fuelSchedules[3].pw = pwSecondary;
-            fuelSchedules[4].pw = pwSecondary;
-            fuelSchedules[5].pw = pwSecondary;
-          }
-          #if INJ_CHANNELS >= 8
-          else
-            {
-              //If there are 8 channels, then the 6 cylinder sequential option is available by using channels 7 + 8 for staging
-              fuelSchedules[6].pw = pwSecondary;
-              fuelSchedules[7].pw = pwSecondary;
-
-              fuelSchedules[3].pw = pwPrimary;
-              fuelSchedules[4].pw = pwPrimary;
-              fuelSchedules[5].pw = pwPrimary;
-            }
-          #endif
-        #endif
-        fuelSchedules[1].pw = pwPrimary;
-        fuelSchedules[2].pw = pwPrimary;
-        break;
-
-      case 8:
-        #if INJ_CHANNELS >= 8
-          //8 cylinder staging only if not sequential
-          if (configPage2.injLayout != INJ_SEQUENTIAL)
-          {
-            fuelSchedules[4].pw = pwSecondary;
-            fuelSchedules[5].pw = pwSecondary;
-            fuelSchedules[6].pw = pwSecondary;
-            fuelSchedules[7].pw = pwSecondary;
-          }
-        #endif
-        fuelSchedules[1].pw = pwPrimary;
-        fuelSchedules[2].pw = pwPrimary;
-        fuelSchedules[3].pw = pwPrimary;
-        break;
-
-      default:
-        //Assume 4 cylinder non-seq for default
-        fuelSchedules[2].pw = pwSecondary;
-        fuelSchedules[3].pw = pwSecondary;
-        fuelSchedules[1].pw = pwPrimary;
-        break;
-    }
-  }
-  else 
-  { 
-    //If staging is off, all the pulse widths are set the same (Sequential and other adjustments may be made below)
-    for (uint8_t index=0U; index<maxInjPrimaryOutputs; ++index) {
-      fuelSchedules[index].pw = pwPrimary;
-    }
-
-    BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Clear the staging active flag    
-  } 
 }
 
 void checkLaunchAndFlatShift(void)
