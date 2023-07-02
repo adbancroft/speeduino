@@ -25,49 +25,49 @@ void test_accuracy_timeout_inj(FuelSchedule &schedule)
 
 void test_accuracy_timeout_inj1(void)
 {
-    test_accuracy_timeout_inj(fuelSchedule1);
+    test_accuracy_timeout_inj(fuelSchedules[0]);
 }
 
 void test_accuracy_timeout_inj2(void)
 {
-    test_accuracy_timeout_inj(fuelSchedule2);
+    test_accuracy_timeout_inj(fuelSchedules[1]);
 }
 
 void test_accuracy_timeout_inj3(void)
 {
-    test_accuracy_timeout_inj(fuelSchedule3);
+    test_accuracy_timeout_inj(fuelSchedules[2]);
 }
 
 void test_accuracy_timeout_inj4(void)
 {
-    test_accuracy_timeout_inj(fuelSchedule4);
+    test_accuracy_timeout_inj(fuelSchedules[3]);
 }
 
 #if INJ_CHANNELS >= 5
 void test_accuracy_timeout_inj5(void)
 {
-    test_accuracy_timeout_inj(fuelSchedule5);
+    test_accuracy_timeout_inj(fuelSchedules[4]);
 }
 #endif
 
 #if INJ_CHANNELS >= 6
 void test_accuracy_timeout_inj6(void)
 {
-    test_accuracy_timeout_inj(fuelSchedule6);
+    test_accuracy_timeout_inj(fuelSchedules[5]);
 }
 #endif
 
 #if INJ_CHANNELS >= 7
 void test_accuracy_timeout_inj7(void)
 {
-    test_accuracy_timeout_inj(fuelSchedule7);
+    test_accuracy_timeout_inj(fuelSchedules[6]);
 }
 #endif
 
 #if INJ_CHANNELS >= 8
 void test_accuracy_timeout_inj8(void)
 {
-    test_accuracy_timeout_inj(fuelSchedule8);
+    test_accuracy_timeout_inj(fuelSchedules[7]);
 }
 #endif
 
@@ -83,49 +83,49 @@ void test_accuracy_timeout_ign(IgnitionSchedule &schedule)
 
 void test_accuracy_timeout_ign1(void)
 {
-    test_accuracy_timeout_ign(ignitionSchedule1);
+    test_accuracy_timeout_ign(ignitionSchedules[0]);
 }
 
 void test_accuracy_timeout_ign2(void)
 {
-    test_accuracy_timeout_ign(ignitionSchedule2);
+    test_accuracy_timeout_ign(ignitionSchedules[1]);
 }
 
 void test_accuracy_timeout_ign3(void)
 {
-    test_accuracy_timeout_ign(ignitionSchedule3);
+    test_accuracy_timeout_ign(ignitionSchedules[2]);
 }
 
 void test_accuracy_timeout_ign4(void)
 {
-    test_accuracy_timeout_ign(ignitionSchedule4);
+    test_accuracy_timeout_ign(ignitionSchedules[3]);
 }
 
 #if IGN_CHANNELS >= 5
 void test_accuracy_timeout_ign5(void)
 {
-    test_accuracy_timeout_ign(ignitionSchedule5);
+    test_accuracy_timeout_ign(ignitionSchedules[4]);
 }
 #endif
 
 #if IGN_CHANNELS >= 6
 void test_accuracy_timeout_ign6(void)
 {
-    test_accuracy_timeout_ign(ignitionSchedule6);
+    test_accuracy_timeout_ign(ignitionSchedules[5]);
 }
 #endif
 
 #if IGN_CHANNELS >= 7
 void test_accuracy_timeout_ign7(void)
 {
-    test_accuracy_timeout_ign(ignitionSchedule7);
+    test_accuracy_timeout_ign(ignitionSchedules[6]);
 }
 #endif
 
 #if IGN_CHANNELS >= 8
 void test_accuracy_timeout_ign8(void)
 {
-    test_accuracy_timeout_ign(ignitionSchedule8);
+    test_accuracy_timeout_ign(ignitionSchedules[7]);
 }
 #endif
 

@@ -18,49 +18,49 @@ void test_status_pending_to_running_inj(FuelSchedule &schedule)
 
 void test_status_pending_to_running_inj1(void)
 {
-    test_status_pending_to_running_inj(fuelSchedule1);
+    test_status_pending_to_running_inj(fuelSchedules[0]);
 }
 
 void test_status_pending_to_running_inj2(void)
 {
-    test_status_pending_to_running_inj(fuelSchedule2);
+    test_status_pending_to_running_inj(fuelSchedules[1]);
 }
 
 void test_status_pending_to_running_inj3(void)
 {
-    test_status_pending_to_running_inj(fuelSchedule3);
+    test_status_pending_to_running_inj(fuelSchedules[2]);
 }
 
 void test_status_pending_to_running_inj4(void)
 {
-    test_status_pending_to_running_inj(fuelSchedule4);
+    test_status_pending_to_running_inj(fuelSchedules[3]);
 }
 
 void test_status_pending_to_running_inj5(void)
 {
 #if INJ_CHANNELS >= 5
-    test_status_pending_to_running_inj(fuelSchedule5);
+    test_status_pending_to_running_inj(fuelSchedules[4]);
 #endif
 }
 
 void test_status_pending_to_running_inj6(void)
 {
 #if INJ_CHANNELS >= 6
-    test_status_pending_to_running_inj(fuelSchedule6);
+    test_status_pending_to_running_inj(fuelSchedules[5]);
 #endif
 }
 
 void test_status_pending_to_running_inj7(void)
 {
 #if INJ_CHANNELS >= 7
-    test_status_pending_to_running_inj(fuelSchedule7);
+    test_status_pending_to_running_inj(fuelSchedules[6]);
 #endif
 }
 
 void test_status_pending_to_running_inj8(void)
 {
 #if INJ_CHANNELS >= 8
-    test_status_pending_to_running_inj(fuelSchedule8);
+    test_status_pending_to_running_inj(fuelSchedules[7]);
 #endif
 }
 
@@ -75,49 +75,49 @@ void test_status_pending_to_running_ign(IgnitionSchedule &schedule)
 
 void test_status_pending_to_running_ign1(void)
 {
-    test_status_pending_to_running_ign(ignitionSchedule1);
+    test_status_pending_to_running_ign(ignitionSchedules[0]);
 }
 
 void test_status_pending_to_running_ign2(void)
 {
-    test_status_pending_to_running_ign(ignitionSchedule2);
+    test_status_pending_to_running_ign(ignitionSchedules[1]);
 }
 
 void test_status_pending_to_running_ign3(void)
 {
-    test_status_pending_to_running_ign(ignitionSchedule3);
+    test_status_pending_to_running_ign(ignitionSchedules[2]);
 }
 
 void test_status_pending_to_running_ign4(void)
 {
-    test_status_pending_to_running_ign(ignitionSchedule4);
+    test_status_pending_to_running_ign(ignitionSchedules[3]);
 }
 
 void test_status_pending_to_running_ign5(void)
 {
 #if IGN_CHANNELS >= 5
-    test_status_pending_to_running_ign(ignitionSchedule5);
+    test_status_pending_to_running_ign(ignitionSchedules[4]);
 #endif
 }
 
 void test_status_pending_to_running_ign6(void)
 {
 #if INJ_CHANNELS >= 6
-    test_status_pending_to_running_ign(ignitionSchedule6);
+    test_status_pending_to_running_ign(ignitionSchedules[5]);
 #endif
 }
 
 void test_status_pending_to_running_ign7(void)
 {
 #if INJ_CHANNELS >= 7
-    test_status_pending_to_running_ign(ignitionSchedule7);
+    test_status_pending_to_running_ign(ignitionSchedules[6]);
 #endif
 }
 
 void test_status_pending_to_running_ign8(void)
 {
 #if INJ_CHANNELS >= 8
-    test_status_pending_to_running_ign(ignitionSchedule8);
+    test_status_pending_to_running_ign(ignitionSchedules[7]);
 #endif
 }
 

@@ -120,14 +120,14 @@ byte getTSLogEntry(uint16_t byteNum)
     case 74: statusValue = currentStatus.tpsADC; break;
     case 75: statusValue = 0U /*getNextError()*/; break;
 
-    case 76: statusValue = lowByte(fuelSchedule1.pw); break; //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 77: statusValue = highByte(fuelSchedule1.pw); break; //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 78: statusValue = lowByte(fuelSchedule2.pw); break; //Pulsewidth 2 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 79: statusValue = highByte(fuelSchedule2.pw); break; //Pulsewidth 2 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 80: statusValue = lowByte(fuelSchedule3.pw); break; //Pulsewidth 3 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 81: statusValue = highByte(fuelSchedule3.pw); break; //Pulsewidth 3 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 82: statusValue = lowByte(fuelSchedule4.pw); break; //Pulsewidth 4 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 83: statusValue = highByte(fuelSchedule4.pw); break; //Pulsewidth 4 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 76: statusValue = lowByte(fuelSchedules[0].pw); break; //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 77: statusValue = highByte(fuelSchedules[0].pw); break; //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 78: statusValue = lowByte(fuelSchedules[1].pw); break; //Pulsewidth 2 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 79: statusValue = highByte(fuelSchedules[1].pw); break; //Pulsewidth 2 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 80: statusValue = lowByte(fuelSchedules[2].pw); break; //Pulsewidth 3 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 81: statusValue = highByte(fuelSchedules[2].pw); break; //Pulsewidth 3 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 82: statusValue = lowByte(fuelSchedules[3].pw); break; //Pulsewidth 4 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 83: statusValue = highByte(fuelSchedules[3].pw); break; //Pulsewidth 4 multiplied by 10 in ms. Have to convert from uS to mS.
 
     case 84: statusValue = currentStatus.status3; break;
     case 85: statusValue = currentStatus.engineProtectStatus; break;
@@ -258,10 +258,10 @@ int16_t getReadableLogEntry(uint16_t logIndex)
     case 51: statusValue = currentStatus.tpsADC; break;
     case 52: statusValue = 0U /*getNextError()*/; break;
 
-    case 53: statusValue = fuelSchedule1.pw; break; //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 54: statusValue = fuelSchedule2.pw; break; //Pulsewidth 2 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 55: statusValue = fuelSchedule3.pw; break; //Pulsewidth 3 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 56: statusValue = fuelSchedule4.pw; break; //Pulsewidth 4 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 53: statusValue = fuelSchedules[0].pw; break; //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 54: statusValue = fuelSchedules[1].pw; break; //Pulsewidth 2 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 55: statusValue = fuelSchedules[2].pw; break; //Pulsewidth 3 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 56: statusValue = fuelSchedules[3].pw; break; //Pulsewidth 4 multiplied by 10 in ms. Have to convert from uS to mS.
   
     case 57: statusValue = currentStatus.status3; break;
     case 58: statusValue = currentStatus.engineProtectStatus; break;
@@ -327,10 +327,10 @@ float getReadableFloatLogEntry(uint16_t logIndex)
     case 21: statusValue = currentStatus.TPS / 2.0; break; // TPS (0% to 100% = 0 to 200)
     case 33: statusValue = currentStatus.O2_2 / 10.0; break; //O2
 
-    case 53: statusValue = fuelSchedule1.pw / 1000.0; break; //Pulsewidth 1 Have to convert from uS to mS.
-    case 54: statusValue = fuelSchedule2.pw / 1000.0; break; //Pulsewidth 2 Have to convert from uS to mS.
-    case 55: statusValue = fuelSchedule3.pw / 1000.0; break; //Pulsewidth 3 Have to convert from uS to mS.
-    case 56: statusValue = fuelSchedule4.pw / 1000.0; break; //Pulsewidth 4 Have to convert from uS to mS.
+    case 53: statusValue = fuelSchedules[0].pw / 1000.0; break; //Pulsewidth 1 Have to convert from uS to mS.
+    case 54: statusValue = fuelSchedules[1].pw / 1000.0; break; //Pulsewidth 2 Have to convert from uS to mS.
+    case 55: statusValue = fuelSchedules[2].pw / 1000.0; break; //Pulsewidth 3 Have to convert from uS to mS.
+    case 56: statusValue = fuelSchedules[3].pw / 1000.0; break; //Pulsewidth 4 Have to convert from uS to mS.
 
     default: statusValue = getReadableLogEntry(logIndex); break; //If logIndex value is NOT a float based one, use the regular function
   }
@@ -366,8 +366,8 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 17: statusValue = currentStatus.corrections; break; //Total GammaE (%)
     case 18: statusValue = currentStatus.VE; break; //Current VE 1 (%)
     case 19: statusValue = currentStatus.afrTarget; break;
-    case 20: statusValue = lowByte(fuelSchedule1.pw); break; //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 21: statusValue = highByte(fuelSchedule1.pw); break; //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 20: statusValue = lowByte(fuelSchedules[0].pw); break; //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 21: statusValue = highByte(fuelSchedules[0].pw); break; //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
     case 22: statusValue = (uint8_t)(currentStatus.tpsDOT / 10); break; //TPS DOT
     case 23: statusValue = currentStatus.advance; break;
     case 24: statusValue = currentStatus.TPS; break; // TPS (0% to 100%)
@@ -426,12 +426,12 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 74: statusValue = 0U /*getNextError()*/; break; // errorNum (0:1), currentError(2:7)
 
     case 75: statusValue = currentStatus.launchCorrection; break;
-    case 76: statusValue = lowByte(fuelSchedule2.pw); break; //Pulsewidth 2 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 77: statusValue = highByte(fuelSchedule2.pw); break; //Pulsewidth 2 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 78: statusValue = lowByte(fuelSchedule3.pw); break; //Pulsewidth 3 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 79: statusValue = highByte(fuelSchedule3.pw); break; //Pulsewidth 3 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 80: statusValue = lowByte(fuelSchedule4.pw); break; //Pulsewidth 4 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 81: statusValue = highByte(fuelSchedule4.pw); break; //Pulsewidth 4 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 76: statusValue = lowByte(fuelSchedules[1].pw); break; //Pulsewidth 2 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 77: statusValue = highByte(fuelSchedules[1].pw); break; //Pulsewidth 2 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 78: statusValue = lowByte(fuelSchedules[2].pw); break; //Pulsewidth 3 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 79: statusValue = highByte(fuelSchedules[2].pw); break; //Pulsewidth 3 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 80: statusValue = lowByte(fuelSchedules[3].pw); break; //Pulsewidth 4 multiplied by 10 in ms. Have to convert from uS to mS.
+    case 81: statusValue = highByte(fuelSchedules[3].pw); break; //Pulsewidth 4 multiplied by 10 in ms. Have to convert from uS to mS.
 
     case 82: statusValue = currentStatus.status3; break; // resentLockOn(0), nitrousOn(1), fuel2Active(2), vssRefresh(3), halfSync(4), nSquirts(6:7)
     case 83: statusValue = currentStatus.engineProtectStatus; break; //RPM(0), MAP(1), OIL(2), AFR(3), Unused(4:7)

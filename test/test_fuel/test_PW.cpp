@@ -148,8 +148,8 @@ void test_PW_4Cyl_PW0(void)
   configPage10.stagingEnabled = false; //Staging must be off or channels 3 and 4 will be used
 
   loop();
-  TEST_ASSERT_EQUAL(0, fuelSchedule3.pw);
-  TEST_ASSERT_EQUAL(0, fuelSchedule4.pw);
+  TEST_ASSERT_EQUAL(0, fuelSchedules[2].pw);
+  TEST_ASSERT_EQUAL(0, fuelSchedules[3].pw);
 }
 
 extern uint16_t calculatePWLimit(void); 

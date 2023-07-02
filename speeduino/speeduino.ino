@@ -251,42 +251,42 @@ static void setIgnitionSchedule(IgnitionSchedule &schedule, uint8_t index, uint1
 }
 
 static inline __attribute__((flatten, always_inline)) void setIgnitionSchedules(uint16_t crankAngle, uint16_t totalDwell) {
-  setIgnitionSchedule(ignitionSchedule1, 0, crankAngle, totalDwell);
+  setIgnitionSchedule(ignitionSchedules[0], 0, crankAngle, totalDwell);
 #if defined(USE_IGN_REFRESH)
-  if( isRunning(ignitionSchedule1) && (ignitionSchedule1.dischargeAngle > (int16_t)crankAngle) && (configPage4.StgCycles == 0) && (configPage2.perToothIgn != true) )
+  if( isRunning(ignitionSchedules[0]) && (ignitionSchedules[0].dischargeAngle > (int16_t)crankAngle) && (configPage4.StgCycles == 0) && (configPage2.perToothIgn != true) )
   {
     crankAngle = ignitionLimits(getCrankAngle()); //Refresh the crank angle info
 
-    adjustCrankAngle(ignitionSchedule1, crankAngle);
+    adjustCrankAngle(ignitionSchedules[0], crankAngle);
   }
 #endif
   
 #if IGN_CHANNELS >= 2
-  setIgnitionSchedule(ignitionSchedule2, 1, crankAngle, totalDwell);
+  setIgnitionSchedule(ignitionSchedules[1], 1, crankAngle, totalDwell);
 #endif
 
 #if IGN_CHANNELS >= 3
-  setIgnitionSchedule(ignitionSchedule3, 2, crankAngle, totalDwell);
+  setIgnitionSchedule(ignitionSchedules[2], 2, crankAngle, totalDwell);
 #endif
 
 #if IGN_CHANNELS >= 4
-  setIgnitionSchedule(ignitionSchedule4, 3, crankAngle, totalDwell);
+  setIgnitionSchedule(ignitionSchedules[3], 3, crankAngle, totalDwell);
 #endif
 
 #if IGN_CHANNELS >= 5
-  setIgnitionSchedule(ignitionSchedule5, 4, crankAngle, totalDwell);
+  setIgnitionSchedule(ignitionSchedules[4], 4, crankAngle, totalDwell);
 #endif
 
 #if IGN_CHANNELS >= 6
-  setIgnitionSchedule(ignitionSchedule6, 5, crankAngle, totalDwell);
+  setIgnitionSchedule(ignitionSchedules[5], 5, crankAngle, totalDwell);
 #endif
 
 #if IGN_CHANNELS >= 7
-  setIgnitionSchedule(ignitionSchedule7, 6, crankAngle, totalDwell);
+  setIgnitionSchedule(ignitionSchedules[6], 6, crankAngle, totalDwell);
 #endif
 
 #if IGN_CHANNELS >= 8
-  setIgnitionSchedule(ignitionSchedule8, 7, crankAngle, totalDwell);
+  setIgnitionSchedule(ignitionSchedules[7], 7, crankAngle, totalDwell);
 #endif
 } 
 
@@ -314,21 +314,21 @@ static inline void applyFuelTrims(const config2 &page2, const config6 &page6, co
   {
     uint8_t trimInjChannels = min(configPage2.nCylinders, maxInjOutputs);
 
-    if (trimInjChannels>=1) { applyFuelTrimToPW(fuelSchedule1, current.fuelLoad, current.RPM); }
-    if (trimInjChannels>=2) { applyFuelTrimToPW(fuelSchedule2, current.fuelLoad, current.RPM); }
-    if (trimInjChannels>=3) { applyFuelTrimToPW(fuelSchedule3, current.fuelLoad, current.RPM); }
-    if (trimInjChannels>=4) { applyFuelTrimToPW(fuelSchedule4, current.fuelLoad, current.RPM); }
+    if (trimInjChannels>=1) { applyFuelTrimToPW(fuelSchedules[0], current.fuelLoad, current.RPM); }
+    if (trimInjChannels>=2) { applyFuelTrimToPW(fuelSchedules[1], current.fuelLoad, current.RPM); }
+    if (trimInjChannels>=3) { applyFuelTrimToPW(fuelSchedules[2], current.fuelLoad, current.RPM); }
+    if (trimInjChannels>=4) { applyFuelTrimToPW(fuelSchedules[3], current.fuelLoad, current.RPM); }
 #if (INJ_CHANNELS >= 5)
-    if (trimInjChannels>=5) { applyFuelTrimToPW(fuelSchedule5, current.fuelLoad, current.RPM); }
+    if (trimInjChannels>=5) { applyFuelTrimToPW(fuelSchedules[4], current.fuelLoad, current.RPM); }
 #endif
 #if (INJ_CHANNELS >= 6)
-    if (trimInjChannels>=6) { applyFuelTrimToPW(fuelSchedule6, current.fuelLoad, current.RPM); }
+    if (trimInjChannels>=6) { applyFuelTrimToPW(fuelSchedules[5], current.fuelLoad, current.RPM); }
 #endif
 #if (INJ_CHANNELS >= 7)
-    if (trimInjChannels>=7) { applyFuelTrimToPW(fuelSchedule7, current.fuelLoad, current.RPM); }
+    if (trimInjChannels>=7) { applyFuelTrimToPW(fuelSchedules[6], current.fuelLoad, current.RPM); }
 #endif
 #if (INJ_CHANNELS >= 8)
-    if (trimInjChannels>=8) { applyFuelTrimToPW(fuelSchedule8, current.fuelLoad, current.RPM); }
+    if (trimInjChannels>=8) { applyFuelTrimToPW(fuelSchedules[7], current.fuelLoad, current.RPM); }
 #endif
   }
 }
@@ -336,21 +336,21 @@ static inline void applyFuelTrims(const config2 &page2, const config6 &page6, co
 static inline __attribute__((flatten)) void setFuelSchedules(uint16_t injAngle, uint16_t crankAngle) {
   injectorAngleCalcCache calcCache;
 
-  setFuelSchedule(fuelSchedule1, 0, injAngle, crankAngle, &calcCache);
-  setFuelSchedule(fuelSchedule2, 1, injAngle, crankAngle, &calcCache);
-  setFuelSchedule(fuelSchedule3, 2, injAngle, crankAngle, &calcCache);
-  setFuelSchedule(fuelSchedule4, 3, injAngle, crankAngle, &calcCache);
+  setFuelSchedule(fuelSchedules[0], 0, injAngle, crankAngle, &calcCache);
+  setFuelSchedule(fuelSchedules[1], 1, injAngle, crankAngle, &calcCache);
+  setFuelSchedule(fuelSchedules[2], 2, injAngle, crankAngle, &calcCache);
+  setFuelSchedule(fuelSchedules[3], 3, injAngle, crankAngle, &calcCache);
 #if (INJ_CHANNELS >= 5)
-  setFuelSchedule(fuelSchedule5, 4, injAngle, crankAngle, &calcCache);
+  setFuelSchedule(fuelSchedules[4], 4, injAngle, crankAngle, &calcCache);
 #endif
 #if (INJ_CHANNELS >= 6)
-  setFuelSchedule(fuelSchedule6, 5, injAngle, crankAngle, &calcCache);
+  setFuelSchedule(fuelSchedules[5], 5, injAngle, crankAngle, &calcCache);
 #endif
 #if (INJ_CHANNELS >= 7)
-  setFuelSchedule(fuelSchedule7, 6, injAngle, crankAngle, &calcCache);
+  setFuelSchedule(fuelSchedules[6], 6, injAngle, crankAngle, &calcCache);
 #endif
 #if (INJ_CHANNELS >= 8)
-  setFuelSchedule(fuelSchedule8, 7, injAngle, crankAngle, &calcCache);
+  setFuelSchedule(fuelSchedules[7], 7, injAngle, crankAngle, &calcCache);
 #endif        
 }
 
@@ -445,7 +445,7 @@ void __attribute__((always_inline)) loop(void)
       //We reach here if the time between teeth is too great. This VERY likely means the engine has stopped
       currentStatus.RPM = 0;
       currentStatus.RPMdiv100 = 0;
-      fuelSchedule1.pw = 0;
+      fuelSchedules[0].pw = 0;
       currentStatus.VE = 0;
       currentStatus.VE2 = 0;
       resetDecoder();
@@ -739,7 +739,7 @@ void __attribute__((always_inline)) loop(void)
       currentStatus.afrTarget = calculateAfrTarget(afrTable, currentStatus, configPage2, configPage6);
       currentStatus.corrections = correctionsFuel();
 
-      fuelSchedule1.pw = PW(req_fuel_uS, currentStatus.VE, currentStatus.MAP, currentStatus.corrections, inj_opentime_uS);
+      fuelSchedules[0].pw = PW(req_fuel_uS, currentStatus.VE, currentStatus.MAP, currentStatus.corrections, inj_opentime_uS);
 
       //Manual adder for nitrous. These are not in correctionsFuel() because they are direct adders to the ms value, not % based
       if( (currentStatus.nitrous_status == NITROUS_STAGE1) || (currentStatus.nitrous_status == NITROUS_BOTH) )
@@ -747,20 +747,20 @@ void __attribute__((always_inline)) loop(void)
         uint16_t adderRange = (configPage10.n2o_stage1_maxRPM - configPage10.n2o_stage1_minRPM) * 100U;
         uint16_t adderPercent = ((currentStatus.RPM - (configPage10.n2o_stage1_minRPM * 100U)) * 100U) / adderRange; //The percentage of the way through the RPM range
         adderPercent = 100U - adderPercent; //Flip the percentage as we go from a higher adder to a lower adder as the RPMs rise
-        fuelSchedule1.pw = fuelSchedule1.pw + (configPage10.n2o_stage1_adderMax + percentage(adderPercent, (configPage10.n2o_stage1_adderMin - configPage10.n2o_stage1_adderMax))) * 100U; //Calculate the above percentage of the calculated ms value.
+        fuelSchedules[0].pw = fuelSchedules[0].pw + (configPage10.n2o_stage1_adderMax + percentage(adderPercent, (configPage10.n2o_stage1_adderMin - configPage10.n2o_stage1_adderMax))) * 100U; //Calculate the above percentage of the calculated ms value.
       }
       if( (currentStatus.nitrous_status == NITROUS_STAGE2) || (currentStatus.nitrous_status == NITROUS_BOTH) )
       {
         uint16_t adderRange = (configPage10.n2o_stage2_maxRPM - configPage10.n2o_stage2_minRPM) * 100U;
         uint16_t adderPercent = ((currentStatus.RPM - (configPage10.n2o_stage2_minRPM * 100U)) * 100U) / adderRange; //The percentage of the way through the RPM range
         adderPercent = 100U - adderPercent; //Flip the percentage as we go from a higher adder to a lower adder as the RPMs rise
-        fuelSchedule1.pw = fuelSchedule1.pw + (configPage10.n2o_stage2_adderMax + percentage(adderPercent, (configPage10.n2o_stage2_adderMin - configPage10.n2o_stage2_adderMax))) * 100U; //Calculate the above percentage of the calculated ms value.
+        fuelSchedules[0].pw = fuelSchedules[0].pw + (configPage10.n2o_stage2_adderMax + percentage(adderPercent, (configPage10.n2o_stage2_adderMin - configPage10.n2o_stage2_adderMax))) * 100U; //Calculate the above percentage of the calculated ms value.
       }
       
       //Check that the duty cycle of the chosen pulsewidth isn't too high.
       uint16_t pwLimit = calculatePWLimit();
       //Apply the pwLimit if staging is disabled and engine is not cranking
-      if( (!BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) && (configPage10.stagingEnabled == false) ) { if (fuelSchedule1.pw > pwLimit) { fuelSchedule1.pw = pwLimit; } }
+      if( (!BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) && (configPage10.stagingEnabled == false) ) { if (fuelSchedules[0].pw > pwLimit) { fuelSchedules[0].pw = pwLimit; } }
 
       calculateStaging(pwLimit);
 
@@ -808,7 +808,7 @@ void __attribute__((always_inline)) loop(void)
 
       // if(Serial && false)
       // {
-      //   if(ignitionSchedule1.chargeAngle > crankAngle)
+      //   if(ignitionSchedules[0].chargeAngle > crankAngle)
       //   {
       //     noInterrupts();
       //     Serial.print("Time2LastTooth:"); Serial.println(micros()-toothLastToothTime);
@@ -817,8 +817,8 @@ void __attribute__((always_inline)) loop(void)
       //     Serial.print("RPM:"); Serial.println(currentStatus.RPM);
       //     Serial.print("Tooth:"); Serial.println(toothCurrentCount);
       //     Serial.print("timePerDegree:"); Serial.println(timePerDegree);
-      //     Serial.print("IGN1Angle:"); Serial.println(ignitionSchedule1.chargeAngle);
-      //     Serial.print("TimeToIGN1:"); Serial.println(angleToTime((ignitionSchedule1.chargeAngle - crankAngle), CRANKMATH_METHOD_INTERVAL_REV));
+      //     Serial.print("IGN1Angle:"); Serial.println(ignitionSchedules[0].chargeAngle);
+      //     Serial.print("TimeToIGN1:"); Serial.println(angleToTime((ignitionSchedules[0].chargeAngle - crankAngle), CRANKMATH_METHOD_INTERVAL_REV));
       //     interrupts();
       //   }
       // }
@@ -960,21 +960,21 @@ void __attribute__((always_inline)) loop(void)
         //This is a safety step to prevent the ignition start time occurring AFTER the target tooth pulse has already occurred. It simply moves the start time forward a little, which is compensated for by the increase in the dwell time
         if(currentStatus.RPM < 250U)
         {
-          ignitionSchedule1.chargeAngle -= 5;
-          ignitionSchedule2.chargeAngle -= 5;
-          ignitionSchedule3.chargeAngle -= 5;
-          ignitionSchedule4.chargeAngle -= 5;
+          ignitionSchedules[0].chargeAngle -= 5;
+          ignitionSchedules[1].chargeAngle -= 5;
+          ignitionSchedules[2].chargeAngle -= 5;
+          ignitionSchedules[3].chargeAngle -= 5;
 #if IGN_CHANNELS >= 5
-          ignitionSchedule5.chargeAngle -= 5;
+          ignitionSchedules[4].chargeAngle -= 5;
 #endif
 #if IGN_CHANNELS >= 6          
-          ignitionSchedule6.chargeAngle -= 5;
+          ignitionSchedules[5].chargeAngle -= 5;
 #endif
 #if IGN_CHANNELS >= 7
-          ignitionSchedule7.chargeAngle -= 5;
+          ignitionSchedules[6].chargeAngle -= 5;
 #endif
 #if IGN_CHANNELS >= 8
-          ignitionSchedule8.chargeAngle -= 5;
+          ignitionSchedules[7].chargeAngle -= 5;
 #endif
         }
       }
@@ -1013,31 +1013,31 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
   {
     //1 cylinder
     case 1:
-      calculateIgnitionAngles(ignitionSchedule1, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[0], dwellAngle, currentStatus.advance);
       break;
     //2 cylinders
     case 2:
-      calculateIgnitionAngles(ignitionSchedule1, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngles(ignitionSchedule2, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[0], dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[1], dwellAngle, currentStatus.advance);
       break;
     //3 cylinders
     case 3:
-      calculateIgnitionAngles(ignitionSchedule1, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngles(ignitionSchedule2, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngles(ignitionSchedule3, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[0], dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[1], dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[2], dwellAngle, currentStatus.advance);
       break;
     //4 cylinders
     case 4:
-      calculateIgnitionAngles(ignitionSchedule1, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngles(ignitionSchedule2, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[0], dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[1], dwellAngle, currentStatus.advance);
 
       #if IGN_CHANNELS >= 4
       if((configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && currentStatus.hasSync)
       {
         if( CRANK_ANGLE_MAX_IGN != 720 ) { changeHalfToFullSync(); }
 
-        calculateIgnitionAngles(ignitionSchedule3, dwellAngle, currentStatus.advance);
-        calculateIgnitionAngles(ignitionSchedule4, dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedules[2], dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedules[3], dwellAngle, currentStatus.advance);
       }
       else if(configPage4.sparkMode == IGN_MODE_ROTARY)
       {
@@ -1045,8 +1045,8 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
         splitDegrees = table2D_getValue(&rotarySplitTable, currentStatus.ignLoad);
 
         //The trailing angles are set relative to the leading ones
-        calculateIgnitionTrailingRotary(ignitionSchedule1, dwellAngle, splitDegrees, ignitionSchedule3);
-        calculateIgnitionTrailingRotary(ignitionSchedule2, dwellAngle, splitDegrees, ignitionSchedule4);
+        calculateIgnitionTrailingRotary(ignitionSchedules[2], dwellAngle, splitDegrees, ignitionSchedules[0]);
+        calculateIgnitionTrailingRotary(ignitionSchedules[3], dwellAngle, splitDegrees, ignitionSchedules[1]);
       }
       else
       {
@@ -1056,28 +1056,28 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
       break;
     //5 cylinders
     case 5:
-      calculateIgnitionAngles(ignitionSchedule1, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngles(ignitionSchedule2, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngles(ignitionSchedule3, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngles(ignitionSchedule4, dwellAngle, currentStatus.advance);
-#if (IGN_CHANNELS >= 5)
-      calculateIgnitionAngles(ignitionSchedule5, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[0], dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[1], dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[2], dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[3], dwellAngle, currentStatus.advance);
+#if IGN_CHANNELS >= 5
+      calculateIgnitionAngles(ignitionSchedules[4], dwellAngle, currentStatus.advance);
 #endif
       break;
     //6 cylinders
     case 6:
-      calculateIgnitionAngles(ignitionSchedule1, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngles(ignitionSchedule2, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngles(ignitionSchedule3, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[0], dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[1], dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[2], dwellAngle, currentStatus.advance);
 
       #if IGN_CHANNELS >= 6
       if((configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && currentStatus.hasSync)
       {
         if( CRANK_ANGLE_MAX_IGN != 720 ) { changeHalfToFullSync(); }
 
-        calculateIgnitionAngles(ignitionSchedule4, dwellAngle, currentStatus.advance);
-        calculateIgnitionAngles(ignitionSchedule5, dwellAngle, currentStatus.advance);
-        calculateIgnitionAngles(ignitionSchedule6, dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedules[3], dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedules[4], dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedules[5], dwellAngle, currentStatus.advance);
       }
       else
       {
@@ -1087,20 +1087,20 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
       break;
     //8 cylinders
     case 8:
-      calculateIgnitionAngles(ignitionSchedule1, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngles(ignitionSchedule2, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngles(ignitionSchedule3, dwellAngle, currentStatus.advance);
-      calculateIgnitionAngles(ignitionSchedule4, dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[0], dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[1], dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[2], dwellAngle, currentStatus.advance);
+      calculateIgnitionAngles(ignitionSchedules[3], dwellAngle, currentStatus.advance);
 
       #if IGN_CHANNELS >= 8
       if((configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && currentStatus.hasSync)
       {
         if( CRANK_ANGLE_MAX_IGN != 720 ) { changeHalfToFullSync(); }
 
-        calculateIgnitionAngles(ignitionSchedule5, dwellAngle, currentStatus.advance);
-        calculateIgnitionAngles(ignitionSchedule6, dwellAngle, currentStatus.advance);
-        calculateIgnitionAngles(ignitionSchedule7, dwellAngle, currentStatus.advance);
-        calculateIgnitionAngles(ignitionSchedule8, dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedules[4], dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedules[5], dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedules[6], dwellAngle, currentStatus.advance);
+        calculateIgnitionAngles(ignitionSchedules[7], dwellAngle, currentStatus.advance);
       }
       else
       {
@@ -1119,75 +1119,75 @@ void calculateStaging(uint32_t pwLimit)
 {
   // Later code relies on pw==0 indicating an excluded/unused channel
 #if INJ_CHANNELS >= 2
-  fuelSchedule2.pw = 0U;
+  fuelSchedules[1].pw = 0U;
 #endif
 #if INJ_CHANNELS >= 3
-  fuelSchedule3.pw = 0U;
+  fuelSchedules[2].pw = 0U;
 #endif
 #if INJ_CHANNELS >= 4
-  fuelSchedule4.pw = 0U;
+  fuelSchedules[3].pw = 0U;
 #endif
 #if INJ_CHANNELS >= 5
-  fuelSchedule5.pw = 0U;
+  fuelSchedules[4].pw = 0U;
 #endif
 #if INJ_CHANNELS >= 6
-  fuelSchedule6.pw = 0U;
+  fuelSchedules[5].pw = 0U;
 #endif
 #if INJ_CHANNELS >= 7
-  fuelSchedule7.pw = 0U;
+  fuelSchedules[6].pw = 0U;
 #endif
 #if INJ_CHANNELS >= 8
-  fuelSchedule8.pw = 0U;
+  fuelSchedules[7].pw = 0U;
 #endif
 
   //Calculate staging pulsewidths if used
   //To run staged injection, the number of cylinders must be less than or equal to the injector channels (ie Assuming you're running paired injection, you need at least as many injector channels as you have cylinders, half for the primaries and half for the secondaries)
-  if( (configPage10.stagingEnabled == true) && (configPage2.nCylinders <= (uint8_t)INJ_CHANNELS || configPage2.injType == INJ_TYPE_TBODY) && (fuelSchedule1.pw > inj_opentime_uS) ) //Final check is to ensure that DFCO isn't active, which would cause an overflow below (See #267)
+  if( (configPage10.stagingEnabled == true) && (configPage2.nCylinders <= (uint8_t)INJ_CHANNELS || configPage2.injType == INJ_TYPE_TBODY) && (fuelSchedules[0].pw > inj_opentime_uS) ) //Final check is to ensure that DFCO isn't active, which would cause an overflow below (See #267)
   {
     //Scale the 'full' pulsewidth by each of the injector capacities
-    fuelSchedule1.pw -= inj_opentime_uS; //Subtract the opening time from PW1 as it needs to be multiplied out again by the pri/sec req_fuel values below. It is added on again after that calculation. 
-    uint32_t tempPW1 = div100((uint32_t)fuelSchedule1.pw * staged_req_fuel_mult_pri);
+    fuelSchedules[0].pw -= inj_opentime_uS; //Subtract the opening time from PW1 as it needs to be multiplied out again by the pri/sec req_fuel values below. It is added on again after that calculation. 
+    uint32_t tempPW1 = div100((uint32_t)fuelSchedules[0].pw * staged_req_fuel_mult_pri);
 
     if(configPage10.stagingMode == STAGING_MODE_TABLE)
     {
-      uint32_t tempPW3 = div100((uint32_t)fuelSchedule1.pw * staged_req_fuel_mult_sec); //This is ONLY needed in in table mode. Auto mode only calculates the difference.
+      uint32_t tempPW3 = div100((uint32_t)fuelSchedules[0].pw * staged_req_fuel_mult_sec); //This is ONLY needed in in table mode. Auto mode only calculates the difference.
 
-      uint8_t stagingSplit = get3DTableValue(&stagingTable, currentStatus.fuelLoad, currentStatus.RPM);
-      fuelSchedule1.pw = div100((100U - stagingSplit) * tempPW1);
-      fuelSchedule1.pw += inj_opentime_uS; 
+      byte stagingSplit = get3DTableValue(&stagingTable, currentStatus.fuelLoad, currentStatus.RPM);
+      fuelSchedules[0].pw = div100((100U - stagingSplit) * tempPW1);
+      fuelSchedules[0].pw += inj_opentime_uS; 
 
       //PW2 is used temporarily to hold the secondary injector pulsewidth. It will be assigned to the correct channel below
       if(stagingSplit > 0) 
       { 
         BIT_SET(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Set the staging active flag
-        fuelSchedule2.pw = div100(stagingSplit * tempPW3); 
-        fuelSchedule2.pw += inj_opentime_uS;
+        fuelSchedules[1].pw = div100(stagingSplit * tempPW3); 
+        fuelSchedules[1].pw += inj_opentime_uS;
       }
       else
       {
         BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Clear the staging active flag
-        fuelSchedule2.pw = 0; 
+        fuelSchedules[1].pw = 0; 
       }
     }
     else if(configPage10.stagingMode == STAGING_MODE_AUTO)
     {
-      fuelSchedule1.pw = tempPW1;
+      fuelSchedules[0].pw = tempPW1;
       //If automatic mode, the primary injectors are used all the way up to their limit (Configured by the pulsewidth limit setting)
       //If they exceed their limit, the extra duty is passed to the secondaries
       if(tempPW1 > pwLimit)
       {
         BIT_SET(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Set the staging active flag
         uint32_t extraPW = tempPW1 - pwLimit + inj_opentime_uS; //The open time must be added here AND below because tempPW1 does not include an open time. The addition of it here takes into account the fact that pwLlimit does not contain an allowance for an open time. 
-        fuelSchedule1.pw = pwLimit;
-        fuelSchedule2.pw = udiv_32_16(extraPW * staged_req_fuel_mult_sec, staged_req_fuel_mult_pri); //Convert the 'left over' fuel amount from primary injector scaling to secondary
-        fuelSchedule2.pw += inj_opentime_uS;
+        fuelSchedules[0].pw = pwLimit;
+        fuelSchedules[1].pw = udiv_32_16(extraPW * staged_req_fuel_mult_sec, staged_req_fuel_mult_pri); //Convert the 'left over' fuel amount from primary injector scaling to secondary
+        fuelSchedules[1].pw += inj_opentime_uS;
       }
       else 
       {
         //If tempPW1 < pwLImit it means that the entire fuel load can be handled by the primaries and staging is inactive. 
-        fuelSchedule1.pw += inj_opentime_uS; //Add the open time back in
+        fuelSchedules[0].pw += inj_opentime_uS; //Add the open time back in
         BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Clear the staging active flag 
-        fuelSchedule2.pw = 0; 
+        fuelSchedules[1].pw = 0; 
       } 
     }
 
@@ -1199,50 +1199,50 @@ void calculateStaging(uint32_t pwLimit)
         break;
       case 2:
         //Primary pulsewidth on channels 1 and 2, secondary on channels 3 and 4
-        fuelSchedule3.pw = fuelSchedule2.pw;
-        fuelSchedule4.pw = fuelSchedule2.pw;
-        fuelSchedule2.pw = fuelSchedule1.pw;
+        fuelSchedules[2].pw = fuelSchedules[1].pw;
+        fuelSchedules[3].pw = fuelSchedules[1].pw;
+        fuelSchedules[1].pw = fuelSchedules[0].pw;
         break;
       case 3:
         //6 channels required for 'normal' 3 cylinder staging support
         #if INJ_CHANNELS >= 6
           //Primary pulsewidth on channels 1, 2 and 3, secondary on channels 4, 5 and 6
-          fuelSchedule4.pw = fuelSchedule2.pw;
-          fuelSchedule5.pw = fuelSchedule2.pw;
-          fuelSchedule6.pw = fuelSchedule2.pw;
+          fuelSchedules[3].pw = fuelSchedules[1].pw;
+          fuelSchedules[4].pw = fuelSchedules[1].pw;
+          fuelSchedules[5].pw = fuelSchedules[1].pw;
         #else
           //If there are not enough channels, then primary pulsewidth is on channels 1, 2 and 3, secondary on channel 4
-          fuelSchedule4.pw = fuelSchedule2.pw;
+          fuelSchedules[3].pw = fuelSchedules[1].pw;
         #endif
-        fuelSchedule2.pw = fuelSchedule1.pw;
-        fuelSchedule3.pw = fuelSchedule1.pw;
+        fuelSchedules[1].pw = fuelSchedules[0].pw;
+        fuelSchedules[2].pw = fuelSchedules[0].pw;
         break;
       case 4:
         if( (configPage2.injLayout == INJ_SEQUENTIAL) || (configPage2.injLayout == INJ_SEMISEQUENTIAL) )
         {
           //Staging with 4 cylinders semi/sequential requires 8 total channels
           #if INJ_CHANNELS >= 8
-            fuelSchedule5.pw = fuelSchedule2.pw;
-            fuelSchedule6.pw = fuelSchedule2.pw;
-            fuelSchedule7.pw = fuelSchedule2.pw;
-            fuelSchedule8.pw = fuelSchedule2.pw;
+            fuelSchedules[4].pw = fuelSchedules[1].pw;
+            fuelSchedules[5].pw = fuelSchedules[1].pw;
+            fuelSchedules[6].pw = fuelSchedules[1].pw;
+            fuelSchedules[7].pw = fuelSchedules[1].pw;
 
-            fuelSchedule2.pw = fuelSchedule1.pw;
-            fuelSchedule3.pw = fuelSchedule1.pw;
-            fuelSchedule4.pw = fuelSchedule1.pw;
+            fuelSchedules[1].pw = fuelSchedules[0].pw;
+            fuelSchedules[2].pw = fuelSchedules[0].pw;
+            fuelSchedules[3].pw = fuelSchedules[0].pw;
           #else
             //This is an invalid config as there are not enough outputs to support sequential + staging
             //Put the staging output to the non-existant channel 5
 #if INJ_CHANNELS >= 5            
-            fuelSchedule5.pw = fuelSchedule2.pw;
+            fuelSchedules[4].pw = fuelSchedules[1].pw;
 #endif
           #endif
         }
         else
         {
-          fuelSchedule3.pw = fuelSchedule2.pw;
-          fuelSchedule4.pw = fuelSchedule2.pw;
-          fuelSchedule2.pw = fuelSchedule1.pw;
+          fuelSchedules[2].pw = fuelSchedules[1].pw;
+          fuelSchedules[3].pw = fuelSchedules[1].pw;
+          fuelSchedules[1].pw = fuelSchedules[0].pw;
         }
         break;
         
@@ -1251,16 +1251,16 @@ void calculateStaging(uint32_t pwLimit)
         #if INJ_CHANNELS >= 5
           if (configPage2.injLayout != INJ_SEQUENTIAL)
           {
-            fuelSchedule5.pw = fuelSchedule2.pw;
+            fuelSchedules[4].pw = fuelSchedules[1].pw;
           }
           #if INJ_CHANNELS >= 6
-            fuelSchedule6.pw = fuelSchedule2.pw;
+            fuelSchedules[5].pw = fuelSchedules[1].pw;
           #endif
         #endif
         
-          fuelSchedule2.pw = fuelSchedule1.pw;
-          fuelSchedule3.pw = fuelSchedule1.pw;
-          fuelSchedule4.pw = fuelSchedule1.pw;
+          fuelSchedules[1].pw = fuelSchedules[0].pw;
+          fuelSchedules[2].pw = fuelSchedules[0].pw;
+          fuelSchedules[3].pw = fuelSchedules[0].pw;
         break;
 
       case 6:
@@ -1268,25 +1268,25 @@ void calculateStaging(uint32_t pwLimit)
           //8 cylinder staging only if not sequential
           if (configPage2.injLayout != INJ_SEQUENTIAL)
           {
-            fuelSchedule4.pw = fuelSchedule2.pw;
-            fuelSchedule5.pw = fuelSchedule2.pw;
-            fuelSchedule6.pw = fuelSchedule2.pw;
+            fuelSchedules[3].pw = fuelSchedules[1].pw;
+            fuelSchedules[4].pw = fuelSchedules[1].pw;
+            fuelSchedules[5].pw = fuelSchedules[1].pw;
           }
           #if INJ_CHANNELS >= 8
           else
             {
               //If there are 8 channels, then the 6 cylinder sequential option is available by using channels 7 + 8 for staging
-              fuelSchedule7.pw = fuelSchedule2.pw;
-              fuelSchedule8.pw = fuelSchedule2.pw;
+              fuelSchedules[6].pw = fuelSchedules[1].pw;
+              fuelSchedules[7].pw = fuelSchedules[1].pw;
 
-              fuelSchedule4.pw = fuelSchedule1.pw;
-              fuelSchedule5.pw = fuelSchedule1.pw;
-              fuelSchedule6.pw = fuelSchedule1.pw;
+              fuelSchedules[3].pw = fuelSchedules[0].pw;
+              fuelSchedules[4].pw = fuelSchedules[0].pw;
+              fuelSchedules[5].pw = fuelSchedules[0].pw;
             }
           #endif
         #endif
-        fuelSchedule2.pw = fuelSchedule1.pw;
-        fuelSchedule3.pw = fuelSchedule1.pw;
+        fuelSchedules[1].pw = fuelSchedules[0].pw;
+        fuelSchedules[2].pw = fuelSchedules[0].pw;
         break;
 
       case 8:
@@ -1294,44 +1294,43 @@ void calculateStaging(uint32_t pwLimit)
           //8 cylinder staging only if not sequential
           if (configPage2.injLayout != INJ_SEQUENTIAL)
           {
-            fuelSchedule5.pw = fuelSchedule2.pw;
-            fuelSchedule6.pw = fuelSchedule2.pw;
-            fuelSchedule7.pw = fuelSchedule2.pw;
-            fuelSchedule8.pw = fuelSchedule2.pw;
+            fuelSchedules[4].pw = fuelSchedules[1].pw;
+            fuelSchedules[5].pw = fuelSchedules[1].pw;
+            fuelSchedules[6].pw = fuelSchedules[1].pw;
+            fuelSchedules[7].pw = fuelSchedules[1].pw;
           }
         #endif
-        fuelSchedule2.pw = fuelSchedule1.pw;
-        fuelSchedule3.pw = fuelSchedule1.pw;
-        fuelSchedule4.pw = fuelSchedule1.pw;
+        fuelSchedules[1].pw = fuelSchedules[0].pw;
+        fuelSchedules[2].pw = fuelSchedules[0].pw;
+        fuelSchedules[3].pw = fuelSchedules[0].pw;
         break;
 
       default:
         //Assume 4 cylinder non-seq for default
-        fuelSchedule3.pw = fuelSchedule2.pw;
-        fuelSchedule4.pw = fuelSchedule2.pw;
-        fuelSchedule2.pw = fuelSchedule1.pw;
+        fuelSchedules[2].pw = fuelSchedules[1].pw;
+        fuelSchedules[3].pw = fuelSchedules[1].pw;
+        fuelSchedules[1].pw = fuelSchedules[0].pw;
         break;
     }
   }
   else 
   { 
-    if(maxInjOutputs >= 2) { fuelSchedule2.pw = fuelSchedule1.pw; }
-    if(maxInjOutputs >= 3) { fuelSchedule3.pw = fuelSchedule1.pw; }
-    if(maxInjOutputs >= 4) { fuelSchedule4.pw = fuelSchedule1.pw; }
+    if(maxInjOutputs >= 2) { fuelSchedules[1].pw = fuelSchedules[0].pw; }
+    if(maxInjOutputs >= 3) { fuelSchedules[2].pw = fuelSchedules[0].pw; }
+    if(maxInjOutputs >= 4) { fuelSchedules[3].pw = fuelSchedules[0].pw; }
 #if INJ_CHANNELS >= 5
-    if(maxInjOutputs >= 5) { fuelSchedule5.pw = fuelSchedule1.pw; }
+    if(maxInjOutputs >= 5) { fuelSchedules[4].pw = fuelSchedules[0].pw; }
 #endif
 #if INJ_CHANNELS >= 6
-    if(maxInjOutputs >= 6) { fuelSchedule6.pw = fuelSchedule1.pw; }
+    if(maxInjOutputs >= 6) { fuelSchedules[5].pw = fuelSchedules[0].pw; }
 #endif
 #if INJ_CHANNELS >= 7
-    if(maxInjOutputs >= 7) { fuelSchedule7.pw = fuelSchedule1.pw; }
+    if(maxInjOutputs >= 7) { fuelSchedules[6].pw = fuelSchedules[0].pw; }
 #endif
 #if INJ_CHANNELS >= 5
-    if(maxInjOutputs >= 8) { fuelSchedule8.pw = fuelSchedule1.pw; }
+    if(maxInjOutputs >= 8) { fuelSchedules[7].pw = fuelSchedules[0].pw; }
 #endif
     BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Clear the staging active flag
-    
   } 
 
 }

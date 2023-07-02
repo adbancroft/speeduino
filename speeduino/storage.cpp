@@ -251,21 +251,21 @@ void writeConfig(uint8_t pageNum)
       | Fuel trim tables (See storage.h for data layout) - Page 9
       | 6x6 tables itself + the 6 values along each of the axis
       -----------------------------------------------------*/
-      result = writeTable(&fuelSchedule1.trimTable, decltype(fuelSchedule1.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP1));
-      result = writeTable(&fuelSchedule2.trimTable, decltype(fuelSchedule2.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP2));
-      result = writeTable(&fuelSchedule3.trimTable, decltype(fuelSchedule3.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP3));
-      result = writeTable(&fuelSchedule4.trimTable, decltype(fuelSchedule4.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP4));
+      result = writeTable(&fuelSchedules[0].trimTable, decltype(fuelSchedules[0].trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP1));
+      result = writeTable(&fuelSchedules[1].trimTable, decltype(fuelSchedules[1].trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP2));
+      result = writeTable(&fuelSchedules[2].trimTable, decltype(fuelSchedules[2].trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP3));
+      result = writeTable(&fuelSchedules[3].trimTable, decltype(fuelSchedules[3].trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP4));
 #if INJ_CHANNELS >= 5
-      result = writeTable(&fuelSchedule5.trimTable, decltype(fuelSchedule5.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP5));
+      result = writeTable(&fuelSchedules[4].trimTable, decltype(fuelSchedules[4].trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP5));
 #endif
 #if INJ_CHANNELS >= 6
-      result = writeTable(&fuelSchedule6.trimTable, decltype(fuelSchedule6.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP6));
+      result = writeTable(&fuelSchedules[5].trimTable, decltype(fuelSchedules[5].trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP6));
 #endif
 #if INJ_CHANNELS >= 7
-      result = writeTable(&fuelSchedule7.trimTable, decltype(fuelSchedule7.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP7));
+      result = writeTable(&fuelSchedules[6].trimTable, decltype(fuelSchedules[6].trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP7));
 #endif
 #if INJ_CHANNELS >= 8
-      result = writeTable(&fuelSchedule8.trimTable, decltype(fuelSchedule8.trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP8));
+      result = writeTable(&fuelSchedules[7].trimTable, decltype(fuelSchedules[7].trimTable)::type_key, result.changeWriteAddress(EEPROM_CONFIG8_MAP8));
 #endif
       break;
 
@@ -446,21 +446,21 @@ void loadConfig(void)
 
   //*********************************************************************************************************************************************************************************
   // Fuel trim tables load
-  loadTable(&fuelSchedule1.trimTable, decltype(fuelSchedule1.trimTable)::type_key, EEPROM_CONFIG8_MAP1);
-  loadTable(&fuelSchedule2.trimTable, decltype(fuelSchedule2.trimTable)::type_key, EEPROM_CONFIG8_MAP2);
-  loadTable(&fuelSchedule3.trimTable, decltype(fuelSchedule3.trimTable)::type_key, EEPROM_CONFIG8_MAP3);
-  loadTable(&fuelSchedule4.trimTable, decltype(fuelSchedule4.trimTable)::type_key, EEPROM_CONFIG8_MAP4);
+  loadTable(&fuelSchedules[0].trimTable, decltype(fuelSchedules[0].trimTable)::type_key, EEPROM_CONFIG8_MAP1);
+  loadTable(&fuelSchedules[1].trimTable, decltype(fuelSchedules[1].trimTable)::type_key, EEPROM_CONFIG8_MAP2);
+  loadTable(&fuelSchedules[2].trimTable, decltype(fuelSchedules[2].trimTable)::type_key, EEPROM_CONFIG8_MAP3);
+  loadTable(&fuelSchedules[3].trimTable, decltype(fuelSchedules[3].trimTable)::type_key, EEPROM_CONFIG8_MAP4);
 #if INJ_CHANNELS >= 5
-  loadTable(&fuelSchedule5.trimTable, decltype(fuelSchedule5.trimTable)::type_key, EEPROM_CONFIG8_MAP5);
+  loadTable(&fuelSchedules[4].trimTable, decltype(fuelSchedules[4].trimTable)::type_key, EEPROM_CONFIG8_MAP5);
 #endif
 #if INJ_CHANNELS >= 6
-  loadTable(&fuelSchedule6.trimTable, decltype(fuelSchedule6.trimTable)::type_key, EEPROM_CONFIG8_MAP6);
+  loadTable(&fuelSchedules[5].trimTable, decltype(fuelSchedules[5].trimTable)::type_key, EEPROM_CONFIG8_MAP6);
 #endif
 #if INJ_CHANNELS >= 7
-  loadTable(&fuelSchedule7.trimTable, decltype(fuelSchedule7.trimTable)::type_key, EEPROM_CONFIG8_MAP7);
+  loadTable(&fuelSchedules[6].trimTable, decltype(fuelSchedules[6].trimTable)::type_key, EEPROM_CONFIG8_MAP7);
 #endif
 #if INJ_CHANNELS >= 8
-  loadTable(&fuelSchedule8.trimTable, decltype(fuelSchedule8.trimTable)::type_key, EEPROM_CONFIG8_MAP8);
+  loadTable(&fuelSchedules[7].trimTable, decltype(fuelSchedules[7].trimTable)::type_key, EEPROM_CONFIG8_MAP8);
 #endif
 
   //*********************************************************************************************************************************************************************************
