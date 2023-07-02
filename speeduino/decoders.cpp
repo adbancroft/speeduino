@@ -390,7 +390,7 @@ If it's the correct tooth, but the schedule is not yet started, calculate and an
 */
 static inline void checkPerToothTiming(int16_t crankAngle, uint16_t currentTooth, uint8_t maxChannels)
 {
-  if ( (fixedCrankingOverride == 0) && (currentStatus.RPM > 0) )
+  if ( (isFixedCrankLock()==false) && (currentStatus.RPM > 0) )
   {
     uint8_t index = 0;
     while ((index<maxChannels) && (currentTooth != ignitionEndTeeth[index]))
@@ -5554,7 +5554,7 @@ void triggerPri_SuzukiK6A(void)
       {  
         int16_t crankAngle = toothAngles[toothCurrentCount] + configPage4.triggerAngle;
         crankAngle = ignitionLimits(crankAngle);
-        checkPerToothTiming(crankAngle, toothCurrentCount);
+        checkPerToothTiming(crankAngle, toothCurrentCount, 3U);
       }     
 
     } // has sync
@@ -5663,7 +5663,7 @@ void triggerSetEndTeeth_SuzukiK6A(void)
   }
   if(nCount == 8)
   { tempIgnitionEndTooth = 7; } // didn't find a match, use tooth 7 as it must be greater than 7 but less than 1.  
-  ignition1EndTooth = tempIgnitionEndTooth;
+  ignitionEndTeeth[0] = tempIgnitionEndTooth;
 
   //--------------------
 
@@ -5683,7 +5683,7 @@ void triggerSetEndTeeth_SuzukiK6A(void)
   }
   if(nCount == 8)
   { tempIgnitionEndTooth = 7; } // didn't find a match, use tooth 7 as it must be greater than 7 but less than 1.  
-  ignition2EndTooth = tempIgnitionEndTooth;
+  ignitionEndTeeth[1] = tempIgnitionEndTooth;
 
   //--------------
 
@@ -5703,7 +5703,7 @@ void triggerSetEndTeeth_SuzukiK6A(void)
   }
   if(nCount == 8)
   { tempIgnitionEndTooth = 7; } // didn't find a match, use tooth 7 as it must be greater than 7 but less than 1.  
-  ignition3EndTooth = tempIgnitionEndTooth;
+  ignitionEndTeeth[2] = tempIgnitionEndTooth;
 }
 /** @} */
 
