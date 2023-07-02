@@ -81,9 +81,6 @@ void initialiseIgnitionSchedulers(void);
 /** @brief Start fuel system  priming the fuel */
 void beginInjectorPriming(void);
 
-void disablePendingFuelSchedule(uint8_t channel);
-void disablePendingIgnSchedule(uint8_t channel);
-
 /** @brief ???? */
 void changeHalfToFullSync(void);
 
@@ -205,6 +202,17 @@ void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidC
 static SCHEDULE_INLINE bool isPending(const Schedule &schedule) {
   static constexpr uint8_t flags = PENDING | PENDING_WITH_OVERRIDE;
   return ((byte)schedule._status & flags)!=0U;
+}
+
+/**
+ * @brief Turn schedule off if it's not running
+ * 
+ * @param schedule Schedule to turn off.
+ */
+static inline void disableScheduleIfPending(Schedule &schedule) {
+  ATOMIC() {
+    if(!isRunning(schedule)) { schedule._status = OFF; }  
+  }
 }
 
 /** @brief An ignition schedule.
@@ -340,11 +348,13 @@ static inline uint32_t _calculateInjOpenTime(const FuelSchedule &schedule, uint1
  * @param crankAngle The current crank angle
  */
 static SCHEDULE_INLINE void setFuelSchedule(FuelSchedule &schedule, uint16_t injAngle, uint16_t crankAngle, injectorAngleCalcCache *pCache) {
-  uint32_t delay = _calculateInjOpenTime(schedule, injAngle, crankAngle, pCache);  
+  if (schedule.pw!=0U) {
+    uint32_t delay = _calculateInjOpenTime(schedule, injAngle, crankAngle, pCache);  
 
-  ATOMIC() {
-    if (delay > 0U) {
-      _setSchedule(schedule, delay, schedule.pw);
+    ATOMIC() {
+      if (delay > 0U) {
+        _setSchedule(schedule, delay, schedule.pw);
+      }
     }
   }
 }

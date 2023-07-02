@@ -15,6 +15,7 @@
 #include "pages.h"
 #include "comms_CAN.h"
 #include "scheduler.h"
+#include "utilities.h"
 #include EEPROM_LIB_H //This is defined in the board .h files
 #include "scheduler.h"
 
@@ -547,22 +548,9 @@ void doUpdates(void)
     {
       multiplyTableLoad(&fuelTable,  fuelTable.type_key,  4);
       multiplyTableLoad(&afrTable,   afrTable.type_key,   4);
-      multiplyTableLoad(&fuelSchedules[0].trimTable, fuelSchedules[0].trimTable.type_key, 4);
-      multiplyTableLoad(&fuelSchedules[1].trimTable, fuelSchedules[1].trimTable.type_key, 4);
-      multiplyTableLoad(&fuelSchedules[2].trimTable, fuelSchedules[2].trimTable.type_key, 4);
-      multiplyTableLoad(&fuelSchedules[3].trimTable, fuelSchedules[3].trimTable.type_key, 4);
-#if INJ_CHANNELS >= 5
-      multiplyTableLoad(&fuelSchedules[4].trimTable, fuelSchedules[4].trimTable.type_key, 4);
-#endif
-#if INJ_CHANNELS >= 5
-      multiplyTableLoad(&fuelSchedules[5].trimTable, fuelSchedules[5].trimTable.type_key, 4);
-#endif
-#if INJ_CHANNELS >= 5
-      multiplyTableLoad(&fuelSchedules[6].trimTable, fuelSchedules[6].trimTable.type_key, 4);
-#endif
-#if INJ_CHANNELS >= 5
-      multiplyTableLoad(&fuelSchedules[7].trimTable, fuelSchedules[7].trimTable.type_key, 4);
-#endif
+      for (uint8_t index=0; index<_countof(fuelSchedules); ++index) {
+        multiplyTableLoad(&fuelSchedules[index].trimTable, fuelSchedules[index].trimTable.type_key, 4);
+      }
       if(configPage4.sparkMode == IGN_MODE_ROTARY)
       { 
         for(uint8_t x = 0; x < 8; x++)
