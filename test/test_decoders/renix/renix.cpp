@@ -4,11 +4,9 @@
 #include "renix.h"
 #include "scheduler.h"
 #include "../../test_utils.h"
+#include "utilities.h"
 
-extern uint16_t ignition1EndTooth;
-extern uint16_t ignition2EndTooth;
-extern uint16_t ignition3EndTooth;
-extern uint16_t ignition4EndTooth;
+extern uint16_t ignitionEndTeeth[_countof(ignitionSchedules)];
 
 void test_setup_renix44()
 {
@@ -40,7 +38,7 @@ void test_Renix_newIgn_44_trig0_1()
     configPage4.triggerAngle = 0; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(2, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(2, ignitionEndTeeth[0]);
 }
 
 void test_Renix_newIgn_44_trig90_1()
@@ -55,7 +53,7 @@ void test_Renix_newIgn_44_trig90_1()
     configPage4.triggerAngle = 90; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(1, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(1, ignitionEndTeeth[0]);
 }
 
 void test_Renix_newIgn_44_trig180_1()
@@ -69,7 +67,7 @@ void test_Renix_newIgn_44_trig180_1()
     configPage4.triggerAngle = 180; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(4, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(4, ignitionEndTeeth[0]);
 }
 
 void test_Renix_newIgn_44_trig270_1()
@@ -83,7 +81,7 @@ void test_Renix_newIgn_44_trig270_1()
     configPage4.triggerAngle = 270; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(3, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(3, ignitionEndTeeth[0]);
 }
 
 void test_Renix_newIgn_44_trig360_1()
@@ -97,7 +95,7 @@ void test_Renix_newIgn_44_trig360_1()
     configPage4.triggerAngle = 360; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(3, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(3, ignitionEndTeeth[0]);
 }
 
 void test_Renix_newIgn_44_trigNeg90_1()
@@ -111,7 +109,7 @@ void test_Renix_newIgn_44_trigNeg90_1()
     configPage4.triggerAngle = -90; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(3, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(3, ignitionEndTeeth[0]);
 }
 
 void test_Renix_newIgn_44_trigNeg180_1()
@@ -125,7 +123,7 @@ void test_Renix_newIgn_44_trigNeg180_1()
     configPage4.triggerAngle = -180; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(4, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(4, ignitionEndTeeth[0]);
 }
 
 void test_Renix_newIgn_44_trigNeg270_1()
@@ -139,7 +137,7 @@ void test_Renix_newIgn_44_trigNeg270_1()
     configPage4.triggerAngle = -270; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(1, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(1, ignitionEndTeeth[0]);
 }
 
 void test_Renix_newIgn_44_trigNeg360_1()
@@ -153,7 +151,7 @@ void test_Renix_newIgn_44_trigNeg360_1()
     configPage4.triggerAngle = -360; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(2, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(2, ignitionEndTeeth[0]);
 }
 
 // ******* CHannel 2 *******
@@ -168,7 +166,7 @@ void test_Renix_newIgn_44_trig0_2()
     configPage4.triggerAngle = 0; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(4, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(4, ignitionEndTeeth[1]);
 }
 
 void test_Renix_newIgn_44_trig90_2()
@@ -182,7 +180,7 @@ void test_Renix_newIgn_44_trig90_2()
     configPage4.triggerAngle = 90; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(3, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(3, ignitionEndTeeth[1]);
 }
 
 void test_Renix_newIgn_44_trig180_2()
@@ -196,7 +194,7 @@ void test_Renix_newIgn_44_trig180_2()
     configPage4.triggerAngle = 180; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(3, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(3, ignitionEndTeeth[1]);
 }
 
 void test_Renix_newIgn_44_trig270_2()
@@ -210,7 +208,7 @@ void test_Renix_newIgn_44_trig270_2()
     configPage4.triggerAngle = 270; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(2, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(2, ignitionEndTeeth[1]);
 }
 
 void test_Renix_newIgn_44_trig366()
@@ -224,7 +222,7 @@ void test_Renix_newIgn_44_trig366()
     configPage4.triggerAngle = 360; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(1, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(1, ignitionEndTeeth[1]);
 }
 
 void test_Renix_newIgn_44_trigNeg90_2()
@@ -238,7 +236,7 @@ void test_Renix_newIgn_44_trigNeg90_2()
     configPage4.triggerAngle = -90; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(1, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(1, ignitionEndTeeth[1]);
 }
 
 void test_Renix_newIgn_44_trigNeg180_2()
@@ -252,7 +250,7 @@ void test_Renix_newIgn_44_trigNeg180_2()
     configPage4.triggerAngle = -180; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(2, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(2, ignitionEndTeeth[1]);
 }
 
 void test_Renix_newIgn_44_trigNeg270_2()
@@ -266,7 +264,7 @@ void test_Renix_newIgn_44_trigNeg270_2()
     configPage4.triggerAngle = -270; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(3, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(3, ignitionEndTeeth[1]);
 }
 
 void test_Renix_newIgn_44_trigNeg366()
@@ -280,7 +278,7 @@ void test_Renix_newIgn_44_trigNeg366()
     configPage4.triggerAngle = -360; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(4, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(4, ignitionEndTeeth[1]);
 }
 
 void test_Renix_newIgn_66_trig0_2()
@@ -295,7 +293,7 @@ void test_Renix_newIgn_66_trig0_2()
     configPage4.triggerAngle = 0; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(1, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(1, ignitionEndTeeth[1]);
 }
 
 void test_Renix_newIgn_66_trig181_2()
@@ -310,7 +308,7 @@ void test_Renix_newIgn_66_trig181_2()
     configPage4.triggerAngle = 181; //No trigger offset
     
     triggerSetEndTeeth_Renix();
-    TEST_ASSERT_EQUAL(5, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(5, ignitionEndTeeth[1]);
 }
 
 
