@@ -4,11 +4,9 @@
 #include "test_ngc.h"
 #include "scheduler.h"
 #include "../../test_utils.h"
+#include "utilities.h"
 
-extern uint16_t ignition1EndTooth;
-extern uint16_t ignition2EndTooth;
-extern uint16_t ignition3EndTooth;
-extern uint16_t ignition4EndTooth;
+extern uint16_t ignitionEndTeeth[_countof(ignitionSchedules)];
 
 void test_ngc_newIgn_12_trig0_1()
 {
@@ -19,17 +17,17 @@ void test_ngc_newIgn_12_trig0_1()
     
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     triggerSetEndTeeth_NGC();
-    TEST_ASSERT_EQUAL(34, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(34, ignitionEndTeeth[0]);
 
     //Test again with 0 degrees advance
     calculateIgnitionAngles(ignitionSchedules[0], 5, 0);
     triggerSetEndTeeth_NGC();
-    TEST_ASSERT_EQUAL(34, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(34, ignitionEndTeeth[0]);
 
     //Test again with 35 degrees advance
     calculateIgnitionAngles(ignitionSchedules[0], 5, 35);
     triggerSetEndTeeth_NGC();
-    TEST_ASSERT_EQUAL(31, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(31, ignitionEndTeeth[0]);
 }
 
 void test_ngc_newIgn_12_trig90_1()
@@ -41,7 +39,7 @@ void test_ngc_newIgn_12_trig90_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_NGC();
-    TEST_ASSERT_EQUAL(25, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(25, ignitionEndTeeth[0]);
 }
 
 void test_ngc_newIgn_12_trig180_1()
@@ -53,7 +51,7 @@ void test_ngc_newIgn_12_trig180_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_NGC();
-    TEST_ASSERT_EQUAL(16, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(16, ignitionEndTeeth[0]);
 }
 
 void test_ngc_newIgn_12_trig270_1()
@@ -65,7 +63,7 @@ void test_ngc_newIgn_12_trig270_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_NGC();
-    TEST_ASSERT_EQUAL(7, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(7, ignitionEndTeeth[0]);
 }
 
 void test_ngc_newIgn_12_trig360_1()
@@ -77,7 +75,7 @@ void test_ngc_newIgn_12_trig360_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_NGC();
-    TEST_ASSERT_EQUAL(34, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(34, ignitionEndTeeth[0]);
 }
 
 void test_ngc_newIgn_12_trigNeg90_1()
@@ -89,7 +87,7 @@ void test_ngc_newIgn_12_trigNeg90_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_NGC();
-    TEST_ASSERT_EQUAL(7, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(7, ignitionEndTeeth[0]);
 }
 
 void test_ngc_newIgn_12_trigNeg180_1()
@@ -101,7 +99,7 @@ void test_ngc_newIgn_12_trigNeg180_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_NGC();
-    TEST_ASSERT_EQUAL(16, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(16, ignitionEndTeeth[0]);
 }
 
 void test_ngc_newIgn_12_trigNeg270_1()
@@ -113,7 +111,7 @@ void test_ngc_newIgn_12_trigNeg270_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_NGC();
-    TEST_ASSERT_EQUAL(25, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(25, ignitionEndTeeth[0]);
 }
 
 void test_ngc_newIgn_12_trigNeg360_1()
@@ -125,7 +123,7 @@ void test_ngc_newIgn_12_trigNeg360_1()
     calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_NGC();
-    TEST_ASSERT_EQUAL(34, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(34, ignitionEndTeeth[0]);
 }
 
 void testNGC()
