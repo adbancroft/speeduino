@@ -126,8 +126,10 @@ volatile byte HWTest_INJ = 0; /**< Each bit in this variable represents one of t
 volatile byte HWTest_INJ_Pulsed = 0; /**< Each bit in this variable represents one of the injector channels and it's pulsed HW test status */
 volatile byte HWTest_IGN = 0; /**< Each bit in this variable represents one of the ignition channels and it's HW test status */
 volatile byte HWTest_IGN_Pulsed = 0; 
-byte maxIgnOutputs = 1; /**< Number of ignition outputs being used by the current tune configuration */
-byte maxInjOutputs = 1; /**< Number of injection outputs being used by the current tune configuration */
+uint8_t maxIgnOutputs = 1; /**< Used for rolling rev limiter to indicate how many total ignition channels should currently be firing */
+uint8_t maxInjPrimaryOutputs = 1;
+uint8_t maxInjSecondaryOutputs = 1;
+
 
 //This needs to be here because using the config page directly can prevent burning the setting
 byte resetControl = RESET_CONTROL_DISABLED;

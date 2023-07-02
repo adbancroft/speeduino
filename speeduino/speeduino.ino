@@ -293,7 +293,7 @@ static inline void matchSyncState(const config2 &page2, const statuses &current)
 static inline void applyFuelTrims(const config2 &page2, const config6 &page6, const statuses &current) {
   if ( (page2.injLayout == INJ_SEQUENTIAL) && (page6.fuelTrimEnabled > 0U) )
   {
-    uint8_t trimInjChannels = min(page2.nCylinders, maxInjOutputs);
+    uint8_t trimInjChannels = min(page2.nCylinders, maxInjPrimaryOutputs);
     for (uint8_t index=0; index<trimInjChannels; ++index) {
       applyFuelTrimToPW(fuelSchedules[index], current.fuelLoad, current.RPM);
     }
@@ -302,7 +302,7 @@ static inline void applyFuelTrims(const config2 &page2, const config6 &page6, co
 
 static void setFuelSchedules(uint16_t injAngle, uint16_t crankAngle) {
   injectorAngleCalcCache calcCache;
-  for (uint8_t index=0; index<maxInjOutputs; ++index) {
+  for (uint8_t index=0; index<maxInjPrimaryOutputs+maxInjSecondaryOutputs; ++index) {
     if(BIT_CHECK(fuelChannelsOn, (INJ1_CMD_BIT+index))) {
       setFuelSchedule(fuelSchedules[index], injAngle, crankAngle, &calcCache);
     }
@@ -833,7 +833,7 @@ void __attribute__((always_inline, hot)) loop(void)
           else { cutPercent = table2D_getValue(&rollingCutTable, (rpmDelta / 10) ); } //
           
 
-          for(uint8_t x=0; x<max(maxIgnOutputs, maxInjOutputs); x++)
+          for(uint8_t x=0; x<max(maxIgnOutputs, maxInjPrimaryOutputs+maxInjSecondaryOutputs); x++)
           {  
             if( (cutPercent == 100) || (random1to100() < cutPercent) )
             {
@@ -1171,7 +1171,7 @@ TESTABLE_INLINE_STATIC void calculateStaging(uint16_t pwLimit, uint16_t pwPrimar
   else 
   { 
     //If staging is off, all the pulse widths are set the same (Sequential and other adjustments may be made below)
-    for (uint8_t index=0U; index<maxInjOutputs; ++index) {
+    for (uint8_t index=0U; index<maxInjPrimaryOutputs; ++index) {
       fuelSchedules[index].pw = pwPrimary;
     }
 
