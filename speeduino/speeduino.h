@@ -20,7 +20,12 @@ void loop(void);
 uint8_t getVE1(void);
 int8_t getAdvance1(void);
 uint16_t calculatePWLimit();
-void calculateStaging(uint32_t);
+
+struct pulseWidths {
+    uint16_t primary;
+    uint16_t secondary;
+};
+
 void checkLaunchAndFlatShift();
 
 extern uint16_t req_fuel_uS; /**< The required fuel variable (As calculated by TunerStudio) in uS */
