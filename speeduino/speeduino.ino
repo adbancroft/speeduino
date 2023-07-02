@@ -112,7 +112,7 @@ static CRITICAL_INLINE void setIgnitionSchedules(uint16_t crankAngle, uint16_t t
 
 static CRITICAL_INLINE void setFuelSchedules(uint16_t crankAngle) {
   static constexpr auto loopFunction = [](uint8_t index, uint16_t crankAngle) __attribute__((always_inline, hot)) {
-    if( (maxInjOutputs > index) && (fuelSchedules[index].pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, (INJ1_CMD_BIT+index))) ) {
+    if( ((maxInjPrimaryOutputs+maxInjSecondaryOutputs) > index) && (fuelSchedules[index].pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, (INJ1_CMD_BIT+index))) ) {
       setFuelSchedule(fuelSchedules[index], crankAngle);
     }
   };
@@ -848,7 +848,7 @@ void __attribute__((always_inline, hot)) loop(void)
           else { cutPercent = table2D_getValue(&rollingCutTable, (rpmDelta / 10) ); } //
           
 
-          for(uint8_t x=0; x<max(maxIgnOutputs, maxInjOutputs); x++)
+          for(uint8_t x=0; x<max(maxIgnOutputs, maxInjPrimaryOutputs+maxInjSecondaryOutputs); x++)
           {  
             if( (cutPercent == 100) || (random1to100() < cutPercent) )
             {
@@ -1351,10 +1351,10 @@ TESTABLE_INLINE_STATIC pulseWidths applyStagingToPW(uint16_t pwLimit, uint16_t p
   else 
   { 
     //If staging is off, all the pulse widths are set the same (Sequential and other adjustments may be made below)
-    for (uint8_t index=0U; index<maxInjOutputs; ++index) {
+    for (uint8_t index=0U; index<maxInjPrimaryOutputs; ++index) {
       fuelSchedules[index].pw = pw.primary;
     }
-    for (uint8_t index=maxInjOutputs; index<_countof(fuelSchedules); ++index) {
+    for (uint8_t index=maxInjPrimaryOutputs; index<_countof(fuelSchedules); ++index) {
       fuelSchedules[index].pw = 0U;
     }
 
