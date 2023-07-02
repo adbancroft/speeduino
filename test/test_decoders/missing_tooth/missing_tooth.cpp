@@ -4,6 +4,7 @@
 #include "missing_tooth.h"
 #include "scheduler.h"
 #include "../../test_utils.h"
+#include "utilities.h"
 
 void test_setup_36_1()
 {
@@ -12,6 +13,7 @@ void test_setup_36_1()
     configPage4.triggerMissingTeeth = 1;
     configPage4.TrigSpeed = CRANK_SPEED;
     configPage4.trigPatternSec = SEC_TRIGGER_SINGLE;
+    maxIgnOutputs = 4;
 
     triggerSetup_missingTooth();
 }
@@ -23,14 +25,13 @@ void test_setup_60_2()
     configPage4.triggerMissingTeeth = 2;
     configPage4.TrigSpeed = CRANK_SPEED;
     configPage4.trigPatternSec = SEC_TRIGGER_SINGLE;
+    maxIgnOutputs = 4;
 
     triggerSetup_missingTooth();
 }
 
-extern uint16_t ignition1EndTooth;
-extern uint16_t ignition2EndTooth;
-extern uint16_t ignition3EndTooth;
-extern uint16_t ignition4EndTooth;
+extern uint16_t ignitionEndTeeth[_countof(ignitionSchedules)];
+
 
 //************************************** Begin the new ignition setEndTooth tests **************************************
 void test_missingtooth_newIgn_36_1_trig0_1()
@@ -45,7 +46,7 @@ void test_missingtooth_newIgn_36_1_trig0_1()
     configPage4.triggerAngle = 0; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(34, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(34, ignitionEndTeeth[0]);
 }
 
 void test_missingtooth_newIgn_36_1_trig90_1()
@@ -60,7 +61,7 @@ void test_missingtooth_newIgn_36_1_trig90_1()
     configPage4.triggerAngle = 90; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(25, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(25, ignitionEndTeeth[0]);
 }
 
 void test_missingtooth_newIgn_36_1_trig180_1()
@@ -75,7 +76,7 @@ void test_missingtooth_newIgn_36_1_trig180_1()
     configPage4.triggerAngle = 180; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(16, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(16, ignitionEndTeeth[0]);
 }
 
 void test_missingtooth_newIgn_36_1_trig270_1()
@@ -90,7 +91,7 @@ void test_missingtooth_newIgn_36_1_trig270_1()
     configPage4.triggerAngle = 270; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(7, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(7, ignitionEndTeeth[0]);
 }
 
 void test_missingtooth_newIgn_36_1_trig360_1()
@@ -105,7 +106,7 @@ void test_missingtooth_newIgn_36_1_trig360_1()
     configPage4.triggerAngle = 360; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(34, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(34, ignitionEndTeeth[0]);
 }
 
 void test_missingtooth_newIgn_36_1_trigNeg90_1()
@@ -120,7 +121,7 @@ void test_missingtooth_newIgn_36_1_trigNeg90_1()
     configPage4.triggerAngle = -90; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(7, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(7, ignitionEndTeeth[0]);
 }
 
 void test_missingtooth_newIgn_36_1_trigNeg180_1()
@@ -135,7 +136,7 @@ void test_missingtooth_newIgn_36_1_trigNeg180_1()
     configPage4.triggerAngle = -180; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(16, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(16, ignitionEndTeeth[0]);
 }
 
 void test_missingtooth_newIgn_36_1_trigNeg270_1()
@@ -150,7 +151,7 @@ void test_missingtooth_newIgn_36_1_trigNeg270_1()
     configPage4.triggerAngle = -270; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(25, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(25, ignitionEndTeeth[0]);
 }
 
 void test_missingtooth_newIgn_36_1_trigNeg360_1()
@@ -165,7 +166,7 @@ void test_missingtooth_newIgn_36_1_trigNeg360_1()
     configPage4.triggerAngle = -360; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(34, ignition1EndTooth);
+    TEST_ASSERT_EQUAL(34, ignitionEndTeeth[0]);
 }
 
 // ******* CHannel 2 *******
@@ -181,7 +182,7 @@ void test_missingtooth_newIgn_36_1_trig0_2()
     configPage4.triggerAngle = 0; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(16, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(16, ignitionEndTeeth[1]);
 }
 
 void test_missingtooth_newIgn_36_1_trig90_2()
@@ -196,7 +197,7 @@ void test_missingtooth_newIgn_36_1_trig90_2()
     configPage4.triggerAngle = 90; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(7, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(7, ignitionEndTeeth[1]);
 }
 
 void test_missingtooth_newIgn_36_1_trig180_2()
@@ -211,7 +212,7 @@ void test_missingtooth_newIgn_36_1_trig180_2()
     configPage4.triggerAngle = 180; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(34, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(34, ignitionEndTeeth[1]);
 }
 
 void test_missingtooth_newIgn_36_1_trig270_2()
@@ -226,7 +227,7 @@ void test_missingtooth_newIgn_36_1_trig270_2()
     configPage4.triggerAngle = 270; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(25, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(25, ignitionEndTeeth[1]);
 }
 
 void test_missingtooth_newIgn_36_1_trig360_2()
@@ -241,7 +242,7 @@ void test_missingtooth_newIgn_36_1_trig360_2()
     configPage4.triggerAngle = 360; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(16, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(16, ignitionEndTeeth[1]);
 }
 
 void test_missingtooth_newIgn_36_1_trigNeg90_2()
@@ -256,7 +257,7 @@ void test_missingtooth_newIgn_36_1_trigNeg90_2()
     configPage4.triggerAngle = -90; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(25, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(25, ignitionEndTeeth[1]);
 }
 
 void test_missingtooth_newIgn_36_1_trigNeg180_2()
@@ -271,7 +272,7 @@ void test_missingtooth_newIgn_36_1_trigNeg180_2()
     configPage4.triggerAngle = -180; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(34, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(34, ignitionEndTeeth[1]);
 }
 
 void test_missingtooth_newIgn_36_1_trigNeg270_2()
@@ -286,7 +287,7 @@ void test_missingtooth_newIgn_36_1_trigNeg270_2()
     configPage4.triggerAngle = -270; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(7, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(7, ignitionEndTeeth[1]);
 }
 
 void test_missingtooth_newIgn_36_1_trigNeg360_2()
@@ -301,7 +302,7 @@ void test_missingtooth_newIgn_36_1_trigNeg360_2()
     configPage4.triggerAngle = -360; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(16, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(16, ignitionEndTeeth[1]);
 }
 
 void test_missingtooth_newIgn_60_2_trig0_2()
@@ -316,7 +317,7 @@ void test_missingtooth_newIgn_60_2_trig0_2()
     configPage4.triggerAngle = 0; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(57, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(57, ignitionEndTeeth[1]);
 }
 
 void test_missingtooth_newIgn_60_2_trig181_2()
@@ -331,7 +332,7 @@ void test_missingtooth_newIgn_60_2_trig181_2()
     configPage4.triggerAngle = 181; //No trigger offset
     
     triggerSetEndTeeth_missingTooth();
-    TEST_ASSERT_EQUAL(58, ignition2EndTooth);
+    TEST_ASSERT_EQUAL(58, ignitionEndTeeth[1]);
 }
 
 
