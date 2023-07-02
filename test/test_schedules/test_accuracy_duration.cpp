@@ -23,49 +23,49 @@ void test_accuracy_duration_inj(FuelSchedule &schedule)
 
 void test_accuracy_duration_inj1(void)
 {
-    test_accuracy_duration_inj(fuelSchedule1);
+    test_accuracy_duration_inj(fuelSchedules[0]);
 }
 
 void test_accuracy_duration_inj2(void)
 {
-    test_accuracy_duration_inj(fuelSchedule2);
+    test_accuracy_duration_inj(fuelSchedules[1]);
 }
 
 void test_accuracy_duration_inj3(void)
 {
-    test_accuracy_duration_inj(fuelSchedule3);
+    test_accuracy_duration_inj(fuelSchedules[2]);
 }
 
 void test_accuracy_duration_inj4(void)
 {
-    test_accuracy_duration_inj(fuelSchedule4);
+    test_accuracy_duration_inj(fuelSchedules[3]);
 }
 
 #if INJ_CHANNELS >= 5
 void test_accuracy_duration_inj5(void)
 {
-    test_accuracy_duration_inj(fuelSchedule5);
+    test_accuracy_duration_inj(fuelSchedules[4]);
 }
 #endif
 
 #if INJ_CHANNELS >= 6
 void test_accuracy_duration_inj6(void)
 {
-    test_accuracy_duration_inj(fuelSchedule6);
+    test_accuracy_duration_inj(fuelSchedules[5]);
 }
 #endif
 
 #if INJ_CHANNELS >= 7
 void test_accuracy_duration_inj7(void)
 {
-    test_accuracy_duration_inj(fuelSchedule7);
+    test_accuracy_duration_inj(fuelSchedules[6]);
 }
 #endif
 
 #if INJ_CHANNELS >= 8
 void test_accuracy_duration_inj8(void)
 {
-    test_accuracy_duration_inj(fuelSchedule8);
+    test_accuracy_duration_inj(fuelSchedules[7]);
 }
 #endif
 
@@ -80,49 +80,49 @@ void test_accuracy_duration_ign(IgnitionSchedule &schedule)
 }
 void test_accuracy_duration_ign1(void)
 {
-    test_accuracy_duration_ign(ignitionSchedule1);
+    test_accuracy_duration_ign(ignitionSchedules[0]);
 }
 
 void test_accuracy_duration_ign2(void)
 {
-    test_accuracy_duration_ign(ignitionSchedule2);
+    test_accuracy_duration_ign(ignitionSchedules[1]);
 }
 
 void test_accuracy_duration_ign3(void)
 {
-    test_accuracy_duration_ign(ignitionSchedule3);
+    test_accuracy_duration_ign(ignitionSchedules[2]);
 }
 
 void test_accuracy_duration_ign4(void)
 {
-    test_accuracy_duration_ign(ignitionSchedule4);
+    test_accuracy_duration_ign(ignitionSchedules[3]);
 }
 
 void test_accuracy_duration_ign5(void)
 {
 #if IGN_CHANNELS >= 5
-    test_accuracy_duration_ign(ignitionSchedule5);
+    test_accuracy_duration_ign(ignitionSchedules[4]);
 #endif
 }
 
 #if INJ_CHANNELS >= 6
 void test_accuracy_duration_ign6(void)
 {
-    test_accuracy_duration_ign(ignitionSchedule6);
+    test_accuracy_duration_ign(ignitionSchedules[5]);
 }
 #endif
 
 #if INJ_CHANNELS >= 7
 void test_accuracy_duration_ign7(void)
 {
-    test_accuracy_duration_ign(ignitionSchedule7);
+    test_accuracy_duration_ign(ignitionSchedules[6]);
 }
 #endif
 
 #if INJ_CHANNELS >= 8
 void test_accuracy_duration_ign8(void)
 {
-    test_accuracy_duration_ign(ignitionSchedule8);
+    test_accuracy_duration_ign(ignitionSchedules[7]);
 }
 #endif
 

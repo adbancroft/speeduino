@@ -19,17 +19,17 @@ void test_nissan360_newIgn_12_trig0_1()
     configPage4.sparkMode = IGN_MODE_WASTED;
     configPage4.triggerAngle = 0; //No trigger offset
 
-    calculateIgnitionAngles(ignitionSchedule1, 5, 10);
+    calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     triggerSetEndTeeth_Nissan360();
     TEST_ASSERT_EQUAL(171, ignition1EndTooth);
 
     //Test again with 0 degrees advance
-    calculateIgnitionAngles(ignitionSchedule1, 5, 0);
+    calculateIgnitionAngles(ignitionSchedules[0], 5, 0);
     triggerSetEndTeeth_Nissan360();
     TEST_ASSERT_EQUAL(176, ignition1EndTooth);
 
     //Test again with 35 degrees advance
-    calculateIgnitionAngles(ignitionSchedule1, 5, 35);
+    calculateIgnitionAngles(ignitionSchedules[0], 5, 35);
     triggerSetEndTeeth_Nissan360();
     TEST_ASSERT_EQUAL(158, ignition1EndTooth);
 }
@@ -43,7 +43,7 @@ void test_nissan360_newIgn_12_trig90_1()
     triggerSetup_Nissan360();
     configPage4.sparkMode = IGN_MODE_WASTED;
     configPage4.triggerAngle = 90; //No trigger offset
-    calculateIgnitionAngles(ignitionSchedule1, 5, 10);
+    calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_Nissan360();
     TEST_ASSERT_EQUAL(126, ignition1EndTooth);
@@ -58,7 +58,7 @@ void test_nissan360_newIgn_12_trig180_1()
     triggerSetup_Nissan360();
     configPage4.sparkMode = IGN_MODE_WASTED;
     configPage4.triggerAngle = 180; //No trigger offset
-    calculateIgnitionAngles(ignitionSchedule1, 5, 10);
+    calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_Nissan360();
     TEST_ASSERT_EQUAL(81, ignition1EndTooth);
@@ -73,7 +73,7 @@ void test_nissan360_newIgn_12_trig270_1()
     triggerSetup_Nissan360();
     configPage4.sparkMode = IGN_MODE_WASTED;
     configPage4.triggerAngle = 270; //No trigger offset
-    calculateIgnitionAngles(ignitionSchedule1, 5, 10);
+    calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_Nissan360();
     TEST_ASSERT_EQUAL(36, ignition1EndTooth);
@@ -88,7 +88,7 @@ void test_nissan360_newIgn_12_trig360_1()
     triggerSetup_Nissan360();
     configPage4.sparkMode = IGN_MODE_WASTED;
     configPage4.triggerAngle = 360; //No trigger offset
-    calculateIgnitionAngles(ignitionSchedule1, 5, 10);
+    calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
 
     triggerSetEndTeeth_Nissan360();
     TEST_ASSERT_EQUAL(351, ignition1EndTooth);
@@ -103,7 +103,7 @@ void test_nissan360_newIgn_12_trigNeg90_1()
     triggerSetup_Nissan360();
     configPage4.sparkMode = IGN_MODE_WASTED;
     configPage4.triggerAngle = -90; //No trigger offset
-    calculateIgnitionAngles(ignitionSchedule1, 5, 10);
+    calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_Nissan360();
     TEST_ASSERT_EQUAL(216, ignition1EndTooth);
@@ -118,7 +118,7 @@ void test_nissan360_newIgn_12_trigNeg180_1()
     triggerSetup_Nissan360();
     configPage4.sparkMode = IGN_MODE_WASTED;
     configPage4.triggerAngle = -180; //No trigger offset
-    calculateIgnitionAngles(ignitionSchedule1, 5, 10);
+    calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_Nissan360();
     TEST_ASSERT_EQUAL(261, ignition1EndTooth);
@@ -133,7 +133,7 @@ void test_nissan360_newIgn_12_trigNeg270_1()
     triggerSetup_Nissan360();
     configPage4.sparkMode = IGN_MODE_WASTED;
     configPage4.triggerAngle = -270; //No trigger offset
-    calculateIgnitionAngles(ignitionSchedule1, 5, 10);
+    calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
     
     triggerSetEndTeeth_Nissan360();
     TEST_ASSERT_EQUAL(306, ignition1EndTooth);
@@ -148,7 +148,7 @@ void test_nissan360_newIgn_12_trigNeg360_1()
     triggerSetup_Nissan360();
     configPage4.sparkMode = IGN_MODE_WASTED;
     configPage4.triggerAngle = -360; //No trigger offset
-    calculateIgnitionAngles(ignitionSchedule1, 5, 10);
+    calculateIgnitionAngles(ignitionSchedules[0], 5, 10);
 
     triggerSetEndTeeth_Nissan360();
     TEST_ASSERT_EQUAL(351, ignition1EndTooth);

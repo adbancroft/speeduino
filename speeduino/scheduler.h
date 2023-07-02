@@ -73,8 +73,8 @@ void initialiseIgnitionSchedulers(void);
 /** @brief Start fuel system  priming the fuel */
 void beginInjectorPriming(void);
 
-void disablePendingFuelSchedule(byte channel);
-void disablePendingIgnSchedule(byte channel);
+void disablePendingFuelSchedule(uint8_t channel);
+void disablePendingIgnSchedule(uint8_t channel);
 
 /** @brief ???? */
 void changeHalfToFullSync(void);
@@ -317,6 +317,9 @@ static inline void setIgnitionSchedule(IgnitionSchedule &schedule, int16_t crank
  */
 void applyOverDwellProtection(void);
 
+/** @brief Handy alias */
+using fuelTrimTable = table3d6RpmLoad;
+
 /**
  * @brief Adjust the crank angle used to originally set the schedule.
  * 
@@ -345,7 +348,7 @@ struct FuelSchedule : public Schedule {
 
   uint16_t channelDegrees;    ///< The number of crank degrees until cylinder is at TDC  
   uint16_t pw;                ///< Pulse width in uS
-  table3d6RpmLoad trimTable;  ///< 6x6 Fuel trim map
+  fuelTrimTable trimTable;    ///< 6x6 Fuel trim map
   uint16_t openAngle;         ///< Future crank angle at which this injector will be opened
 };
 
@@ -377,37 +380,9 @@ static inline void setFuelSchedule(FuelSchedule &schedule, int16_t crankAngle) {
   */
 static inline void setOpenAngle(FuelSchedule &schedule, uint16_t pwDegrees, uint16_t injAngle);
 
-extern FuelSchedule fuelSchedule1;
-extern FuelSchedule fuelSchedule2;
-extern FuelSchedule fuelSchedule3;
-extern FuelSchedule fuelSchedule4;
-#if INJ_CHANNELS >= 5
-extern FuelSchedule fuelSchedule5;
-#endif
-#if INJ_CHANNELS >= 6
-extern FuelSchedule fuelSchedule6;
-#endif
-#if INJ_CHANNELS >= 7
-extern FuelSchedule fuelSchedule7;
-#endif
-#if INJ_CHANNELS >= 8
-extern FuelSchedule fuelSchedule8;
-#endif
+extern FuelSchedule fuelSchedules[INJ_CHANNELS];
 
-extern IgnitionSchedule ignitionSchedule1;
-extern IgnitionSchedule ignitionSchedule2;
-extern IgnitionSchedule ignitionSchedule3;
-extern IgnitionSchedule ignitionSchedule4;
-extern IgnitionSchedule ignitionSchedule5;
-#if IGN_CHANNELS >= 6
-extern IgnitionSchedule ignitionSchedule6;
-#endif
-#if IGN_CHANNELS >= 7
-extern IgnitionSchedule ignitionSchedule7;
-#endif
-#if IGN_CHANNELS >= 8
-extern IgnitionSchedule ignitionSchedule8;
-#endif
+extern IgnitionSchedule ignitionSchedules[IGN_CHANNELS];
 
 #include "schedule_calcs.hpp"
 
