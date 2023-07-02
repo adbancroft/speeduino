@@ -327,8 +327,10 @@ void initialiseAll(void)
 void setPinMapping(byte boardID)
 {
   //Force set defaults. Will be overwritten below if needed.
+#if defined(OUTPUT_CONTROL_SUPPORTED)
   injectorOutputControl = OUTPUT_CONTROL_DIRECT;
   ignitionOutputControl = OUTPUT_CONTROL_DIRECT;
+#endif
 
   if( configPage4.triggerTeeth == 0 ) { configPage4.triggerTeeth = 4; } //Avoid potential divide by 0 when starting decoders
 
@@ -1891,7 +1893,9 @@ void setPinMapping(byte boardID)
   //This is a legacy mode option to revert the MAP reading behaviour to match what was in place prior to the 201905 firmware
   if(configPage2.legacyMAP > 0) { digitalWrite(pinMAP, HIGH); }
 
+#if defined(OUTPUT_CONTROL_SUPPORTED)
   if(ignitionOutputControl == OUTPUT_CONTROL_DIRECT)
+#endif
   {
     pinMode(pinCoil1, OUTPUT);
     pinMode(pinCoil2, OUTPUT);
@@ -1928,7 +1932,9 @@ void setPinMapping(byte boardID)
     ign8_pin_mask = digitalPinToBitMask(pinCoil8);
   } 
 
+#if defined(OUTPUT_CONTROL_SUPPORTED)
   if(injectorOutputControl == OUTPUT_CONTROL_DIRECT)
+#endif
   {
     pinMode(pinInjector1, OUTPUT);
     pinMode(pinInjector2, OUTPUT);
@@ -1965,11 +1971,13 @@ void setPinMapping(byte boardID)
     inj8_pin_mask = digitalPinToBitMask(pinInjector8);
   }
   
+#if defined(OUTPUT_CONTROL_SUPPORTED)
   if( (ignitionOutputControl == OUTPUT_CONTROL_MC33810) || (injectorOutputControl == OUTPUT_CONTROL_MC33810) )
   {
     initMC33810();
     if( (LED_BUILTIN != SCK) && (LED_BUILTIN != MOSI) && (LED_BUILTIN != MISO) ) pinMode(LED_BUILTIN, OUTPUT); //This is required on as the LED pin can otherwise be reset to an input
   }
+#endif
 
 //CS pin number is now set in a compile flag. 
 // #ifdef USE_SPI_EEPROM

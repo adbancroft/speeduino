@@ -1,14 +1,17 @@
 #include "scheduledIO.h"
-#include "scheduler.h"
-#include "globals.h"
 #include "timers.h"
 #include "acc_mc33810.h"
+
 /** @file
  * Injector and Coil (toggle/open/close) control (under various situations, eg with particular cylinder count, rotary engine type or wasted spark ign, etc.).
  * Also accounts for presence of MC33810 injector/ignition (dwell, etc.) control circuit.
  * Functions here are typically assigned (at initialisation) to callback function variables (e.g. inj1StartFunction or inj1EndFunction) 
  * form where they are called (by scheduler.ino).
  */
+#if defined(OUTPUT_CONTROL_SUPPORTED)
+byte injectorOutputControl; /**< Specifies whether the injectors are controlled directly (Via an IO pin)
+    or using something like the MC33810. 0 = Direct (OUTPUT_CONTROL_DIRECT), 10 = MC33810 (OUTPUT_CONTROL_MC33810) */
+
 void openInjector1(void)   { if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { openInjector1_DIRECT(); }   else { openInjector1_MC33810(); } }
 void closeInjector1(void)  { if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { closeInjector1_DIRECT(); }  else { closeInjector1_MC33810(); } }
 void openInjector2(void)   { if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { openInjector2_DIRECT(); }   else { openInjector2_MC33810(); } }
@@ -25,7 +28,26 @@ void openInjector7(void)   { if(injectorOutputControl != OUTPUT_CONTROL_MC33810)
 void closeInjector7(void)  { if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { closeInjector7_DIRECT(); }  else { closeInjector7_MC33810(); } }
 void openInjector8(void)   { if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { openInjector8_DIRECT(); }   else { openInjector8_MC33810(); } }
 void closeInjector8(void)  { if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { closeInjector8_DIRECT(); }  else { closeInjector8_MC33810(); } }
+#else
+void openInjector1(void)   { openInjector1_DIRECT(); }
+void closeInjector1(void)  { closeInjector1_DIRECT(); }
+void openInjector2(void)   { openInjector2_DIRECT(); }
+void closeInjector2(void)  { closeInjector2_DIRECT(); }
+void openInjector3(void)   { openInjector3_DIRECT(); }
+void closeInjector3(void)  { closeInjector3_DIRECT(); }
+void openInjector4(void)   { openInjector4_DIRECT(); }
+void closeInjector4(void)  { closeInjector4_DIRECT(); }
+void openInjector5(void)   { openInjector5_DIRECT(); }
+void closeInjector5(void)  { closeInjector5_DIRECT(); }
+void openInjector6(void)   { openInjector6_DIRECT(); }
+void closeInjector6(void)  { closeInjector6_DIRECT(); }
+void openInjector7(void)   { openInjector7_DIRECT(); }
+void closeInjector7(void)  { closeInjector7_DIRECT(); }
+void openInjector8(void)   { openInjector8_DIRECT(); }
+void closeInjector8(void)  { closeInjector8_DIRECT(); }
+#endif
 
+#if defined(OUTPUT_CONTROL_SUPPORTED)
 void injector1Toggle(void) { if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { injector1Toggle_DIRECT(); } else { injector1Toggle_MC33810(); } }
 void injector2Toggle(void) { if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { injector2Toggle_DIRECT(); } else { injector2Toggle_MC33810(); } }
 void injector3Toggle(void) { if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { injector3Toggle_DIRECT(); } else { injector3Toggle_MC33810(); } }
@@ -34,6 +56,20 @@ void injector5Toggle(void) { if(injectorOutputControl != OUTPUT_CONTROL_MC33810)
 void injector6Toggle(void) { if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { injector6Toggle_DIRECT(); } else { injector6Toggle_MC33810(); } }
 void injector7Toggle(void) { if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { injector7Toggle_DIRECT(); } else { injector7Toggle_MC33810(); } }
 void injector8Toggle(void) { if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { injector8Toggle_DIRECT(); } else { injector8Toggle_MC33810(); } }
+#else
+void injector1Toggle(void) { injector1Toggle_DIRECT(); }
+void injector2Toggle(void) { injector2Toggle_DIRECT(); }
+void injector3Toggle(void) { injector3Toggle_DIRECT(); }
+void injector4Toggle(void) { injector4Toggle_DIRECT(); }
+void injector5Toggle(void) { injector5Toggle_DIRECT(); }
+void injector6Toggle(void) { injector6Toggle_DIRECT(); }
+void injector7Toggle(void) { injector7Toggle_DIRECT(); }
+void injector8Toggle(void) { injector8Toggle_DIRECT(); }
+#endif
+
+#if defined(OUTPUT_CONTROL_SUPPORTED)
+byte ignitionOutputControl; //Specifies whether the coils are controlled directly (Via an IO pin) or using something like the MC33810
+#endif
 
 // These are for Semi-Sequential and 5 Cylinder injection
 //Standard 4 cylinder pairings
@@ -64,6 +100,7 @@ void closeInjector3and7(void) { closeInjector3(); closeInjector7(); }
 void openInjector4and8(void) { openInjector4(); openInjector8(); }
 void closeInjector4and8(void) { closeInjector4(); closeInjector8(); }
 
+#if defined(OUTPUT_CONTROL_SUPPORTED)
 void beginCoil1Charge(void) { if(ignitionOutputControl != OUTPUT_CONTROL_MC33810) { coil1Charging_DIRECT(); } else { coil1Charging_MC33810(); } tachoOutputOn(); }
 void endCoil1Charge(void) { if(ignitionOutputControl != OUTPUT_CONTROL_MC33810) { coil1StopCharging_DIRECT(); } else { coil1StopCharging_MC33810(); } tachoOutputOff(); }
 
@@ -87,6 +124,31 @@ void endCoil7Charge(void) { if(ignitionOutputControl != OUTPUT_CONTROL_MC33810) 
 
 void beginCoil8Charge(void) { if(ignitionOutputControl != OUTPUT_CONTROL_MC33810) { coil8Charging_DIRECT(); } else { coil8Charging_MC33810(); } tachoOutputOn(); }
 void endCoil8Charge(void) { if(ignitionOutputControl != OUTPUT_CONTROL_MC33810) { coil8StopCharging_DIRECT(); } else { coil8StopCharging_MC33810(); } tachoOutputOff(); }
+#else
+void beginCoil1Charge(void) { coil1Charging_DIRECT(); tachoOutputOn(); }
+void endCoil1Charge(void) { coil1StopCharging_DIRECT(); tachoOutputOff(); }
+
+void beginCoil2Charge(void) { coil2Charging_DIRECT(); tachoOutputOn(); }
+void endCoil2Charge(void) { coil2StopCharging_DIRECT(); tachoOutputOff(); }
+
+void beginCoil3Charge(void) { coil3Charging_DIRECT(); tachoOutputOn(); }
+void endCoil3Charge(void) { coil3StopCharging_DIRECT(); tachoOutputOff(); }
+
+void beginCoil4Charge(void) { coil4Charging_DIRECT(); tachoOutputOn(); }
+void endCoil4Charge(void) { coil4StopCharging_DIRECT(); tachoOutputOff(); }
+
+void beginCoil5Charge(void) { coil5Charging_DIRECT(); tachoOutputOn(); }
+void endCoil5Charge(void) { coil5StopCharging_DIRECT(); tachoOutputOff(); }
+
+void beginCoil6Charge(void) { coil6Charging_DIRECT(); tachoOutputOn(); }
+void endCoil6Charge(void) { coil6StopCharging_DIRECT(); tachoOutputOff(); }
+
+void beginCoil7Charge(void) { coil7Charging_DIRECT(); tachoOutputOn(); }
+void endCoil7Charge(void) { coil7StopCharging_DIRECT(); tachoOutputOff(); }
+
+void beginCoil8Charge(void) { coil8Charging_DIRECT(); tachoOutputOn(); }
+void endCoil8Charge(void) { coil8StopCharging_DIRECT(); tachoOutputOff(); }
+#endif
 
 //The below 3 calls are all part of the rotary ignition mode
 void beginTrailingCoilCharge(void) { beginCoil2Charge(); }

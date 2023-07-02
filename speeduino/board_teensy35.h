@@ -175,5 +175,8 @@
 #endif
 */
   #define NATIVE_CAN_AVAILABLE
+
+  #define OUTPUT_CONTROL_SUPPORTED
+
 #endif //CORE_TEENSY
 #endif //TEENSY35_H

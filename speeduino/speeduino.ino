@@ -901,7 +901,7 @@ void __attribute__((always_inline, hot)) loop(void)
           else { cutPercent = table2D_getValue(&rollingCutTable, (rpmDelta / 10) ); } //
           
 
-          for(uint8_t x=0; x<max(maxIgnOutputs, maxInjPrimaryOutputs+maxInjSecondaryOutputs); x++)
+          for(uint8_t x=0; x<max(maxIgnOutputs, (uint8_t)(maxInjPrimaryOutputs+maxInjSecondaryOutputs)); x++)
           {  
             if( (cutPercent == 100) || (random1to100() < cutPercent) )
             {

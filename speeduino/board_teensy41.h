@@ -183,5 +183,7 @@
   */
   #define NATIVE_CAN_AVAILABLE //Disable for now as it causes lockup 
   
+  #define OUTPUT_CONTROL_SUPPORTED
+
 #endif //CORE_TEENSY
 #endif //TEENSY41_H

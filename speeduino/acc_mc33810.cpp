@@ -1,6 +1,6 @@
 #include "acc_mc33810.h"
-#include "globals.h"
-#include <SPI.h>
+
+#if defined(OUTPUT_CONTROL_SUPPORTED)
 
 uint8_t MC33810_BIT_INJ1 = 1;
 uint8_t MC33810_BIT_INJ2 = 2;
@@ -19,6 +19,9 @@ uint8_t MC33810_BIT_IGN5 = 5;
 uint8_t MC33810_BIT_IGN6 = 6;
 uint8_t MC33810_BIT_IGN7 = 7;
 uint8_t MC33810_BIT_IGN8 = 8;
+
+byte pinMC33810_1_CS;
+byte pinMC33810_2_CS;
 
 volatile PORT_TYPE *mc33810_1_pin_port;
 volatile PINMASK_TYPE mc33810_1_pin_mask;
@@ -79,3 +82,5 @@ void initMC33810(void)
     MC33810_2_INACTIVE();
     
 }
+
+#endif
