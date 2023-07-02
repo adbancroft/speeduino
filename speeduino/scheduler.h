@@ -76,9 +76,6 @@ void initialiseIgnitionSchedulers(void);
 /** @brief Start fuel system  priming the fuel */
 void beginInjectorPriming(void);
 
-void disablePendingFuelSchedule(uint8_t channel);
-void disablePendingIgnSchedule(uint8_t channel);
-
 /** @brief ???? */
 void changeHalfToFullSync(void);
 
@@ -201,6 +198,17 @@ void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidC
  */
 static CRITICAL_INLINE bool isPending(const Schedule &schedule) {
   return schedule._status==PENDING || schedule._status==PENDING_WITH_OVERRIDE;
+}
+
+/**
+ * @brief Turn schedule off if it's not running
+ * 
+ * @param schedule Schedule to turn off.
+ */
+static inline void disableScheduleIfPending(Schedule &schedule) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    if(schedule._status != RUNNING) { schedule._status = OFF; }  
+  }
 }
 
 /** @brief An ignition schedule.
