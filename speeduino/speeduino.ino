@@ -74,14 +74,14 @@ static inline void applyFuelTrimToPW(FuelSchedule &schedule, int16_t fuelLoad, i
     if (pw1percent != 100U) { schedule.pw = percentage(pw1percent, schedule.pw); }
 }
 
-static inline void setIgnitionSchedule(IgnitionSchedule &schedule, uint8_t index, uint16_t crankAngle, uint16_t totalDwell) {
+static inline void setIgnitionSchedule(uint8_t index, uint16_t crankAngle, uint16_t totalDwell) {
   if ((maxIgnOutputs>index) && (BIT_CHECK(ignitionChannelsOn, (IGN1_CMD_BIT+index))) ) {
-    setIgnitionSchedule(schedule, crankAngle, totalDwell);
+    setIgnitionSchedule(ignitionSchedules[index], crankAngle, totalDwell);
   }
 }
 
 static inline __attribute__((flatten)) void setIgnitionSchedules(uint16_t crankAngle, uint16_t totalDwell) {
-  setIgnitionSchedule(ignitionSchedules[0], 0, crankAngle, totalDwell);
+  setIgnitionSchedule(0, crankAngle, totalDwell);
 #if defined(USE_IGN_REFRESH)
   if( isRunning(ignitionSchedules[0]) && (ignitionSchedules[0].dischargeAngle > (int16_t)crankAngle) && (configPage4.StgCycles == 0) && (configPage2.perToothIgn != true) )
   {
@@ -92,56 +92,56 @@ static inline __attribute__((flatten)) void setIgnitionSchedules(uint16_t crankA
 #endif
   
 #if IGN_CHANNELS >= 2
-  setIgnitionSchedule(ignitionSchedules[1], 1, crankAngle, totalDwell);
+  setIgnitionSchedule(1, crankAngle, totalDwell);
 #endif
 
 #if IGN_CHANNELS >= 3
-  setIgnitionSchedule(ignitionSchedules[2], 2, crankAngle, totalDwell);
+  setIgnitionSchedule(2, crankAngle, totalDwell);
 #endif
 
 #if IGN_CHANNELS >= 4
-  setIgnitionSchedule(ignitionSchedules[3], 3, crankAngle, totalDwell);
+  setIgnitionSchedule(3, crankAngle, totalDwell);
 #endif
 
 #if IGN_CHANNELS >= 5
-  setIgnitionSchedule(ignitionSchedules[4], 4, crankAngle, totalDwell);
+  setIgnitionSchedule(4, crankAngle, totalDwell);
 #endif
 
 #if IGN_CHANNELS >= 6
-  setIgnitionSchedule(ignitionSchedules[5], 5, crankAngle, totalDwell);
+  setIgnitionSchedule(5, crankAngle, totalDwell);
 #endif
 
 #if IGN_CHANNELS >= 7
-  setIgnitionSchedule(ignitionSchedules[6], 6, crankAngle, totalDwell);
+  setIgnitionSchedule(6, crankAngle, totalDwell);
 #endif
 
 #if IGN_CHANNELS >= 8
-  setIgnitionSchedule(ignitionSchedules[7], 7, crankAngle, totalDwell);
+  setIgnitionSchedule(7, crankAngle, totalDwell);
 #endif
 } 
 
-static inline void setFuelSchedule(FuelSchedule &schedule, uint8_t index, uint16_t crankAngle) {
-  if( (maxInjOutputs > index) && (schedule.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, (INJ1_CMD_BIT+index))) ) {
-    setFuelSchedule(schedule, crankAngle);
+static inline void setFuelSchedule(uint8_t index, uint16_t crankAngle) {
+  if( (maxInjOutputs > index) && (fuelSchedules[index].pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, (INJ1_CMD_BIT+index))) ) {
+    setFuelSchedule(fuelSchedules[index], crankAngle);
   }
 }
 
 static inline __attribute__((flatten)) void setFuelSchedules(uint16_t crankAngle) {
-  setFuelSchedule(fuelSchedules[0], 0, crankAngle);
-  setFuelSchedule(fuelSchedules[1], 1, crankAngle);
-  setFuelSchedule(fuelSchedules[2], 2, crankAngle);
-  setFuelSchedule(fuelSchedules[3], 3, crankAngle);
+  setFuelSchedule(0, crankAngle);
+  setFuelSchedule(1, crankAngle);
+  setFuelSchedule(2, crankAngle);
+  setFuelSchedule(3, crankAngle);
 #if (INJ_CHANNELS >= 5)
-  setFuelSchedule(fuelSchedules[4], 4, crankAngle);
+  setFuelSchedule(4, crankAngle);
 #endif
 #if (INJ_CHANNELS >= 6)
-  setFuelSchedule(fuelSchedules[5], 5, crankAngle);
+  setFuelSchedule(5, crankAngle);
 #endif
 #if (INJ_CHANNELS >= 7)
-  setFuelSchedule(fuelSchedules[6], 6, crankAngle);
+  setFuelSchedule(6, crankAngle);
 #endif
 #if (INJ_CHANNELS >= 8)
-  setFuelSchedule(fuelSchedules[7], 7, crankAngle);
+  setFuelSchedule(7, crankAngle);
 #endif        
 }
 
@@ -890,17 +890,17 @@ void __attribute__((always_inline)) loop(void)
                   break;
                 case PROTECT_CUT_IGN:
                   BIT_CLEAR(ignitionChannelsOn, x); //Turn off this ignition channel
-                  disablePendingIgnSchedule(x);
+                  disableScheduleIfPending(ignitionSchedules[x]);
                   break;
                 case PROTECT_CUT_FUEL:
                   BIT_CLEAR(fuelChannelsOn, x); //Turn off this fuel channel
-                  disablePendingFuelSchedule(x);
+                  disableScheduleIfPending(fuelSchedules[x]);
                   break;
                 case PROTECT_CUT_BOTH:
                   BIT_CLEAR(ignitionChannelsOn, x); //Turn off this ignition channel
                   BIT_CLEAR(fuelChannelsOn, x); //Turn off this fuel channel
-                  disablePendingFuelSchedule(x);
-                  disablePendingIgnSchedule(x);
+                  disableScheduleIfPending(fuelSchedules[x]);
+                  disableScheduleIfPending(ignitionSchedules[x]);
                   break;
                 default:
                   BIT_CLEAR(ignitionChannelsOn, x); //Turn off this ignition channel
@@ -963,22 +963,9 @@ void __attribute__((always_inline)) loop(void)
         //This is a safety step to prevent the ignition start time occurring AFTER the target tooth pulse has already occurred. It simply moves the start time forward a little, which is compensated for by the increase in the dwell time
         if(currentStatus.RPM < 250U)
         {
-          ignitionSchedules[0].chargeAngle -= 5;
-          ignitionSchedules[1].chargeAngle -= 5;
-          ignitionSchedules[2].chargeAngle -= 5;
-          ignitionSchedules[3].chargeAngle -= 5;
-#if IGN_CHANNELS >= 5
-          ignitionSchedules[4].chargeAngle -= 5;
-#endif
-#if IGN_CHANNELS >= 6          
-          ignitionSchedules[5].chargeAngle -= 5;
-#endif
-#if IGN_CHANNELS >= 7
-          ignitionSchedules[6].chargeAngle -= 5;
-#endif
-#if IGN_CHANNELS >= 8
-          ignitionSchedules[7].chargeAngle -= 5;
-#endif
+          for (uint8_t index=0U; index<maxIgnOutputs; ++index) {
+            ignitionSchedules[index].chargeAngle -= 5;
+          }
         }
       }
       else { fixedCrankingOverride = 0; }
@@ -1464,32 +1451,13 @@ void calculateStaging(uint32_t pwLimit)
   }
   else 
   { 
-    if(maxInjOutputs >= 2U) { fuelSchedules[1].pw = fuelSchedules[0].pw; }
-    else { fuelSchedules[1].pw = 0; }
-    if(maxInjOutputs >= 3U) { fuelSchedules[2].pw = fuelSchedules[0].pw; }
-    else { fuelSchedules[2].pw = 0; }
-    if(maxInjOutputs >= 4U) { fuelSchedules[3].pw = fuelSchedules[0].pw; }
-    else { fuelSchedules[3].pw = 0; }
-#if INJ_CHANNELS >= 5    
-    if(maxInjOutputs >= 5U) { fuelSchedules[4].pw = fuelSchedules[0].pw; }
-    else { fuelSchedules[4].pw = 0; }
-#endif
-#if INJ_CHANNELS >= 6    
-    if(maxInjOutputs >= 6U) { fuelSchedules[5].pw = fuelSchedules[0].pw; }
-    else { fuelSchedules[5].pw = 0; }
-#endif
-#if INJ_CHANNELS >= 7    
-    if(maxInjOutputs >= 7U) { fuelSchedules[6].pw = fuelSchedules[0].pw; }
-    else { fuelSchedules[6].pw = 0; }
-#endif
-#if INJ_CHANNELS >= 8
-    if(maxInjOutputs >= 8U) { fuelSchedules[7].pw = fuelSchedules[0].pw; }
-    else { fuelSchedules[7].pw = 0; }
-#endif
-    BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Clear the staging active flag
-    
-  } 
+    //If staging is off, all the pulse widths are set the same (Sequential and other adjustments may be made below)
+    for (uint8_t index=1U; index<_countof(fuelSchedules); ++index) {
+      fuelSchedules[index].pw = fuelSchedules[0].pw;
+    }
 
+    BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Clear the staging active flag    
+  } 
 }
 
 void checkLaunchAndFlatShift()
