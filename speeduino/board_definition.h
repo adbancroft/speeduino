@@ -52,16 +52,3 @@
 #else
   #error Incorrect board selected. Please select the correct board (Usually Mega 2560) and upload again
 #endif
-
-// AVR & Teensy both support the AVR atomic macros
-#if defined(CORE_AVR) || defined(CORE_TEENSY)
-#include <util/atomic.h>
-#else
-// All others make a no-op
-#define ATOMIC_BLOCK(type)
-#define NONATOMIC_BLOCK(type)
-#define	ATOMIC_RESTORESTATE
-#define	ATOMIC_FORCEON
-#define	NONATOMIC_RESTORESTATE 
-#define	NONATOMIC_FORCEOFF
-#endif

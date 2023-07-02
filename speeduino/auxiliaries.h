@@ -2,6 +2,7 @@
 #define AUX_H
 
 #include "board_definition.h"
+#include "atomic.h"
 
 void initialiseAuxPWM(void);
 void boostControl(void);
