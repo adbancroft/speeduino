@@ -111,6 +111,27 @@ static CRITICAL_INLINE void setFuelSchedules(uint16_t crankAngle) {
   static_for<0, _countof(fuelSchedules)>::repeat_n(loopFunction, crankAngle);
 }
 
+static inline void calculateInjectionAngles(const pulseWidths &pw) {
+  matchInjectionModeToSyncStatus(); 
+  
+  currentStatus.injAngle = min((uint16_t)table2D_getValue(&injectorAngleTable, currentStatus.RPMdiv100), uint16_t(CRANK_ANGLE_MAX_INJ));
+
+  uint16_t primaryPWTimePerDegree = timeToAngleDegPerMicroSec(pw.primary); //How many crank degrees the calculated PW will take at the current speed
+  uint16_t secondaryPWTimePerDegree = pw.secondary!=0 ? timeToAngleDegPerMicroSec(pw.secondary) : 0U;
+
+  static constexpr auto setAngleLoopBody = [](uint8_t index, uint16_t primaryPWTimePerDegree, uint16_t secondaryPWTimePerDegree) {
+    setOpenAngle(fuelSchedules[index], index<maxInjPrimaryOutputs ? primaryPWTimePerDegree : secondaryPWTimePerDegree, currentStatus.injAngle);
+  };
+  static_for<0, _countof(fuelSchedules)>::repeat_n(setAngleLoopBody, primaryPWTimePerDegree, secondaryPWTimePerDegree);
+
+  if (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) && configPage2.nCylinders==2U) {
+    // Special case: 2 cylinder, 2nd staged injector is phased either 180 or 360 degrees out from 3rd staged injector
+    // (In reality this will always be 180 as you can't have sequential and staged currently)
+    fuelSchedules[3].openAngle = fuelSchedules[2].openAngle + (CRANK_ANGLE_MAX_INJ / 2); 
+    if(fuelSchedules[3].openAngle > (uint16_t)CRANK_ANGLE_MAX_INJ) { fuelSchedules[3].openAngle -= CRANK_ANGLE_MAX_INJ; }
+  }
+}
+
 // FixedCrankingOverride is used to extend the dwell during cranking so that the decoder can trigger the spark upon seeing a certain tooth. Currently only available on the basic distributor and 4g63 decoders.
 inline uint16_t __attribute__((always_inline)) computeFixedCrankingOverride(void) {
   if ( isFixedCrankLock() )
@@ -521,181 +542,9 @@ void __attribute__((always_inline, hot)) loop(void)
         primaryPW = primaryPW + (configPage10.n2o_stage2_adderMax + percentage(adderPercent, (configPage10.n2o_stage2_adderMin - configPage10.n2o_stage2_adderMax))) * 100; //Calculate the above percentage of the calculated ms value.
       }
       
-      pulseWidths pw = applyStagingToPW(calculatePWLimit(), primaryPW);
-
       //***********************************************************************************************
       //BEGIN INJECTION TIMING
-      currentStatus.injAngle = table2D_getValue(&injectorAngleTable, currentStatus.RPMdiv100);
-      if(currentStatus.injAngle > uint16_t(CRANK_ANGLE_MAX_INJ)) { currentStatus.injAngle = uint16_t(CRANK_ANGLE_MAX_INJ); }
-
-      uint16_t primaryPWTimePerDegree = timeToAngleDegPerMicroSec(pw.primary); //How many crank degrees the calculated PW will take at the current speed
-      uint16_t secondaryPWTimePerDegree = 0U;
-      if (pw.secondary!=0) {
-        secondaryPWTimePerDegree = timeToAngleDegPerMicroSec(pw.secondary);
-      }
-
-      matchInjectionModeToSyncStatus();
-
-      setOpenAngle(fuelSchedules[0], primaryPWTimePerDegree, currentStatus.injAngle);
-
-      //Repeat the above for each cylinder
-      switch (configPage2.nCylinders)
-      {
-        //Single cylinder
-        case 1:
-          //The only thing that needs to be done for single cylinder is to check for staging. 
-          if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-          {
-            setOpenAngle(fuelSchedules[1], secondaryPWTimePerDegree, currentStatus.injAngle);
-          }
-          break;
-        //2 cylinders
-        case 2:
-          setOpenAngle(fuelSchedules[1], primaryPWTimePerDegree, currentStatus.injAngle);
-          
-          if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-          {
-            setOpenAngle(fuelSchedules[2], secondaryPWTimePerDegree, currentStatus.injAngle);
-            fuelSchedules[3].openAngle = fuelSchedules[2].openAngle + (uint16_t)(CRANK_ANGLE_MAX_INJ / 2); //Phase this either 180 or 360 degrees out from inj3 (In reality this will always be 180 as you can't have sequential and staged currently)
-            if(fuelSchedules[3].openAngle > (uint16_t)CRANK_ANGLE_MAX_INJ) { fuelSchedules[3].openAngle -= (uint16_t)CRANK_ANGLE_MAX_INJ; }
-          }
-          break;
-        //3 cylinders
-        case 3:
-          setOpenAngle(fuelSchedules[1], primaryPWTimePerDegree, currentStatus.injAngle);
-          setOpenAngle(fuelSchedules[2], primaryPWTimePerDegree, currentStatus.injAngle);
-          
-          if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0U) )
-          {
-            #if INJ_CHANNELS >= 6
-              if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-              {
-                setOpenAngle(fuelSchedules[3], secondaryPWTimePerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedules[4], secondaryPWTimePerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedules[5], secondaryPWTimePerDegree, currentStatus.injAngle);
-              }
-            #endif
-          }
-          else if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-          {
-            setOpenAngle(fuelSchedules[3], secondaryPWTimePerDegree, currentStatus.injAngle);
-            #if INJ_CHANNELS >= 6
-              setOpenAngle(fuelSchedules[4], secondaryPWTimePerDegree, currentStatus.injAngle);
-              setOpenAngle(fuelSchedules[5], secondaryPWTimePerDegree, currentStatus.injAngle);
-            #endif
-          }
-          break;
-        //4 cylinders
-        case 4:
-          setOpenAngle(fuelSchedules[1], primaryPWTimePerDegree, currentStatus.injAngle);
-
-          if((configPage2.injLayout == INJ_SEQUENTIAL) && currentStatus.hasSync)
-          {
-            setOpenAngle(fuelSchedules[2], primaryPWTimePerDegree, currentStatus.injAngle);
-            setOpenAngle(fuelSchedules[3], primaryPWTimePerDegree, currentStatus.injAngle);
-            #if INJ_CHANNELS >= 8
-              if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-              {
-                setOpenAngle(fuelSchedules[4], secondaryPWTimePerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedules[5], secondaryPWTimePerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedules[6], secondaryPWTimePerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedules[7], secondaryPWTimePerDegree, currentStatus.injAngle);
-              }
-            #endif
-          }
-          else if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-          {
-            setOpenAngle(fuelSchedules[2], secondaryPWTimePerDegree, currentStatus.injAngle);
-            setOpenAngle(fuelSchedules[3], secondaryPWTimePerDegree, currentStatus.injAngle);
-          }
-          else
-          {
-            // Nothing to do - keep MISRA checker happy
-          }
-          break;
-        //5 cylinders
-        case 5:
-          setOpenAngle(fuelSchedules[1], primaryPWTimePerDegree, currentStatus.injAngle);
-          setOpenAngle(fuelSchedules[2], primaryPWTimePerDegree, currentStatus.injAngle);
-          setOpenAngle(fuelSchedules[3], primaryPWTimePerDegree, currentStatus.injAngle);
-          #if INJ_CHANNELS >= 5
-            setOpenAngle(fuelSchedules[4], primaryPWTimePerDegree, currentStatus.injAngle);
-          #endif
-
-          //Staging is possible by using the 6th channel if available
-          #if INJ_CHANNELS >= 6
-            if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-            {
-              setOpenAngle(fuelSchedules[5], secondaryPWTimePerDegree, currentStatus.injAngle);
-            }
-          #endif
-
-          break;
-        //6 cylinders
-        case 6:
-          setOpenAngle(fuelSchedules[1], primaryPWTimePerDegree, currentStatus.injAngle);
-          setOpenAngle(fuelSchedules[2], primaryPWTimePerDegree, currentStatus.injAngle);
-          
-          #if INJ_CHANNELS >= 6
-            if((configPage2.injLayout == INJ_SEQUENTIAL) && currentStatus.hasSync)
-            {
-              setOpenAngle(fuelSchedules[3], primaryPWTimePerDegree, currentStatus.injAngle);
-              setOpenAngle(fuelSchedules[4], primaryPWTimePerDegree, currentStatus.injAngle);
-              setOpenAngle(fuelSchedules[5], primaryPWTimePerDegree, currentStatus.injAngle);
-
-              //Staging is possible with sequential on 8 channel boards by using outputs 7 + 8 for the staged injectors
-              #if INJ_CHANNELS >= 8
-                if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-                {
-                  setOpenAngle(fuelSchedules[3], secondaryPWTimePerDegree, currentStatus.injAngle);
-                  setOpenAngle(fuelSchedules[4], secondaryPWTimePerDegree, currentStatus.injAngle);
-                  setOpenAngle(fuelSchedules[5], secondaryPWTimePerDegree, currentStatus.injAngle);
-                }
-              #endif
-            }
-            else
-            {
-              if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-              {
-                setOpenAngle(fuelSchedules[3], secondaryPWTimePerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedules[4], secondaryPWTimePerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedules[5], secondaryPWTimePerDegree, currentStatus.injAngle);
-              }
-            }
-          #endif
-          break;
-        //8 cylinders
-        case 8:
-          setOpenAngle(fuelSchedules[1], primaryPWTimePerDegree, currentStatus.injAngle);
-          setOpenAngle(fuelSchedules[2], primaryPWTimePerDegree, currentStatus.injAngle);
-          setOpenAngle(fuelSchedules[3], primaryPWTimePerDegree, currentStatus.injAngle);
-
-          #if INJ_CHANNELS >= 8
-            if((configPage2.injLayout == INJ_SEQUENTIAL) && currentStatus.hasSync)
-            {
-              setOpenAngle(fuelSchedules[4], primaryPWTimePerDegree, currentStatus.injAngle);
-              setOpenAngle(fuelSchedules[5], primaryPWTimePerDegree, currentStatus.injAngle);
-              setOpenAngle(fuelSchedules[6], primaryPWTimePerDegree, currentStatus.injAngle);
-              setOpenAngle(fuelSchedules[7], primaryPWTimePerDegree, currentStatus.injAngle);
-            }
-            else
-            {
-              if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-              {
-                setOpenAngle(fuelSchedules[4], secondaryPWTimePerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedules[5], secondaryPWTimePerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedules[6], secondaryPWTimePerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedules[7], secondaryPWTimePerDegree, currentStatus.injAngle);
-              }
-            }
-
-          #endif
-          break;
-
-        //Will hit the default case on 1 cylinder or >8 cylinders. Do nothing in these cases
-        default:
-          break;
-      }
+      calculateInjectionAngles(applyStagingToPW(calculatePWLimit(), primaryPW));
 
       //***********************************************************************************************
       //| BEGIN IGNITION CALCULATIONS
