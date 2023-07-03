@@ -7,7 +7,7 @@
 #include "globals.h"
 #include "TS_CommandButtonHandler.h"
 #include "utilities.h"
-#include "scheduledIO.h"
+#include "scheduler.h"
 #include "sensors.h"
 #include "storage.h"
 #include "SD_logger.h"
@@ -37,40 +37,12 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
   {
     case TS_CMD_TEST_DSBL: // cmd is stop
       BIT_CLEAR(currentStatus.testOutputs, 1);
-      endCoil1Charge();
-      endCoil2Charge();
-      endCoil3Charge();
-      endCoil4Charge();
-      #if IGN_CHANNELS >= 5
-      endCoil5Charge();
-      #endif
-      #if IGN_CHANNELS >= 6
-      endCoil6Charge();
-      #endif
-      #if IGN_CHANNELS >= 7
-      endCoil7Charge();
-      #endif
-      #if IGN_CHANNELS >= 8
-      endCoil8Charge();
-      #endif
-
-
-      closeInjector1();
-      closeInjector2();
-      closeInjector3();
-      closeInjector4();
-      #if INJ_CHANNELS >= 5
-      closeInjector5();
-      #endif
-      #if INJ_CHANNELS >= 6
-      closeInjector6();
-      #endif
-      #if INJ_CHANNELS >= 7
-      closeInjector7();
-      #endif
-      #if INJ_CHANNELS >= 8
-      closeInjector8();
-      #endif
+      for (uint8_t index=0; index<_countof(ignitionSchedules); ++index) {
+        endCoilCharge(index+1);
+      }
+      for (uint8_t index=0; index<_countof(fuelSchedules); ++index) {
+        closeInjector(index+1);
+      }
 
       HWTest_INJ_Pulsed = 0;
       HWTest_IGN_Pulsed = 0;
