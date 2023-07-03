@@ -170,7 +170,7 @@ void initialiseAll(void)
     construct2dTables();
     
     //Setup the calibration tables
-    loadCalibration();   
+    loadCalibration();
 
     //Set the pin mappings
     if((configPage2.pinMapping == 255) || (configPage2.pinMapping == 0)) //255 = EEPROM value in a blank AVR; 0 = EEPROM value in new FRAM
@@ -341,16 +341,20 @@ void setPinMapping(byte boardID)
     case 1:
     #ifndef SMALL_FLASH_MODE //No support for bluepill here anyway
       //Pin mappings as per the v0.2 shield
-      pinInjector1 = 8; //Output pin injector 1 is on
-      pinInjector2 = 9; //Output pin injector 2 is on
-      pinInjector3 = 10; //Output pin injector 3 is on
-      pinInjector4 = 11; //Output pin injector 4 is on
-      pinInjector5 = 12; //Output pin injector 5 is on
-      pinCoil1 = 28; //Pin for coil 1
-      pinCoil2 = 24; //Pin for coil 2
-      pinCoil3 = 40; //Pin for coil 3
-      pinCoil4 = 36; //Pin for coil 4
-      pinCoil5 = 34; //Pin for coil 5 PLACEHOLDER value for now
+      pinInjectors[0] = 8; //Output pin injector 1 is on
+      pinInjectors[1] = 9; //Output pin injector 2 is on
+      pinInjectors[2] = 10; //Output pin injector 3 is on
+      pinInjectors[3] = 11; //Output pin injector 4 is on
+#if INJ_CHANNELS>=5
+      pinInjectors[4] = 12; //Output pin injector 5 is on
+#endif
+      pinCoils[0] = 28; //Pin for coil 1
+      pinCoils[1] = 24; //Pin for coil 2
+      pinCoils[2] = 40; //Pin for coil 3
+      pinCoils[3] = 36; //Pin for coil 4
+#if IGN_CHANNELS>=5
+      pinCoils[4] = 34; //Pin for coil 5 PLACEHOLDER value for now
+#endif
       pinTrigger = 20; //The CAS pin
       pinTrigger2 = 21; //The Cam Sensor pin
       pinTrigger3 = 3; //The Cam sensor 2 pin
@@ -375,16 +379,20 @@ void setPinMapping(byte boardID)
     case 2:
     #ifndef SMALL_FLASH_MODE //No support for bluepill here anyway
       //Pin mappings as per the v0.3 shield
-      pinInjector1 = 8; //Output pin injector 1 is on
-      pinInjector2 = 9; //Output pin injector 2 is on
-      pinInjector3 = 10; //Output pin injector 3 is on
-      pinInjector4 = 11; //Output pin injector 4 is on
-      pinInjector5 = 12; //Output pin injector 5 is on
-      pinCoil1 = 28; //Pin for coil 1
-      pinCoil2 = 24; //Pin for coil 2
-      pinCoil3 = 40; //Pin for coil 3
-      pinCoil4 = 36; //Pin for coil 4
-      pinCoil5 = 34; //Pin for coil 5 PLACEHOLDER value for now
+      pinInjectors[0] = 8; //Output pin injector 1 is on
+      pinInjectors[1] = 9; //Output pin injector 2 is on
+      pinInjectors[2] = 10; //Output pin injector 3 is on
+      pinInjectors[3] = 11; //Output pin injector 4 is on
+#if INJ_CHANNELS>=5
+      pinInjectors[4] = 12; //Output pin injector 5 is on
+#endif
+      pinCoils[0] = 28; //Pin for coil 1
+      pinCoils[1] = 24; //Pin for coil 2
+      pinCoils[2] = 40; //Pin for coil 3
+      pinCoils[3] = 36; //Pin for coil 4
+#if IGN_CHANNELS>=5
+      pinCoils[4] = 34; //Pin for coil 5 PLACEHOLDER value for now
+#endif
       pinTrigger = 19; //The CAS pin
       pinTrigger2 = 18; //The Cam Sensor pin
       pinTrigger3 = 3; //The Cam sensor 2 pin
@@ -416,11 +424,11 @@ void setPinMapping(byte boardID)
         pinTrigger = 23;
         pinStepperDir = 33;
         pinStepperStep = 34;
-        pinCoil1 = 31;
+        pinCoils[0] = 31;
         pinTachOut = 28;
         pinFan = 27;
-        pinCoil4 = 21;
-        pinCoil3 = 30;
+        pinCoils[3] = 21;
+        pinCoils[2] = 30;
         pinO2 = A22;
       #endif
     #endif
@@ -428,17 +436,23 @@ void setPinMapping(byte boardID)
 
     case 3:
       //Pin mappings as per the v0.4 shield
-      pinInjector1 = 8; //Output pin injector 1 is on
-      pinInjector2 = 9; //Output pin injector 2 is on
-      pinInjector3 = 10; //Output pin injector 3 is on
-      pinInjector4 = 11; //Output pin injector 4 is on
-      pinInjector5 = 12; //Output pin injector 5 is on
-      pinInjector6 = 50; //CAUTION: Uses the same as Coil 4 below. 
-      pinCoil1 = 40; //Pin for coil 1
-      pinCoil2 = 38; //Pin for coil 2
-      pinCoil3 = 52; //Pin for coil 3
-      pinCoil4 = 50; //Pin for coil 4
-      pinCoil5 = 34; //Pin for coil 5 PLACEHOLDER value for now
+      pinInjectors[0] = 8; //Output pin injector 1 is on
+      pinInjectors[1] = 9; //Output pin injector 2 is on
+      pinInjectors[2] = 10; //Output pin injector 3 is on
+      pinInjectors[3] = 11; //Output pin injector 4 is on
+#if INJ_CHANNELS>=5
+      pinInjectors[4] = 12; //Output pin injector 5 is on
+#endif
+#if INJ_CHANNELS>=6
+      pinInjectors[5] = 50; //CAUTION: Uses the same as Coil 4 below. 
+#endif
+      pinCoils[0] = 40; //Pin for coil 1
+      pinCoils[1] = 38; //Pin for coil 2
+      pinCoils[2] = 52; //Pin for coil 3
+      pinCoils[3] = 50; //Pin for coil 4
+#if IGN_CHANNELS>=5
+      pinCoils[4] = 34; //Pin for coil 5 PLACEHOLDER value for now
+#endif
       pinTrigger = 19; //The CAS pin
       pinTrigger2 = 18; //The Cam Sensor pin
       pinTrigger3 = 3; //The Cam sensor 2 pin
@@ -470,18 +484,18 @@ void setPinMapping(byte boardID)
       pinWMIEnabled = 42;
 
       #if defined(CORE_TEENSY35)
-        pinInjector6 = 51;
+        pinInjectors[5] = 51;
 
         pinTrigger = 23;
         pinTrigger2 = 36;
         pinStepperDir = 34;
         pinStepperStep = 35;
-        pinCoil1 = 31;
-        pinCoil2 = 32;
+        pinCoils[0] = 31;
+        pinCoils[1] = 32;
         pinTachOut = 28;
         pinFan = 27;
-        pinCoil4 = 29;
-        pinCoil3 = 30;
+        pinCoils[3] = 29;
+        pinCoils[2] = 30;
         pinO2 = A22;
 
         //Make sure the CAN pins aren't overwritten
@@ -509,10 +523,10 @@ void setPinMapping(byte boardID)
         pinStepperDir = 34;
         pinStepperStep = 35;
         
-        pinCoil1 = 31;
-        pinCoil2 = 32;
-        pinCoil4 = 29;
-        pinCoil3 = 30;
+        pinCoils[0] = 31;
+        pinCoils[1] = 32;
+        pinCoils[3] = 29;
+        pinCoils[2] = 30;
 
         pinTachOut = 28;
         pinFan = 27;
@@ -535,7 +549,7 @@ void setPinMapping(byte boardID)
         /* = PA5; */ //ADC12
         /* = PA6; */ //ADC12 LED_BUILTIN_1
         pinFuelPump = PA7; //ADC12 LED_BUILTIN_2
-        pinCoil3 = PA8;
+        pinCoils[2] = PA8;
         /* = PA9 */ //TXD1
         /* = PA10 */ //RXD1
         /* = PA11 */ //(DO NOT USE FOR SPEEDUINO) USB
@@ -556,9 +570,9 @@ void setPinMapping(byte boardID)
         /* = PB6; */ //NRF_CE
         /* = PB7; */ //NRF_CS
         /* = PB8; */ //NRF_IRQ
-        pinCoil2 = PB9; //
+        pinCoils[1] = PB9; //
         /* = PB9; */ //
-        pinCoil4 = PB10; //TXD3
+        pinCoils[3] = PB10; //TXD3
         pinIdle1 = PB11; //RXD3
         pinIdle2 = PB12; //
         pinBoost = PB12; //
@@ -596,15 +610,15 @@ void setPinMapping(byte boardID)
         pinFlex = PD4;
         /* = PD5;*/ //TXD2
         /* = PD6; */ //RXD2
-        pinCoil1 = PD7; //
+        pinCoils[0] = PD7; //
         /* = PD8; */ //
-        pinCoil5 = PD9;//
+        pinCoils[4] = PD9;//
         /* = PD10; */ //
         /* = PD11; */ //
-        pinInjector1 = PD12; //
-        pinInjector2 = PD13; //
-        pinInjector3 = PD14; //
-        pinInjector4 = PD15; //
+        pinInjectors[0] = PD12; //
+        pinInjectors[1] = PD13; //
+        pinInjectors[2] = PD14; //
+        pinInjectors[3] = PD15; //
 
         //******************************************
         //******** PORTE CONNECTIONS *************** 
@@ -620,8 +634,8 @@ void setPinMapping(byte boardID)
         /* = PE8; */ //
         /* = PE9; */ //
         /* = PE10; */ //
-        pinInjector5 = PE11; //
-        pinInjector6 = PE12; //
+        pinInjectors[4] = PE11; //
+        pinInjectors[5] = PE12; //
         /* = PE13; */ //
         /* = PE14; */ //
         /* = PE15; */ //
@@ -631,14 +645,14 @@ void setPinMapping(byte boardID)
         //pins PA12, PA11 are used for USB or CAN couldn't be used for GPIO
         //pins PB12, PB13, PB14 and PB15 are used to SPI FLASH
         //PB2 can't be used as input because it's the BOOT pin
-        pinInjector1 = PB7; //Output pin injector 1 is on
-        pinInjector2 = PB6; //Output pin injector 2 is on
-        pinInjector3 = PB5; //Output pin injector 3 is on
-        pinInjector4 = PB4; //Output pin injector 4 is on
-        pinCoil1 = PB9; //Pin for coil 1
-        pinCoil2 = PB8; //Pin for coil 2
-        pinCoil3 = PB3; //Pin for coil 3
-        pinCoil4 = PA15; //Pin for coil 4
+        pinInjectors[0] = PB7; //Output pin injector 1 is on
+        pinInjectors[1] = PB6; //Output pin injector 2 is on
+        pinInjectors[2] = PB5; //Output pin injector 3 is on
+        pinInjectors[3] = PB4; //Output pin injector 4 is on
+        pinCoils[0] = PB9; //Pin for coil 1
+        pinCoils[1] = PB8; //Pin for coil 2
+        pinCoils[2] = PB3; //Pin for coil 3
+        pinCoils[3] = PA15; //Pin for coil 4
         pinTPS = A2;//TPS input pin
         pinMAP = A3; //MAP sensor pin
         pinIAT = A0; //IAT sensor pin
@@ -664,16 +678,20 @@ void setPinMapping(byte boardID)
     case 6:
       #ifndef SMALL_FLASH_MODE
       //Pin mappings as per the 2001-05 MX5 PNP shield
-      pinInjector1 = 44; //Output pin injector 1 is on
-      pinInjector2 = 46; //Output pin injector 2 is on
-      pinInjector3 = 47; //Output pin injector 3 is on
-      pinInjector4 = 45; //Output pin injector 4 is on
-      pinInjector5 = 14; //Output pin injector 5 is on
-      pinCoil1 = 42; //Pin for coil 1
-      pinCoil2 = 43; //Pin for coil 2
-      pinCoil3 = 32; //Pin for coil 3
-      pinCoil4 = 33; //Pin for coil 4
-      pinCoil5 = 34; //Pin for coil 5 PLACEHOLDER value for now
+      pinInjectors[0] = 44; //Output pin injector 1 is on
+      pinInjectors[1] = 46; //Output pin injector 2 is on
+      pinInjectors[2] = 47; //Output pin injector 3 is on
+      pinInjectors[3] = 45; //Output pin injector 4 is on
+#if INJ_CHANNELS>=5
+      pinInjectors[4] = 14; //Output pin injector 5 is on
+#endif
+      pinCoils[0] = 42; //Pin for coil 1
+      pinCoils[1] = 43; //Pin for coil 2
+      pinCoils[2] = 32; //Pin for coil 3
+      pinCoils[3] = 33; //Pin for coil 4
+#if IGN_CHANNELS>=5
+      pinCoils[4] = 34; //Pin for coil 5 PLACEHOLDER value for now
+#endif
       pinTrigger = 19; //The CAS pin
       pinTrigger2 = 18; //The Cam Sensor pin
       pinTrigger3 = 2; //The Cam sensor 2 pin
@@ -705,10 +723,10 @@ void setPinMapping(byte boardID)
         pinTrigger2 = 36;
         pinStepperDir = 34;
         pinStepperStep = 35;
-        pinCoil1 = 33; //Done
-        pinCoil2 = 24; //Done
-        pinCoil3 = 51; //Won't work (No mapping for pin 32)
-        pinCoil4 = 52; //Won't work (No mapping for pin 33)
+        pinCoils[0] = 33; //Done
+        pinCoils[1] = 24; //Done
+        pinCoils[2] = 51; //Won't work (No mapping for pin 32)
+        pinCoils[3] = 52; //Won't work (No mapping for pin 33)
         pinFuelPump = 26; //Requires PVT4 adapter or above
         pinFan = 50; //Won't work (No mapping for pin 35)
         pinTachOut = 28; //Done
@@ -718,16 +736,20 @@ void setPinMapping(byte boardID)
     case 8:
       #ifndef SMALL_FLASH_MODE
       //Pin mappings as per the 1996-97 MX5 PNP shield
-      pinInjector1 = 11; //Output pin injector 1 is on
-      pinInjector2 = 10; //Output pin injector 2 is on
-      pinInjector3 = 9; //Output pin injector 3 is on
-      pinInjector4 = 8; //Output pin injector 4 is on
-      pinInjector5 = 14; //Output pin injector 5 is on
-      pinCoil1 = 39; //Pin for coil 1
-      pinCoil2 = 41; //Pin for coil 2
-      pinCoil3 = 32; //Pin for coil 3
-      pinCoil4 = 33; //Pin for coil 4
-      pinCoil5 = 34; //Pin for coil 5 PLACEHOLDER value for now
+      pinInjectors[0] = 11; //Output pin injector 1 is on
+      pinInjectors[1] = 10; //Output pin injector 2 is on
+      pinInjectors[2] = 9; //Output pin injector 3 is on
+      pinInjectors[3] = 8; //Output pin injector 4 is on
+#if INJ_CHANNELS>=5
+      pinInjectors[4] = 14; //Output pin injector 5 is on
+#endif
+      pinCoils[0] = 39; //Pin for coil 1
+      pinCoils[1] = 41; //Pin for coil 2
+      pinCoils[2] = 32; //Pin for coil 3
+      pinCoils[3] = 33; //Pin for coil 4
+#if IGN_CHANNELS>=5
+      pinCoils[4] = 34; //Pin for coil 5 PLACEHOLDER value for now
+#endif
       pinTrigger = 19; //The CAS pin
       pinTrigger2 = 18; //The Cam Sensor pin
       pinTPS = A2;//TPS input pin
@@ -756,10 +778,10 @@ void setPinMapping(byte boardID)
         pinTrigger2 = 36;
         pinStepperDir = 34;
         pinStepperStep = 35;
-        pinCoil1 = 33; //Done
-        pinCoil2 = 24; //Done
-        pinCoil3 = 51; //Won't work (No mapping for pin 32)
-        pinCoil4 = 52; //Won't work (No mapping for pin 33)
+        pinCoils[0] = 33; //Done
+        pinCoils[1] = 24; //Done
+        pinCoils[2] = 51; //Won't work (No mapping for pin 32)
+        pinCoils[3] = 52; //Won't work (No mapping for pin 33)
         pinFuelPump = 26; //Requires PVT4 adapter or above
         pinFan = 50; //Won't work (No mapping for pin 35)
         pinTachOut = 28; //Done
@@ -770,16 +792,20 @@ void setPinMapping(byte boardID)
     case 9:
      #ifndef SMALL_FLASH_MODE
       //Pin mappings as per the 89-95 MX5 PNP shield
-      pinInjector1 = 11; //Output pin injector 1 is on
-      pinInjector2 = 10; //Output pin injector 2 is on
-      pinInjector3 = 9; //Output pin injector 3 is on
-      pinInjector4 = 8; //Output pin injector 4 is on
-      pinInjector5 = 14; //Output pin injector 5 is on
-      pinCoil1 = 39; //Pin for coil 1
-      pinCoil2 = 41; //Pin for coil 2
-      pinCoil3 = 32; //Pin for coil 3
-      pinCoil4 = 33; //Pin for coil 4
-      pinCoil5 = 34; //Pin for coil 5 PLACEHOLDER value for now
+      pinInjectors[0] = 11; //Output pin injector 1 is on
+      pinInjectors[1] = 10; //Output pin injector 2 is on
+      pinInjectors[2] = 9; //Output pin injector 3 is on
+      pinInjectors[3] = 8; //Output pin injector 4 is on
+#if INJ_CHANNELS>=5
+      pinInjectors[4] = 14; //Output pin injector 5 is on
+#endif
+      pinCoils[0] = 39; //Pin for coil 1
+      pinCoils[1] = 41; //Pin for coil 2
+      pinCoils[2] = 32; //Pin for coil 3
+      pinCoils[3] = 33; //Pin for coil 4
+#if IGN_CHANNELS>=5
+      pinCoils[4] = 34; //Pin for coil 5 PLACEHOLDER value for now
+#endif
       pinTrigger = 19; //The CAS pin
       pinTrigger2 = 18; //The Cam Sensor pin
       pinTPS = A2;//TPS input pin
@@ -811,10 +837,10 @@ void setPinMapping(byte boardID)
         pinTrigger2 = 36;
         pinStepperDir = 34;
         pinStepperStep = 35;
-        pinCoil1 = 33; //Done
-        pinCoil2 = 24; //Done
-        pinCoil3 = 51; //Won't work (No mapping for pin 32)
-        pinCoil4 = 52; //Won't work (No mapping for pin 33)
+        pinCoils[0] = 33; //Done
+        pinCoils[1] = 24; //Done
+        pinCoils[2] = 51; //Won't work (No mapping for pin 32)
+        pinCoils[3] = 52; //Won't work (No mapping for pin 33)
         pinFuelPump = 26; //Requires PVT4 adapter or above
         pinFan = 50; //Won't work (No mapping for pin 35)
         pinTachOut = 28; //Done
@@ -824,19 +850,29 @@ void setPinMapping(byte boardID)
     case 10:
     #ifndef SMALL_FLASH_MODE //No support for bluepill here anyway
       //Pin mappings for user turtanas PCB
-      pinInjector1 = 4; //Output pin injector 1 is on
-      pinInjector2 = 5; //Output pin injector 2 is on
-      pinInjector3 = 6; //Output pin injector 3 is on
-      pinInjector4 = 7; //Output pin injector 4 is on
-      pinInjector5 = 8; //Placeholder only - NOT USED
-      pinInjector6 = 9; //Placeholder only - NOT USED
-      pinInjector7 = 10; //Placeholder only - NOT USED
-      pinInjector8 = 11; //Placeholder only - NOT USED
-      pinCoil1 = 24; //Pin for coil 1
-      pinCoil2 = 28; //Pin for coil 2
-      pinCoil3 = 36; //Pin for coil 3
-      pinCoil4 = 40; //Pin for coil 4
-      pinCoil5 = 34; //Pin for coil 5 PLACEHOLDER value for now
+      pinInjectors[0] = 4; //Output pin injector 1 is on
+      pinInjectors[1] = 5; //Output pin injector 2 is on
+      pinInjectors[2] = 6; //Output pin injector 3 is on
+      pinInjectors[3] = 7; //Output pin injector 4 is on
+#if INJ_CHANNELS>=5
+      pinInjectors[4] = 8; //Placeholder only - NOT USED
+#endif
+#if INJ_CHANNELS>=6
+      pinInjectors[5] = 9; //Placeholder only - NOT USED
+#endif
+#if INJ_CHANNELS>=7
+      pinInjectors[6] = 10; //Placeholder only - NOT USED
+#endif
+#if INJ_CHANNELS>=8
+      pinInjectors[7] = 11; //Placeholder only - NOT USED
+#endif
+      pinCoils[0] = 24; //Pin for coil 1
+      pinCoils[1] = 28; //Pin for coil 2
+      pinCoils[2] = 36; //Pin for coil 3
+      pinCoils[3] = 40; //Pin for coil 4
+#if IGN_CHANNELS>=5
+      pinCoils[4] = 34; //Pin for coil 5 PLACEHOLDER value for now
+#endif
       pinTrigger = 18; //The CAS pin
       pinTrigger2 = 19; //The Cam Sensor pin
       pinTPS = A2;//TPS input pin
@@ -862,16 +898,20 @@ void setPinMapping(byte boardID)
     case 20:
     #if defined(CORE_AVR) && !defined(SMALL_FLASH_MODE) //No support for bluepill here anyway
       //Pin mappings as per the Plazomat In/Out shields Rev 0.1
-      pinInjector1 = 8; //Output pin injector 1 is on
-      pinInjector2 = 9; //Output pin injector 2 is on
-      pinInjector3 = 10; //Output pin injector 3 is on
-      pinInjector4 = 11; //Output pin injector 4 is on
-      pinInjector5 = 12; //Output pin injector 5 is on
-      pinCoil1 = 28; //Pin for coil 1
-      pinCoil2 = 24; //Pin for coil 2
-      pinCoil3 = 40; //Pin for coil 3
-      pinCoil4 = 36; //Pin for coil 4
-      pinCoil5 = 34; //Pin for coil 5 PLACEHOLDER value for now
+      pinInjectors[0] = 8; //Output pin injector 1 is on
+      pinInjectors[1] = 9; //Output pin injector 2 is on
+      pinInjectors[2] = 10; //Output pin injector 3 is on
+      pinInjectors[3] = 11; //Output pin injector 4 is on
+#if INJ_CHANNELS>=5
+      pinInjectors[4] = 12; //Output pin injector 5 is on
+#endif
+      pinCoils[0] = 28; //Pin for coil 1
+      pinCoils[1] = 24; //Pin for coil 2
+      pinCoils[2] = 40; //Pin for coil 3
+      pinCoils[3] = 36; //Pin for coil 4
+#if IGN_CHANNELS>=5
+      pinCoils[4] = 34; //Pin for coil 5 PLACEHOLDER value for now
+#endif
       pinSpareOut1 = 4; //Spare LSD Output 1(PWM)
       pinSpareOut2 = 5; //Spare LSD Output 2(PWM)
       pinSpareOut3 = 6; //Spare LSD Output 3(PWM)
@@ -898,16 +938,20 @@ void setPinMapping(byte boardID)
     case 30:
     #ifndef SMALL_FLASH_MODE //No support for bluepill here anyway
       //Pin mappings as per the dazv6 shield
-      pinInjector1 = 8; //Output pin injector 1 is on
-      pinInjector2 = 9; //Output pin injector 2 is on
-      pinInjector3 = 10; //Output pin injector 3 is on
-      pinInjector4 = 11; //Output pin injector 4 is on
-      pinInjector5 = 12; //Output pin injector 5 is on
-      pinCoil1 = 40; //Pin for coil 1
-      pinCoil2 = 38; //Pin for coil 2
-      pinCoil3 = 50; //Pin for coil 3
-      pinCoil4 = 52; //Pin for coil 4
-      pinCoil5 = 34; //Pin for coil 5 PLACEHOLDER value for now
+      pinInjectors[0] = 8; //Output pin injector 1 is on
+      pinInjectors[1] = 9; //Output pin injector 2 is on
+      pinInjectors[2] = 10; //Output pin injector 3 is on
+      pinInjectors[3] = 11; //Output pin injector 4 is on
+#if INJ_CHANNELS>=5
+      pinInjectors[4] = 12; //Output pin injector 5 is on
+#endif
+      pinCoils[0] = 40; //Pin for coil 1
+      pinCoils[1] = 38; //Pin for coil 2
+      pinCoils[2] = 50; //Pin for coil 3
+      pinCoils[3] = 52; //Pin for coil 4
+#if IGN_CHANNELS>=5
+      pinCoils[4] = 34; //Pin for coil 5 PLACEHOLDER value for now
+#endif
       pinTrigger = 19; //The CAS pin
       pinTrigger2 = 18; //The Cam Sensor pin
       pinTrigger3 = 17; // cam sensor 2 pin, pin17 isn't external trigger enabled in arduino mega??
@@ -940,22 +984,38 @@ void setPinMapping(byte boardID)
       //Pin mappings for the BMW PnP PCBs by pazi88.
       #if defined(CORE_AVR)
       //This is the regular MEGA2560 pin mapping
-      pinInjector1 = 8; //Output pin injector 1
-      pinInjector2 = 9; //Output pin injector 2
-      pinInjector3 = 10; //Output pin injector 3
-      pinInjector4 = 11; //Output pin injector 4
-      pinInjector5 = 12; //Output pin injector 5
-      pinInjector6 = 50; //Output pin injector 6
-      pinInjector7 = 39; //Output pin injector 7 (placeholder)
-      pinInjector8 = 42; //Output pin injector 8 (placeholder)
-      pinCoil1 = 40; //Pin for coil 1
-      pinCoil2 = 38; //Pin for coil 2
-      pinCoil3 = 52; //Pin for coil 3
-      pinCoil4 = 48; //Pin for coil 4
-      pinCoil5 = 36; //Pin for coil 5
-      pinCoil6 = 34; //Pin for coil 6
-      pinCoil7 = 46; //Pin for coil 7 (placeholder)
-      pinCoil8 = 53; //Pin for coil 8 (placeholder)
+      pinInjectors[0] = 8; //Output pin injector 1
+      pinInjectors[1] = 9; //Output pin injector 2
+      pinInjectors[2] = 10; //Output pin injector 3
+      pinInjectors[3] = 11; //Output pin injector 4
+#if INJ_CHANNELS>=5
+      pinInjectors[4] = 12; //Output pin injector 5
+#endif
+#if INJ_CHANNELS>=6
+      pinInjectors[5] = 50; //Output pin injector 6
+#endif
+#if INJ_CHANNELS>=7
+      pinInjectors[6] = 39; //Output pin injector 7 (placeholder)
+#endif
+#if INJ_CHANNELS>=8
+      pinInjectors[7] = 42; //Output pin injector 8 (placeholder)
+#endif
+      pinCoils[0] = 40; //Pin for coil 1
+      pinCoils[1] = 38; //Pin for coil 2
+      pinCoils[2] = 52; //Pin for coil 3
+      pinCoils[3] = 48; //Pin for coil 4
+#if IGN_CHANNELS>=5
+      pinCoils[4] = 36; //Pin for coil 5
+#endif
+#if IGN_CHANNELS>=6
+      pinCoils[5] = 34; //Pin for coil 6
+#endif
+#if IGN_CHANNELS>=7
+      pinCoils[6] = 46; //Pin for coil 7 (placeholder)
+#endif
+#if IGN_CHANNELS>=8
+      pinCoils[7] = 53; //Pin for coil 8 (placeholder)
+#endif
       pinTrigger = 19; //The CAS pin
       pinTrigger2 = 18; //The Cam Sensor pin
       pinTrigger3 = 20; //The Cam sensor 2 pin
@@ -989,22 +1049,22 @@ void setPinMapping(byte boardID)
       pinIdleUp = 37; //(placeholder)
       pinCTPS = A6; //(placeholder)
      #elif defined(STM32F407xx)
-      pinInjector1 = PB15; //Output pin injector 1
-      pinInjector2 = PB14; //Output pin injector 2
-      pinInjector3 = PB12; //Output pin injector 3
-      pinInjector4 = PB13; //Output pin injector 4
-      pinInjector5 = PA8; //Output pin injector 5
-      pinInjector6 = PE7; //Output pin injector 6
-      pinInjector7 = PE13; //Output pin injector 7 (placeholder)
-      pinInjector8 = PE10; //Output pin injector 8 (placeholder)
-      pinCoil1 = PE2; //Pin for coil 1
-      pinCoil2 = PE3; //Pin for coil 2
-      pinCoil3 = PC13; //Pin for coil 3
-      pinCoil4 = PE6; //Pin for coil 4
-      pinCoil5 = PE4; //Pin for coil 5
-      pinCoil6 = PE5; //Pin for coil 6
-      pinCoil7 = PE0; //Pin for coil 7 (placeholder)
-      pinCoil8 = PB9; //Pin for coil 8 (placeholder)
+      pinInjectors[0] = PB15; //Output pin injector 1
+      pinInjectors[1] = PB14; //Output pin injector 2
+      pinInjectors[2] = PB12; //Output pin injector 3
+      pinInjectors[3] = PB13; //Output pin injector 4
+      pinInjectors[4] = PA8; //Output pin injector 5
+      pinInjectors[5] = PE7; //Output pin injector 6
+      pinInjectors[6] = PE13; //Output pin injector 7 (placeholder)
+      pinInjectors[7] = PE10; //Output pin injector 8 (placeholder)
+      pinCoils[0] = PE2; //Pin for coil 1
+      pinCoils[1] = PE3; //Pin for coil 2
+      pinCoils[2] = PC13; //Pin for coil 3
+      pinCoils[3] = PE6; //Pin for coil 4
+      pinCoils[4] = PE4; //Pin for coil 5
+      pinCoils[5] = PE5; //Pin for coil 6
+      pinCoils[6] = PE0; //Pin for coil 7 (placeholder)
+      pinCoils[7] = PB9; //Pin for coil 8 (placeholder)
       pinTrigger = PD3; //The CAS pin
       pinTrigger2 = PD4; //The Cam Sensor pin
       pinTPS = PA2;//TPS input pin
@@ -1042,16 +1102,20 @@ void setPinMapping(byte boardID)
     case 40:
      #ifndef SMALL_FLASH_MODE
       //Pin mappings as per the NO2C shield
-      pinInjector1 = 8; //Output pin injector 1 is on
-      pinInjector2 = 9; //Output pin injector 2 is on
-      pinInjector3 = 11; //Output pin injector 3 is on - NOT USED
-      pinInjector4 = 12; //Output pin injector 4 is on - NOT USED
-      pinInjector5 = 13; //Placeholder only - NOT USED
-      pinCoil1 = 23; //Pin for coil 1
-      pinCoil2 = 22; //Pin for coil 2
-      pinCoil3 = 2; //Pin for coil 3 - ONLY WITH DB2
-      pinCoil4 = 3; //Pin for coil 4 - ONLY WITH DB2
-      pinCoil5 = 46; //Placeholder only - NOT USED
+      pinInjectors[0] = 8; //Output pin injector 1 is on
+      pinInjectors[1] = 9; //Output pin injector 2 is on
+      pinInjectors[2] = 11; //Output pin injector 3 is on - NOT USED
+      pinInjectors[3] = 12; //Output pin injector 4 is on - NOT USED
+#if INJ_CHANNELS>=5
+      pinInjectors[4] = 13; //Placeholder only - NOT USED
+#endif
+      pinCoils[0] = 23; //Pin for coil 1
+      pinCoils[1] = 22; //Pin for coil 2
+      pinCoils[2] = 2; //Pin for coil 3 - ONLY WITH DB2
+      pinCoils[3] = 3; //Pin for coil 4 - ONLY WITH DB2
+#if IGN_CHANNELS>=5
+      pinCoils[4] = 46; //Placeholder only - NOT USED
+#endif
       pinTrigger = 19; //The CAS pin
       pinTrigger2 = 18; //The Cam Sensor pin
       pinTrigger3 = 21; //The Cam sensor 2 pin
@@ -1087,16 +1151,20 @@ void setPinMapping(byte boardID)
     case 41:
     #ifndef SMALL_FLASH_MODE //No support for bluepill here anyway
       //Pin mappings as per the UA4C shield
-      pinInjector1 = 8; //Output pin injector 1 is on
-      pinInjector2 = 7; //Output pin injector 2 is on
-      pinInjector3 = 6; //Output pin injector 3 is on
-      pinInjector4 = 5; //Output pin injector 4 is on
-      pinInjector5 = 45; //Output pin injector 5 is on PLACEHOLDER value for now
-      pinCoil1 = 35; //Pin for coil 1
-      pinCoil2 = 36; //Pin for coil 2
-      pinCoil3 = 33; //Pin for coil 3
-      pinCoil4 = 34; //Pin for coil 4
-      pinCoil5 = 44; //Pin for coil 5 PLACEHOLDER value for now
+      pinInjectors[0] = 8; //Output pin injector 1 is on
+      pinInjectors[1] = 7; //Output pin injector 2 is on
+      pinInjectors[2] = 6; //Output pin injector 3 is on
+      pinInjectors[3] = 5; //Output pin injector 4 is on
+#if INJ_CHANNELS>=5
+      pinInjectors[4] = 45; //Output pin injector 5 is on PLACEHOLDER value for now
+#endif
+      pinCoils[0] = 35; //Pin for coil 1
+      pinCoils[1] = 36; //Pin for coil 2
+      pinCoils[2] = 33; //Pin for coil 3
+      pinCoils[3] = 34; //Pin for coil 4
+#if IGN_CHANNELS>=5
+      pinCoils[4] = 44; //Pin for coil 5 PLACEHOLDER value for now
+#endif
       pinTrigger = 19; //The CAS pin
       pinTrigger2 = 18; //The Cam Sensor pin
       pinTrigger3 = 3; //The Cam sensor 2 pin
@@ -1133,14 +1201,14 @@ void setPinMapping(byte boardID)
 
     case 42:
       //Pin mappings for all BlitzboxBL49sp variants
-      pinInjector1 = 6; //Output pin injector 1
-      pinInjector2 = 7; //Output pin injector 2
-      pinInjector3 = 8; //Output pin injector 3
-      pinInjector4 = 9; //Output pin injector 4
-      pinCoil1 = 24; //Pin for coil 1
-      pinCoil2 = 25; //Pin for coil 2
-      pinCoil3 = 23; //Pin for coil 3
-      pinCoil4 = 22; //Pin for coil 4
+      pinInjectors[0] = 6; //Output pin injector 1
+      pinInjectors[1] = 7; //Output pin injector 2
+      pinInjectors[2] = 8; //Output pin injector 3
+      pinInjectors[3] = 9; //Output pin injector 4
+      pinCoils[0] = 24; //Pin for coil 1
+      pinCoils[1] = 25; //Pin for coil 2
+      pinCoils[2] = 23; //Pin for coil 3
+      pinCoils[3] = 22; //Pin for coil 4
       pinTrigger = 19; //The CRANK Sensor pin
       pinTrigger2 = 18; //The Cam Sensor pin
       pinFlex = 20; // Flex sensor PLACEHOLDER value for now
@@ -1172,15 +1240,17 @@ void setPinMapping(byte boardID)
     #ifndef SMALL_FLASH_MODE //No support for bluepill here anyway
       //Pin mappings for the DIY-EFI CORE4 Module. This is an AVR only module
       #if defined(CORE_AVR)
-      pinInjector1 = 10; //Output pin injector 1 is on
-      pinInjector2 = 11; //Output pin injector 2 is on
-      pinInjector3 = 12; //Output pin injector 3 is on
-      pinInjector4 = 9; //Output pin injector 4 is on
-      pinCoil1 = 39; //Pin for coil 1
-      pinCoil2 = 29; //Pin for coil 2
-      pinCoil3 = 28; //Pin for coil 3
-      pinCoil4 = 27; //Pin for coil 4
-      pinCoil5 = 26; //Placeholder  for coil 5
+      pinInjectors[0] = 10; //Output pin injector 1 is on
+      pinInjectors[1] = 11; //Output pin injector 2 is on
+      pinInjectors[2] = 12; //Output pin injector 3 is on
+      pinInjectors[3] = 9; //Output pin injector 4 is on
+      pinCoils[0] = 39; //Pin for coil 1
+      pinCoils[1] = 29; //Pin for coil 2
+      pinCoils[2] = 28; //Pin for coil 3
+      pinCoils[3] = 27; //Pin for coil 4
+#if IGN_CHANNELS>=5
+      pinCoils[4] = 26; //Placeholder  for coil 5
+#endif
       pinTrigger = 19; //The CAS pin
       pinTrigger2 = 18; //The Cam Sensor pin
       pinTrigger3 = 21;// The Cam sensor 2 pin
@@ -1209,8 +1279,12 @@ void setPinMapping(byte boardID)
       pinSpareLOut1 = 37; //low current output spare1
       pinSpareLOut2 = 36; //low current output spare2
       pinSpareLOut3 = 35; //low current output spare3
-      pinInjector5 = 33; //Output pin injector 5 is on
-      pinInjector6 = 34; //Output pin injector 6 is on
+#if INJ_CHANNELS>=5
+      pinInjectors[4] = 33; //Output pin injector 5 is on
+#endif
+#if INJ_CHANNELS>=6
+      pinInjectors[5] = 34; //Output pin injector 6 is on
+#endif
       pinFan = 40; //Pin for the fan output
       pinResetControl = 46; //Reset control output PLACEHOLDER value for now
       #endif
@@ -1220,18 +1294,18 @@ void setPinMapping(byte boardID)
     #if defined(CORE_TEENSY35)
     case 50:
       //Pin mappings as per the teensy rev A shield
-      pinInjector1 = 2; //Output pin injector 1 is on
-      pinInjector2 = 10; //Output pin injector 2 is on
-      pinInjector3 = 6; //Output pin injector 3 is on
-      pinInjector4 = 9; //Output pin injector 4 is on
+      pinInjectors[0] = 2; //Output pin injector 1 is on
+      pinInjectors[1] = 10; //Output pin injector 2 is on
+      pinInjectors[2] = 6; //Output pin injector 3 is on
+      pinInjectors[3] = 9; //Output pin injector 4 is on
       //Placeholder only - NOT USED:
-      //pinInjector5 = 13;
-      pinCoil1 = 29; //Pin for coil 1
-      pinCoil2 = 30; //Pin for coil 2
-      pinCoil3 = 31; //Pin for coil 3 - ONLY WITH DB2
-      pinCoil4 = 32; //Pin for coil 4 - ONLY WITH DB2
+      //pinInjectors[4] = 13;
+      pinCoils[0] = 29; //Pin for coil 1
+      pinCoils[1] = 30; //Pin for coil 2
+      pinCoils[2] = 31; //Pin for coil 3 - ONLY WITH DB2
+      pinCoils[3] = 32; //Pin for coil 4 - ONLY WITH DB2
       //Placeholder only - NOT USED:
-      //pinCoil5 = 46; 
+      //pinCoils[4] = 46; 
       pinTrigger = 23; //The CAS pin
       pinTrigger2 = 36; //The Cam Sensor pin
       pinTPS = 16; //TPS input pin
@@ -1257,14 +1331,14 @@ void setPinMapping(byte boardID)
 
     case 51:
       //Pin mappings as per the teensy revB board shield
-      pinInjector1 = 2; //Output pin injector 1 is on
-      pinInjector2 = 10; //Output pin injector 2 is on
-      pinInjector3 = 6; //Output pin injector 3 is on - NOT USED
-      pinInjector4 = 9; //Output pin injector 4 is on - NOT USED
-      pinCoil1 = 29; //Pin for coil 1
-      pinCoil2 = 30; //Pin for coil 2
-      pinCoil3 = 31; //Pin for coil 3 - ONLY WITH DB2
-      pinCoil4 = 32; //Pin for coil 4 - ONLY WITH DB2
+      pinInjectors[0] = 2; //Output pin injector 1 is on
+      pinInjectors[1] = 10; //Output pin injector 2 is on
+      pinInjectors[2] = 6; //Output pin injector 3 is on - NOT USED
+      pinInjectors[3] = 9; //Output pin injector 4 is on - NOT USED
+      pinCoils[0] = 29; //Pin for coil 1
+      pinCoils[1] = 30; //Pin for coil 2
+      pinCoils[2] = 31; //Pin for coil 3 - ONLY WITH DB2
+      pinCoils[3] = 32; //Pin for coil 4 - ONLY WITH DB2
       pinTrigger = 23; //The CAS pin
       pinTrigger2 = 36; //The Cam Sensor pin
       pinTPS = 16; //TPS input pin
@@ -1292,14 +1366,14 @@ void setPinMapping(byte boardID)
     #if defined(CORE_TEENSY35)
     case 53:
       //Pin mappings for the Juice Box (ignition only board)
-      pinInjector1 = 2; //Output pin injector 1 is on - NOT USED
-      pinInjector2 = 56; //Output pin injector 2 is on - NOT USED
-      pinInjector3 = 6; //Output pin injector 3 is on - NOT USED
-      pinInjector4 = 50; //Output pin injector 4 is on - NOT USED
-      pinCoil1 = 29; //Pin for coil 1
-      pinCoil2 = 30; //Pin for coil 2
-      pinCoil3 = 31; //Pin for coil 3
-      pinCoil4 = 32; //Pin for coil 4
+      pinInjectors[0] = 2; //Output pin injector 1 is on - NOT USED
+      pinInjectors[1] = 56; //Output pin injector 2 is on - NOT USED
+      pinInjectors[2] = 6; //Output pin injector 3 is on - NOT USED
+      pinInjectors[3] = 50; //Output pin injector 4 is on - NOT USED
+      pinCoils[0] = 29; //Pin for coil 1
+      pinCoils[1] = 30; //Pin for coil 2
+      pinCoils[2] = 31; //Pin for coil 3
+      pinCoils[3] = 32; //Pin for coil 4
       pinTrigger = 37; //The CAS pin
       pinTrigger2 = 38; //The Cam Sensor pin - NOT USED
       pinTPS = A2; //TPS input pin
@@ -1331,16 +1405,16 @@ void setPinMapping(byte boardID)
       ignitionOutputControl = OUTPUT_CONTROL_MC33810;
 
       //The injector pins below are not used directly as the control is via SPI through the MC33810s, however the pin numbers are set to be the SPI pins (SCLK, MOSI, MISO and CS) so that nothing else will set them as inputs
-      pinInjector1 = 13; //SCLK
-      pinInjector2 = 11; //MOSI
-      pinInjector3 = 12; //MISO
-      pinInjector4 = 10; //CS for MC33810 1
-      pinInjector5 = 9; //CS for MC33810 2
-      pinInjector6 = 9; //CS for MC33810 3
+      pinInjectors[0] = 13; //SCLK
+      pinInjectors[1] = 11; //MOSI
+      pinInjectors[2] = 12; //MISO
+      pinInjectors[3] = 10; //CS for MC33810 1
+      pinInjectors[4] = 9; //CS for MC33810 2
+      pinInjectors[5] = 9; //CS for MC33810 2
 
       //Dummy pins, without these pin 0 (Serial1 RX) gets overwritten
-      pinCoil1 = 40;
-      pinCoil2 = 41;
+      pinCoils[0] = 40;
+      pinCoils[1] = 41;
       /*
       pinCoil3 = 55;
       pinCoil4 = 55;
@@ -1453,15 +1527,15 @@ void setPinMapping(byte boardID)
     case 56:
       #if defined(CORE_TEENSY)
       //Pin mappings for the Bear Cub (Teensy 4.1)
-      pinInjector1 = 6;
-      pinInjector2 = 7;
-      pinInjector3 = 9;
-      pinInjector4 = 8;
-      pinInjector5 = 0; //Not used
-      pinCoil1 = 2;
-      pinCoil2 = 3;
-      pinCoil3 = 4;
-      pinCoil4 = 5;
+      pinInjectors[0] = 6;
+      pinInjectors[1] = 7;
+      pinInjectors[2] = 9;
+      pinInjectors[3] = 8;
+      pinInjectors[4] = 0; //Not used
+      pinCoils[0] = 2;
+      pinCoils[1] = 3;
+      pinCoils[2] = 4;
+      pinCoils[3] = 5;
 
       pinTrigger = 20; //The CAS pin
       pinTrigger2 = 21; //The Cam Sensor pin
@@ -1514,7 +1588,7 @@ void setPinMapping(byte boardID)
         // = PA5; //ADC12
         // = PA6; //ADC12 LED_BUILTIN_1
         // = PA7; //ADC12 LED_BUILTIN_2
-        pinCoil3 = PA8;
+        pinCoils[2] = PA8;
         // = PA9;  //TXD1=Bluetooth module
         // = PA10; //RXD1=Bluetooth module
         // = PA11; //(DO NOT USE FOR SPEEDUINO) USB
@@ -1533,9 +1607,9 @@ void setPinMapping(byte boardID)
         // = PB4;  //(DO NOT USE FOR SPEEDUINO) SPI1_MISO FLASH CHIP
         // = PB5;  //(DO NOT USE FOR SPEEDUINO) SPI1_MOSI FLASH CHIP
         // = PB6;  //NRF_CE
-        pinCoil6 = PB7;  //NRF_CS
+        pinCoils[5] = PB7;  //NRF_CS
         // = PB8;  //NRF_IRQ
-        pinCoil2 = PB9; //
+        pinCoils[1] = PB9; //
         // = PB9;  //
         // = PB10; //TXD3
         // = PB11; //RXD3
@@ -1575,16 +1649,16 @@ void setPinMapping(byte boardID)
         pinFlex = PD4;
         // = PD5; //TXD2
         // = PD6;  //RXD2
-        pinCoil1 = PD7; //
+        pinCoils[0] = PD7; //
         // = PD7;  //
         // = PD8;  //
-        pinCoil5 = PD9;//
-        pinCoil4 = PD10;//
+        pinCoils[4] = PD9;//
+        pinCoils[3] = PD10;//
         // = PD11;  //
-        pinInjector1 = PD12; //
-        pinInjector2 = PD13; //
-        pinInjector3 = PD14; //
-        pinInjector4 = PD15; //
+        pinInjectors[0] = PD12; //
+        pinInjectors[1] = PD13; //
+        pinInjectors[2] = PD14; //
+        pinInjectors[3] = PD15; //
 
         //******************************************
         //******** PORTE CONNECTIONS *************** 
@@ -1598,24 +1672,24 @@ void setPinMapping(byte boardID)
         pinFan = PE6; //
         pinStepperDir = PE7; //
         // = PE8;  //
-        pinInjector5 = PE9; //
+        pinInjectors[4] = PE9; //
         // = PE10;  //
-        pinInjector6 = PE11; //
+        pinInjectors[5] = PE11; //
         // = PE12; //
-        pinInjector8 = PE13; //
-        pinInjector7 = PE14; //
+        pinInjectors[7] = PE13; //
+        pinInjectors[6] = PE14; //
         // = PE15;  //
      #elif (defined(STM32F411xE) || defined(STM32F401xC))
         //pins PA12, PA11 are used for USB or CAN couldn't be used for GPIO
         //PB2 can't be used as input because is BOOT pin
-        pinInjector1 = PB7; //Output pin injector 1 is on
-        pinInjector2 = PB6; //Output pin injector 2 is on
-        pinInjector3 = PB5; //Output pin injector 3 is on
-        pinInjector4 = PB4; //Output pin injector 4 is on
-        pinCoil1 = PB9; //Pin for coil 1
-        pinCoil2 = PB8; //Pin for coil 2
-        pinCoil3 = PB3; //Pin for coil 3
-        pinCoil4 = PA15; //Pin for coil 4
+        pinInjectors[0] = PB7; //Output pin injector 1 is on
+        pinInjectors[1] = PB6; //Output pin injector 2 is on
+        pinInjectors[2] = PB5; //Output pin injector 3 is on
+        pinInjectors[3] = PB4; //Output pin injector 4 is on
+        pinCoils[0] = PB9; //Pin for coil 1
+        pinCoils[1] = PB8; //Pin for coil 2
+        pinCoils[2] = PB3; //Pin for coil 3
+        pinCoils[3] = PA15; //Pin for coil 4
         pinTPS = A2;//TPS input pin
         pinMAP = A3; //MAP sensor pin
         pinIAT = A0; //IAT sensor pin
@@ -1642,15 +1716,15 @@ void setPinMapping(byte boardID)
         //Maple mini wiki.stm32duino.com/index.php?title=Maple_Mini
         //pins PA12, PA11 are used for USB or CAN couldn't be used for GPIO
         //PB2 can't be used as input because is BOOT pin
-        pinInjector1 = PB7; //Output pin injector 1 is on
-        pinInjector2 = PB6; //Output pin injector 2 is on
-        pinInjector3 = PB5; //Output pin injector 3 is on
-        pinInjector4 = PB4; //Output pin injector 4 is on
-        pinCoil1 = PB3; //Pin for coil 1
-        pinCoil2 = PA15; //Pin for coil 2
-        pinCoil3 = PA14; //Pin for coil 3
-        pinCoil4 = PA9; //Pin for coil 4
-        pinCoil5 = PA8; //Pin for coil 5
+        pinInjectors[0] = PB7; //Output pin injector 1 is on
+        pinInjectors[1] = PB6; //Output pin injector 2 is on
+        pinInjectors[2] = PB5; //Output pin injector 3 is on
+        pinInjectors[3] = PB4; //Output pin injector 4 is on
+        pinCoils[0] = PB3; //Pin for coil 1
+        pinCoils[1] = PA15; //Pin for coil 2
+        pinCoils[2] = PA14; //Pin for coil 3
+        pinCoils[3] = PA9; //Pin for coil 4
+        pinCoils[4] = PA8; //Pin for coil 5
         pinTPS = A0; //TPS input pin
         pinMAP = A1; //MAP sensor pin
         pinIAT = A2; //IAT sensor pin
@@ -1693,7 +1767,7 @@ void setPinMapping(byte boardID)
         /* = PA5; */ //ADC12
         pinFuelPump = PA6; //ADC12 LED_BUILTIN_1
         /* = PA7; */ //ADC12 LED_BUILTIN_2
-        pinCoil3 = PA8;
+        pinCoils[2] = PA8;
         /* = PA9 */ //TXD1
         /* = PA10 */ //RXD1
         /* = PA11 */ //(DO NOT USE FOR SPEEDUINO) USB
@@ -1714,9 +1788,9 @@ void setPinMapping(byte boardID)
         /* = PB6; */ //NRF_CE
         /* = PB7; */ //NRF_CS
         /* = PB8; */ //NRF_IRQ
-        pinCoil2 = PB9; //
+        pinCoils[1] = PB9; //
         /* = PB9; */ //
-        pinCoil4 = PB10; //TXD3
+        pinCoils[3] = PB10; //TXD3
         pinIdle1 = PB11; //RXD3
         pinIdle2 = PB12; //
         /* pinBoost = PB12; */ //
@@ -1755,16 +1829,16 @@ void setPinMapping(byte boardID)
         pinFlex = PD4;
         /* = PD5;*/ //TXD2
         /* = PD6; */ //RXD2
-        pinCoil1 = PD7; //
+        pinCoils[0] = PD7; //
         /* = PD7; */ //
         /* = PD8; */ //
-        pinCoil5 = PD9;//
+        pinCoils[4] = PD9;//
         /* = PD10; */ //
         /* = PD11; */ //
-        pinInjector1 = PD12; //
-        pinInjector2 = PD13; //
-        pinInjector3 = PD14; //
-        pinInjector4 = PD15; //
+        pinInjectors[0] = PD12; //
+        pinInjectors[1] = PD13; //
+        pinInjectors[2] = PD14; //
+        pinInjectors[3] = PD15; //
 
         //******************************************
         //******** PORTE CONNECTIONS *************** 
@@ -1780,24 +1854,28 @@ void setPinMapping(byte boardID)
         /* = PE8; */ //
         /* = PE9; */ //
         /* = PE10; */ //
-        pinInjector5 = PE11; //
-        pinInjector6 = PE12; //
+        pinInjectors[4] = PE11; //
+        pinInjectors[5] = PE12; //
         /* = PE13; */ //
         /* = PE14; */ //
         /* = PE15; */ //
       #else
         #ifndef SMALL_FLASH_MODE //No support for bluepill here anyway
         //Pin mappings as per the v0.2 shield
-        pinInjector1 = 8; //Output pin injector 1 is on
-        pinInjector2 = 9; //Output pin injector 2 is on
-        pinInjector3 = 10; //Output pin injector 3 is on
-        pinInjector4 = 11; //Output pin injector 4 is on
-        pinInjector5 = 12; //Output pin injector 5 is on
-        pinCoil1 = 28; //Pin for coil 1
-        pinCoil2 = 24; //Pin for coil 2
-        pinCoil3 = 40; //Pin for coil 3
-        pinCoil4 = 36; //Pin for coil 4
-        pinCoil5 = 34; //Pin for coil 5 PLACEHOLDER value for now
+        pinInjectors[0] = 8; //Output pin injector 1 is on
+        pinInjectors[1] = 9; //Output pin injector 2 is on
+        pinInjectors[2] = 10; //Output pin injector 3 is on
+        pinInjectors[3] = 11; //Output pin injector 4 is on
+#if INJ_CHANNELS>=5        
+        pinInjectors[4] = 12; //Output pin injector 5 is on
+#endif
+        pinCoils[0] = 28; //Pin for coil 1
+        pinCoils[1] = 24; //Pin for coil 2
+        pinCoils[2] = 40; //Pin for coil 3
+        pinCoils[3] = 36; //Pin for coil 4
+#if IGN_CHANNELS>=5
+        pinCoils[4] = 34; //Pin for coil 5 PLACEHOLDER value for now
+#endif
         pinTrigger = 20; //The CAS pin
         pinTrigger2 = 21; //The Cam Sensor pin
         pinTPS = A2; //TPS input pin
@@ -1893,82 +1971,12 @@ void setPinMapping(byte boardID)
   //This is a legacy mode option to revert the MAP reading behaviour to match what was in place prior to the 201905 firmware
   if(configPage2.legacyMAP > 0) { digitalWrite(pinMAP, HIGH); }
 
-#if defined(OUTPUT_CONTROL_SUPPORTED)
-  if(ignitionOutputControl == OUTPUT_CONTROL_DIRECT)
-#endif
-  {
-    pinMode(pinCoil1, OUTPUT);
-    pinMode(pinCoil2, OUTPUT);
-    pinMode(pinCoil3, OUTPUT);
-    pinMode(pinCoil4, OUTPUT);
-    #if (IGN_CHANNELS >= 5)
-    pinMode(pinCoil5, OUTPUT);
-    #endif
-    #if (IGN_CHANNELS >= 6)
-    pinMode(pinCoil6, OUTPUT);
-    #endif
-    #if (IGN_CHANNELS >= 7)
-    pinMode(pinCoil7, OUTPUT);
-    #endif
-    #if (IGN_CHANNELS >= 8)
-    pinMode(pinCoil8, OUTPUT);
-    #endif
+  for (uint8_t index=0U; index<_countof(pinCoils); ++index) {
+    ignitionPins[index] = registerIgnitionPin(pinCoils[index]);
+  }    
 
-    ign1_pin_port = portOutputRegister(digitalPinToPort(pinCoil1));
-    ign1_pin_mask = digitalPinToBitMask(pinCoil1);
-    ign2_pin_port = portOutputRegister(digitalPinToPort(pinCoil2));
-    ign2_pin_mask = digitalPinToBitMask(pinCoil2);
-    ign3_pin_port = portOutputRegister(digitalPinToPort(pinCoil3));
-    ign3_pin_mask = digitalPinToBitMask(pinCoil3);
-    ign4_pin_port = portOutputRegister(digitalPinToPort(pinCoil4));
-    ign4_pin_mask = digitalPinToBitMask(pinCoil4);
-    ign5_pin_port = portOutputRegister(digitalPinToPort(pinCoil5));
-    ign5_pin_mask = digitalPinToBitMask(pinCoil5);
-    ign6_pin_port = portOutputRegister(digitalPinToPort(pinCoil6));
-    ign6_pin_mask = digitalPinToBitMask(pinCoil6);
-    ign7_pin_port = portOutputRegister(digitalPinToPort(pinCoil7));
-    ign7_pin_mask = digitalPinToBitMask(pinCoil7);
-    ign8_pin_port = portOutputRegister(digitalPinToPort(pinCoil8));
-    ign8_pin_mask = digitalPinToBitMask(pinCoil8);
-  } 
-
-#if defined(OUTPUT_CONTROL_SUPPORTED)
-  if(injectorOutputControl == OUTPUT_CONTROL_DIRECT)
-#endif
-  {
-    pinMode(pinInjector1, OUTPUT);
-    pinMode(pinInjector2, OUTPUT);
-    pinMode(pinInjector3, OUTPUT);
-    pinMode(pinInjector4, OUTPUT);
-    #if (INJ_CHANNELS >= 5)
-    pinMode(pinInjector5, OUTPUT);
-    #endif
-    #if (INJ_CHANNELS >= 6)
-    pinMode(pinInjector6, OUTPUT);
-    #endif
-    #if (INJ_CHANNELS >= 7)
-    pinMode(pinInjector7, OUTPUT);
-    #endif
-    #if (INJ_CHANNELS >= 8)
-    pinMode(pinInjector8, OUTPUT);
-    #endif
-
-    inj1_pin_port = portOutputRegister(digitalPinToPort(pinInjector1));
-    inj1_pin_mask = digitalPinToBitMask(pinInjector1);
-    inj2_pin_port = portOutputRegister(digitalPinToPort(pinInjector2));
-    inj2_pin_mask = digitalPinToBitMask(pinInjector2);
-    inj3_pin_port = portOutputRegister(digitalPinToPort(pinInjector3));
-    inj3_pin_mask = digitalPinToBitMask(pinInjector3);
-    inj4_pin_port = portOutputRegister(digitalPinToPort(pinInjector4));
-    inj4_pin_mask = digitalPinToBitMask(pinInjector4);
-    inj5_pin_port = portOutputRegister(digitalPinToPort(pinInjector5));
-    inj5_pin_mask = digitalPinToBitMask(pinInjector5);
-    inj6_pin_port = portOutputRegister(digitalPinToPort(pinInjector6));
-    inj6_pin_mask = digitalPinToBitMask(pinInjector6);
-    inj7_pin_port = portOutputRegister(digitalPinToPort(pinInjector7));
-    inj7_pin_mask = digitalPinToBitMask(pinInjector7);
-    inj8_pin_port = portOutputRegister(digitalPinToPort(pinInjector8));
-    inj8_pin_mask = digitalPinToBitMask(pinInjector8);
+  for (uint8_t index=0U; index<_countof(pinInjectors); ++index) {
+    injectorPins[index] = registerInjectorPin(pinInjectors[index]);
   }
   
 #if defined(OUTPUT_CONTROL_SUPPORTED)

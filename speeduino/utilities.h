@@ -31,8 +31,6 @@ extern uint8_t currentRuleStatus;
 //uint8_t outputPin[sizeof(configPage13.outputPin)];
 
 void setResetControlPinState(void);
-byte pinTranslate(byte rawPin);
-byte pinTranslateAnalog(byte rawPin);
 bool pinOutputReassign(byte &rawPin, byte pin);
 bool pinInputReassign(byte &rawPin, byte pin);
 void initialiseProgrammableIO(void);

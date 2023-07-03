@@ -6,26 +6,21 @@
 #if defined(OUTPUT_CONTROL_SUPPORTED)
 
 #include <SPI.h>
-#include "globals.h"
+#include "port_pin.h"
 
 extern byte pinMC33810_1_CS;
 extern byte pinMC33810_2_CS;
-extern volatile PORT_TYPE *mc33810_1_pin_port;
-extern volatile PINMASK_TYPE mc33810_1_pin_mask;
-extern volatile PORT_TYPE *mc33810_2_pin_port;
-extern volatile PINMASK_TYPE mc33810_2_pin_mask;
 
-//#define MC33810_ONOFF_CMD   3
-static const uint8_t MC33810_ONOFF_CMD = 0x30; //48 in decimal
+static constexpr uint8_t MC33810_ONOFF_CMD = 0x30; //48 in decimal
 static volatile uint8_t mc33810_1_requestedState; //Current binary state of the 1st ICs IGN and INJ values
 static volatile uint8_t mc33810_2_requestedState; //Current binary state of the 2nd ICs IGN and INJ values
 
 void initMC33810(void);
 
-#define MC33810_1_ACTIVE() (*mc33810_1_pin_port &= ~(mc33810_1_pin_mask))
-#define MC33810_1_INACTIVE() (*mc33810_1_pin_port |= (mc33810_1_pin_mask))
-#define MC33810_2_ACTIVE() (*mc33810_2_pin_port &= ~(mc33810_2_pin_mask))
-#define MC33810_2_INACTIVE() (*mc33810_2_pin_port |= (mc33810_2_pin_mask))
+#define MC33810_1_ACTIVE() { extern ioPort portMC33810_1_CS; setPin_Low(portMC33810_1_CS); }
+#define MC33810_1_INACTIVE() { extern ioPort portMC33810_1_CS; setPin_High(portMC33810_1_CS); }
+#define MC33810_2_ACTIVE() { extern ioPort portMC33810_2_CS; setPin_Low(portMC33810_2_CS); }
+#define MC33810_2_INACTIVE() { extern ioPort portMC33810_2_CS; setPin_High(portMC33810_2_CS); }
 
 //These are default values for which injector is attached to which output on the IC. 
 //They may (Probably will) be changed during init by the board specific config in init.ino

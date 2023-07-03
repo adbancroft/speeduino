@@ -2,6 +2,9 @@
  * Instantiation of various (table2D, table3D) tables, volatile (interrupt modified) variables, Injector (1...8) enablement flags, etc.
  */
 #include "globals.h"
+#include "utilities.h"
+#include "scheduler.h"
+#include "scheduledIO_direct.h"
 
 const char TSfirmwareVersion[] PROGMEM = "Speeduino";
 
@@ -47,41 +50,6 @@ struct table2D wmiAdvTable; //6 bin wmi correction table for timing advance (2D)
 struct table2D coolantProtectTable;
 struct table2D fanPWMTable;
 struct table2D rollingCutTable;
-
-/// volatile inj*_pin_port and  inj*_pin_mask vars are for the direct port manipulation of the injectors, coils and aux outputs.
-volatile PORT_TYPE *inj1_pin_port;
-volatile PINMASK_TYPE inj1_pin_mask;
-volatile PORT_TYPE *inj2_pin_port;
-volatile PINMASK_TYPE inj2_pin_mask;
-volatile PORT_TYPE *inj3_pin_port;
-volatile PINMASK_TYPE inj3_pin_mask;
-volatile PORT_TYPE *inj4_pin_port;
-volatile PINMASK_TYPE inj4_pin_mask;
-volatile PORT_TYPE *inj5_pin_port;
-volatile PINMASK_TYPE inj5_pin_mask;
-volatile PORT_TYPE *inj6_pin_port;
-volatile PINMASK_TYPE inj6_pin_mask;
-volatile PORT_TYPE *inj7_pin_port;
-volatile PINMASK_TYPE inj7_pin_mask;
-volatile PORT_TYPE *inj8_pin_port;
-volatile PINMASK_TYPE inj8_pin_mask;
-
-volatile PORT_TYPE *ign1_pin_port;
-volatile PINMASK_TYPE ign1_pin_mask;
-volatile PORT_TYPE *ign2_pin_port;
-volatile PINMASK_TYPE ign2_pin_mask;
-volatile PORT_TYPE *ign3_pin_port;
-volatile PINMASK_TYPE ign3_pin_mask;
-volatile PORT_TYPE *ign4_pin_port;
-volatile PINMASK_TYPE ign4_pin_mask;
-volatile PORT_TYPE *ign5_pin_port;
-volatile PINMASK_TYPE ign5_pin_mask;
-volatile PORT_TYPE *ign6_pin_port;
-volatile PINMASK_TYPE ign6_pin_mask;
-volatile PORT_TYPE *ign7_pin_port;
-volatile PINMASK_TYPE ign7_pin_mask;
-volatile PORT_TYPE *ign8_pin_port;
-volatile PINMASK_TYPE ign8_pin_mask;
 
 volatile PORT_TYPE *tach_pin_port;
 volatile PINMASK_TYPE tach_pin_mask;
@@ -138,22 +106,8 @@ volatile byte TIMER_mask;
 volatile byte LOOP_TIMER;
 
 /// Various pin numbering (Injectors, Ign outputs, CAS, Cam, Sensors. etc.) assignments
-byte pinInjector1; ///< Output pin injector 1
-byte pinInjector2; ///< Output pin injector 2
-byte pinInjector3; ///< Output pin injector 3
-byte pinInjector4; ///< Output pin injector 4
-byte pinInjector5; ///< Output pin injector 5
-byte pinInjector6; ///< Output pin injector 6
-byte pinInjector7; ///< Output pin injector 7
-byte pinInjector8; ///< Output pin injector 8
-byte pinCoil1; ///< Pin for coil 1
-byte pinCoil2; ///< Pin for coil 2
-byte pinCoil3; ///< Pin for coil 3
-byte pinCoil4; ///< Pin for coil 4
-byte pinCoil5; ///< Pin for coil 5
-byte pinCoil6; ///< Pin for coil 6
-byte pinCoil7; ///< Pin for coil 7
-byte pinCoil8; ///< Pin for coil 8
+byte pinInjectors[_countof(fuelSchedules)];
+byte pinCoils[_countof(ignitionSchedules)];
 byte pinTrigger;  ///< RPM1 (Typically CAS=crankshaft angle sensor) pin
 byte pinTrigger2; ///< RPM2 (Typically the Cam Sensor) pin
 byte pinTrigger3;	///< the 2nd cam sensor pin
@@ -247,29 +201,14 @@ bool pinIsOutput(byte pin)
   bool isIdlePWM = (configPage6.iacAlgorithm > 0) && ((configPage6.iacAlgorithm <= 3) || (configPage6.iacAlgorithm == 6));
   bool isIdleSteper = (configPage6.iacAlgorithm > 3) && (configPage6.iacAlgorithm != 6);
   //Injector?
-  if ((pin == pinInjector1)
-  || ((pin == pinInjector2) && (configPage2.nInjectors > 1))
-  || ((pin == pinInjector3) && (configPage2.nInjectors > 2))
-  || ((pin == pinInjector4) && (configPage2.nInjectors > 3))
-  || ((pin == pinInjector5) && (configPage2.nInjectors > 4))
-  || ((pin == pinInjector6) && (configPage2.nInjectors > 5))
-  || ((pin == pinInjector7) && (configPage2.nInjectors > 6))
-  || ((pin == pinInjector8) && (configPage2.nInjectors > 7)))
-  {
-    used = true;
+  for (uint8_t index=0U; index<_countof(injectorPins); ++index) {
+    used = used || (pin == pinInjectors[index]);
   }
   //Ignition?
-  if ((pin == pinCoil1)
-  || ((pin == pinCoil2) && (maxIgnOutputs > 1))
-  || ((pin == pinCoil3) && (maxIgnOutputs > 2))
-  || ((pin == pinCoil4) && (maxIgnOutputs > 3))
-  || ((pin == pinCoil5) && (maxIgnOutputs > 4))
-  || ((pin == pinCoil6) && (maxIgnOutputs > 5))
-  || ((pin == pinCoil7) && (maxIgnOutputs > 6))
-  || ((pin == pinCoil8) && (maxIgnOutputs > 7)))
-  {
-    used = true;
+  for (uint8_t index=0U; index<_countof(ignitionPins); ++index) {
+    used = used || (pin == pinCoils[index]);
   }
+
   //Functions?
   if ((pin == pinFuelPump)
   || ((pin == pinFan) && (configPage2.fanEnable == 1))

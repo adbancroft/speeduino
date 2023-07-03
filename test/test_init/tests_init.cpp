@@ -1,6 +1,7 @@
 #include <unity.h>
 #include "globals.h"
 #include "init.h"
+#include "scheduledIO_direct.h"
 #include "../test_utils.h"
 #include "storage.h"
 
@@ -47,17 +48,19 @@ void test_initialisation_complete(void)
 
 void test_initialisation_ports(void)
 {
+#if defined(CORE_AVR) || defined(ARDUINO_ARCH_AVR)
   //Test that all the port values have been set
   prepareForInitialiseAll(3);
   initialiseAll(); //Run the main initialise function
-  TEST_ASSERT_NOT_EQUAL(0, inj1_pin_port);
-  TEST_ASSERT_NOT_EQUAL(0, inj2_pin_port);
-  TEST_ASSERT_NOT_EQUAL(0, inj3_pin_port);
-  TEST_ASSERT_NOT_EQUAL(0, inj4_pin_port);
-  TEST_ASSERT_NOT_EQUAL(0, ign1_pin_port);
-  TEST_ASSERT_NOT_EQUAL(0, ign2_pin_port);
-  TEST_ASSERT_NOT_EQUAL(0, ign3_pin_port);
-  TEST_ASSERT_NOT_EQUAL(0, ign4_pin_port);
+  TEST_ASSERT_NOT_EQUAL(0, injectorPins[0].port_register);
+  TEST_ASSERT_NOT_EQUAL(0, injectorPins[1].port_register);
+  TEST_ASSERT_NOT_EQUAL(0, injectorPins[2].port_register);
+  TEST_ASSERT_NOT_EQUAL(0, injectorPins[3].port_register);
+  TEST_ASSERT_NOT_EQUAL(0, ignitionPins[0].port_register);
+  TEST_ASSERT_NOT_EQUAL(0, ignitionPins[1].port_register);
+  TEST_ASSERT_NOT_EQUAL(0, ignitionPins[2].port_register);
+  TEST_ASSERT_NOT_EQUAL(0, ignitionPins[3].port_register);
+#endif
 }
 
 //Test that all mandatory output pins have their mode correctly set to output
@@ -68,21 +71,21 @@ void test_initialisation_outputs_V03(void)
 
   char msg[32];
   strcpy_P(msg, PSTR("Coil1"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoil1), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[0]), msg);
   strcpy_P(msg, PSTR("Coil2"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoil2), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[1]), msg);
   strcpy_P(msg, PSTR("Coil3"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoil3), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[2]), msg);
   strcpy_P(msg, PSTR("Coil4"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoil4), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[3]), msg);
   strcpy_P(msg, PSTR("Injector 1"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjector1), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[0]), msg);
   strcpy_P(msg, PSTR("Injector 2"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjector2), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[1]), msg);
   strcpy_P(msg, PSTR("Injector 3"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjector3), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[2]), msg);
   strcpy_P(msg, PSTR("Injector 4"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjector4), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[3]), msg);
   strcpy_P(msg, PSTR("Tacho Out"));
   TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinTachOut), msg);
   strcpy_P(msg, PSTR("Fuel Pump"));
@@ -99,21 +102,21 @@ void test_initialisation_outputs_V04(void)
 
   char msg[32];
   strcpy_P(msg, PSTR("Coil1"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoil1), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[0]), msg);
   strcpy_P(msg, PSTR("Coil2"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoil2), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[1]), msg);
   strcpy_P(msg, PSTR("Coil3"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoil3), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[2]), msg);
   strcpy_P(msg, PSTR("Coil4"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoil4), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[3]), msg);
   strcpy_P(msg, PSTR("Injector 1"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjector1), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[0]), msg);
   strcpy_P(msg, PSTR("Injector 2"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjector2), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[1]), msg);
   strcpy_P(msg, PSTR("Injector 3"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjector3), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[2]), msg);
   strcpy_P(msg, PSTR("Injector 4"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjector4), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[3]), msg);
   strcpy_P(msg, PSTR("Tacho Out"));
   TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinTachOut), msg);
   strcpy_P(msg, PSTR("Fuel Pump"));
@@ -149,21 +152,21 @@ void test_initialisation_outputs_MX5_8995(void)
 
   char msg[32];
   strcpy_P(msg, PSTR("Coil1"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoil1), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[0]), msg);
   strcpy_P(msg, PSTR("Coil2"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoil2), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[1]), msg);
   strcpy_P(msg, PSTR("Coil3"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoil3), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[2]), msg);
   strcpy_P(msg, PSTR("Coil4"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoil4), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[3]), msg);
   strcpy_P(msg, PSTR("Injector 1"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjector1), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[0]), msg);
   strcpy_P(msg, PSTR("Injector 2"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjector2), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[1]), msg);
   strcpy_P(msg, PSTR("Injector 3"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjector3), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[2]), msg);
   strcpy_P(msg, PSTR("Injector 4"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjector4), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[3]), msg);
   strcpy_P(msg, PSTR("Tacho Out"));
   TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinTachOut), msg);
   strcpy_P(msg, PSTR("Fuel Pump"));

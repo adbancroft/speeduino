@@ -28,6 +28,7 @@
 #include "table2d.h"
 #include "table3d.h"
 #include "board_definition.h"
+#include "port_pin.h"
 
 //Handy bitsetting macros
 #define BIT_SET(a,b) ((a) |= (1U<<(b)))
@@ -377,41 +378,6 @@ extern struct table2D coolantProtectTable; //6 bin coolant temperature protectio
 extern struct table2D fanPWMTable;
 extern struct table2D rollingCutTable;
 
-//These are for the direct port manipulation of the injectors, coils and aux outputs
-extern volatile PORT_TYPE *inj1_pin_port;
-extern volatile PINMASK_TYPE inj1_pin_mask;
-extern volatile PORT_TYPE *inj2_pin_port;
-extern volatile PINMASK_TYPE inj2_pin_mask;
-extern volatile PORT_TYPE *inj3_pin_port;
-extern volatile PINMASK_TYPE inj3_pin_mask;
-extern volatile PORT_TYPE *inj4_pin_port;
-extern volatile PINMASK_TYPE inj4_pin_mask;
-extern volatile PORT_TYPE *inj5_pin_port;
-extern volatile PINMASK_TYPE inj5_pin_mask;
-extern volatile PORT_TYPE *inj6_pin_port;
-extern volatile PINMASK_TYPE inj6_pin_mask;
-extern volatile PORT_TYPE *inj7_pin_port;
-extern volatile PINMASK_TYPE inj7_pin_mask;
-extern volatile PORT_TYPE *inj8_pin_port;
-extern volatile PINMASK_TYPE inj8_pin_mask;
-
-extern volatile PORT_TYPE *ign1_pin_port;
-extern volatile PINMASK_TYPE ign1_pin_mask;
-extern volatile PORT_TYPE *ign2_pin_port;
-extern volatile PINMASK_TYPE ign2_pin_mask;
-extern volatile PORT_TYPE *ign3_pin_port;
-extern volatile PINMASK_TYPE ign3_pin_mask;
-extern volatile PORT_TYPE *ign4_pin_port;
-extern volatile PINMASK_TYPE ign4_pin_mask;
-extern volatile PORT_TYPE *ign5_pin_port;
-extern volatile PINMASK_TYPE ign5_pin_mask;
-extern volatile PORT_TYPE *ign6_pin_port;
-extern volatile PINMASK_TYPE ign6_pin_mask;
-extern volatile PORT_TYPE *ign7_pin_port;
-extern volatile PINMASK_TYPE ign7_pin_mask;
-extern volatile PORT_TYPE *ign8_pin_port;
-extern volatile PINMASK_TYPE ign8_pin_mask;
-
 extern volatile PORT_TYPE *tach_pin_port;
 extern volatile PINMASK_TYPE tach_pin_mask;
 extern volatile PORT_TYPE *pump_pin_port;
@@ -468,11 +434,7 @@ extern volatile byte TIMER_mask;
 extern volatile byte LOOP_TIMER;
 
 //These functions all do checks on a pin to determine if it is already in use by another (higher importance) function
-#define pinIsInjector(pin)  ( ((pin) == pinInjector1) || ((pin) == pinInjector2) || ((pin) == pinInjector3) || ((pin) == pinInjector4) || ((pin) == pinInjector5) || ((pin) == pinInjector6) || ((pin) == pinInjector7) || ((pin) == pinInjector8) )
-#define pinIsIgnition(pin)  ( ((pin) == pinCoil1) || ((pin) == pinCoil2) || ((pin) == pinCoil3) || ((pin) == pinCoil4) || ((pin) == pinCoil5) || ((pin) == pinCoil6) || ((pin) == pinCoil7) || ((pin) == pinCoil8) )
-//#define pinIsOutput(pin)    ( pinIsInjector((pin)) || pinIsIgnition((pin)) || ((pin) == pinFuelPump) || ((pin) == pinFan) || ((pin) == pinAirConComp) || ((pin) == pinAirConFan)|| ((pin) == pinVVT_1) || ((pin) == pinVVT_2) || ( ((pin) == pinBoost) && configPage6.boostEnabled) || ((pin) == pinIdle1) || ((pin) == pinIdle2) || ((pin) == pinTachOut) || ((pin) == pinStepperEnable) || ((pin) == pinStepperStep) )
 #define pinIsSensor(pin)    ( ((pin) == pinCLT) || ((pin) == pinIAT) || ((pin) == pinMAP) || ((pin) == pinTPS) || ((pin) == pinO2) || ((pin) == pinBat) || (((pin) == pinFlex) && (configPage2.flexEnabled != 0)) )
-//#define pinIsUsed(pin)      ( pinIsSensor((pin)) || pinIsOutput((pin)) || pinIsReserved((pin)) )
 
 
 /** The status struct with current values for all 'live' variables.
@@ -1384,22 +1346,8 @@ struct config15 {
   } __attribute__((packed,aligned(__alignof__(uint16_t)))); //The 32 bit systems require all structs to be fully packed, aligned to their largest member type 
 #endif
 
-extern byte pinInjector1; //Output pin injector 1
-extern byte pinInjector2; //Output pin injector 2
-extern byte pinInjector3; //Output pin injector 3
-extern byte pinInjector4; //Output pin injector 4
-extern byte pinInjector5; //Output pin injector 5
-extern byte pinInjector6; //Output pin injector 6
-extern byte pinInjector7; //Output pin injector 7
-extern byte pinInjector8; //Output pin injector 8
-extern byte pinCoil1; //Pin for coil 1
-extern byte pinCoil2; //Pin for coil 2
-extern byte pinCoil3; //Pin for coil 3
-extern byte pinCoil4; //Pin for coil 4
-extern byte pinCoil5; //Pin for coil 5
-extern byte pinCoil6; //Pin for coil 6
-extern byte pinCoil7; //Pin for coil 7
-extern byte pinCoil8; //Pin for coil 8
+extern byte pinInjectors[INJ_CHANNELS];
+extern byte pinCoils[IGN_CHANNELS];
 extern byte pinTrigger; //The CAS pin
 extern byte pinTrigger2; //The Cam Sensor pin known as secondary input
 extern byte pinTrigger3;	//the 2nd cam sensor pin known as tertiary input
