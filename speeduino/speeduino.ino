@@ -534,6 +534,8 @@ void __attribute__((always_inline, hot)) loop(void)
         secondaryPWTimePerDegree = timeToAngleDegPerMicroSec(pw.secondary);
       }
 
+      matchInjectionModeToSyncStatus();
+
       setOpenAngle(fuelSchedules[0], primaryPWTimePerDegree, currentStatus.injAngle);
 
       //Repeat the above for each cylinder
@@ -589,8 +591,6 @@ void __attribute__((always_inline, hot)) loop(void)
 
           if((configPage2.injLayout == INJ_SEQUENTIAL) && currentStatus.hasSync)
           {
-            if( CRANK_ANGLE_MAX_INJ != 720 ) { changeHalfToFullSync(); }
-
             setOpenAngle(fuelSchedules[2], primaryPWTimePerDegree, currentStatus.injAngle);
             setOpenAngle(fuelSchedules[3], primaryPWTimePerDegree, currentStatus.injAngle);
             #if INJ_CHANNELS >= 8
@@ -610,7 +610,7 @@ void __attribute__((always_inline, hot)) loop(void)
           }
           else
           {
-            if( BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC) && (CRANK_ANGLE_MAX_INJ != 360) ) { changeFullToHalfSync(); }
+            // Nothing to do - keep MISRA checker happy
           }
           break;
         //5 cylinders
@@ -639,8 +639,6 @@ void __attribute__((always_inline, hot)) loop(void)
           #if INJ_CHANNELS >= 6
             if((configPage2.injLayout == INJ_SEQUENTIAL) && currentStatus.hasSync)
             {
-              if( CRANK_ANGLE_MAX_INJ != 720 ) { changeHalfToFullSync(); }
-
               setOpenAngle(fuelSchedules[3], primaryPWTimePerDegree, currentStatus.injAngle);
               setOpenAngle(fuelSchedules[4], primaryPWTimePerDegree, currentStatus.injAngle);
               setOpenAngle(fuelSchedules[5], primaryPWTimePerDegree, currentStatus.injAngle);
@@ -657,8 +655,6 @@ void __attribute__((always_inline, hot)) loop(void)
             }
             else
             {
-              if( BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC) && (CRANK_ANGLE_MAX_INJ != 360) ) { changeFullToHalfSync(); }
-
               if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
               {
                 setOpenAngle(fuelSchedules[3], secondaryPWTimePerDegree, currentStatus.injAngle);
@@ -677,8 +673,6 @@ void __attribute__((always_inline, hot)) loop(void)
           #if INJ_CHANNELS >= 8
             if((configPage2.injLayout == INJ_SEQUENTIAL) && currentStatus.hasSync)
             {
-              if( CRANK_ANGLE_MAX_INJ != 720 ) { changeHalfToFullSync(); }
-
               setOpenAngle(fuelSchedules[4], primaryPWTimePerDegree, currentStatus.injAngle);
               setOpenAngle(fuelSchedules[5], primaryPWTimePerDegree, currentStatus.injAngle);
               setOpenAngle(fuelSchedules[6], primaryPWTimePerDegree, currentStatus.injAngle);
@@ -686,8 +680,6 @@ void __attribute__((always_inline, hot)) loop(void)
             }
             else
             {
-              if( BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC) && (CRANK_ANGLE_MAX_INJ != 360) ) { changeFullToHalfSync(); }
-
               if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
               {
                 setOpenAngle(fuelSchedules[4], secondaryPWTimePerDegree, currentStatus.injAngle);
@@ -1059,17 +1051,7 @@ static inline void calculateIgnitionAngles(int16_t dwellTime, int8_t advance, in
   }
   else
   {
-    if (configPage4.sparkMode==IGN_MODE_SEQUENTIAL)
-    {
-      if (currentStatus.hasSync)
-      {
-        if (maxIgnOutputs!=configPage2.nCylinders) { changeHalfToFullSync(); } 
-      }
-      else 
-      {
-        if( BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC) && (maxIgnOutputs==configPage2.nCylinders)) { changeFullToHalfSync(); }
-      }
-    }
+    matchIgnitionModeToSyncStatus();
 
     static constexpr auto loopFunction = [](uint8_t index, uint16_t dwellAngle, int8_t advance) __attribute__((hot, always_inline)) { 
       if (maxIgnOutputs>index) {
