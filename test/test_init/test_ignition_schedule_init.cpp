@@ -314,13 +314,19 @@ static void test_partial_sync(void)
   // Initial state
   assert_cylinder4_stroke4_seq_even();
 
-  changeFullToHalfSync();
+  currentStatus.hasSync = false;
+  BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC);
+  CRANK_ANGLE_MAX_IGN = 720U;
+  matchIgnitionModeToSyncStatus();
   {
     const uint16_t angle[] = {0,180,360,540,0,0,0,0};
     assert_ignition_schedules(360U, 2U, angle, IGN_MODE_SEQUENTIAL);
   }
 
-  changeHalfToFullSync();
+  currentStatus.hasSync = true;
+  BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC);
+  CRANK_ANGLE_MAX_IGN = 360U;
+  matchIgnitionModeToSyncStatus();
   assert_cylinder4_stroke4_seq_even();
 }
 
