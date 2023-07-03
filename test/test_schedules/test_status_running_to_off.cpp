@@ -10,9 +10,12 @@
 
 void test_status_running_to_off(FuelSchedule &schedule)
 {
+    extern void resetFuelSchedulers(void); 
     resetFuelSchedulers();
     TEST_ASSERT_EQUAL(OFF, schedule._status);
     _setSchedule(schedule, TIMEOUT, DURATION);
+    extern void startFuelSchedulers(void); 
+    startFuelSchedulers();    
     while( (isPending(schedule)) || (schedule._status == RUNNING) ) /*Wait*/ ;
     TEST_ASSERT_EQUAL(OFF, schedule._status);
 }
@@ -27,9 +30,12 @@ void test_status_running_to_off_inj(void)
 
 void test_status_running_to_off(IgnitionSchedule &schedule)
 {
+    extern void resetIgnitionSchedulers(void);
     resetIgnitionSchedulers();
     TEST_ASSERT_EQUAL(OFF, schedule._status);
     _setSchedule(schedule, TIMEOUT, DURATION);
+    extern void startIgnitionSchedulers(void);
+    startIgnitionSchedulers();
     while( (isPending(schedule)) || (schedule._status == RUNNING) ) /*Wait*/ ;
     TEST_ASSERT_EQUAL(OFF, schedule._status);
 }
