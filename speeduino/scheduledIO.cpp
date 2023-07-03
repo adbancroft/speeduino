@@ -1,6 +1,7 @@
 #include "scheduledIO.h"
 #include "timers.h"
 #include "acc_mc33810.h"
+#include "scheduledIO_direct.h"
 
 /** @file
  * Injector and Coil (toggle/open/close) control (under various situations, eg with particular cylinder count, rotary engine type or wasted spark ign, etc.).
@@ -183,3 +184,27 @@ void tachoOutputOn(void) { if(configPage6.tachoMode) { TACHO_PULSE_LOW(); } else
 void tachoOutputOff(void) { if(configPage6.tachoMode) { TACHO_PULSE_HIGH(); } }
 
 void nullCallback(void) { return; }
+
+static inline ioPort registerIOPin(uint8_t pin, uint8_t ioType) {
+    if(ioType == OUTPUT_CONTROL_DIRECT) {
+        return pinToOutputPort(pin);
+    } else {
+        return nullIoPort();
+    }
+}
+
+ioPort registerInjectorPin(uint8_t pin) {
+#if defined(OUTPUT_CONTROL_SUPPORTED)
+    return registerIOPin(pin, injectorOutputControl);
+#else
+    return registerIOPin(pin, OUTPUT_CONTROL_DIRECT);
+#endif
+}
+
+ioPort registerIgnitionPin(uint8_t pin) {
+#if defined(OUTPUT_CONTROL_SUPPORTED)
+    return registerIOPin(pin, ignitionOutputControl);
+#else
+    return registerIOPin(pin, OUTPUT_CONTROL_DIRECT);
+#endif
+}
