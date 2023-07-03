@@ -81,11 +81,16 @@ void initialiseIgnitionSchedulers(void);
 /** @brief Start fuel system  priming the fuel */
 void beginInjectorPriming(void);
 
-/** @brief ???? */
-void changeHalfToFullSync(void);
+/** @brief Make sure the injector scheduler configuration matches the current sync status. 
+ * 
+ * In sequential mode, some decoders need both primary & secondary triggers to fully support
+ * sequential injection. So if one trigger isn't synced, we need to adjust the scheduler
+ * configuration.
+ * */
+void matchInjectionModeToSyncStatus(void);
 
-/** @brief ???? */
-void changeFullToHalfSync(void);
+/** @brief As per matchInjectionModeToSyncStatus(), but for the ignition schedulers. */
+void matchIgnitionModeToSyncStatus(void);
 
 /** \enum ScheduleStatus
  * @brief The current state of a schedule

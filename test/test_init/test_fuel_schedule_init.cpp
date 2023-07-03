@@ -18,7 +18,7 @@ static void assert_fuel_channel(bool enabled, uint16_t angle, uint8_t channelInd
   char msg[39];
 
   sprintf_P(msg, PSTR("channel%" PRIu8 ".InjChannelIsEnabled. Max:%" PRIu8), channelIndex+1, maxInjPrimaryOutputs+maxInjSecondaryOutputs);
-  TEST_ASSERT_TRUE_MESSAGE(!enabled || (channelIndex+1)<=(maxInjPrimaryOutputs+maxInjSecondaryOutputs), msg);
+  TEST_ASSERT_TRUE_MESSAGE(!enabled || (channelIndex+1)<=maxInjPrimaryOutputs+maxInjSecondaryOutputs, msg);
   sprintf_P(msg, PSTR("channel%" PRIu8 "InjDegrees"), channelIndex+1);
   TEST_ASSERT_EQUAL_MESSAGE(angle, schedule.channelDegrees, msg);
   sprintf_P(msg, PSTR("inj%" PRIu8 "StartFunction: %" PRId16), channelIndex+1, (int16_t)enabled);
@@ -35,10 +35,10 @@ static void assert_fuel_schedules(uint16_t crankAngle, uint16_t reqFuel, uint16_
   TEST_ASSERT_EQUAL_INT16_MESSAGE(crankAngle, CRANK_ANGLE_MAX_INJ, msg);
   strcpy_P(msg, PSTR("req_fuel_uS"));
   TEST_ASSERT_EQUAL_UINT16_MESSAGE(reqFuel, req_fuel_uS, msg);
-  strcpy_P(msg, PSTR("maxInjPrimaryOutputs"));
-  TEST_ASSERT_EQUAL_UINT16_MESSAGE(expectedPrimaries, maxInjPrimaryOutputs, msg);
-  strcpy_P(msg, PSTR("maxInjSecondaryOutputs"));
-  TEST_ASSERT_EQUAL_UINT16_MESSAGE(expectedSecondaries, maxInjSecondaryOutputs, msg);
+  strcpy_P(msg, PSTR("injectorChannels.primary"));
+  TEST_ASSERT_EQUAL_UINT16_MESSAGE(expectedPrimaries, injectorChannels.primary, msg);
+  strcpy_P(msg, PSTR("injectorChannels.secondary"));
+  TEST_ASSERT_EQUAL_UINT16_MESSAGE(expectedSecondaries, injectorChannels.secondary, msg);
   strcpy_P(msg, PSTR("injLayout"));
   TEST_ASSERT_EQUAL_MESSAGE(injLayout, configPage2.injLayout, msg);
   
@@ -923,13 +923,19 @@ static void test_partial_sync(void)
   // Confirm initial state
   assert_4cylinder_4stroke_seq_nostage();
 
-  changeFullToHalfSync();
+  currentStatus.hasSync = false;
+  BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC);
+  CRANK_ANGLE_MAX_INJ = 720U;
+  matchInjectionModeToSyncStatus();
   {
 	  const uint16_t angle[] = {0,180,360,540,0,0,0,0};
     assert_fuel_schedules(360U, reqFuel * 50U, 2U, 0U, angle, INJ_SEQUENTIAL);    
   }
 
-  changeHalfToFullSync();
+  currentStatus.hasSync = true;
+  BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC);
+  CRANK_ANGLE_MAX_INJ = 360U;
+  matchInjectionModeToSyncStatus();
   assert_4cylinder_4stroke_seq_nostage();
 }
 

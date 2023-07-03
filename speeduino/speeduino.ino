@@ -342,19 +342,6 @@ static void setIgnitionSchedules(uint16_t crankAngle, uint16_t totalDwell) {
   }
 } 
 
-static inline void matchSyncState(const config2 &page2, const statuses &current) {
-  if ((page2.injLayout == INJ_SEQUENTIAL) && ((page2.nCylinders==4) || (page2.nCylinders==6) || (page2.nCylinders==8)))
-  {
-    if ((current.hasSync) && ( CRANK_ANGLE_MAX_INJ != 720 )) {
-      changeHalfToFullSync();
-    } else if( BIT_CHECK(current.status3, BIT_STATUS3_HALFSYNC) && (CRANK_ANGLE_MAX_INJ != 360) ) { 
-      changeFullToHalfSync();
-    } else {
-      // Injection layout matches current sync - nothing to do but keep MISRA checker happy
-    }
-  }
-}
-
 static inline void applyFuelTrims(const config2 &page2, const config6 &page6, const statuses &current) {
   if (page6.fuelTrimEnabled > 0U)
   {
@@ -373,6 +360,7 @@ static void setFuelSchedules(uint16_t injAngle, uint16_t crankAngle) {
     }
   }
 }
+
 
 // FixedCrankingOverride is used to extend the dwell during cranking so that the decoder can trigger the spark upon seeing a certain tooth. Currently only available on the basic distributor and 4g63 decoders.
 inline uint16_t __attribute__((always_inline)) computeFixedCrankingOverride(void) {
@@ -800,8 +788,7 @@ void __attribute__((always_inline, hot)) loop(void)
       //BEGIN INJECTION TIMING
       currentStatus.injAngle = injectorLimits(table2D_getValue(&injectorAngleTable, currentStatus.RPMdiv100));
 
-      matchSyncState(configPage2, currentStatus);
-      
+      matchInjectionModeToSyncStatus();
       applyPWToSchedules(pulse_widths.primary, pulse_widths.secondary);
       applyFuelTrims(configPage2, configPage6, currentStatus);
 
@@ -1023,17 +1010,7 @@ static inline void calculateIgnitionAngles(int16_t dwellTime, int8_t advance, in
   }
   else
   {
-    if (configPage4.sparkMode==IGN_MODE_SEQUENTIAL)
-    {
-      if (currentStatus.hasSync)
-      {
-        if (maxIgnOutputs!=configPage2.nCylinders) { changeHalfToFullSync(); } 
-      }
-      else 
-      {
-        if( BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC) && (maxIgnOutputs==configPage2.nCylinders)) { changeFullToHalfSync(); }
-      }
-    }
+    matchIgnitionModeToSyncStatus();
 
     for (uint8_t index=0; index < maxIgnOutputs; ++index) {
       calculateIgnitionAngles(ignitionSchedules[index], dwellAngle, advance);
