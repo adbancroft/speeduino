@@ -27,6 +27,8 @@ void test_Staging_setCommon()
   currentStatus.RPM = 3000;
   currentStatus.fuelLoad = 50;
   inj_opentime_uS = 1000; //1ms inj open time
+  maxInjPrimaryOutputs = 2;
+  maxInjSecondaryOutputs = 2;
 
   /*
       These values are a percentage of the req_fuel value that would be required for each injector channel to deliver that much fuel.
