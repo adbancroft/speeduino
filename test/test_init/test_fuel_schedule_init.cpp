@@ -922,13 +922,19 @@ static void test_partial_sync(void)
   // Confirm initial state
   assert_4cylinder_4stroke_seq_nostage();
 
-  changeFullToHalfSync();
+  currentStatus.hasSync = false;
+  BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC);
+  CRANK_ANGLE_MAX_INJ = 720U;
+  matchInjectionModeToSyncStatus();
   {
 	  const uint16_t angle[] = {0,180,360,540,0,0,0,0};
     assert_fuel_schedules(360U, reqFuel * 50U, 2U, 0U, angle, INJ_SEQUENTIAL);    
   }
 
-  changeHalfToFullSync();
+  currentStatus.hasSync = true;
+  BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC);
+  CRANK_ANGLE_MAX_INJ = 360U;
+  matchInjectionModeToSyncStatus();
   assert_4cylinder_4stroke_seq_nostage();
 }
 

@@ -114,14 +114,22 @@ static void reset(IgnitionSchedule &schedule)
     schedule.channelDegrees = 0;
 }
 
+#if defined(UNIT_TEST)
 void resetFuelSchedulers(void)
+#else
+static void resetFuelSchedulers(void)
+#endif
 {
   for (uint8_t index=0U; index<_countof(fuelSchedules); ++index) {
     reset(fuelSchedules[index]);
   }
 }
 
+#if defined(UNIT_TEST)
 void resetIgnitionSchedulers(void)
+#else
+static void resetIgnitionSchedulers(void)
+#endif
 {
   for (uint8_t index=0U; index<_countof(ignitionSchedules); ++index) {
     reset(ignitionSchedules[index]);
@@ -1012,29 +1020,21 @@ static inline bool isAnyIgnScheduleRunning(void) {
   return index<_countof(fuelSchedules);
 }
 
-/** Change injectors or/and ignition angles to 720deg.
+/** Change injectors angles to 720deg.
  * Roll back req_fuel size and set number of outputs equal to cylinder count.
 * */
-void changeHalfToFullSync(void)
+static void changeInjectionHalfToFullSync(void)
 {
-  //Need to do another check for injLayout as this function can be called from ignition
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    if( (configPage2.injLayout == INJ_SEQUENTIAL) && (CRANK_ANGLE_MAX_INJ != 720) && (!isAnyFuelScheduleRunning()))
-    {
-      CRANK_ANGLE_MAX_INJ = 720;
-      maxInjPrimaryOutputs = maxInjPrimaryOutputs * 2;
-      maxInjSecondaryOutputs = maxInjSecondaryOutputs * 2;
-      req_fuel_uS *= 2;
-      setFuelScheduleCallbacks(INJ_SEQUENTIAL);
+  if (CRANK_ANGLE_MAX_INJ != 720) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      if (!isAnyFuelScheduleRunning()) {
+        CRANK_ANGLE_MAX_INJ = 720;
+        maxInjPrimaryOutputs = maxInjPrimaryOutputs * 2U;
+        maxInjSecondaryOutputs = maxInjSecondaryOutputs * 2U;
+        req_fuel_uS *= 2U;
+        setFuelScheduleCallbacks(INJ_SEQUENTIAL);
+      }
     }
-  }
-
-  //Need to do another check for sparkMode as this function can be called from injection
-  if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && (CRANK_ANGLE_MAX_IGN != 720) && (!isAnyIgnScheduleRunning()) )
-  {
-    CRANK_ANGLE_MAX_IGN = 720;
-    maxIgnOutputs = maxIgnOutputs * 2;
-    setIgnitionScheduleCallbacks(IGN_MODE_SEQUENTIAL);
   }
 }
 
@@ -1042,22 +1042,58 @@ void changeHalfToFullSync(void)
  * In semi sequentiol mode req_fuel size is half.
  * Set number of outputs equal to half cylinder count.
 * */
-void changeFullToHalfSync(void)
+static void changeInjectionFullToHalfSync(void)
 {
-  if(configPage2.injLayout == INJ_SEQUENTIAL && CRANK_ANGLE_MAX_INJ != 360)
-  {
-      CRANK_ANGLE_MAX_INJ = 360;
-      maxInjPrimaryOutputs = maxInjPrimaryOutputs / 2U;
-      maxInjSecondaryOutputs = maxInjSecondaryOutputs / 2U;
-      req_fuel_uS = req_fuel_uS / 2U;
-      setFuelScheduleCallbacks(INJ_SEMISEQUENTIAL);
+  if(CRANK_ANGLE_MAX_INJ!=360) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        CRANK_ANGLE_MAX_INJ = 360;
+        maxInjPrimaryOutputs = maxInjPrimaryOutputs / 2U;
+        maxInjSecondaryOutputs = maxInjSecondaryOutputs / 2U;
+        req_fuel_uS = req_fuel_uS / 2U;
+        setFuelScheduleCallbacks(INJ_SEMISEQUENTIAL);
+      }
   }
+}
 
-  if(configPage4.sparkMode == IGN_MODE_SEQUENTIAL)
-  {
-    CRANK_ANGLE_MAX_IGN = 360;
-    maxIgnOutputs = configPage2.nCylinders / 2U;
-
-    setIgnitionScheduleCallbacks(IGN_MODE_WASTEDCOP);
+void matchInjectionModeToSyncStatus(void) {
+  if (configPage2.injLayout == INJ_SEQUENTIAL) {
+    if (currentStatus.hasSync==1) {
+      changeInjectionHalfToFullSync();
+    } else if (BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC)) {
+      changeInjectionFullToHalfSync();
+    }    
   }
+}
+
+static void changeIgnitionFullToHalfSync(void) {
+  if (CRANK_ANGLE_MAX_IGN != 360)  {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      if (!isAnyIgnScheduleRunning()) {
+        CRANK_ANGLE_MAX_IGN = 360;
+        maxIgnOutputs = configPage2.nCylinders / 2U;
+
+        setIgnitionScheduleCallbacks(IGN_MODE_WASTEDCOP);
+      }
+    }
+  }
+}
+
+static void changeIgnitionHalfToFullSync(void) {
+  if (CRANK_ANGLE_MAX_IGN != 720) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      CRANK_ANGLE_MAX_IGN = 720;
+      maxIgnOutputs = maxIgnOutputs * 2U;
+      setIgnitionScheduleCallbacks(IGN_MODE_SEQUENTIAL);
+    }
+  }
+}
+
+void matchIgnitionModeToSyncStatus(void) {
+  if (configPage4.sparkMode==IGN_MODE_SEQUENTIAL) {
+    if (currentStatus.hasSync==1) {
+      changeIgnitionHalfToFullSync();
+    } else if (BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC)) {
+      changeIgnitionFullToHalfSync();
+    }    
+  }  
 }

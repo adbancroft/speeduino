@@ -48,10 +48,6 @@ See page 136 of the processors datasheet: http://www.atmel.com/Images/doc2549.pd
 #define USE_IGN_REFRESH
 #define IGNITION_REFRESH_THRESHOLD  30 //Time in uS that the refresh functions will check to ensure there is enough time before changing the end compare
 
-/** @brief Initialize all fuel schedulers to the OFF state */
-/** @brief Reset all fuel schedulers to the OFF state */
-void resetFuelSchedulers(void);
-
 /** @brief Configure all fuel schedulers based on the current tune
  * parameters
  * 
@@ -59,9 +55,6 @@ void resetFuelSchedulers(void);
  * loading the tune from EEPROM
 */
 void initialiseFuelSchedulers(void);
-
-/** @brief Initialize all ignition schedulers to the OFF state */
-void resetIgnitionSchedulers(void);
 
 /** @brief Configure all ignition schedulers based on the current tune
  * parameters
@@ -74,11 +67,16 @@ void initialiseIgnitionSchedulers(void);
 /** @brief Start fuel system  priming the fuel */
 void beginInjectorPriming(void);
 
-/** @brief ???? */
-void changeHalfToFullSync(void);
+/** @brief Make sure the injector scheduler configuration matches the current sync status. 
+ * 
+ * In sequential mode, some decoders need both primary & secondary triggers to fully support
+ * sequential injection. So if one trigger isn't synced, we need to adjust the scheduler
+ * configuration.
+ * */
+void matchInjectionModeToSyncStatus(void);
 
-/** @brief ???? */
-void changeFullToHalfSync(void);
+/** @brief As per matchInjectionModeToSyncStatus(), but for the ignition schedulers. */
+void matchIgnitionModeToSyncStatus(void);
 
 //The ARM cores use separate functions for their ISRs
 #if defined(ARDUINO_ARCH_STM32) || defined(CORE_TEENSY)
@@ -394,5 +392,10 @@ extern FuelSchedule fuelSchedules[INJ_CHANNELS];
 extern IgnitionSchedule ignitionSchedules[IGN_CHANNELS];
 
 #include "schedule_calcs.hpp"
+
+#if defined(UNIT_TEST)
+void resetFuelSchedulers(void);
+void resetIgnitionSchedulers(void);
+#endif
 
 #endif // SCHEDULER_H
