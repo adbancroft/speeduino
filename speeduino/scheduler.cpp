@@ -149,20 +149,9 @@ void startFuelSchedulers(void)
 
 static void turnOffInjectors(void)
 {
-  closeInjector1();
-  closeInjector2();
-  closeInjector3();
-  closeInjector4();
-  closeInjector5();
-  #if (INJ_CHANNELS >= 6)
-  closeInjector6();
-  #endif
-  #if (INJ_CHANNELS >= 7)
-  closeInjector7();
-  #endif
-  #if (INJ_CHANNELS >= 8)
-  closeInjector8();
-  #endif
+  for (uint8_t index=0; index<_countof(fuelSchedules); ++index) {
+    closeInjector(index+1U);
+  }
 }
 
 static void initialiseStagedInjection(void) {
@@ -418,20 +407,9 @@ void startIgnitionSchedulers(void)
 static void turnOffCoils(void)
 {
   //End all coil charges to ensure no stray sparks on startup
-  endCoil1Charge();
-  endCoil2Charge();
-  endCoil3Charge();
-  endCoil4Charge();
-  endCoil5Charge();
-  #if (IGN_CHANNELS >= 6)
-  endCoil6Charge();
-  #endif
-  #if (IGN_CHANNELS >= 7)
-  endCoil7Charge();
-  #endif
-  #if (IGN_CHANNELS >= 8)
-  endCoil8Charge();
-  #endif
+  for (uint8_t index=0; index<_countof(ignitionSchedules); ++index) {
+    endCoilCharge(index+1U);
+  }
 }
 
 static inline bool isSequentialgnitionOn(void) {
