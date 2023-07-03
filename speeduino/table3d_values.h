@@ -10,6 +10,7 @@
 #pragma once
 
 #include "table3d_typedefs.h"
+#include "pre_processor.h"
 
 // ========================= INTRA-ROW ITERATION ========================= 
 
