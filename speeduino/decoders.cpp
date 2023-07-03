@@ -1064,10 +1064,10 @@ void triggerPri_BasicDistributor(void)
 
     if ( configPage4.ignCranklock && BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
     {
-      endCoil1Charge();
-      endCoil2Charge();
-      endCoil3Charge();
-      endCoil4Charge();
+      endCoilCharge(1);
+      endCoilCharge(2);
+      endCoilCharge(3);
+      endCoilCharge(4);
     }
 
     if(configPage2.perToothIgn == true)
@@ -1427,14 +1427,14 @@ void triggerPri_4G63(void)
         if(configPage2.nCylinders == 4)
         {
           //This operates in forced wasted spark mode during cranking to align with crank teeth
-          if( (toothCurrentCount == 1) || (toothCurrentCount == 5) ) { endCoil1Charge(); endCoil3Charge(); }
-          else if( (toothCurrentCount == 3) || (toothCurrentCount == 7) ) { endCoil2Charge(); endCoil4Charge(); }
+          if( (toothCurrentCount == 1) || (toothCurrentCount == 5) ) { endCoilCharge(1); endCoilCharge(3); }
+          else if( (toothCurrentCount == 3) || (toothCurrentCount == 7) ) { endCoilCharge(2); endCoilCharge(4); }
         }
         else if(configPage2.nCylinders == 6)
         {
-          if( (toothCurrentCount == 1) || (toothCurrentCount == 7) ) { endCoil1Charge(); }
-          else if( (toothCurrentCount == 3) || (toothCurrentCount == 9) ) { endCoil2Charge(); }
-          else if( (toothCurrentCount == 5) || (toothCurrentCount == 11) ) { endCoil3Charge(); }
+          if( (toothCurrentCount == 1) || (toothCurrentCount == 7) ) { endCoilCharge(1); }
+          else if( (toothCurrentCount == 3) || (toothCurrentCount == 9) ) { endCoilCharge(2); }
+          else if( (toothCurrentCount == 5) || (toothCurrentCount == 11) ) { endCoilCharge(3); }
         }
       }
 
@@ -2484,8 +2484,8 @@ void triggerPri_Miata9905(void)
     //if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) && configPage4.ignCranklock)
     if ( (currentStatus.RPM < (currentStatus.crankRPM + 30)) && (configPage4.ignCranklock) ) //The +30 here is a safety margin. When switching from fixed timing to normal, there can be a situation where a pulse started when fixed and ending when in normal mode causes problems. This prevents that.
     {
-      if( (toothCurrentCount == 1) || (toothCurrentCount == 5) ) { endCoil1Charge(); endCoil3Charge(); }
-      else if( (toothCurrentCount == 3) || (toothCurrentCount == 7) ) { endCoil2Charge(); endCoil4Charge(); }
+      if( (toothCurrentCount == 1) || (toothCurrentCount == 5) ) { endCoilCharge(1); endCoilCharge(3); }
+      else if( (toothCurrentCount == 3) || (toothCurrentCount == 7) ) { endCoilCharge(2); endCoilCharge(4); }
     }
     secondaryToothCount = 0;
   } //Trigger filter
@@ -2679,8 +2679,8 @@ void triggerPri_MazdaAU(void)
       // Locked cranking timing is available, fixed at 12* BTDC
       if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) && configPage4.ignCranklock )
       {
-        if( toothCurrentCount == 1 ) { endCoil1Charge(); }
-        else if( toothCurrentCount == 3 ) { endCoil2Charge(); }
+        if( toothCurrentCount == 1 ) { endCoilCharge(1); }
+        else if( toothCurrentCount == 3 ) { endCoilCharge(2); }
       }
 
       //Whilst this is an uneven tooth pattern, if the specific angle between the last 2 teeth is specified, 1st deriv prediction can be used
@@ -3198,8 +3198,8 @@ void triggerPri_Subaru67(void)
     //Locked timing during cranking. This is fixed at 10* BTDC.
     if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) && configPage4.ignCranklock)
     {
-      if( (toothCurrentCount == 1) || (toothCurrentCount == 7) ) { endCoil1Charge(); endCoil3Charge(); }
-      else if( (toothCurrentCount == 4) || (toothCurrentCount == 10) ) { endCoil2Charge(); endCoil4Charge(); }
+      if( (toothCurrentCount == 1) || (toothCurrentCount == 7) ) { endCoilCharge(1); endCoilCharge(3); }
+      else if( (toothCurrentCount == 4) || (toothCurrentCount == 10) ) { endCoilCharge(2); endCoilCharge(4); }
     }
 
     if ( toothCurrentCount > 12 ) // done 720 degrees so increment rotation
@@ -3424,10 +3424,10 @@ void triggerPri_Daihatsu(void)
       if ( configPage4.ignCranklock && BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
       {
         //This locks the cranking timing to 0 degrees BTDC (All the triggers allow for)
-        if(toothCurrentCount == 1) { endCoil1Charge(); }
-        else if(toothCurrentCount == 2) { endCoil2Charge(); }
-        else if(toothCurrentCount == 3) { endCoil3Charge(); }
-        else if(toothCurrentCount == 4) { endCoil4Charge(); }
+        if(toothCurrentCount == 1)      { endCoilCharge(1); }
+        else if(toothCurrentCount == 2) { endCoilCharge(2); }
+        else if(toothCurrentCount == 3) { endCoilCharge(3); }
+        else if(toothCurrentCount == 4) { endCoilCharge(4); }
       }
     }
     else //NO SYNC

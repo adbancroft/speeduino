@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include "board_definition.h"
+#include "pre_processor.h"
 
 /** @brief A flag value that indicates a variable doesn't reference any pin. */
 #if !defined(NOT_A_PIN)
@@ -27,8 +28,13 @@ static inline bool isValidPin(uint8_t pin) {
 struct ioPort {
     /** @brief GPIO digital port */
     volatile PORT_TYPE *port_register;
-    /** @brief Mask */
-    volatile PINMASK_TYPE pin_mask;
+    
+    /** @brief Mask 
+     * 
+     * Doesn't need to be volatile - it's read only once the struct 
+     * has been initialized.
+     */
+    PINMASK_TYPE pin_mask;
 };
 
 static inline bool isValidIoPort(const ioPort &port) {
@@ -51,28 +57,28 @@ ioPort pinToInputPort(uint8_t pin);
 
 
 /** @brief Set an output pin low */
-static inline void setPin_Low(ioPort &port) {
-    if (port.port_register!=nullptr) {
+static CRITICAL_INLINE void setPin_Low(ioPort &port) {
+    if (isValidIoPort(port)) {
         *port.port_register &= ~port.pin_mask;
     }
 }
 
 /** @brief Set an output pin low */
-static inline void setPin_Low(uint8_t pin) {
+static CRITICAL_INLINE void setPin_Low(uint8_t pin) {
     if (isValidPin(pin)) {
         digitalWrite(pin, LOW);
     }
 }
 
 /** @brief Set an output pin high */
-static inline void setPin_High(ioPort &port) {
-    if (port.port_register!=nullptr) {
+static CRITICAL_INLINE void setPin_High(ioPort &port) {
+    if (isValidIoPort(port)) {
         *port.port_register |= port.pin_mask;
     }
 }
 
 /** @brief Set an output pin high */
-static inline void setPin_High(uint8_t pin) {
+static CRITICAL_INLINE void setPin_High(uint8_t pin) {
     if (isValidPin(pin)) {
         digitalWrite(pin, HIGH);
     }
@@ -81,7 +87,7 @@ static inline void setPin_High(uint8_t pin) {
 
 /** @brief Toggle an output pin (low to high, high to low) */
 static inline void togglePin(ioPort &port) {
-    if (port.port_register!=nullptr) {
+    if (isValidIoPort(port)) {
         *port.port_register ^=  port.pin_mask;
     }
 }
@@ -94,14 +100,14 @@ static inline void togglePin(uint8_t pin) {
 }
 
 /** @brief Set the pin high or low - but check it's a valid pin first */
-static inline void setPinState(uint8_t pinNumber, uint8_t state) {
+static CRITICAL_INLINE void setPinState(uint8_t pinNumber, uint8_t state) {
     if (isValidPin(pinNumber)) {
         digitalWrite(pinNumber, state);
     }
 }
 
 /** @brief Set the pin high or low - but check it's a valid pin first */
-static inline void setPinState(ioPort &port, uint8_t state) {
+static CRITICAL_INLINE void setPinState(ioPort &port, uint8_t state) {
     if (state==HIGH) {
         setPin_High(port);
     } else {
@@ -110,7 +116,7 @@ static inline void setPinState(ioPort &port, uint8_t state) {
 }
 
 static inline uint8_t readPin(ioPort &port) {
-    if (port.port_register!=nullptr) {
+    if (isValidIoPort(port)) {
         return (*port.port_register & port.pin_mask) ? HIGH : LOW;
     }
     return LOW;

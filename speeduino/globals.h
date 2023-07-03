@@ -161,9 +161,6 @@ static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check all uses of TOOTH_LOG_SIZE");
 #define INJ_PAIR_13_24      0U
 #define INJ_PAIR_14_23      1U
 
-#define OUTPUT_CONTROL_DIRECT   0U
-#define OUTPUT_CONTROL_MC33810  10U
-
 #define IGN_MODE_WASTED     0U
 #define IGN_MODE_SINGLE     1U
 #define IGN_MODE_WASTEDCOP  2U

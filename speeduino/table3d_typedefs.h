@@ -44,7 +44,4 @@ using table3d_axis_t = int16_t;
 // This encapsulates the generation of the type name
 #define TABLE3D_TYPENAME_BASE(size, xDom, yDom) table3d ## size ## xDom ## yDom
 
-#define CAT_HELPER(a, b) a ## b
-#define CONCAT(A, B) CAT_HELPER(A, B)
-
 /** @} */
