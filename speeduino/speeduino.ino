@@ -1047,7 +1047,7 @@ static inline void calculateIgnitionAngles(int16_t dwellTime, int8_t advance, in
   const uint16_t dwellAngle = timeToAngleDegPerMicroSec(dwellTime); //Convert the dwell time to dwell angle based on the current engine speed
 
   // Rotary is a special case
-  if (configPage2.nCylinders==4 && configPage4.sparkMode == IGN_MODE_ROTARY)
+  if (configPage4.sparkMode == IGN_MODE_ROTARY)
   {
     int16_t splitDegrees = table2D_getValue(&rotarySplitTable, ignLoad);
 
@@ -1059,11 +1059,9 @@ static inline void calculateIgnitionAngles(int16_t dwellTime, int8_t advance, in
   }
   else
   {
-    bool supportsSequential =    (_countof(ignitionSchedules)>=configPage2.nCylinders)
-                              && (configPage2.nCylinders==4 || configPage2.nCylinders==6 || configPage2.nCylinders==8);
-    if (supportsSequential)
+    if (configPage4.sparkMode==IGN_MODE_SEQUENTIAL)
     {
-      if((configPage4.sparkMode==IGN_MODE_SEQUENTIAL) && currentStatus.hasSync)
+      if (currentStatus.hasSync)
       {
         if (maxIgnOutputs!=configPage2.nCylinders) { changeHalfToFullSync(); } 
       }
@@ -1125,8 +1123,7 @@ static inline uint16_t applyFuelTrimToPW(uint16_t pw, table3d6RpmLoad &trimTable
 }
 
 static inline void applyPWToSchedules(uint16_t primaryPW, uint16_t secondaryPW) {
-  bool applyTrim = (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled != 0);
-  if (applyTrim) {
+  if (configPage6.fuelTrimEnabled) {
     for (uint8_t index=0U; index<maxInjPrimaryOutputs; ++index) {
       fuelSchedules[index].pw = applyFuelTrimToPW(primaryPW, fuelSchedules[index].trimTable, currentStatus.fuelLoad, currentStatus.RPM);
     }
@@ -1149,7 +1146,7 @@ TESTABLE_INLINE_STATIC pulseWidths applyStagingToPW(uint16_t pwLimit, uint16_t p
 
   //Calculate staging pulsewidths if used
   //To run staged injection, the number of cylinders must be less than or equal to the injector channels (ie Assuming you're running paired injection, you need at least as many injector channels as you have cylinders, half for the primaries and half for the secondaries)
-  if( (configPage10.stagingEnabled == true) && (configPage2.nCylinders <= (uint8_t)INJ_CHANNELS || configPage2.injType == INJ_TYPE_TBODY) && (pw.primary > inj_opentime_uS) ) //Final check is to ensure that DFCO isn't active, which would cause an overflow below (See #267)
+  if( (configPage10.stagingEnabled == true) && (pw.primary > inj_opentime_uS) ) //Final check is to ensure that DFCO isn't active, which would cause an overflow below (See #267)
   {
     //Scale the 'full' pulsewidth by each of the injector capacities
     pw.primary -= inj_opentime_uS; //Subtract the opening time from PW1 as it needs to be multiplied out again by the pri/sec req_fuel values below. It is added on again after that calculation. 
