@@ -587,6 +587,9 @@ enum MAPSamplingMethod {
   MAPSamplingIgnitionEventAverage= 3,
 };
 
+#define INJ_TIMING_SIMULTANEOUS 0U
+#define INJ_TIMING_ALTERNATING 1U
+
 /** Page 2 of the config - mostly variables that are required for fuel.
  * These are "non-live" EFI setting, engine and "system" variables that remain fixed once sent
  * (and stored to e.g. EEPROM) from configuration/tuning SW (from outside by USBserial/bluetooth).

@@ -356,7 +356,7 @@ static inline void matchSyncState(const config2 &page2, const statuses &current)
 }
 
 static inline void applyFuelTrims(const config2 &page2, const config6 &page6, const statuses &current) {
-  if ( (page2.injLayout == INJ_SEQUENTIAL) && (page6.fuelTrimEnabled > 0U) )
+  if (page6.fuelTrimEnabled > 0U)
   {
     uint8_t trimInjChannels = min(page2.nCylinders, maxInjPrimaryOutputs);
     for (uint8_t index=0; index<trimInjChannels; ++index) {
@@ -1011,7 +1011,7 @@ static inline void calculateIgnitionAngles(int16_t dwellTime, int8_t advance, in
   const uint16_t dwellAngle = timeToAngleDegPerMicroSec(dwellTime); //Convert the dwell time to dwell angle based on the current engine speed
 
   // Rotary is a special case
-  if (configPage2.nCylinders==4 && configPage4.sparkMode == IGN_MODE_ROTARY)
+  if (configPage4.sparkMode == IGN_MODE_ROTARY)
   {
     int16_t splitDegrees = table2D_getValue(&rotarySplitTable, ignLoad);
 
@@ -1023,11 +1023,9 @@ static inline void calculateIgnitionAngles(int16_t dwellTime, int8_t advance, in
   }
   else
   {
-    bool supportsSequential =    (_countof(ignitionSchedules)>=configPage2.nCylinders)
-                              && (configPage2.nCylinders==4 || configPage2.nCylinders==6 || configPage2.nCylinders==8);
-    if (supportsSequential)
+    if (configPage4.sparkMode==IGN_MODE_SEQUENTIAL)
     {
-      if((configPage4.sparkMode==IGN_MODE_SEQUENTIAL) && currentStatus.hasSync)
+      if (currentStatus.hasSync)
       {
         if (maxIgnOutputs!=configPage2.nCylinders) { changeHalfToFullSync(); } 
       }
