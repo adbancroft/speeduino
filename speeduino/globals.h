@@ -563,6 +563,9 @@ static inline bool HasAnySync(const statuses &status) {
   return status.hasSync || BIT_CHECK(status.status3, BIT_STATUS3_HALFSYNC);
 }
 
+#define INJ_TIMING_SIMULTANEOUS 0U
+#define INJ_TIMING_ALTERNATING 1U
+
 /** Page 2 of the config - mostly variables that are required for fuel.
  * These are "non-live" EFI setting, engine and "system" variables that remain fixed once sent
  * (and stored to e.g. EEPROM) from configuration/tuning SW (from outside by USBserial/bluetooth).
