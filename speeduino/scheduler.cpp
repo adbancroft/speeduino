@@ -216,21 +216,10 @@ static void setFuelChannelAngles(void)
   }
 }
 
-static void setFuelScheduleCallbacks(void)
+static void setFuelScheduleCallbacks(uint8_t injLayout)
 {
-  switch(configPage2.injLayout)
+  switch(injLayout)
   {
-  case INJ_PAIRED:
-      //Paired injection
-      setCallbacks(fuelSchedules[0], openInjector1, closeInjector1);
-      setCallbacks(fuelSchedules[1], openInjector2, closeInjector2);
-      setCallbacks(fuelSchedules[2], openInjector3, closeInjector3);
-      setCallbacks(fuelSchedules[3], openInjector4, closeInjector4);
-  #if INJ_CHANNELS >= 5
-      setCallbacks(fuelSchedules[4], openInjector5, closeInjector5);
-  #endif
-      break;
-
   case INJ_SEMISEQUENTIAL:
       //Semi-Sequential injection. Currently possible with 4, 6 and 8 cylinders. 5 cylinder is a special case
       if( configPage2.nCylinders == 4U )
@@ -299,8 +288,8 @@ static void setFuelScheduleCallbacks(void)
   #endif
       break;
 
+  case INJ_PAIRED: // Paired injection
   default:
-      //Paired injection
       setCallbacks(fuelSchedules[0], openInjector1, closeInjector1);
       setCallbacks(fuelSchedules[1], openInjector2, closeInjector2);
       setCallbacks(fuelSchedules[2], openInjector3, closeInjector3);
@@ -372,7 +361,7 @@ void initialiseFuelSchedulers(void)
   initialiseFuelContext();
   setFuelChannelAngles();
   initialiseStagedInjection();
-  setFuelScheduleCallbacks();
+  setFuelScheduleCallbacks(configPage2.injLayout);
   startFuelSchedulers();
 }
 
@@ -445,21 +434,10 @@ static void setIgnitionChannelAngles(void)
   }    
 }
 
-static void setIgnitionScheduleCallbacks(void)
+static void setIgnitionScheduleCallbacks(uint8_t sparkMode)
 {
-  switch(configPage4.sparkMode)
+  switch(sparkMode)
   {
-  case IGN_MODE_WASTED:
-      //Wasted Spark (Normal mode)
-      setCallbacks(ignitionSchedules[0], beginCoil1Charge, endCoil1Charge);
-      setCallbacks(ignitionSchedules[1], beginCoil2Charge, endCoil2Charge);
-      setCallbacks(ignitionSchedules[2], beginCoil3Charge, endCoil3Charge);
-      setCallbacks(ignitionSchedules[3], beginCoil4Charge, endCoil4Charge);
-#if IGN_CHANNELS >= 5
-        setCallbacks(ignitionSchedules[4], beginCoil5Charge, endCoil5Charge);
-#endif
-      break;
-
   case IGN_MODE_SINGLE:
       //Single channel mode. All ignition pulses are on channel 1
       setCallbacks(ignitionSchedules[0], beginCoil1Charge, endCoil1Charge);
@@ -605,8 +583,8 @@ static void setIgnitionScheduleCallbacks(void)
       else { } //No action for other RX ignition modes (Future expansion / MISRA compliant). 
       break;
 
-  default:
-      //Wasted spark (Shouldn't ever happen anyway)
+  case IGN_MODE_WASTED: //Wasted Spark (Normal mode)
+  default: //Wasted spark (Shouldn't ever happen anyway)
       setCallbacks(ignitionSchedules[0], beginCoil1Charge, endCoil1Charge);
       setCallbacks(ignitionSchedules[1], beginCoil2Charge, endCoil2Charge);
       setCallbacks(ignitionSchedules[2], beginCoil3Charge, endCoil3Charge);
@@ -654,7 +632,7 @@ void initialiseIgnitionSchedulers(void)
   turnOffCoils();
   initialiseIgnitionContext();
   setIgnitionChannelAngles();
-  setIgnitionScheduleCallbacks();  
+  setIgnitionScheduleCallbacks(configPage4.sparkMode);  
   startIgnitionSchedulers();
 }
 
@@ -816,25 +794,10 @@ void changeHalfToFullSync(void)
     if( (configPage2.injLayout == INJ_SEQUENTIAL) && (CRANK_ANGLE_MAX_INJ != 720) && (!isAnyFuelScheduleRunning()))
     {
       CRANK_ANGLE_MAX_INJ = 720;
-    maxInjPrimaryOutputs = configPage2.nCylinders;
-      req_fuel_uS *= 2;
-      
-      setCallbacks(fuelSchedules[0], openInjector1, closeInjector1);
-      setCallbacks(fuelSchedules[1], openInjector2, closeInjector2);
-      setCallbacks(fuelSchedules[2], openInjector3, closeInjector3);
-      setCallbacks(fuelSchedules[3], openInjector4, closeInjector4);
-  #if INJ_CHANNELS >= 5
-      setCallbacks(fuelSchedules[4], openInjector5, closeInjector5);
-  #endif
-  #if INJ_CHANNELS >= 6
-      setCallbacks(fuelSchedules[5], openInjector6, closeInjector6);
-  #endif
-  #if INJ_CHANNELS >= 7
-      setCallbacks(fuelSchedules[6], openInjector7, closeInjector7);
-  #endif
-  #if INJ_CHANNELS >= 8
-      setCallbacks(fuelSchedules[7], openInjector8, closeInjector8);
-  #endif
+      maxInjPrimaryOutputs = maxInjPrimaryOutputs * 2U;
+      maxInjSecondaryOutputs = maxInjSecondaryOutputs * 2U;
+      req_fuel_uS *= 2U;
+      setFuelScheduleCallbacks(INJ_SEQUENTIAL);
     }
   }
 
@@ -843,30 +806,8 @@ void changeHalfToFullSync(void)
     if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && (CRANK_ANGLE_MAX_IGN != 720) && (!isAnyIgnScheduleRunning()) )
     {
       CRANK_ANGLE_MAX_IGN = 720;
-      maxIgnOutputs = configPage2.nCylinders;
-      switch (configPage2.nCylinders)
-      {
-      case 4:
-        setCallbacks(ignitionSchedules[0], beginCoil1Charge, endCoil1Charge);
-        setCallbacks(ignitionSchedules[1], beginCoil2Charge, endCoil2Charge);
-        break;
-
-      case 6:
-        setCallbacks(ignitionSchedules[0], beginCoil1Charge, endCoil1Charge);
-        setCallbacks(ignitionSchedules[1], beginCoil2Charge, endCoil2Charge);
-        setCallbacks(ignitionSchedules[2], beginCoil3Charge, endCoil3Charge);
-        break;
-
-      case 8:
-        setCallbacks(ignitionSchedules[0], beginCoil1Charge, endCoil1Charge);
-        setCallbacks(ignitionSchedules[1], beginCoil2Charge, endCoil2Charge);
-        setCallbacks(ignitionSchedules[2], beginCoil3Charge, endCoil3Charge);
-        setCallbacks(ignitionSchedules[3], beginCoil4Charge, endCoil4Charge);
-        break;
-
-      default:
-        break; //No actions required for other cylinder counts
-      }
+      maxIgnOutputs = maxIgnOutputs * 2U;
+      setIgnitionScheduleCallbacks(IGN_MODE_SEQUENTIAL);
     }
   }
 }
@@ -877,42 +818,14 @@ void changeHalfToFullSync(void)
 * */
 void changeFullToHalfSync(void)
 {
-  if(configPage2.injLayout == INJ_SEQUENTIAL)
+  if(configPage2.injLayout == INJ_SEQUENTIAL && CRANK_ANGLE_MAX_INJ != 360)
   {
     ATOMIC() {
-      CRANK_ANGLE_MAX_INJ = 360;
-      req_fuel_uS /= 2;
-      maxInjPrimaryOutputs = configPage2.nCylinders / 2;
-      switch (configPage2.nCylinders)
-      {
-        case 4:
-          if(configPage4.inj4cylPairing == INJ_PAIR_13_24)
-          {
-          setCallbacks(fuelSchedules[0], openInjector1and3, closeInjector1and3);
-          setCallbacks(fuelSchedules[1], openInjector2and4, closeInjector2and4);
-          }
-          else
-          {
-          setCallbacks(fuelSchedules[0], openInjector1and4, closeInjector1and4);
-          setCallbacks(fuelSchedules[1], openInjector2and3, closeInjector2and3);
-          }
-          break;
-              
-        case 6:
-        setCallbacks(fuelSchedules[0], openInjector1and4, closeInjector1and4);
-        setCallbacks(fuelSchedules[1], openInjector2and5, closeInjector2and5);
-        setCallbacks(fuelSchedules[2], openInjector3and6, closeInjector3and6);
-          break;
-
-        case 8:
-        setCallbacks(fuelSchedules[0], openInjector1and5, closeInjector1and5);
-        setCallbacks(fuelSchedules[1], openInjector2and6, closeInjector2and6);
-        setCallbacks(fuelSchedules[2], openInjector3and7, closeInjector3and7);
-        setCallbacks(fuelSchedules[3], openInjector4and8, closeInjector4and8);
-          break;
-
-        default: break;
-      }
+        CRANK_ANGLE_MAX_INJ = 360;
+        maxInjPrimaryOutputs = maxInjPrimaryOutputs / 2U;
+        maxInjSecondaryOutputs = maxInjSecondaryOutputs / 2U;
+        req_fuel_uS = req_fuel_uS / 2U;
+        setFuelScheduleCallbacks(INJ_SEMISEQUENTIAL);
     }
   }
 
@@ -921,28 +834,8 @@ void changeFullToHalfSync(void)
     ATOMIC() {
       CRANK_ANGLE_MAX_IGN = 360;
       maxIgnOutputs = configPage2.nCylinders / 2U;
-      switch (configPage2.nCylinders)
-      {
-        case 4:
-        setCallbacks(ignitionSchedules[0], beginCoil1and3Charge, endCoil1and3Charge);
-        setCallbacks(ignitionSchedules[1], beginCoil2and4Charge, endCoil2and4Charge);
-          break;
-              
-        case 6:
-        setCallbacks(ignitionSchedules[0], beginCoil1and4Charge, endCoil1and4Charge);
-        setCallbacks(ignitionSchedules[1], beginCoil2and5Charge, endCoil2and5Charge);
-        setCallbacks(ignitionSchedules[2], beginCoil3and6Charge, endCoil3and6Charge);
-          break;
 
-        case 8:
-        setCallbacks(ignitionSchedules[0], beginCoil1and5Charge, endCoil1and5Charge);
-        setCallbacks(ignitionSchedules[1], beginCoil2and6Charge, endCoil2and6Charge);
-        setCallbacks(ignitionSchedules[2], beginCoil3and7Charge, endCoil3and7Charge);
-        setCallbacks(ignitionSchedules[3], beginCoil4and8Charge, endCoil4and8Charge);
-          break;
-
-        default: break;
-      }
+      setIgnitionScheduleCallbacks(IGN_MODE_WASTEDCOP);
     }
   }
 }
