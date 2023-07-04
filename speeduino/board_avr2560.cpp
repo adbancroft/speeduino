@@ -17,6 +17,10 @@
 #define TIMER_MODE_CTC       ((1<<WGM01)|(0<<WGM00))
 #define TIMER_MODE_FASTPWM   ((1<<WGM01)|(1<<WGM00))
 
+#if defined(TIMER5_MICROS)
+volatile unsigned long timer5_overflow_count = 0; //Increments every time counter 5 overflows. Used for the fast version of micros()
+#endif
+
 void initBoard(void)
 {
     /*
@@ -82,6 +86,7 @@ void initBoard(void)
     #if defined(TIMER5_MICROS)
       TIMSK5 |= (1 << TOIE5); //Enable the timer5 overflow interrupt (See timers.ino for ISR)
       TIMSK0 &= ~_BV(TOIE0); // disable timer0 overflow interrupt
+      timer5_overflow_count = 0;
     #endif
 
     //The remaining Schedules (Fuel schedule 4 and ignition schedules 4 and 5) use Timer4
