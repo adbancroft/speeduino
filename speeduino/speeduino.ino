@@ -111,18 +111,57 @@ static CRITICAL_INLINE void setFuelSchedules(uint16_t crankAngle) {
   static_for<0, _countof(fuelSchedules)>::repeat_n(loopFunction, crankAngle);
 }
 
-static inline void calculateInjectionAngles(const pulseWidths &pw) {
+
+static inline uint16_t applyFuelTrimToPW(uint16_t pw, table3d6RpmLoad &trimTable, int16_t fuelLoad, int16_t RPM)
+{
+  int16_t offset = (int16_t)get3DTableValue(&trimTable, fuelLoad, RPM) - (int16_t)OFFSET_FUELTRIM;
+  uint8_t trimPercent = (uint8_t)(100U + (uint8_t)offset);
+  if (trimPercent != 100) { return percentage(trimPercent, pw); }
+  return pw;
+}
+
+static inline void applyPWToSchedules(const pulseWidths &pw) {
+  static constexpr auto loopFunction = [](uint8_t index, const pulseWidths &pw) __attribute__((hot, always_inline)) {
+    if (index<maxInjPrimaryOutputs) {
+      fuelSchedules[index].pw = pw.primary;
+    } else if (index<maxInjPrimaryOutputs+maxInjSecondaryOutputs) {
+      fuelSchedules[index].pw = pw.secondary;
+    } else {
+      fuelSchedules[index].pw = 0U;
+    }
+  };
+  static_for<0, _countof(fuelSchedules)>::repeat_n(loopFunction, pw);
+
+  if (configPage6.fuelTrimEnabled) {
+    for (uint8_t index=0U; index<maxInjPrimaryOutputs; ++index) {
+      fuelSchedules[index].pw = applyFuelTrimToPW(pw.primary, fuelSchedules[index].trimTable, currentStatus.fuelLoad, currentStatus.RPM);
+    }
+  } 
+}
+
+struct cacheCalculateInjectorStartAngle {
+  uint16_t pw;
+  uint16_t pwDegrees;
+};
+
+static CRITICAL_INLINE void updatePwAngleCache(const FuelSchedule &schedule, cacheCalculateInjectorStartAngle *pCache) {
+  if (pCache->pw!=schedule.pw) {
+    pCache->pwDegrees = timeToAngleDegPerMicroSec(schedule.pw);
+    pCache->pw = schedule.pw;
+  }
+}
+
+static inline void calculateInjectionAngles(void) {
   matchInjectionModeToSyncStatus(); 
   
   currentStatus.injAngle = min((uint16_t)table2D_getValue(&injectorAngleTable, currentStatus.RPMdiv100), uint16_t(CRANK_ANGLE_MAX_INJ));
 
-  uint16_t primaryPWTimePerDegree = timeToAngleDegPerMicroSec(pw.primary); //How many crank degrees the calculated PW will take at the current speed
-  uint16_t secondaryPWTimePerDegree = pw.secondary!=0 ? timeToAngleDegPerMicroSec(pw.secondary) : 0U;
-
-  static constexpr auto setAngleLoopBody = [](uint8_t index, uint16_t primaryPWTimePerDegree, uint16_t secondaryPWTimePerDegree) {
-    setOpenAngle(fuelSchedules[index], index<maxInjPrimaryOutputs ? primaryPWTimePerDegree : secondaryPWTimePerDegree, currentStatus.injAngle);
+  static constexpr auto setAngleLoopBody = [](uint8_t index, cacheCalculateInjectorStartAngle *pPWCache) __attribute__((always_inline, hot)) {
+    updatePwAngleCache(fuelSchedules[index], pPWCache);
+    setOpenAngle(fuelSchedules[index], pPWCache->pwDegrees, currentStatus.injAngle);
   };
-  static_for<0, _countof(fuelSchedules)>::repeat_n(setAngleLoopBody, primaryPWTimePerDegree, secondaryPWTimePerDegree);
+  cacheCalculateInjectorStartAngle calcCache = { 0, 0 };
+  static_for<0, _countof(fuelSchedules)>::repeat_n(setAngleLoopBody, &calcCache);
 
   if (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) && configPage2.nCylinders==2U) {
     // Special case: 2 cylinder, 2nd staged injector is phased either 180 or 360 degrees out from 3rd staged injector
@@ -544,7 +583,8 @@ void __attribute__((always_inline, hot)) loop(void)
       
       //***********************************************************************************************
       //BEGIN INJECTION TIMING
-      calculateInjectionAngles(applyStagingToPW(calculatePWLimit(), primaryPW));
+      applyPWToSchedules(applyStagingToPW(calculatePWLimit(), primaryPW));
+      calculateInjectionAngles();
 
       //***********************************************************************************************
       //| BEGIN IGNITION CALCULATIONS
@@ -945,32 +985,6 @@ uint16_t calculatePWLimit(void)
   return tempLimit;
 }
 
-static inline uint16_t applyFuelTrimToPW(uint16_t pw, table3d6RpmLoad &trimTable, int16_t fuelLoad, int16_t RPM)
-{
-  int16_t offset = (int16_t)get3DTableValue(&trimTable, fuelLoad, RPM) - (int16_t)OFFSET_FUELTRIM;
-  uint8_t trimPercent = (uint8_t)(100U + (uint8_t)offset);
-  if (trimPercent != 100) { return percentage(trimPercent, pw); }
-  return pw;
-}
-
-static inline void applyPWToSchedules(uint16_t primaryPW, uint16_t secondaryPW) {
-  if (configPage6.fuelTrimEnabled) {
-    for (uint8_t index=0U; index<maxInjPrimaryOutputs; ++index) {
-      fuelSchedules[index].pw = applyFuelTrimToPW(primaryPW, fuelSchedules[index].trimTable, currentStatus.fuelLoad, currentStatus.RPM);
-    }
-  } else {
-    for (uint8_t index=0U; index<maxInjPrimaryOutputs; ++index) {
-      fuelSchedules[index].pw = primaryPW;
-    }
-  }
-  for (uint8_t index=maxInjPrimaryOutputs; index<maxInjPrimaryOutputs+maxInjSecondaryOutputs; ++index) {
-    fuelSchedules[index].pw = secondaryPW;
-  }
-  for (uint8_t index=maxInjPrimaryOutputs+maxInjSecondaryOutputs; index<_countof(fuelSchedules); ++index) {
-    fuelSchedules[index].pw = 0U;
-  }
-}
-
 TESTABLE_INLINE_STATIC pulseWidths applyStagingToPW(uint16_t pwLimit, uint16_t pwPrimary)
 {
   pulseWidths pw = { pwPrimary, 0U };
@@ -1028,8 +1042,6 @@ TESTABLE_INLINE_STATIC pulseWidths applyStagingToPW(uint16_t pwLimit, uint16_t p
         pw.primary = min(pwPrimary, pwLimit); 
       }
   }
-
-  applyPWToSchedules(pw.primary, pw.secondary);
 
   if (pw.secondary==0) {
     BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); 
