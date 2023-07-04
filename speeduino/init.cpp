@@ -270,13 +270,11 @@ void initialiseAll(void)
     currentStatus.flatShiftingHard = false;
     currentStatus.launchingHard = false;
     currentStatus.crankRPM = ((unsigned int)configPage4.crankRPM * 10); //Crank RPM limit (Saves us calculating this over and over again. It's updated once per second in timers.ino)
-    currentStatus.fuelPumpOn = false;
     currentStatus.engineProtectStatus = 0;
     triggerFilterTime = 0; //Trigger filter time is the shortest possible time (in uS) that there can be between crank teeth (ie at max RPM). Any pulses that occur faster than this time will be discarded as noise. This is simply a default value, the actual values are set in the setup() functions of each decoder
     currentStatus.nChannels = ((uint8_t)INJ_CHANNELS << 4) + IGN_CHANNELS; //First 4 bits store the number of injection channels, 2nd 4 store the number of ignition channels
     fpPrimeTime = 0;
     ms_counter = 0;
-    timer5_overflow_count = 0;
     toothHistoryIndex = 0;
     resetDecoder();
     
@@ -301,7 +299,6 @@ void initialiseAll(void)
     if(configPage2.fpPrime > 0)
     {
       FUEL_PUMP_ON();
-      currentStatus.fuelPumpOn = true;
     }
     else { currentStatus.fpPrimed = true; } //If the user has set 0 for the pump priming, immediately mark the priming as being completed
 

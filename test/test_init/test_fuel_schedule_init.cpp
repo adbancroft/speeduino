@@ -17,8 +17,8 @@ static void assert_fuel_channel(bool enabled, uint16_t angle, uint8_t channelInd
 {
   char msg[39];
 
-  sprintf_P(msg, PSTR("channel%" PRIu8 ".InjChannelIsEnabled. Max:%" PRIu8), channelIndex+1, maxInjPrimaryOutputs+maxInjSecondaryOutputs);
-  TEST_ASSERT_TRUE_MESSAGE(!enabled || (channelIndex+1)<=maxInjPrimaryOutputs+maxInjSecondaryOutputs, msg);
+  sprintf_P(msg, PSTR("channel%" PRIu8 ".InjChannelIsEnabled. Max:%" PRIu8), channelIndex+1, totalInjectorChannels(injectorChannels));
+  TEST_ASSERT_TRUE_MESSAGE(!enabled || (channelIndex+1)<=totalInjectorChannels(injectorChannels), msg);
   sprintf_P(msg, PSTR("channel%" PRIu8 "InjDegrees"), channelIndex+1);
   TEST_ASSERT_EQUAL_MESSAGE(angle, schedule.channelDegrees, msg);
   sprintf_P(msg, PSTR("inj%" PRIu8 "StartFunction: %" PRId16), channelIndex+1, (int16_t)enabled);

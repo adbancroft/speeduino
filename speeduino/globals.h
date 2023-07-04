@@ -402,7 +402,10 @@ extern volatile unsigned long timer5_overflow_count; //Increments every time cou
 extern volatile unsigned long ms_counter; //A counter that increments once per ms
 extern volatile uint32_t toothHistory[TOOTH_LOG_SIZE];
 extern volatile uint8_t compositeLogHistory[TOOTH_LOG_SIZE];
-extern volatile unsigned int toothHistoryIndex;
+extern volatile bool fpPrimed; //Tracks whether or not the fuel pump priming has been completed yet
+extern volatile bool injPrimed; //Tracks whether or not the injector priming has been completed yet
+extern volatile uint8_t toothHistoryIndex;
+static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check type of toothHistoryIndex");
 extern unsigned long currentLoopTime; /**< The time (in uS) that the current mainloop started */
 extern volatile uint16_t ignitionCount; /**< The count of ignition events that have taken place since the engine started */
 //The below shouldn't be needed and probably should be cleaned up, but the Atmel SAM (ARM) boards use a specific type for the trigger edge values rather than a simple byte/int
@@ -423,9 +426,6 @@ extern volatile byte HWTest_INJ;      /**< Each bit in this variable represents 
 extern volatile byte HWTest_INJ_Pulsed; /**< Each bit in this variable represents one of the injector channels and it's 50% HW test status */
 extern volatile byte HWTest_IGN;      /**< Each bit in this variable represents one of the ignition channels and it's HW test status */
 extern volatile byte HWTest_IGN_Pulsed; /**< Each bit in this variable represents one of the ignition channels and it's 50% HW test status */
-extern uint8_t maxIgnOutputs; /**< Used for rolling rev limiter to indicate how many total ignition channels should currently be firing */
-extern uint8_t maxInjPrimaryOutputs;
-extern uint8_t maxInjSecondaryOutputs;
 extern byte resetControl; ///< resetControl needs to be here (as global) because using the config page (4) directly can prevent burning the setting
 extern volatile byte TIMER_mask;
 extern volatile byte LOOP_TIMER;
@@ -530,7 +530,6 @@ struct statuses {
   int16_t fuelLoad2;
   int16_t ignLoad;
   int16_t ignLoad2;
-  bool fuelPumpOn; /**< Indicator showing the current status of the fuel pump */
   volatile byte syncLossCounter;
   byte knockRetard;
   volatile byte knockCount;

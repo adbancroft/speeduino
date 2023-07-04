@@ -106,6 +106,10 @@ IGNITION_INTERRUPT(7, TIMER3_COMPC_vect)
 IGNITION_INTERRUPT(8, TIMER3_COMPB_vect)
 #endif
 
+#if defined(TIMER5_MICROS)
+volatile unsigned long timer5_overflow_count = 0; //Increments every time counter 5 overflows. Used for the fast version of micros()
+#endif
+
 void initBoard(void)
 {
     /*

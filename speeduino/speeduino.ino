@@ -278,13 +278,13 @@ TESTABLE_INLINE_STATIC pulseWidths computePulseWidths(uint16_t pwLimit, uint16_t
 } 
 
 TESTABLE_INLINE_STATIC void applyPWToSchedules(uint16_t primaryPW, uint16_t secondaryPW) {
-  for (uint8_t index=0U; index<maxInjPrimaryOutputs; ++index) {
+  for (uint8_t index=0U; index<injectorChannels.primary; ++index) {
     fuelSchedules[index].pw = primaryPW;
   }
-  for (uint8_t index=maxInjPrimaryOutputs; index<maxInjPrimaryOutputs+maxInjSecondaryOutputs; ++index) {
+  for (uint8_t index=injectorChannels.primary; index<totalInjectorChannels(injectorChannels); ++index) {
     fuelSchedules[index].pw = secondaryPW;
   }
-  for (uint8_t index=maxInjPrimaryOutputs+maxInjSecondaryOutputs; index<_countof(fuelSchedules); ++index) {
+  for (uint8_t index=totalInjectorChannels(injectorChannels); index<_countof(fuelSchedules); ++index) {
     fuelSchedules[index].pw = 0U;
   }
 }
@@ -345,7 +345,7 @@ static void setIgnitionSchedules(uint16_t crankAngle, uint16_t totalDwell) {
 static inline void applyFuelTrims(const config2 &page2, const config6 &page6, const statuses &current) {
   if (page6.fuelTrimEnabled > 0U)
   {
-    uint8_t trimInjChannels = min(page2.nCylinders, maxInjPrimaryOutputs);
+    uint8_t trimInjChannels = min(page2.nCylinders, (uint8_t)injectorChannels.primary);
     for (uint8_t index=0; index<trimInjChannels; ++index) {
       applyFuelTrimToPW(fuelSchedules[index], current.fuelLoad, current.RPM);
     }
@@ -354,7 +354,7 @@ static inline void applyFuelTrims(const config2 &page2, const config6 &page6, co
 
 static void setFuelSchedules(uint16_t injAngle, uint16_t crankAngle) {
   injectorAngleCalcCache calcCache;
-  for (uint8_t index=0; index<maxInjPrimaryOutputs+maxInjSecondaryOutputs; ++index) {
+  for (uint8_t index=0; index<totalInjectorChannels(injectorChannels); ++index) {
     if(BIT_CHECK(fuelChannelsOn, (INJ1_CMD_BIT+index))) {
       setFuelSchedule(fuelSchedules[index], injAngle, crankAngle, &calcCache);
     }
@@ -461,7 +461,6 @@ void __attribute__((always_inline, hot)) loop(void)
       if(currentStatus.RPM > 0)
       {
         FUEL_PUMP_ON();
-        currentStatus.fuelPumpOn = true;
       }
     }
     else
@@ -483,7 +482,7 @@ void __attribute__((always_inline, hot)) loop(void)
       ignitionCount = 0;
       ignitionChannelsOn = 0;
       fuelChannelsOn = 0;
-      if (currentStatus.fpPrimed == true) { FUEL_PUMP_OFF(); currentStatus.fuelPumpOn = false; } //Turn off the fuel pump, but only if the priming is complete
+      if (currentStatus.fpPrimed == true) { FUEL_PUMP_OFF(); } //Turn off the fuel pump, but only if the priming is complete
       if (configPage6.iacPWMrun == false) { disableIdle(); } //Turn off the idle PWM
       BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK); //Clear cranking bit (Can otherwise get stuck 'on' even with 0 rpm)
       BIT_CLEAR(currentStatus.engine, BIT_ENGINE_WARMUP); //Same as above except for WUE
@@ -888,7 +887,7 @@ void __attribute__((always_inline, hot)) loop(void)
           else { cutPercent = table2D_getValue(&rollingCutTable, (rpmDelta / 10) ); } //
           
 
-          for(uint8_t x=0; x<max(maxIgnOutputs, (uint8_t)(maxInjPrimaryOutputs+maxInjSecondaryOutputs)); x++)
+          for(uint8_t x=0; x<max(maxIgnOutputs, totalInjectorChannels(injectorChannels)); x++)
           {  
             if( (cutPercent == 100) || (random1to100() < cutPercent) )
             {

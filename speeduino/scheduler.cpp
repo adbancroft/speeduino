@@ -83,6 +83,9 @@ IgnitionSchedule ignitionSchedules[IGN_CHANNELS]  = {
 #endif
 };
 
+InjectorChannels injectorChannels;
+byte maxIgnOutputs;
+
 Schedule::Schedule(counter_t &_counter, compare_t &_compare)
   : _duration(0U)
   , _status(OFF)
@@ -114,14 +117,14 @@ static void reset(IgnitionSchedule &schedule)
     schedule.channelDegrees = 0;
 }
 
-void resetFuelSchedulers(void)
+TESTABLE_INLINE_STATIC void resetFuelSchedulers(void)
 {
   for (uint8_t index=0U; index<_countof(fuelSchedules); ++index) {
     reset(fuelSchedules[index]);
   }
 }
 
-void resetIgnitionSchedulers(void)
+TESTABLE_INLINE_STATIC void resetIgnitionSchedulers(void)
 {
   for (uint8_t index=0U; index<_countof(ignitionSchedules); ++index) {
     reset(ignitionSchedules[index]);
@@ -156,10 +159,10 @@ static void turnOffInjectors(void)
 }
 
 static void initialiseStagedInjection(void) {
-  maxInjSecondaryOutputs = 0;
+  injectorChannels.secondary = 0;
 
   // Can't stage unless we have enough channels
-  configPage10.stagingEnabled = configPage10.stagingEnabled  && (maxInjPrimaryOutputs < _countof(fuelSchedules));
+  configPage10.stagingEnabled = configPage10.stagingEnabled  && (injectorChannels.primary < _countof(fuelSchedules));
 
   if (configPage10.stagingEnabled == true)
   {
@@ -167,17 +170,17 @@ static void initialiseStagedInjection(void) {
     // E.g. 4 cylinder sequential with 8 channels -> 4 secondary
     //      4 cylinder paired with 4 channels -> 2 secondary
     //      3 cylinder paired with 8 channels -> 3 secondary (and 2 unused)
-    if ((_countof(fuelSchedules)-maxInjPrimaryOutputs)>=maxInjPrimaryOutputs) {
-      maxInjSecondaryOutputs = maxInjPrimaryOutputs;
+    if ((_countof(fuelSchedules)-injectorChannels.primary)>=injectorChannels.primary) {
+      injectorChannels.secondary = injectorChannels.primary;
     // Not quite enough channels, use a single secondary.
     // E.g. 3 cylinder sequential with 4 channels -> 1 secondary
     //      4 cylinder sequential with 5 channels -> 1 secondary
      } else if (configPage2.nCylinders!=6) {
-      maxInjSecondaryOutputs = 1;
+      injectorChannels.secondary = 1;
     }
 
-    for (uint8_t index = 0; index<maxInjSecondaryOutputs; ++index) {
-      fuelSchedules[index+maxInjPrimaryOutputs].channelDegrees = fuelSchedules[index].channelDegrees;
+    for (uint8_t index = 0; index<injectorChannels.secondary; ++index) {
+      fuelSchedules[index+injectorChannels.primary].channelDegrees = fuelSchedules[index].channelDegrees;
     }
 
     // Special case for 2 cylinder
@@ -194,10 +197,10 @@ static void setFuelChannelAngles(void)
 {
   // Calculate # of primary injectors
   if (configPage2.nCylinders==4U || configPage2.nCylinders==6U || configPage2.nCylinders==8U) {
-     maxInjPrimaryOutputs = configPage2.injLayout == INJ_SEQUENTIAL ? configPage2.nCylinders : configPage2.nCylinders/2U;
+     injectorChannels.primary = configPage2.injLayout == INJ_SEQUENTIAL ? configPage2.nCylinders : configPage2.nCylinders/2U;
   } else {
     // 1, 2, 3 & 5 cylinder are essentially sequential if we have enough channels
-    maxInjPrimaryOutputs = min((uint8_t)configPage2.nCylinders, (uint8_t)_countof(fuelSchedules));
+    injectorChannels.primary = min((uint8_t)configPage2.nCylinders, (uint8_t)_countof(fuelSchedules));
   }
 
   // Calculate degrees between squirts
@@ -207,12 +210,12 @@ static void setFuelChannelAngles(void)
     if ((configPage2.engineType == ODD_FIRE) && (configPage2.nCylinders==2U)) {
       spacing = configPage2.oddfire[0];
     } else {
-      spacing = (uint16_t)CRANK_ANGLE_MAX_INJ / maxInjPrimaryOutputs;
+      spacing = (uint16_t)CRANK_ANGLE_MAX_INJ / injectorChannels.primary;
     }
   }
 
   // Compute channel angles
-  for (uint8_t index=0U; index<maxInjPrimaryOutputs; ++index) {
+  for (uint8_t index=0U; index<injectorChannels.primary; ++index) {
     fuelSchedules[index].channelDegrees = index * spacing;
   }
 }
@@ -694,7 +697,7 @@ void beginInjectorPriming(void)
   if( (primingValue > 0U) && (currentStatus.TPS < configPage4.floodClear) )
   {
     primingValue = primingValue * 100U * 5U; //to achieve long enough priming pulses, the values in tuner studio are divided by 0.5 instead of 0.1, so multiplier of 5 is required.
-    for (uint8_t index=0U; index<maxInjPrimaryOutputs+maxInjSecondaryOutputs; ++index) {
+    for (uint8_t index=0U; index<totalInjectorChannels(injectorChannels); ++index) {
       _setSchedule(fuelSchedules[index], 100U, primingValue); 
     }
   }
@@ -794,8 +797,8 @@ static void changeInjectionHalfToFullSync(void)
     ATOMIC() {
       if (!isAnyFuelScheduleRunning()) {
         CRANK_ANGLE_MAX_INJ = 720;
-        maxInjPrimaryOutputs = maxInjPrimaryOutputs * 2U;
-        maxInjSecondaryOutputs = maxInjSecondaryOutputs * 2U;
+        injectorChannels.primary = injectorChannels.primary * 2U;
+        injectorChannels.secondary = injectorChannels.secondary * 2U;
         req_fuel_uS *= 2U;
         setFuelScheduleCallbacks(INJ_SEQUENTIAL);
       }
@@ -812,8 +815,8 @@ static void changeInjectionFullToHalfSync(void)
   if(CRANK_ANGLE_MAX_INJ!=360) {
     ATOMIC() {
         CRANK_ANGLE_MAX_INJ = 360;
-        maxInjPrimaryOutputs = maxInjPrimaryOutputs / 2U;
-        maxInjSecondaryOutputs = maxInjSecondaryOutputs / 2U;
+        injectorChannels.primary = injectorChannels.primary / 2U;
+        injectorChannels.secondary = injectorChannels.secondary / 2U;
         req_fuel_uS = req_fuel_uS / 2U;
         setFuelScheduleCallbacks(INJ_SEMISEQUENTIAL);
       }
