@@ -64,14 +64,10 @@ void test_Staging_4cyl_Auto_Inactive(void)
   configPage10.stagingMode = STAGING_MODE_AUTO;
 
   pulseWidths pw = applyStagingToPW(9000, 3000); 
+  //Primary should be ((PW - openTime) * staged_req_fuel_mult_pri) + openTime = ((3000 - 1000) * 3.0) + 1000 = 7000
+  //Seconary should be 0 as that testPW is below the pwLimit
   TEST_ASSERT_EQUAL(7000, pw.primary);
   TEST_ASSERT_EQUAL(0, pw.secondary);  
-  //PW 1 and 2 should be normal, 3 and 4 should be 0 as that testPW is below the pwLimit
-  //PW1/2 should be ((PW - openTime) * staged_req_fuel_mult_pri) + openTime = ((3000 - 1000) * 3.0) + 1000 = 7000
-  TEST_ASSERT_EQUAL(7000, fuelSchedules[0].pw);
-  TEST_ASSERT_EQUAL(7000, fuelSchedules[1].pw);
-  TEST_ASSERT_EQUAL(0, fuelSchedules[2].pw);
-  TEST_ASSERT_EQUAL(0, fuelSchedules[3].pw);
   TEST_ASSERT_FALSE(BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE));
 }
 
@@ -89,14 +85,10 @@ void test_Staging_4cyl_Table_Inactive(void)
   for(byte x=0; x<64; x++) { stagingTable.values.values[x] = 0; }
 
   pulseWidths pw = applyStagingToPW(9000, 3000);
+  //Primary should be ((PW - openTime) * staged_req_fuel_mult_pri) + openTime = ((3000 - 1000) * 3.0) + 1000 = 7000
+  //Seconary should be 0 as that testPW is below the pwLimit
   TEST_ASSERT_EQUAL(7000, pw.primary);
   TEST_ASSERT_EQUAL(0, pw.secondary);  
-  //PW 1 and 2 should be normal, 3 and 4 should be 0 as that testPW is below the pwLimit
-  //PW1/2 should be (PW - openTime) * staged_req_fuel_mult_pri = (3000 - 1000) * 3.0 = 6000
-  TEST_ASSERT_EQUAL(7000, fuelSchedules[0].pw);
-  TEST_ASSERT_EQUAL(7000, fuelSchedules[1].pw);
-  TEST_ASSERT_EQUAL(0, fuelSchedules[2].pw);
-  TEST_ASSERT_EQUAL(0, fuelSchedules[3].pw);
   TEST_ASSERT_FALSE(BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE));
 }
 
@@ -110,13 +102,9 @@ void test_Staging_4cyl_Auto_50pct(void)
   configPage10.stagingMode = STAGING_MODE_AUTO;
 
   pulseWidths pw = applyStagingToPW(9000, 9000);
+  //Primary should be maxed out at the pwLimit, secondary should be based on their relative size
   TEST_ASSERT_EQUAL(9000, pw.primary);
   TEST_ASSERT_EQUAL(9000, pw.secondary);  
-  //PW 1 and 2 should be maxed out at the pwLimit, 3 and 4 should be based on their relative size
-  TEST_ASSERT_EQUAL(9000, fuelSchedules[0].pw); //PW1/2 run at maximum available limit
-  TEST_ASSERT_EQUAL(9000, fuelSchedules[1].pw);
-  TEST_ASSERT_EQUAL(9000, fuelSchedules[2].pw);
-  TEST_ASSERT_EQUAL(9000, fuelSchedules[3].pw);
   TEST_ASSERT_TRUE(BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE));
 }
 
@@ -130,13 +118,9 @@ void test_Staging_4cyl_Auto_33pct(void)
   configPage10.stagingMode = STAGING_MODE_AUTO;
 
   pulseWidths pw = applyStagingToPW(9000, 7000);
+  //Primary should be maxed out at the pwLimit, secondary should be based on their relative size
   TEST_ASSERT_EQUAL(9000, pw.primary);
   TEST_ASSERT_EQUAL(6000, pw.secondary);  
-  //PW 1 and 2 should be maxed out at the pwLimit, 3 and 4 should be based on their relative size
-  TEST_ASSERT_EQUAL(9000, fuelSchedules[0].pw); //PW1/2 run at maximum available limit
-  TEST_ASSERT_EQUAL(9000, fuelSchedules[1].pw);
-  TEST_ASSERT_EQUAL(6000, fuelSchedules[2].pw);
-  TEST_ASSERT_EQUAL(6000, fuelSchedules[3].pw);
   TEST_ASSERT_TRUE(BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE));
 }
 
@@ -160,10 +144,5 @@ void test_Staging_4cyl_Table_50pct(void)
   pulseWidths pw = applyStagingToPW(9000, 3000);
   TEST_ASSERT_EQUAL(4000, pw.primary);
   TEST_ASSERT_EQUAL(2500, pw.secondary);  
-
-  TEST_ASSERT_EQUAL(4000, fuelSchedules[0].pw);
-  TEST_ASSERT_EQUAL(4000, fuelSchedules[1].pw);
-  TEST_ASSERT_EQUAL(2500, fuelSchedules[2].pw);
-  TEST_ASSERT_EQUAL(2500, fuelSchedules[3].pw);
   TEST_ASSERT_TRUE(BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE));
 }
