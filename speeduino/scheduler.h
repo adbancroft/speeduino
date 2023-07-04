@@ -51,6 +51,23 @@ See page 136 of the processors datasheet: http://www.atmel.com/Images/doc2549.pd
 #define USE_IGN_REFRESH
 #define IGNITION_REFRESH_THRESHOLD  30 //Time in uS that the refresh functions will check to ensure there is enough time before changing the end compare
 
+struct InjectorChannels {
+  uint8_t primary : 4;
+  uint8_t secondary : 4;
+};
+static inline uint8_t totalInjectorChannels(const InjectorChannels &channels) {
+  return channels.primary+channels.secondary;
+}
+static inline uint8_t isPrimary(uint8_t index, const InjectorChannels &channels) {
+  return index<channels.primary;
+}
+static inline uint8_t isSecondary(uint8_t index, const InjectorChannels &channels) {
+  return index>=channels.primary && index<channels.secondary;
+}
+
+extern InjectorChannels injectorChannels;
+extern byte maxIgnOutputs;
+
 /** @brief Configure all fuel schedulers based on the current tune
  * parameters
  * 

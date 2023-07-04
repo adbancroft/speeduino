@@ -104,7 +104,6 @@ volatile uint8_t decoderState = 0;
 unsigned int triggerSecFilterTime_duration; // The shortest valid time (in uS) pulse DURATION
 volatile uint16_t triggerToothAngle; //The number of crank degrees that elapse per tooth
 byte checkSyncToothCount; //How many teeth must've been seen on this revolution before we try to confirm sync (Useful for missing tooth type decoders)
-unsigned long elapsedTime;
 unsigned long lastCrankAngleCalc;
 unsigned long lastVVTtime; //The time between the vvt reference pulse and the last crank pulse
 
@@ -730,8 +729,7 @@ int getCrankAngle_missingTooth(void)
     if ( (tempRevolutionOne == true) && (configPage4.TrigSpeed == CRANK_SPEED) ) { crankAngle += 360; }
 
     lastCrankAngleCalc = micros();
-    elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-    crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+    crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);
 
     if (crankAngle >= 720) { crankAngle -= 720; }
     if (crankAngle < 0) { crankAngle += CRANK_ANGLE_MAX; }
@@ -918,9 +916,7 @@ int getCrankAngle_DualWheel(void)
     if(tempToothCurrentCount == 0) { tempToothCurrentCount = configPage4.triggerTeeth; }
 
     int crankAngle = ((tempToothCurrentCount - 1) * triggerToothAngle) + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
-
-    elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-    crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+    crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);
 
     //Sequential check (simply sets whether we're on the first or 2nd revolution of the cycle)
     if ( (tempRevolutionOne == true) && (configPage4.TrigSpeed == CRANK_SPEED) ) { crankAngle += 360; }
@@ -1076,12 +1072,7 @@ int getCrankAngle_BasicDistributor(void)
     int crankAngle = ((tempToothCurrentCount - 1) * triggerToothAngle) + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
     
     //Estimate the number of degrees travelled since the last tooth}
-    elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-
-    //crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
-    crankAngle += timeToAngleIntervalTooth(elapsedTime);
-    
-
+    crankAngle += timeToAngleIntervalTooth(lastCrankAngleCalc - tempToothLastToothTime);
     if (crankAngle >= 720) { crankAngle -= 720; }
     if (crankAngle < 0) { crankAngle += CRANK_ANGLE_MAX; }
 
@@ -1269,8 +1260,7 @@ int getCrankAngle_GM7X(void)
     }
 
     //Estimate the number of degrees travelled since the last tooth}
-    elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-    crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+    crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
 
     if (crankAngle >= 720) { crankAngle -= 720; }
     if (crankAngle < 0) { crankAngle += 360; }
@@ -1678,8 +1668,7 @@ int getCrankAngle_4G63(void)
       crankAngle = toothAngles[(tempToothCurrentCount - 1)] + configPage4.triggerAngle; //Perform a lookup of the fixed toothAngles array to find what the angle of the last tooth passed was.
 
       //Estimate the number of degrees travelled since the last tooth}
-      elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-      crankAngle += timeToAngleIntervalTooth(elapsedTime);
+      crankAngle += timeToAngleIntervalTooth(lastCrankAngleCalc - tempToothLastToothTime);
 
       if (crankAngle >= 720) { crankAngle -= 720; }
       if (crankAngle < 0) { crankAngle += 360; }
@@ -1832,8 +1821,7 @@ int getCrankAngle_24X(void)
     else { crankAngle = toothAngles[(tempToothCurrentCount - 1)] + configPage4.triggerAngle;} //Perform a lookup of the fixed toothAngles array to find what the angle of the last tooth passed was.
 
     //Estimate the number of degrees travelled since the last tooth}
-    elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-    crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+    crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
 
     //Sequential check (simply sets whether we're on the first or 2nd revolution of the cycle)
     if (tempRevolutionOne == 1) { crankAngle += 360; }
@@ -1941,8 +1929,7 @@ int getCrankAngle_Jeep2000(void)
     else { crankAngle = toothAngles[(tempToothCurrentCount - 1)] + configPage4.triggerAngle;} //Perform a lookup of the fixed toothAngles array to find what the angle of the last tooth passed was.
 
     //Estimate the number of degrees travelled since the last tooth}
-    elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-    crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+    crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
 
     if (crankAngle >= 720) { crankAngle -= 720; }
     if (crankAngle < 0) { crankAngle += 360; }
@@ -2058,8 +2045,7 @@ int getCrankAngle_Audi135(void)
     int crankAngle = ((tempToothCurrentCount - 1) * triggerToothAngle) + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
     
     //Estimate the number of degrees travelled since the last tooth}
-    elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-    crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+    crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
 
     //Sequential check (simply sets whether we're on the first or 2nd revolution of the cycle)
     if (tempRevolutionOne) { crankAngle += 360; }
@@ -2158,8 +2144,7 @@ int getCrankAngle_HondaD17(void)
     }
 
     //Estimate the number of degrees travelled since the last tooth}
-    elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-    crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+    crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
 
     if (crankAngle >= 720) { crankAngle -= 720; }
     if (crankAngle < 0) { crankAngle += 360; }
@@ -2286,7 +2271,7 @@ int getCrankAngle_HondaJ32(void)
   noInterrupts();
     tempToothCurrentCount = toothCurrentCount;
     lastCrankAngleCalc = micros(); //micros() is no longer interrupt safe
-    elapsedTime = lastCrankAngleCalc - toothLastToothTime;
+    uint32_t elapsedTime = lastCrankAngleCalc - toothLastToothTime;
   interrupts();
 
   if (tempToothCurrentCount == 14)
@@ -2526,8 +2511,7 @@ int getCrankAngle_Miata9905(void)
       crankAngle = toothAngles[(tempToothCurrentCount - 1)] + configPage4.triggerAngle; //Perform a lookup of the fixed toothAngles array to find what the angle of the last tooth passed was.
 
       //Estimate the number of degrees travelled since the last tooth}
-      elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-      crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+      crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
 
       if (crankAngle >= 720) { crankAngle -= 720; }
       if (crankAngle < 0) { crankAngle += 360; }
@@ -2723,8 +2707,7 @@ int getCrankAngle_MazdaAU(void)
       crankAngle = toothAngles[(tempToothCurrentCount - 1)] + configPage4.triggerAngle; //Perform a lookup of the fixed toothAngles array to find what the angle of the last tooth passed was.
 
       //Estimate the number of degrees travelled since the last tooth}
-      elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-      crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+      crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
 
       if (crankAngle >= 720) { crankAngle -= 720; }
       if (crankAngle < 0) { crankAngle += 360; }
@@ -2797,8 +2780,7 @@ int getCrankAngle_non360(void)
     crankAngle = (crankAngle / configPage4.TrigAngMul) + configPage4.triggerAngle; //Have to divide by the multiplier to get back to actual crank angle.
 
     //Estimate the number of degrees travelled since the last tooth}
-    elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-    crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+    crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
 
     if (crankAngle >= 720) { crankAngle -= 720; }
     if (crankAngle < 0) { crankAngle += 360; }
@@ -3008,8 +2990,7 @@ int getCrankAngle_Nissan360(void)
 
   crankAngle = ( (tempToothCurrentCount - 1) * 2) + configPage4.triggerAngle;
   unsigned long halfTooth = (tempToothLastToothTime - tempToothLastMinusOneToothTime) / 2UL;
-  elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-  if (elapsedTime > halfTooth)
+  if ((lastCrankAngleCalc - tempToothLastToothTime) > halfTooth)
   {
     //Means we're over halfway to the next tooth, so add on 1 degree
     crankAngle += 1;
@@ -3263,8 +3244,7 @@ int getCrankAngle_Subaru67(void)
     crankAngle = toothAngles[(tempToothCurrentCount - 1)] + configPage4.triggerAngle; //Perform a lookup of the fixed toothAngles array to find what the angle of the last tooth passed was.
 
     //Estimate the number of degrees travelled since the last tooth}
-    elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-    crankAngle += timeToAngleIntervalTooth(elapsedTime);
+    crankAngle += timeToAngleIntervalTooth(lastCrankAngleCalc - tempToothLastToothTime);
 
     if (crankAngle >= 720) { crankAngle -= 720; }
     if (crankAngle < 0) { crankAngle += 360; }
@@ -3462,8 +3442,7 @@ int getCrankAngle_Daihatsu(void)
     crankAngle = toothAngles[tempToothCurrentCount-1] + configPage4.triggerAngle; //Crank angle of the last tooth seen
 
     //Estimate the number of degrees travelled since the last tooth}
-    elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-    crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+    crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
 
     if (crankAngle >= 720) { crankAngle -= 720; }
     if (crankAngle < 0) { crankAngle += CRANK_ANGLE_MAX; }
@@ -3599,8 +3578,7 @@ int getCrankAngle_Harley(void)
   }
 
   //Estimate the number of degrees travelled since the last tooth}
-  elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-  crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+  crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
 
   if (crankAngle >= 720) { crankAngle -= 720; }
   if (crankAngle < 0) { crankAngle += 360; }
@@ -4082,8 +4060,7 @@ int getCrankAngle_420a(void)
   crankAngle = toothAngles[(tempToothCurrentCount - 1)] + configPage4.triggerAngle; //Perform a lookup of the fixed toothAngles array to find what the angle of the last tooth passed was.
 
   //Estimate the number of degrees travelled since the last tooth}
-  elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-  crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+  crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
 
   if (crankAngle >= 720) { crankAngle -= 720; }
   if (crankAngle < 0) { crankAngle += 360; }
@@ -4335,8 +4312,7 @@ int getCrankAngle_FordST170(void)
     if ( (tempRevolutionOne == true) && (configPage4.TrigSpeed == CRANK_SPEED) ) { crankAngle += 360; }
 
     lastCrankAngleCalc = micros();
-    elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-    crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+    crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
 
     if (crankAngle >= 720) { crankAngle -= 720; }
     if (crankAngle < 0) { crankAngle += CRANK_ANGLE_MAX; }
@@ -4923,8 +4899,7 @@ int getCrankAngle_Vmax(void)
   crankAngle=toothAngles[tempsecondaryToothCount] + configPage4.triggerAngle;
   
   //Estimate the number of degrees travelled since the last tooth}
-  elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-  crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+  crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
 
   if (crankAngle >= 720) { crankAngle -= 720; }
   if (crankAngle < 0) { crankAngle += 360; }
@@ -5314,8 +5289,7 @@ int getCrankAngle_RoverMEMS()
     if ( (tempRevolutionOne == true) && (configPage4.TrigSpeed == CRANK_SPEED) ) { crankAngle += 360; }
 
     lastCrankAngleCalc = micros();
-    elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
-    crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+    crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
 
     if (crankAngle >= 720) { crankAngle -= 720; }
     if (crankAngle < 0) { crankAngle += CRANK_ANGLE_MAX; }
@@ -5769,7 +5743,7 @@ int getCrankAngle_SuzukiK6A(void)
   crankAngle = toothAngles[(tempToothCurrentCount)] + configPage4.triggerAngle; //Perform a lookup of the fixed toothAngles array to find what the angle of the last tooth passed was.
   
   //Estimate the number of degrees travelled since the last tooth}
-  elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
+  uint32_t elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
 
   switch(toothCurrentCount)
   {
