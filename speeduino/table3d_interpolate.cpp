@@ -99,9 +99,9 @@ table3d_dim_t find_ybin(table3d_axis_t &value, const table3d_axis_t *pAxis, tabl
 // class would miss some important optimisations. Specifically, we can avoid
 // type promotion during multiplication.
 typedef uint16_t QU1X8_t;
-static constexpr QU1X8_t QU1X8_INTEGER_SHIFT = 8;
-static constexpr QU1X8_t QU1X8_ONE = (QU1X8_t)1U << QU1X8_INTEGER_SHIFT;
-static constexpr QU1X8_t QU1X8_HALF = (QU1X8_t)1U << (QU1X8_INTEGER_SHIFT-1U);
+static constexpr uint8_t QU1X8_INTEGER_SHIFT = 8U;
+static constexpr QU1X8_t QU1X8_ONE = (QU1X8_t)1U << (QU1X8_t)QU1X8_INTEGER_SHIFT;
+static constexpr QU1X8_t QU1X8_HALF = (QU1X8_t)1U << (QU1X8_t)(QU1X8_INTEGER_SHIFT- (QU1X8_t)1U);
 
 static inline QU1X8_t mulQU1X8(QU1X8_t a, QU1X8_t b)
 {
