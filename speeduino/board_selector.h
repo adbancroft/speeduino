@@ -8,9 +8,9 @@
 */
 
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega2561__)
-  #define BOARD_MAX_DIGITAL_PINS 54 //digital pins +1
-  #define BOARD_MAX_IO_PINS 70 //digital pins + analog channels + 1
-  #define BOARD_MAX_ADC_PINS  15 //Number of analog pins
+  #define BOARD_MAX_DIGITAL_PINS 54U //digital pins +1
+  #define BOARD_MAX_IO_PINS 70U //digital pins + analog channels + 1
+  #define BOARD_MAX_ADC_PINS  15U //Number of analog pins
   #ifndef LED_BUILTIN
     #define LED_BUILTIN 13
   #endif

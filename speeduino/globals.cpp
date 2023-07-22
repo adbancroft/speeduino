@@ -67,7 +67,6 @@ volatile PORT_TYPE *triggerThird_pin_port;
 volatile PINMASK_TYPE triggerThird_pin_mask;
 
 //These are variables used across multiple files
-bool initialisationComplete = false; ///< Tracks whether the setup() function has run completely (true = has run)
 byte fpPrimeTime = 0; ///< The time (in seconds, based on @ref statuses.secl) that the fuel pump started priming
 uint8_t softLimitTime = 0; //The time (in 0.1 seconds, based on seclx10) that the soft limiter started
 volatile uint16_t mainLoopCount; //Main loop counter (incremented at each main loop rev., used for maintaining currentStatus.loopsPerSecond)

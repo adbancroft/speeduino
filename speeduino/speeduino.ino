@@ -197,23 +197,23 @@ static inline void calculateInjectionAngles(void) {
   if (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) && configPage2.nCylinders==2U) {
     // Special case: 2 cylinder, 2nd staged injector is phased either 180 or 360 degrees out from 3rd staged injector
     // (In reality this will always be 180 as you can't have sequential and staged currently)
-    fuelSchedules[3].openAngle = fuelSchedules[2].openAngle + (CRANK_ANGLE_MAX_INJ / 2); 
-    if(fuelSchedules[3].openAngle > (uint16_t)CRANK_ANGLE_MAX_INJ) { fuelSchedules[3].openAngle -= CRANK_ANGLE_MAX_INJ; }
+    fuelSchedules[3].openAngle = fuelSchedules[2].openAngle + ((uint16_t)CRANK_ANGLE_MAX_INJ / 2U); 
+    if(fuelSchedules[3].openAngle > (uint16_t)CRANK_ANGLE_MAX_INJ) { fuelSchedules[3].openAngle -= (uint16_t)CRANK_ANGLE_MAX_INJ; }
   }
 }
 
 // FixedCrankingOverride is used to extend the dwell during cranking so that the decoder can trigger the spark upon seeing a certain tooth. Currently only available on the basic distributor and 4g63 decoders.
-inline uint16_t __attribute__((always_inline)) computeFixedCrankingOverride(void) {
+static inline uint16_t computeFixedCrankingOverride(void) {
   if ( isFixedCrankLock() )
   {
     //This is a safety step to prevent the ignition start time occurring AFTER the target tooth pulse has already occurred. It simply moves the start time forward a little, which is compensated for by the increase in the dwell time
     if(currentStatus.RPM < 250U)
     {
       for (uint8_t index=0U; index<maxIgnOutputs; ++index) {
-        ignitionSchedules[index].chargeAngle -= 5;
+        ignitionSchedules[index].chargeAngle -= 5U;
       }
     }
-    return currentStatus.dwell * 3;
+    return currentStatus.dwell * 3U;
   }
   return 0U;
 }
@@ -273,7 +273,7 @@ void __attribute__((always_inline)) loop(void)
         }
       #endif
       #if defined (NATIVE_CAN_AVAILABLE)
-        if (configPage9.enable_intcan == 1) // use internal can module
+        if (configPage9.enable_intcan == 1U) // use internal can module
         {            
           //check local can module
           // if ( BIT_CHECK(LOOP_TIMER, BIT_TIMER_15HZ) or (CANbus0.available())
@@ -367,7 +367,7 @@ void __attribute__((always_inline)) loop(void)
         readTPS(); //TPS reading to be performed every 32 loops (any faster and it can upset the TPSdot sampling time)
       #endif
       #if  defined(CORE_TEENSY35)       
-          if (configPage9.enable_intcan == 1) // use internal can module
+          if (configPage9.enable_intcan == 1U) // use internal can module
           {
            // this is just to test the interface is sending
            //sendCancommand(3,((configPage9.realtime_base_address & 0x3FF)+ 0x100),currentStatus.TPS,0,0x200);
@@ -378,9 +378,6 @@ void __attribute__((always_inline)) loop(void)
 
       //And check whether the tooth log buffer is ready
       if(toothHistoryIndex > TOOTH_LOG_SIZE) { BIT_SET(currentStatus.status1, BIT_STATUS1_TOOTHLOG1READY); }
-
-      
-
     }
     if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ)) //10 hertz
     {
@@ -625,7 +622,7 @@ void __attribute__((always_inline)) loop(void)
       {
         if ( configPage2.useDwellMap == true )
         {
-          currentStatus.dwell = (get3DTableValue(&dwellTable, currentStatus.ignLoad, currentStatus.RPM) * 100); //use running dwell from map
+          currentStatus.dwell = get3DTableValue(&dwellTable, currentStatus.ignLoad, currentStatus.RPM) * 100U; //use running dwell from map
         }
         else
         {
@@ -694,7 +691,7 @@ void __attribute__((always_inline)) loop(void)
             break;
         }
       } //Hard cut check
-      else if( (configPage2.hardCutType == HARD_CUT_ROLLING) && (currentStatus.RPM > (maxAllowedRPM + (configPage15.rollingProtRPMDelta[0] * 10))) ) //Limit for rolling is the max allowed RPM minus the lowest value in the delta table (Delta values are negative!)
+      else if( (configPage2.hardCutType == HARD_CUT_ROLLING) && ((int16_t)  currentStatus.RPM > ((int16_t)maxAllowedRPM + (configPage15.rollingProtRPMDelta[0] * 10))) ) //Limit for rolling is the max allowed RPM minus the lowest value in the delta table (Delta values are negative!)
       { 
         uint8_t revolutionsToCut = 1U;
         if(configPage2.strokes == FOUR_STROKE) { revolutionsToCut *= 2U; } //4 stroke needs to cut for at least 2 revolutions
@@ -709,9 +706,9 @@ void __attribute__((always_inline)) loop(void)
           else { cutPercent = table2D_getValue(&rollingCutTable, (rpmDelta / 10) ); } //
           
 
-          for(uint8_t x=0; x<max(maxIgnOutputs, totalInjectorChannels(injectorChannels)); x++)
+          for(uint8_t x=0U; x<max(maxIgnOutputs, totalInjectorChannels(injectorChannels)); x++)
           {  
-            if( (cutPercent == 100) || (random1to100() < cutPercent) )
+            if( (cutPercent == 100U) || (random1to100() < cutPercent) )
             {
               switch(configPage6.engineProtectType)
               {
@@ -764,18 +761,18 @@ void __attribute__((always_inline)) loop(void)
         if( (ignitionChannelsPending > 0U) && (currentStatus.startRevolutions >= (rollingCutLastRev + 2U)) )
         {
           ignitionChannelsOn = fuelChannelsOn;
-          ignitionChannelsPending = 0;
+          ignitionChannelsPending = 0U;
         }
       } //Rolling cut check
       else
       {
-        currentStatus.engineProtectStatus = 0;
+        currentStatus.engineProtectStatus = 0U;
         //No engine protection active, so turn all the channels on
         if(currentStatus.startRevolutions >= configPage4.StgCycles)
         { 
           //Enable the fuel and ignition, assuming staging revolutions are complete 
-          ignitionChannelsOn = 0xff; 
-          fuelChannelsOn = 0xff; 
+          ignitionChannelsOn = 0xFFU; 
+          fuelChannelsOn = 0xFFU; 
         } 
       }
 
@@ -787,7 +784,7 @@ void __attribute__((always_inline)) loop(void)
       //***********************************************************************************************
       //| BEGIN IGNITION SCHEDULES
       //Same as above, except for ignition
-      if(ignitionChannelsOn)
+      if(ignitionChannelsOn!=0U)
       {
         setIgnitionSchedules(ignitionLimits(getCrankAngle()), currentStatus.dwell + computeFixedCrankingOverride());
       } //Ignition schedules on
@@ -799,11 +796,12 @@ void __attribute__((always_inline)) loop(void)
         BIT_SET(currentStatus.status3, BIT_STATUS3_RESET_PREVENT);
       }
     } //Has sync and RPM
-    else if ( (BIT_CHECK(currentStatus.status3, BIT_STATUS3_RESET_PREVENT) > 0) && (resetControl == RESET_CONTROL_PREVENT_WHEN_RUNNING) )
+    else if ( (BIT_CHECK(currentStatus.status3, BIT_STATUS3_RESET_PREVENT)) && (resetControl == RESET_CONTROL_PREVENT_WHEN_RUNNING) )
     {
       digitalWrite(pinResetControl, LOW);
       BIT_CLEAR(currentStatus.status3, BIT_STATUS3_RESET_PREVENT);
     }
+    else { /* No op to keep MISRA happy. */ }
 } //loop()
 #pragma GCC diagnostic pop
 
@@ -887,33 +885,29 @@ uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen)
   return (unsigned int)(intermediate);
 }
 
+static inline int16_t getLoad(uint8_t loadAlgorithm) {
+  if(loadAlgorithm == LOAD_SOURCE_TPS) {
+    //Alpha-N
+    return currentStatus.TPS * 2U;
+  } else if (loadAlgorithm == LOAD_SOURCE_IMAPEMAP) {
+    //IMAP / EMAP
+    return (currentStatus.MAP * 100) / currentStatus.EMAP;
+  } else { 
+    //LOAD_SOURCE_MAP chosen or unknown
+    //Speed Density
+    return currentStatus.MAP;
+  }   
+}
+
 /** Lookup the current VE value from the primary 3D fuel map.
  * The Y axis value used for this lookup varies based on the fuel algorithm selected (speed density, alpha-n etc).
  * 
  * @return byte The current VE value
  */
-byte getVE1(void)
+uint8_t getVE1(void)
 {
-  byte tempVE = 100;
-  if (configPage2.fuelAlgorithm == LOAD_SOURCE_MAP) //Check which fuelling algorithm is being used
-  {
-    //Speed Density
-    currentStatus.fuelLoad = currentStatus.MAP;
-  }
-  else if (configPage2.fuelAlgorithm == LOAD_SOURCE_TPS)
-  {
-    //Alpha-N
-    currentStatus.fuelLoad = currentStatus.TPS * 2;
-  }
-  else if (configPage2.fuelAlgorithm == LOAD_SOURCE_IMAPEMAP)
-  {
-    //IMAP / EMAP
-    currentStatus.fuelLoad = ((int16_t)currentStatus.MAP * 100U) / currentStatus.EMAP;
-  }
-  else { currentStatus.fuelLoad = currentStatus.MAP; } //Fallback position
-  tempVE = get3DTableValue(&fuelTable, currentStatus.fuelLoad, currentStatus.RPM); //Perform lookup into fuel map for RPM vs MAP value
-
-  return tempVE;
+  currentStatus.fuelLoad = getLoad(configPage2.fuelAlgorithm);
+  return get3DTableValue(&fuelTable, currentStatus.fuelLoad, currentStatus.RPM); //Perform lookup into fuel map for RPM vs MAP value
 }
 
 /** Lookup the ignition advance from 3D ignition table.
@@ -921,29 +915,10 @@ byte getVE1(void)
  * 
  * @return byte The current target advance value in degrees
  */
-byte getAdvance1(void)
+int8_t getAdvance1(void)
 {
-  byte tempAdvance = 0;
-  if (configPage2.ignAlgorithm == LOAD_SOURCE_MAP) //Check which fuelling algorithm is being used
-  {
-    //Speed Density
-    currentStatus.ignLoad = currentStatus.MAP;
-  }
-  else if(configPage2.ignAlgorithm == LOAD_SOURCE_TPS)
-  {
-    //Alpha-N
-    currentStatus.ignLoad = currentStatus.TPS * 2;
-
-  }
-  else if (configPage2.fuelAlgorithm == LOAD_SOURCE_IMAPEMAP)
-  {
-    //IMAP / EMAP
-    currentStatus.ignLoad = ((int16_t)currentStatus.MAP * 100U) / currentStatus.EMAP;
-  }
-  tempAdvance = get3DTableValue(&ignitionTable, currentStatus.ignLoad, currentStatus.RPM) - OFFSET_IGNITION; //As above, but for ignition advance
-  tempAdvance = correctionsIgn(tempAdvance);
-
-  return tempAdvance;
+  currentStatus.ignLoad = getLoad(configPage2.ignAlgorithm);
+  return correctionsIgn(get3DTableValue(&ignitionTable, currentStatus.ignLoad, currentStatus.RPM) - OFFSET_IGNITION); //As above, but for ignition advance
 }
 
 /** Calculate the Ignition angles for all cylinders (based on @ref config2.nCylinders).
@@ -952,7 +927,7 @@ byte getAdvance1(void)
  */
 void calculateIgnitionAngles()
 {
-  const int dwellAngle = timeToAngleDegPerMicroSec(currentStatus.dwell); //Convert the dwell time to dwell angle based on the current engine speed
+  const uint16_t dwellAngle = (uint16_t)timeToAngleDegPerMicroSec(currentStatus.dwell); //Convert the dwell time to dwell angle based on the current engine speed
 
   // Rotary is a special case
   if (configPage4.sparkMode == IGN_MODE_ROTARY)
@@ -1030,7 +1005,7 @@ pulseWidths applyStagingToPW(uint16_t pwLimit, uint16_t pwPrimary)
       pw.primary += inj_opentime_uS; 
 
       //PW2 is used temporarily to hold the secondary injector pulsewidth. It will be assigned to the correct channel below
-      if(stagingSplit > 0) 
+      if(stagingSplit > 0U) 
       { 
         pw.secondary = div100(stagingSplit * tempPW3); 
         pw.secondary += inj_opentime_uS;
@@ -1067,16 +1042,12 @@ pulseWidths applyStagingToPW(uint16_t pwLimit, uint16_t pwPrimary)
       }
   }
 
-  if (pw.secondary==0) {
-    BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); 
-  } else {
-    BIT_SET(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); 
-  }  
+  BIT_WRITE(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE, pw.secondary!=0U); 
 
   return pw;
 }
 
-void checkLaunchAndFlatShift()
+void checkLaunchAndFlatShift(void)
 {
   //Check for launching/flat shift (clutch) based on the current and previous clutch states
   currentStatus.previousClutchTrigger = currentStatus.clutchTrigger;

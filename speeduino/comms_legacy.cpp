@@ -1266,7 +1266,7 @@ void sendToothLog_legacy(byte startOffset) /* Blocking */
   else 
   { 
     //TunerStudio has timed out, send a LOG of all 0s
-    for(uint16_t x = 0; x < (4*TOOTH_LOG_SIZE); x++)
+    for(uint16_t x = 0U; x < (4U*TOOTH_LOG_SIZE); x++)
     {
       Serial.write(static_cast<byte>(0x00)); //GCC9 fix
     }
@@ -1306,7 +1306,7 @@ void sendCompositeLog_legacy(byte startOffset) /* Non-blocking */
   else 
   { 
     //TunerStudio has timed out, send a LOG of all 0s
-    for(uint16_t x = 0; x < (5*TOOTH_LOG_SIZE); x++)
+    for(uint16_t x = 0U; x < (5U*TOOTH_LOG_SIZE); x++)
     {
       Serial.write(static_cast<byte>(0x00)); //GCC9 fix
     }

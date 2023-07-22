@@ -18,8 +18,8 @@
 void setup(void);
 void loop(void);
 uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen);
-byte getVE1(void);
-byte getAdvance1(void);
+uint8_t getVE1(void);
+int8_t getAdvance1(void);
 uint16_t calculatePWLimit();
 
 struct pulseWidths {
@@ -27,7 +27,7 @@ struct pulseWidths {
     uint16_t secondary;
 };
 pulseWidths applyStagingToPW(uint16_t pwLimit, uint16_t pwPrimary);
-void checkLaunchAndFlatShift();
+void checkLaunchAndFlatShift(void);
 
 extern uint16_t req_fuel_uS; /**< The required fuel variable (As calculated by TunerStudio) in uS */
 extern uint16_t inj_opentime_uS; /**< The injector opening time. This is set within Tuner Studio, but stored here in uS rather than mS */

@@ -19,8 +19,8 @@
   #define COUNTER_TYPE uint16_t
   #define SERIAL_BUFFER_SIZE 517 //Size of the serial buffer used by new comms protocol. For SD transfers this must be at least 512 + 1 (flag) + 4 (sector)
   #define FPU_MAX_SIZE 32 //Size of the FPU buffer. 0 means no FPU.
-  #define BOARD_MAX_DIGITAL_PINS 34
-  #define BOARD_MAX_IO_PINS 34 //digital pins + analog channels + 1
+  #define BOARD_MAX_DIGITAL_PINS 34U
+  #define BOARD_MAX_IO_PINS 34U //digital pins + analog channels + 1
   #define EEPROM_LIB_H <EEPROM.h>
   typedef int eeprom_address_t;
   #define RTC_ENABLED
@@ -122,7 +122,7 @@
   //#define TMR_PRESCALE  128
   //#define MAX_TIMER_PERIOD ((65535 * 1000000ULL) / (F_BUS_ACTUAL / TMR_PRESCALE)) //55923 @ 600Mhz. 
   #define MAX_TIMER_PERIOD 55923UL
-  #define uS_TO_TIMER_COMPARE(uS) ((uS * 75UL) >> 6) //Converts a given number of uS into the required number of timer ticks until that time has passed. 
+  #define uS_TO_TIMER_COMPARE(uS) (((uS) * 75UL) >> 6) //Converts a given number of uS into the required number of timer ticks until that time has passed. 
   /*
   To calculate the above uS_TO_TIMER_COMPARE
   Choose number of bit of precision. Eg: 6

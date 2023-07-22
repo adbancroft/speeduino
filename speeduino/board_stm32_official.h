@@ -47,21 +47,21 @@
 //#define FRAM_AS_EEPROM /*Use FRAM like FM25xxx, MB85RSxxx or any SPI compatible */
 
 #ifndef word
-  #define word(h, l) ((h << 8) | l) //word() function not defined for this platform in the main library
+  #define word(h, l) (((h) << 8) | (l)) //word() function not defined for this platform in the main library
 #endif  
   
 #if defined(ARDUINO_BLUEPILL_F103C8) || defined(ARDUINO_BLUEPILL_F103CB) \
   || defined(ARDUINO_BLACKPILL_F401CC) || defined(ARDUINO_BLACKPILL_F411CE)
   //STM32 Pill boards
   #ifndef NUM_DIGITAL_PINS
-    #define NUM_DIGITAL_PINS 35
+    #define NUM_DIGITAL_PINS 35U
   #endif
   #ifndef LED_BUILTIN
     #define LED_BUILTIN PB1 //Maple Mini
   #endif
 #elif defined(STM32F407xx)
   #ifndef NUM_DIGITAL_PINS
-    #define NUM_DIGITAL_PINS 75
+    #define NUM_DIGITAL_PINS 75U
   #endif
 #endif
 
@@ -202,7 +202,7 @@ void jumpToBootloader();
 * 4 - IDLE  |4 - INJ4  |4 - IGN4  |4 - IGN8  |4 - INJ8  | 
 */
 #define MAX_TIMER_PERIOD 65535*4 //The longest period of time (in uS) that the timer can permit (IN this case it is 65535 * 4, as each timer tick is 4uS)
-#define uS_TO_TIMER_COMPARE(uS) (uS>>2) //Converts a given number of uS into the required number of timer ticks until that time has passed.
+#define uS_TO_TIMER_COMPARE(uS) ((uS)>>2) //Converts a given number of uS into the required number of timer ticks until that time has passed.
 
 #define FUEL1_COUNTER (TIM3)->CNT
 #define FUEL2_COUNTER (TIM3)->CNT
