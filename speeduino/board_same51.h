@@ -9,8 +9,8 @@
 * General
 */
   #define PORT_TYPE uint32_t //Size of the port variables (Eg inj1_pin_port). Most systems use a byte, but SAMD21 is a 32-bit unsigned int
-  #define BOARD_MAX_DIGITAL_PINS 54 //digital pins +1
-  #define BOARD_MAX_IO_PINS  58 //digital pins + analog channels + 1
+  #define BOARD_MAX_DIGITAL_PINS 54U //digital pins +1
+  #define BOARD_MAX_IO_PINS  58U //digital pins + analog channels + 1
 
   //#define PORT_TYPE uint8_t //Size of the port variables (Eg inj1_pin_port).
   #define PINMASK_TYPE uint8_t
