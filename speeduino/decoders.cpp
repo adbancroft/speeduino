@@ -2269,9 +2269,9 @@ int getCrankAngle_HondaJ32(void)
   int crankAngle;
   uint16_t tempToothCurrentCount;
   noInterrupts();
-    tempToothCurrentCount = toothCurrentCount;
-    lastCrankAngleCalc = micros(); //micros() is no longer interrupt safe
-    elapsedTime = lastCrankAngleCalc - toothLastToothTime;
+  tempToothCurrentCount = toothCurrentCount;
+  lastCrankAngleCalc = micros(); //micros() is no longer interrupt safe
+  uint32_t elapsedTime = lastCrankAngleCalc - toothLastToothTime;
   interrupts();
 
   if (tempToothCurrentCount == 14)
