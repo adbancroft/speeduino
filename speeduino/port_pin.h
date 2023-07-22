@@ -17,7 +17,7 @@
 static inline bool isValidPin(uint8_t pin) {
     // Zero is not a valid pin on any board (it's usually the GP IO pin)
     // In INI, it's used to flag that the board default should be used.
-    return pin>0U && pin<BOARD_MAX_IO_PINS;
+    return pin>0U && pin<UINT8_C(BOARD_MAX_IO_PINS);
 }
 
 /** @brief Allows direct manipulation of a pin via bit twiddling 

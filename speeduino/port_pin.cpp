@@ -24,8 +24,8 @@ uint8_t pinTranslate(uint8_t rawPin)
   if (!isValidPin(rawPin)) {
     return NOT_A_PIN;
   }
-  if(rawPin > BOARD_MAX_DIGITAL_PINS) { 
-    return A8 + (rawPin - BOARD_MAX_DIGITAL_PINS - 1U); 
+  if(rawPin > UINT8_C(BOARD_MAX_DIGITAL_PINS)) { 
+    return A8 + (rawPin - UINT8_C(BOARD_MAX_DIGITAL_PINS) - 1U); 
   }
   // It's a valid digital pin.
   return rawPin;
@@ -34,7 +34,7 @@ uint8_t pinTranslate(uint8_t rawPin)
 
 uint8_t pinTranslateAnalog(uint8_t rawPin)
 {
-  if (rawPin >= BOARD_MAX_IO_PINS) {
+  if (rawPin >= UINT8_C(BOARD_MAX_IO_PINS)) {
     return NOT_A_PIN;
   }
   switch(rawPin)

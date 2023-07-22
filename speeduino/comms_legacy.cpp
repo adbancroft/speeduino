@@ -1327,7 +1327,7 @@ void sendCompositeLog_legacy(byte startOffset) /* Non-blocking */
   else 
   { 
     //TunerStudio has timed out, send a LOG of all 0s
-    for(uint16_t x = 0; x < (5U*TOOTH_LOG_SIZE); ++x)
+    for(uint16_t x = 0U; x < (5U*TOOTH_LOG_SIZE); x++)
     {
       primarySerial.write(static_cast<byte>(0x00)); //GCC9 fix
     }

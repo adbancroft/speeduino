@@ -159,7 +159,7 @@ static void turnOffInjectors(void)
 }
 
 static void initialiseStagedInjection(void) {
-  injectorChannels.secondary = 0;
+  injectorChannels.secondary = 0U;
 
   // Can't stage unless we have enough channels
   configPage10.stagingEnabled = configPage10.stagingEnabled  && (injectorChannels.primary < _countof(fuelSchedules));
@@ -175,11 +175,14 @@ static void initialiseStagedInjection(void) {
     // Not quite enough channels, use a single secondary.
     // E.g. 3 cylinder sequential with 4 channels -> 1 secondary
     //      4 cylinder sequential with 5 channels -> 1 secondary
-     } else if (configPage2.nCylinders!=6) {
-      injectorChannels.secondary = 1;
+     } else if (configPage2.nCylinders!=6U) {
+      injectorChannels.secondary = 1U;
+    } else {
+      // We don't apply the single secondary rule to 6 cylinder
+      // No idea why
     }
 
-    for (uint8_t index = 0; index<injectorChannels.secondary; ++index) {
+    for (uint8_t index = 0U; index<injectorChannels.secondary; ++index) {
       fuelSchedules[index+injectorChannels.primary].channelDegrees = fuelSchedules[index].channelDegrees;
     }
 
@@ -334,8 +337,7 @@ static void initialiseFuelContext(void)
 
   if (configPage2.injLayout == INJ_SEQUENTIAL)
   {
-    CRANK_ANGLE_MAX_INJ = 720;
-    currentStatus.nSquirts = 1;
+    currentStatus.nSquirts = 1U;
     // Force injection timing when sequential
     configPage2.injTiming = INJ_TIMING_ALTERNATING;
   }
@@ -347,7 +349,7 @@ static void initialiseFuelContext(void)
       //Force nSquirts to 2 for individual port injection. This prevents TunerStudio forcing the value to 3 even when this isn't wanted. 
       currentStatus.nSquirts = 2U;
     } else if (configPage2.divider!=0U) {
-      currentStatus.nSquirts = max(1, configPage2.nCylinders / configPage2.divider);
+      currentStatus.nSquirts = (uint8_t)max((uint8_t)1U, (uint8_t)(configPage2.nCylinders / configPage2.divider));
     } else {
       currentStatus.nSquirts = 2U;
     }    
@@ -422,7 +424,7 @@ static void setIgnitionChannelAngles(void)
     maxIgnOutputs = configPage2.nCylinders;
     ignitionSchedules[0].channelDegrees = 0;
     for (uint8_t index=1; index<maxIgnOutputs; ++index) {
-      ignitionSchedules[index].channelDegrees = configPage2.oddfire[index-1];
+      ignitionSchedules[index].channelDegrees = configPage2.oddfire[index-1U];
     }
   }
   else
@@ -435,10 +437,10 @@ static void setIgnitionChannelAngles(void)
     }
 
     // 1 cylinder is 0°, 2 cylinder is 180°, everything other channel is spaced evenly between 0 & CRANK_ANGLE_MAX_IGN
-    uint16_t spacing = (configPage2.nCylinders==1U) ? 0U : ((configPage2.nCylinders==2U) ? 180U : CRANK_ANGLE_MAX_IGN/maxIgnOutputs);
+    uint16_t spacing = (configPage2.nCylinders==1U) ? 0U : ((configPage2.nCylinders==2U) ? 180U : (uint16_t)CRANK_ANGLE_MAX_IGN/maxIgnOutputs);
 
     // Set the channel angles
-    for (uint8_t index = 0; index<maxIgnOutputs; ++index) {
+    for (uint8_t index = 0U; index<maxIgnOutputs; ++index) {
       ignitionSchedules[index].channelDegrees = spacing * index;
     }
   }    
@@ -491,9 +493,9 @@ static void setIgnitionScheduleCallbacks(uint8_t sparkMode)
       {
         //Wasted COP mode for 6 cylinders. Ignition channels 1&4, 2&5 and 3&6 are paired together
         setCallbacks(ignitionSchedules[0], beginCoil1and4Charge, endCoil1and4Charge);
-        setCallbacks(ignitionSchedules[1], beginCoil2and5Charge, endCoil2and5Charge);
         setCallbacks(ignitionSchedules[3], nullCallback, nullCallback);
 #if IGN_CHANNELS >= 5
+        setCallbacks(ignitionSchedules[1], beginCoil2and5Charge, endCoil2and5Charge);
         setCallbacks(ignitionSchedules[4], nullCallback, nullCallback);
 #endif
 #if IGN_CHANNELS >= 6
@@ -630,6 +632,8 @@ static void initialiseIgnitionContext(void)
       configPage4.sparkMode = IGN_MODE_WASTED;
     } else if (_countof(ignitionSchedules)<configPage2.nCylinders) {
       configPage4.sparkMode = IGN_MODE_WASTED;
+    } else {
+      // All is well - use sequential.
     }
   }
   
@@ -835,7 +839,9 @@ void matchInjectionModeToSyncStatus(void) {
       changeInjectionHalfToFullSync();
     } else if (BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC)) {
       changeInjectionFullToHalfSync();
-    }    
+    } else {
+      // Nothing to do but keep the MISRA checker happy
+    }
   }
 }
 
@@ -867,7 +873,9 @@ void matchIgnitionModeToSyncStatus(void) {
     if (currentStatus.hasSync==1) {
       changeIgnitionHalfToFullSync();
     } else if (BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC)) {
-      changeIgnitionFullToHalfSync();
-    }    
+      changeIgnitionFullToHalfSync();    
+    } else {
+      // Nothing to do but keep the MISRA checker happy
+    }
   }  
 }

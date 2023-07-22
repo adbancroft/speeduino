@@ -65,7 +65,7 @@ FUEL_INTERRUPT(8, TIMER5_COMPB_vect)
 
 #define IGNITION_INTERRUPT(index, avr_vector) \
   ISR((avr_vector)) { \
-    moveToNextState(ignitionSchedules[(uint8_t)(index)-1]); \
+    moveToNextState(ignitionSchedules[(uint8_t)(index)-1U]); \
   }
 
 /** @brief ISR for ignition channel 1 */
@@ -196,13 +196,13 @@ uint16_t freeRam(void)
     int currentVal;
     uint16_t v;
 
-    if(__brkval == 0) { currentVal = (int) &__heap_start; }
+    if(__brkval == NULL) { currentVal = (int) &__heap_start; }
     else { currentVal = (int) __brkval; }
 
     //Old version:
     //return (uint16_t) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
     /* cppcheck-suppress misra-c2012-11.4 ; DEVIATION(D3) */
-    return (uint16_t) &v - currentVal; //cppcheck-suppress misra-c2012-11.4
+    return (uint16_t) &v - currentVal; //cppcheck-suppress[misra-c2012-11.4, misra-c2012-10.4]
 }
 
 void doSystemReset(void) { return; }

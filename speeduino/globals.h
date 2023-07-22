@@ -47,9 +47,9 @@
 #define SERIAL_PORT_SECONDARY 3
 
 //Define the load algorithm
-#define LOAD_SOURCE_MAP         0
-#define LOAD_SOURCE_TPS         1
-#define LOAD_SOURCE_IMAPEMAP    2
+#define LOAD_SOURCE_MAP         0U
+#define LOAD_SOURCE_TPS         1U
+#define LOAD_SOURCE_IMAPEMAP    2U
 
 //Define bit positions within engine variable
 #define BIT_ENGINE_RUN      0   // Engine running
@@ -62,14 +62,14 @@
 #define BIT_ENGINE_MAPDCC   7   // MAP deceleration mode
 
 //Define masks for Status1
-#define BIT_STATUS1_INJ1           0  //inj1
-#define BIT_STATUS1_INJ2           1  //inj2
-#define BIT_STATUS1_INJ3           2  //inj3
-#define BIT_STATUS1_INJ4           3  //inj4
-#define BIT_STATUS1_DFCO           4  //Deceleration fuel cutoff
-#define BIT_STATUS1_BOOSTCUT       5  //Fuel component of MAP based boost cut out
-#define BIT_STATUS1_TOOTHLOG1READY 6  //Used to flag if tooth log 1 is ready
-#define BIT_STATUS1_TOOTHLOG2READY 7  //Used to flag if tooth log 2 is ready (Log is not currently used)
+#define BIT_STATUS1_INJ1           0U  //inj1
+#define BIT_STATUS1_INJ2           1U  //inj2
+#define BIT_STATUS1_INJ3           2U  //inj3
+#define BIT_STATUS1_INJ4           3U  //inj4
+#define BIT_STATUS1_DFCO           4U  //Deceleration fuel cutoff
+#define BIT_STATUS1_BOOSTCUT       5U  //Fuel component of MAP based boost cut out
+#define BIT_STATUS1_TOOTHLOG1READY 6U  //Used to flag if tooth log 1 is ready
+#define BIT_STATUS1_TOOTHLOG2READY 7U  //Used to flag if tooth log 2 is ready (Log is not currently used)
 
 //Define masks for spark variable
 #define BIT_STATUS2_HLAUNCH         0  //Hard Launch indicator
@@ -207,11 +207,11 @@ static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check all uses of TOOTH_LOG_SIZE");
 #define NITROUS_STAGE2      2U
 #define NITROUS_BOTH        3U
 
-#define PROTECT_CUT_OFF     0
-#define PROTECT_CUT_IGN     1
-#define PROTECT_CUT_FUEL    2
-#define PROTECT_CUT_BOTH    3
-#define PROTECT_IO_ERROR    7
+#define PROTECT_CUT_OFF     0U
+#define PROTECT_CUT_IGN     1U
+#define PROTECT_CUT_FUEL    2U
+#define PROTECT_CUT_BOTH    3U
+#define PROTECT_IO_ERROR    7U
 
 #define AE_MODE_TPS         0
 #define AE_MODE_MAP         1
@@ -306,7 +306,7 @@ static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check all uses of TOOTH_LOG_SIZE");
 #define CALIBRATION_TABLE_SIZE 512 ///< Calibration table size for CLT, IAT, O2
 #define CALIBRATION_TEMPERATURE_OFFSET 40 /**< All temperature measurements are stored offset by 40 degrees.
 This is so we can use an unsigned byte (0-255) to represent temperature ranges from -40 to 215 */
-#define OFFSET_FUELTRIM 127U ///< The fuel trim tables are offset by 128 to allow for -128 to +128 values
+#define OFFSET_FUELTRIM 127 ///< The fuel trim tables are offset by 128 to allow for -128 to +128 values
 #define OFFSET_IGNITION 40 ///< Ignition values from the main spark table are offset 40 degrees downwards to allow for negative spark timing
 
 #define SERIAL_BUFFER_THRESHOLD 32 ///< When the serial buffer is filled to greater than this threshold value, the serial processing operations will be performed more urgently in order to avoid it overflowing. Serial buffer is 64 bytes long, so the threshold is set at half this as a reasonable figure
@@ -393,7 +393,6 @@ extern volatile PINMASK_TYPE triggerThird_pin_mask;
 extern byte triggerInterrupt;
 extern byte triggerInterrupt2;
 extern byte triggerInterrupt3;
-
 
 extern byte fpPrimeTime; //The time (in seconds, based on currentStatus.secl) that the fuel pump started priming
 extern uint8_t softLimitTime; //The time (in 0.1 seconds, based on seclx10) that the soft limiter started

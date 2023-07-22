@@ -10,8 +10,8 @@
   #define PINMASK_TYPE uint32_t
   #define SERIAL_BUFFER_SIZE 517 //Size of the serial buffer used by new comms protocol. For SD transfers this must be at least 512 + 1 (flag) + 4 (sector)
   #define FPU_MAX_SIZE 0 //Size of the FPU buffer. 0 means no FPU.
-  #define BOARD_MAX_IO_PINS  52 //digital pins + analog channels + 1
-  #define BOARD_MAX_DIGITAL_PINS 52 //Pretty sure this isn't right
+  #define BOARD_MAX_IO_PINS  52U //digital pins + analog channels + 1
+  #define BOARD_MAX_DIGITAL_PINS 52U //Pretty sure this isn't right
   #define EEPROM_LIB_H <EEPROM.h> //The name of the file that provides the EEPROM class
   typedef int eeprom_address_t;
   #define micros_safe() micros() //timer5 method is not used on anything but AVR, the micros_safe() macro is simply an alias for the normal micros()
