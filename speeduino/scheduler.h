@@ -42,7 +42,7 @@ See page 136 of the processors datasheet: http://www.atmel.com/Images/doc2549.pd
 #define SCHEDULER_H
 
 #include "globals.h"
-#include "scheduledIO.h"
+#include "scheduler_callbacks.h"
 #include "atomic.h"
 
 #define USE_IGN_REFRESH
