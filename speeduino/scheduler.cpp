@@ -26,7 +26,7 @@ A full copy of the license may be found in the projects root directory
  */
 #include "globals.h"
 #include "scheduler.h"
-#include "scheduledIO.h"
+#include "scheduler_callbacks.h"
 #include "timers.h"
 #include "schedule_state_machine.h"
 #include "speeduino.h"
@@ -239,6 +239,7 @@ static void setFuelScheduleCallbacks(uint8_t injLayout)
           setCallbacks(fuelSchedules[1], openInjector2and3, closeInjector2and3);
         }
       }
+#if INJ_CHANNELS>=5      
       else if( configPage2.nCylinders == 5U ) //This is similar to the paired injection but uses five injector outputs instead of four
       {
         setCallbacks(fuelSchedules[0], openInjector1, closeInjector1);
@@ -246,12 +247,16 @@ static void setFuelScheduleCallbacks(uint8_t injLayout)
         setCallbacks(fuelSchedules[2], openInjector3and5, closeInjector3and5);
         setCallbacks(fuelSchedules[3], openInjector4, closeInjector4);
       }
+#endif
+#if INJ_CHANNELS>=6
       else if( configPage2.nCylinders == 6U )
       {
         setCallbacks(fuelSchedules[0], openInjector1and4, closeInjector1and4);
         setCallbacks(fuelSchedules[1], openInjector2and5, closeInjector2and5);
         setCallbacks(fuelSchedules[2], openInjector3and6, closeInjector3and6);
       }
+#endif
+#if INJ_CHANNELS>=8
       else if( configPage2.nCylinders == 8U )
       {
         setCallbacks(fuelSchedules[0], openInjector1and5, closeInjector1and5);
@@ -259,6 +264,7 @@ static void setFuelScheduleCallbacks(uint8_t injLayout)
         setCallbacks(fuelSchedules[2], openInjector3and7, closeInjector3and7);
         setCallbacks(fuelSchedules[3], openInjector4and8, closeInjector4and8);
       }
+#endif
       else
       {
         //Fall back to paired injection
@@ -486,12 +492,12 @@ static void setIgnitionScheduleCallbacks(uint8_t sparkMode)
         //Wasted COP mode for 6 cylinders. Ignition channels 1&4, 2&5 and 3&6 are paired together
         setCallbacks(ignitionSchedules[0], beginCoil1and4Charge, endCoil1and4Charge);
         setCallbacks(ignitionSchedules[1], beginCoil2and5Charge, endCoil2and5Charge);
-        setCallbacks(ignitionSchedules[2], beginCoil3and6Charge, endCoil3and6Charge);
         setCallbacks(ignitionSchedules[3], nullCallback, nullCallback);
 #if IGN_CHANNELS >= 5
         setCallbacks(ignitionSchedules[4], nullCallback, nullCallback);
 #endif
 #if IGN_CHANNELS >= 6
+        setCallbacks(ignitionSchedules[2], beginCoil3and6Charge, endCoil3and6Charge);
         setCallbacks(ignitionSchedules[5], nullCallback, nullCallback);
 #endif
       }
@@ -499,19 +505,19 @@ static void setIgnitionScheduleCallbacks(uint8_t sparkMode)
       {
         //Wasted COP mode for 8 cylinders. Ignition channels 1&5, 2&6, 3&7 and 4&8 are paired together
         setCallbacks(ignitionSchedules[0], beginCoil1and5Charge, endCoil1and5Charge);
-        setCallbacks(ignitionSchedules[1], beginCoil2and6Charge, endCoil2and6Charge);
-        setCallbacks(ignitionSchedules[2], beginCoil3and7Charge, endCoil3and7Charge);
-        setCallbacks(ignitionSchedules[3], beginCoil4and8Charge, endCoil4and8Charge);
 #if IGN_CHANNELS >= 5
         setCallbacks(ignitionSchedules[4], nullCallback, nullCallback);
 #endif
 #if IGN_CHANNELS >= 6
+        setCallbacks(ignitionSchedules[1], beginCoil2and6Charge, endCoil2and6Charge);
         setCallbacks(ignitionSchedules[5], nullCallback, nullCallback);
 #endif
 #if IGN_CHANNELS >= 7
+        setCallbacks(ignitionSchedules[2], beginCoil3and7Charge, endCoil3and7Charge);
         setCallbacks(ignitionSchedules[6], nullCallback, nullCallback);
 #endif
 #if IGN_CHANNELS >= 8
+        setCallbacks(ignitionSchedules[3], beginCoil4and8Charge, endCoil4and8Charge);
         setCallbacks(ignitionSchedules[7], nullCallback, nullCallback);
 #endif
       }

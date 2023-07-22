@@ -44,6 +44,9 @@ See page 136 of the processors datasheet: http://www.atmel.com/Images/doc2549.pd
 #include "board_definition.h"
 #include "scheduledIO.h"
 #include "table3d.h"
+#include "timers.h"
+#include "maths.h"
+#include "scheduler_callbacks.h"
 
 // Inlining seems to be very important for AVR performance
 #if defined(CORE_AVR)
