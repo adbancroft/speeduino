@@ -18,7 +18,7 @@ void test_accuracy_timeout_inj(FuelSchedule &schedule)
     resetFuelSchedulers();
     setCallbacks(schedule, startCallback, endCallback);
     start_time = micros();
-    _setFuelScheduleDuration(schedule, TIMEOUT, DURATION);
+    _setSchedule(schedule, TIMEOUT, DURATION);
     while(isPending(schedule)) /*Wait*/ ;
     TEST_ASSERT_UINT32_WITHIN(DELTA, TIMEOUT, end_time - start_time);
 }

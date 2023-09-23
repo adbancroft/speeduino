@@ -178,13 +178,11 @@ void _setSchedulePending(Schedule &schedule, uint32_t timeout, uint32_t duration
 
 static SCHEDULE_INLINE void _setSchedule(Schedule &schedule, uint32_t timeout, uint32_t duration) {
   if(timeout<MAX_TIMER_PERIOD && duration<MAX_TIMER_PERIOD) {
-    ATOMIC() {    
       if(!isRunning(schedule)) { //Check that we're not already part way through a schedule
         _setSchedulePending(schedule, timeout, duration);
       }
       else {
         _setScheduleNext(schedule, timeout, duration);
-      }
     }
   }
 }
