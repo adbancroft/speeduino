@@ -50,10 +50,6 @@ See page 136 of the processors datasheet: http://www.atmel.com/Images/doc2549.pd
 #define USE_IGN_REFRESH
 #define IGNITION_REFRESH_THRESHOLD  30 //Time in uS that the refresh functions will check to ensure there is enough time before changing the end compare
 
-#define DWELL_AVERAGE_ALPHA 30
-#define DWELL_AVERAGE(input) LOW_PASS_FILTER((input), DWELL_AVERAGE_ALPHA, currentStatus.actualDwell)
-//#define DWELL_AVERAGE(input) (currentStatus.dwell) //Can be use to disable the above for testing
-
 void initialiseSchedulers(void);
 void startSchedulers(void);
 void beginInjectorPriming(void);
@@ -207,6 +203,10 @@ inline __attribute__((always_inline)) void setIgnitionSchedule(IgnitionSchedule 
       {
         _setScheduleNext(schedule, timeout, duration);
       }
+      else 
+      {
+        // Keep MISRA checker happy
+      }
     }
   }
 }
@@ -223,7 +223,7 @@ struct FuelSchedule : public Schedule {
 
 void _setFuelScheduleRunning(FuelSchedule &schedule, unsigned long timeout, unsigned long duration);
 
-inline __attribute__((always_inline)) void setFuelSchedule(FuelSchedule &schedule, unsigned long timeout, unsigned long duration) 
+static inline __attribute__((always_inline)) void setFuelSchedule(FuelSchedule &schedule, unsigned long timeout, unsigned long duration) 
 {
   if(likely(timeout < MAX_TIMER_PERIOD))
   {
@@ -240,6 +240,10 @@ inline __attribute__((always_inline)) void setFuelSchedule(FuelSchedule &schedul
       else if(angleToTimeMicroSecPerDegree(CRANK_ANGLE_MAX_INJ) < MAX_TIMER_PERIOD) 
       {
         _setScheduleNext(schedule, timeout, duration);
+      }
+      else
+      {
+        // Keep MISRA checker happy
       }
     }
   }
