@@ -235,10 +235,10 @@ static void setFuelChannelAngles(void)
         }        
 
         //Adjust the injection angles based on the number of squirts
-        if (currentStatus.nSquirts > 2)
+        if (currentStatus.nSquirts > 2U)
         {
-          fuelSchedule2.channelDegrees = (fuelSchedule2.channelDegrees * 2) / currentStatus.nSquirts;
-          fuelSchedule3.channelDegrees = (fuelSchedule3.channelDegrees * 2) / currentStatus.nSquirts;
+          fuelSchedule2.channelDegrees = (fuelSchedule2.channelDegrees * 2U) / currentStatus.nSquirts;
+          fuelSchedule3.channelDegrees = (fuelSchedule3.channelDegrees * 2U) / currentStatus.nSquirts;
         }
 
         if (!configPage2.injTiming) 
@@ -306,10 +306,10 @@ static void setFuelChannelAngles(void)
           fuelSchedule1.channelDegrees = 0;
           fuelSchedule2.channelDegrees = 0; 
         }
-        else if (currentStatus.nSquirts > 2)
+        else if (currentStatus.nSquirts > 2U)
         {
           //Adjust the injection angles based on the number of squirts
-          fuelSchedule2.channelDegrees = (fuelSchedule2.channelDegrees * 2) / currentStatus.nSquirts;
+          fuelSchedule2.channelDegrees = (fuelSchedule2.channelDegrees * 2U) / currentStatus.nSquirts;
         }
         else { } //Do nothing, default values are correct
       }
@@ -418,11 +418,13 @@ static void setFuelChannelAngles(void)
           fuelSchedule2.channelDegrees = 0;
           fuelSchedule3.channelDegrees = 0;
         }
-        else if (currentStatus.nSquirts > 2)
+        else if (currentStatus.nSquirts > 2U)
         {
           //Adjust the injection angles based on the number of squirts
-          fuelSchedule2.channelDegrees = (fuelSchedule2.channelDegrees * 2) / currentStatus.nSquirts;
-          fuelSchedule3.channelDegrees = (fuelSchedule3.channelDegrees * 2) / currentStatus.nSquirts;
+          fuelSchedule2.channelDegrees = (fuelSchedule2.channelDegrees * 2U) / currentStatus.nSquirts;
+          fuelSchedule3.channelDegrees = (fuelSchedule3.channelDegrees * 2U) / currentStatus.nSquirts;
+        } else {
+          // Nothing to do: keep MISRA checker happy
         }
       }
 
@@ -480,12 +482,14 @@ static void setFuelChannelAngles(void)
           fuelSchedule3.channelDegrees = 0;
           fuelSchedule4.channelDegrees = 0;
         }
-        else if (currentStatus.nSquirts > 2)
+        else if (currentStatus.nSquirts > 2U)
         {
           //Adjust the injection angles based on the number of squirts
-          fuelSchedule2.channelDegrees = (fuelSchedule2.channelDegrees * 2) / currentStatus.nSquirts;
-          fuelSchedule3.channelDegrees = (fuelSchedule3.channelDegrees * 2) / currentStatus.nSquirts;
-          fuelSchedule4.channelDegrees = (fuelSchedule4.channelDegrees * 2) / currentStatus.nSquirts;
+          fuelSchedule2.channelDegrees = (fuelSchedule2.channelDegrees * 2U) / currentStatus.nSquirts;
+          fuelSchedule3.channelDegrees = (fuelSchedule3.channelDegrees * 2U) / currentStatus.nSquirts;
+          fuelSchedule4.channelDegrees = (fuelSchedule4.channelDegrees * 2U) / currentStatus.nSquirts;
+        } else {
+          // Keep MISRA checker happy.
         }
       }
 
@@ -514,7 +518,7 @@ static void setFuelChannelAngles(void)
   //Special case:
   //3 or 5 squirts per cycle MUST be tracked over 720 degrees. This is because the angles for them (Eg 720/3=240) are not evenly divisible into 360
   //This is ONLY the case on 4 stroke systems
-  if( (currentStatus.nSquirts == 3) || (currentStatus.nSquirts == 5) )
+  if( (currentStatus.nSquirts == 3U) || (currentStatus.nSquirts == 5U) )
   {
     if(configPage2.strokes == FOUR_STROKE) { CRANK_ANGLE_MAX_INJ = 720U/currentStatus.nSquirts; }
   }  
@@ -537,7 +541,7 @@ static void setFuelScheduleCallbacks(void)
 
   case INJ_SEMISEQUENTIAL:
       //Semi-Sequential injection. Currently possible with 4, 6 and 8 cylinders. 5 cylinder is a special case
-      if( configPage2.nCylinders == 4 )
+      if( configPage2.nCylinders == 4U )
       {
         if(configPage4.inj4cylPairing == INJ_PAIR_13_24)
         {
@@ -550,20 +554,20 @@ static void setFuelScheduleCallbacks(void)
           setCallbacks(fuelSchedule2, openInjector2and3, closeInjector2and3);
         }
       }
-      else if( configPage2.nCylinders == 5 ) //This is similar to the paired injection but uses five injector outputs instead of four
+      else if( configPage2.nCylinders == 5U ) //This is similar to the paired injection but uses five injector outputs instead of four
       {
         setCallbacks(fuelSchedule1, openInjector1, closeInjector1);
         setCallbacks(fuelSchedule2, openInjector2, closeInjector2);
         setCallbacks(fuelSchedule3, openInjector3and5, closeInjector3and5);
         setCallbacks(fuelSchedule4, openInjector4, closeInjector4);
       }
-      else if( configPage2.nCylinders == 6 )
+      else if( configPage2.nCylinders == 6U )
       {
         setCallbacks(fuelSchedule1, openInjector1and4, closeInjector1and4);
         setCallbacks(fuelSchedule2, openInjector2and5, closeInjector2and5);
         setCallbacks(fuelSchedule3, openInjector3and6, closeInjector3and6);
       }
-      else if( configPage2.nCylinders == 8 )
+      else if( configPage2.nCylinders == 8U )
       {
         setCallbacks(fuelSchedule1, openInjector1and5, closeInjector1and5);
         setCallbacks(fuelSchedule2, openInjector2and6, closeInjector2and6);
@@ -621,22 +625,22 @@ static void initialiseFuelContext(void)
   if(configPage2.strokes == FOUR_STROKE)
   {
     //Default is 1 squirt per revolution, so we halve the given req-fuel figure (Which would be over 2 revolutions)
-    req_fuel_uS = req_fuel_uS / 2; //The req_fuel calculation above gives the total required fuel (At VE 100%) in the full cycle. If we're doing more than 1 squirt per cycle then we need to split the amount accordingly. (Note that in a non-sequential 4-stroke setup you cannot have less than 2 squirts as you cannot determine the stroke to make the single squirt on)
+    req_fuel_uS = req_fuel_uS / 2U; //The req_fuel calculation above gives the total required fuel (At VE 100%) in the full cycle. If we're doing more than 1 squirt per cycle then we need to split the amount accordingly. (Note that in a non-sequential 4-stroke setup you cannot have less than 2 squirts as you cannot determine the stroke to make the single squirt on)
   }
 
-  if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) && (configPage2.nCylinders<=INJ_CHANNELS))
+  if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) && (configPage2.nCylinders<=(uint8_t)INJ_CHANNELS))
   {
     CRANK_ANGLE_MAX_INJ = 720;
     currentStatus.nSquirts = 1;
-    req_fuel_uS = req_fuel_uS * 2;
+    req_fuel_uS = req_fuel_uS * 2U;
   }
   else
   {
     currentStatus.nSquirts = max(1, configPage2.nCylinders / configPage2.divider); //The number of squirts being requested. This is manually overridden below for sequential setups (Due to TS req_fuel calc limitations)
-    if ((configPage2.injLayout == INJ_SEQUENTIAL) && configPage2.nCylinders==3) {
+    if ((configPage2.injLayout == INJ_SEQUENTIAL) && configPage2.nCylinders==3U) {
       currentStatus.nSquirts = 1;
     }
-    CRANK_ANGLE_MAX_INJ = (configPage2.strokes == FOUR_STROKE ? 720 : 360) / currentStatus.nSquirts;
+    CRANK_ANGLE_MAX_INJ = (configPage2.strokes == FOUR_STROKE ? 720U : 360U) / currentStatus.nSquirts;
   }
   currentStatus.status3 |= currentStatus.nSquirts << BIT_STATUS3_NSQUIRTS1; //Top 3 bits of the status3 variable are the number of squirts. This must be done after the above section due to nSquirts being forced to 1 for sequential
 }
@@ -868,7 +872,7 @@ static void setIgnitionScheduleCallbacks(void)
 
   case IGN_MODE_WASTEDCOP:
       //Wasted COP mode. Note, most of the boards can only run this for 4-cyl only.
-      if( configPage2.nCylinders <= 3)
+      if( configPage2.nCylinders <= 3U)
       {
           //1-3 cylinder wasted COP is the same as regular wasted mode
         setCallbacks(ignitionSchedule1, beginCoil1Charge, endCoil1Charge);
@@ -876,7 +880,7 @@ static void setIgnitionScheduleCallbacks(void)
         setCallbacks(ignitionSchedule3, beginCoil3Charge, endCoil3Charge);
         setCallbacks(ignitionSchedule4, beginCoil4Charge, endCoil4Charge);          
       }
-      else if( configPage2.nCylinders == 4 )
+      else if( configPage2.nCylinders == 4U )
       {
         //Wasted COP mode for 4 cylinders. Ignition channels 1&3 and 2&4 are paired together
         setCallbacks(ignitionSchedule1, beginCoil1and3Charge, endCoil1and3Charge);
@@ -885,8 +889,8 @@ static void setIgnitionScheduleCallbacks(void)
         setCallbacks(ignitionSchedule3, nullCallback, nullCallback);
         setCallbacks(ignitionSchedule4, nullCallback, nullCallback);
       }
-      else if( configPage2.nCylinders == 6 )
-        {
+      else if( configPage2.nCylinders == 6U )
+      {
         //Wasted COP mode for 6 cylinders. Ignition channels 1&4, 2&5 and 3&6 are paired together
         setCallbacks(ignitionSchedule1, beginCoil1and4Charge, endCoil1and4Charge);
         setCallbacks(ignitionSchedule2, beginCoil2and5Charge, endCoil2and5Charge);
@@ -900,8 +904,8 @@ static void setIgnitionScheduleCallbacks(void)
         setCallbacks(ignitionSchedule6, nullCallback, nullCallback);
 #endif
       }
-      else if( configPage2.nCylinders == 8 )
-        {
+      else if( configPage2.nCylinders == 8U )
+      {
         //Wasted COP mode for 8 cylinders. Ignition channels 1&5, 2&6, 3&7 and 4&8 are paired together
         setCallbacks(ignitionSchedule1, beginCoil1and5Charge, endCoil1and5Charge);
         setCallbacks(ignitionSchedule2, beginCoil2and6Charge, endCoil2and6Charge);
@@ -1010,8 +1014,8 @@ static void initialiseIgnitionContext(void)
   CRANK_ANGLE_MAX_IGN = 360;
   if (configPage4.sparkMode == IGN_MODE_SEQUENTIAL)
   {
-    bool oddFireSequential = (configPage2.engineType == ODD_FIRE) && (configPage2.nCylinders<=2);
-    bool evenFireSequential = (configPage2.engineType == EVEN_FIRE) && (configPage2.nCylinders<=IGN_CHANNELS);
+    bool oddFireSequential = (configPage2.engineType == ODD_FIRE) && (configPage2.nCylinders<=2U);
+    bool evenFireSequential = (configPage2.engineType == EVEN_FIRE) && (configPage2.nCylinders<=(uint8_t)IGN_CHANNELS);
     if (oddFireSequential || evenFireSequential)
     {
       CRANK_ANGLE_MAX_IGN = 720;
@@ -1428,6 +1432,8 @@ void changeFullToHalfSync(void)
           setCallbacks(fuelSchedule4, openInjector4and8, closeInjector4and8);
           maxInjOutputs = 4;
           break;
+
+        default: break;
       }
     }
   }
@@ -1456,6 +1462,7 @@ void changeFullToHalfSync(void)
           setCallbacks(ignitionSchedule3, beginCoil3and7Charge, endCoil3and7Charge);
           setCallbacks(ignitionSchedule4, beginCoil4and8Charge, endCoil4and8Charge);
           break;
+        default: break;
       }
     }
   }

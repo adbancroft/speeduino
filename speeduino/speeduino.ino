@@ -52,24 +52,26 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 uint16_t req_fuel_uS = 0; /**< The required fuel variable (As calculated by TunerStudio) in uS */
 uint16_t inj_opentime_uS = 0;
 
-uint8_t ignitionChannelsOn; /**< The current state of the ignition system (on or off) */
-uint8_t ignitionChannelsPending = 0; /**< Any ignition channels that are pending injections before they are resumed */
-uint8_t fuelChannelsOn; /**< The current state of the fuel system (on or off) */
-uint32_t rollingCutLastRev = 0; /**< Tracks whether we're on the same or a different rev for the rolling cut */
-
 uint16_t staged_req_fuel_mult_pri = 0;
 uint16_t staged_req_fuel_mult_sec = 0;   
 #ifndef UNIT_TEST // Scope guard for unit testing
+
+static byte ignitionChannelsOn; /**< The current state of the ignition system (on or off) */
+static byte ignitionChannelsPending; /**< Any ignition channels that are pending injections before they are resumed */
+static byte fuelChannelsOn; /**< The current state of the fuel system (on or off) */
+static uint32_t rollingCutLastRev; /**< Tracks whether we're on the same or a different rev for the rolling cut */
+
 void setup(void)
 {
   currentStatus.initialisationComplete = false; //Tracks whether the initialiseAll() function has run completely
   initialiseAll();
 }
 
-inline void applyFuelTrimToPW(FuelSchedule &schedule, int16_t fuelLoad, int16_t RPM)
+static inline void applyFuelTrimToPW(FuelSchedule &schedule, int16_t fuelLoad, int16_t RPM)
 {
-    uint8_t pw1percent = 100 + get3DTableValue(&schedule.trimTable, fuelLoad, RPM) - OFFSET_FUELTRIM;
-    if (pw1percent != 100) { schedule.pw = div100((uint32_t)pw1percent * (uint32_t)schedule.pw); }
+    int16_t offset = (int16_t)get3DTableValue(&schedule.trimTable, fuelLoad, RPM) - (int16_t)OFFSET_FUELTRIM;
+    uint8_t pw1percent = (uint8_t)(100U + (uint8_t)offset);
+    if (pw1percent != 100U) { schedule.pw = percentage(pw1percent, schedule.pw); }
 }
 
 static inline void setIgnitionSchedule(IgnitionSchedule &schedule, uint8_t index, uint16_t crankAngle, uint16_t totalDwell) {
@@ -170,9 +172,9 @@ void __attribute__((always_inline)) loop(void)
       //Check for any CAN comms requiring action 
       #if defined(secondarySerial_AVAILABLE)
         //if can or secondary serial interface is enabled then check for requests.
-        if (configPage9.enable_secondarySerial == 1)  //secondary serial interface enabled
+        if (configPage9.enable_secondarySerial == 1U)  //secondary serial interface enabled
         {
-          if ( ((mainLoopCount & 31) == 1) || (secondarySerial.available() > SERIAL_BUFFER_THRESHOLD) )
+          if ( ((mainLoopCount & 31U) == 1U) || (secondarySerial.available() > SERIAL_BUFFER_THRESHOLD) )
           {
             if (secondarySerial.available() > 0)  { secondserial_Command(); }
           } 
@@ -240,13 +242,13 @@ void __attribute__((always_inline)) loop(void)
       //This is a safety check. If for some reason the interrupts have got screwed up (Leading to 0rpm), this resets them.
       //It can possibly be run much less frequently.
       //This should only be run if the high speed logger are off because it will change the trigger interrupts back to defaults rather than the logger versions
-      if( (currentStatus.toothLogEnabled == false) && (currentStatus.compositeTriggerUsed == 0) ) { initialiseTriggers(); }
+      if( (currentStatus.toothLogEnabled == false) && (currentStatus.compositeTriggerUsed == 0U) ) { initialiseTriggers(); }
 
       VVT1_PIN_LOW();
       VVT2_PIN_LOW();
       DISABLE_VVT_TIMER();
       boostDisable();
-      if(configPage4.ignBypassEnabled > 0) { digitalWrite(pinIgnBypass, LOW); } //Reset the ignition bypass ready for next crank attempt
+      if(configPage4.ignBypassEnabled > 0U) { digitalWrite(pinIgnBypass, LOW); } //Reset the ignition bypass ready for next crank attempt
     }
     //***Perform sensor reads***
     //-----------------------------------------------------------------------------------------------------
@@ -284,7 +286,7 @@ void __attribute__((always_inline)) loop(void)
       #if TPS_READ_FREQUENCY == 30
         readTPS();
       #endif
-      if (configPage2.canWBO == 0)
+      if (configPage2.canWBO == 0U)
       {
         readO2();
         readO2_2();
@@ -355,7 +357,7 @@ void __attribute__((always_inline)) loop(void)
       nitrousControl();
 
       //Lookup the current target idle RPM. This is aligned with coolant and so needs to be calculated at the same rate CLT is read
-      if( (configPage2.idleAdvEnabled >= 1) || (configPage6.iacAlgorithm != IAC_ALGORITHM_NONE) )
+      if( (configPage2.idleAdvEnabled >= 1U) || (configPage6.iacAlgorithm != IAC_ALGORITHM_NONE) )
       {
         currentStatus.CLIdleTarget = (byte)table2D_getValue(&idleTargetTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET); //All temps are offset by 40 degrees
         if(BIT_CHECK(currentStatus.airConStatus, BIT_AIRCON_TURNING_ON)) { currentStatus.CLIdleTarget += configPage15.airConIdleUpRPMAdder;  } //Adds Idle Up RPM amount if active
@@ -373,7 +375,7 @@ void __attribute__((always_inline)) loop(void)
       {
         //TODO dazq to clean this right up :)
         //check through the Aux input channels if enabled for Can or local use
-        for (byte AuxinChan = 0; AuxinChan <16 ; AuxinChan++)
+        for (byte AuxinChan = 0U; AuxinChan <16U ; AuxinChan++)
         {
           currentStatus.current_caninchannel = AuxinChan;          
           
@@ -423,6 +425,9 @@ void __attribute__((always_inline)) loop(void)
             //currentStatus.canin[14] = ((configPage9.Auxinpinb[currentStatus.current_caninchannel]&63)+1);  Dev test use only!127+1
             currentStatus.canin[currentStatus.current_caninchannel] = readAuxdigital((configPage9.Auxinpinb[currentStatus.current_caninchannel]&63)+1);
           } //Channel type
+          else {
+            // Unknown channel type - do nothing but keep MISRA happy
+          }
         } //For loop going through each channel
       } //aux channels are enabled
     } //4Hz timer
@@ -431,10 +436,10 @@ void __attribute__((always_inline)) loop(void)
       BIT_CLEAR(TIMER_mask, BIT_TIMER_1HZ);
       readBaro(); //Infrequent baro readings are not an issue.
 
-      if ( (configPage10.wmiEnabled > 0) && (configPage10.wmiIndicatorEnabled > 0) )
+      if ( (configPage10.wmiEnabled > 0U) && (configPage10.wmiIndicatorEnabled > 0U) )
       {
         // water tank empty
-        if (BIT_CHECK(currentStatus.status4, BIT_STATUS4_WMI_EMPTY) > 0)
+        if (BIT_CHECK(currentStatus.status4, BIT_STATUS4_WMI_EMPTY) != 0U)
         {
           // flash with 1sec interval
           digitalWrite(pinWMIIndicator, !digitalRead(pinWMIIndicator));
@@ -471,7 +476,7 @@ void __attribute__((always_inline)) loop(void)
 
     //Always check for sync
     //Main loop runs within this clause
-    if ((currentStatus.hasSync || BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC)) && (currentStatus.RPM > 0))
+    if ((currentStatus.hasSync || BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC)) && (currentStatus.RPM > 0U))
     {
         //Check whether running or cranking
         if(currentStatus.RPM > currentStatus.crankRPM) //Crank RPM in the config is stored as a x10. currentStatus.crankRPM is set in timers.ino and represents the true value
@@ -481,7 +486,7 @@ void __attribute__((always_inline)) loop(void)
           if( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
           {
             BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK);
-            if(configPage4.ignBypassEnabled > 0) { digitalWrite(pinIgnBypass, HIGH); }
+            if(configPage4.ignBypassEnabled > 0U) { digitalWrite(pinIgnBypass, HIGH); }
           }
         }
         else
@@ -492,10 +497,10 @@ void __attribute__((always_inline)) loop(void)
             BIT_SET(currentStatus.engine, BIT_ENGINE_CRANK);
             BIT_CLEAR(currentStatus.engine, BIT_ENGINE_RUN);
             currentStatus.runSecs = 0; //We're cranking (hopefully), so reset the engine run time to prompt ASE.
-            if(configPage4.ignBypassEnabled > 0) { digitalWrite(pinIgnBypass, LOW); }
+            if(configPage4.ignBypassEnabled > 0U) { digitalWrite(pinIgnBypass, LOW); }
 
             //Check whether the user has selected to disable to the fan during cranking
-            if(configPage2.fanWhenCranking == 0) { FAN_OFF(); }
+            if(configPage2.fanWhenCranking == 0U) { FAN_OFF(); }
           }
         }
       //END SETTING ENGINE STATUSES
@@ -511,17 +516,17 @@ void __attribute__((always_inline)) loop(void)
       //Manual adder for nitrous. These are not in correctionsFuel() because they are direct adders to the ms value, not % based
       if( (currentStatus.nitrous_status == NITROUS_STAGE1) || (currentStatus.nitrous_status == NITROUS_BOTH) )
       { 
-        int16_t adderRange = (configPage10.n2o_stage1_maxRPM - configPage10.n2o_stage1_minRPM) * 100;
-        int16_t adderPercent = ((currentStatus.RPM - (configPage10.n2o_stage1_minRPM * 100)) * 100) / adderRange; //The percentage of the way through the RPM range
-        adderPercent = 100 - adderPercent; //Flip the percentage as we go from a higher adder to a lower adder as the RPMs rise
-        fuelSchedule1.pw = fuelSchedule1.pw + (configPage10.n2o_stage1_adderMax + percentage(adderPercent, (configPage10.n2o_stage1_adderMin - configPage10.n2o_stage1_adderMax))) * 100; //Calculate the above percentage of the calculated ms value.
+        uint16_t adderRange = (configPage10.n2o_stage1_maxRPM - configPage10.n2o_stage1_minRPM) * 100U;
+        uint16_t adderPercent = ((currentStatus.RPM - (configPage10.n2o_stage1_minRPM * 100U)) * 100U) / adderRange; //The percentage of the way through the RPM range
+        adderPercent = 100U - adderPercent; //Flip the percentage as we go from a higher adder to a lower adder as the RPMs rise
+        fuelSchedule1.pw = fuelSchedule1.pw + (configPage10.n2o_stage1_adderMax + percentage(adderPercent, (configPage10.n2o_stage1_adderMin - configPage10.n2o_stage1_adderMax))) * 100U; //Calculate the above percentage of the calculated ms value.
       }
       if( (currentStatus.nitrous_status == NITROUS_STAGE2) || (currentStatus.nitrous_status == NITROUS_BOTH) )
       {
-        int16_t adderRange = (configPage10.n2o_stage2_maxRPM - configPage10.n2o_stage2_minRPM) * 100;
-        int16_t adderPercent = ((currentStatus.RPM - (configPage10.n2o_stage2_minRPM * 100)) * 100) / adderRange; //The percentage of the way through the RPM range
-        adderPercent = 100 - adderPercent; //Flip the percentage as we go from a higher adder to a lower adder as the RPMs rise
-        fuelSchedule1.pw = fuelSchedule1.pw + (configPage10.n2o_stage2_adderMax + percentage(adderPercent, (configPage10.n2o_stage2_adderMin - configPage10.n2o_stage2_adderMax))) * 100; //Calculate the above percentage of the calculated ms value.
+        uint16_t adderRange = (configPage10.n2o_stage2_maxRPM - configPage10.n2o_stage2_minRPM) * 100U;
+        uint16_t adderPercent = ((currentStatus.RPM - (configPage10.n2o_stage2_minRPM * 100U)) * 100U) / adderRange; //The percentage of the way through the RPM range
+        adderPercent = 100U - adderPercent; //Flip the percentage as we go from a higher adder to a lower adder as the RPMs rise
+        fuelSchedule1.pw = fuelSchedule1.pw + (configPage10.n2o_stage2_adderMax + percentage(adderPercent, (configPage10.n2o_stage2_adderMin - configPage10.n2o_stage2_adderMax))) * 100U; //Calculate the above percentage of the calculated ms value.
       }
 
       int injector1StartAngle = 0;
@@ -576,7 +581,7 @@ void __attribute__((always_inline)) loop(void)
           //injector2StartAngle = calculateInjector2StartAngle(PWdivTimerPerDegree);
           injector2StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule2.channelDegrees, currentStatus.injAngle);
           
-          if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0) )
+          if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0U) )
           {
             applyFuelTrimToPW(fuelSchedule1, currentStatus.fuelLoad, currentStatus.RPM);
             applyFuelTrimToPW(fuelSchedule2, currentStatus.fuelLoad, currentStatus.RPM);
@@ -585,9 +590,9 @@ void __attribute__((always_inline)) loop(void)
           {
             PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule3.pw); //Need to redo this for PW3 as it will be dramatically different to PW1 when staging
             injector3StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule1.channelDegrees, currentStatus.injAngle);
-            injector4StartAngle = injector3StartAngle + (CRANK_ANGLE_MAX_INJ / 2); //Phase this either 180 or 360 degrees out from inj3 (In reality this will always be 180 as you can't have sequential and staged currently)
+            injector4StartAngle = injector3StartAngle + (uint16_t)(CRANK_ANGLE_MAX_INJ / 2); //Phase this either 180 or 360 degrees out from inj3 (In reality this will always be 180 as you can't have sequential and staged currently)
 
-            if(injector4StartAngle > (uint16_t)CRANK_ANGLE_MAX_INJ) { injector4StartAngle -= CRANK_ANGLE_MAX_INJ; }
+            if(injector4StartAngle > (uint16_t)CRANK_ANGLE_MAX_INJ) { injector4StartAngle -= (uint16_t)CRANK_ANGLE_MAX_INJ; }
           }
           break;
         //3 cylinders
@@ -597,7 +602,7 @@ void __attribute__((always_inline)) loop(void)
           injector2StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule2.channelDegrees, currentStatus.injAngle);
           injector3StartAngle = calculateInjectorStartAngle(PWdivTimerPerDegree, fuelSchedule3.channelDegrees, currentStatus.injAngle);
           
-          if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0) )
+          if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0U) )
           {
             applyFuelTrimToPW(fuelSchedule1, currentStatus.fuelLoad, currentStatus.RPM);
             applyFuelTrimToPW(fuelSchedule2, currentStatus.fuelLoad, currentStatus.RPM);
@@ -645,7 +650,7 @@ void __attribute__((always_inline)) loop(void)
               }
             #endif
 
-            if(configPage6.fuelTrimEnabled > 0)
+            if(configPage6.fuelTrimEnabled > 0U)
             {
               applyFuelTrimToPW(fuelSchedule1, currentStatus.fuelLoad, currentStatus.RPM);
               applyFuelTrimToPW(fuelSchedule2, currentStatus.fuelLoad, currentStatus.RPM);
@@ -842,7 +847,7 @@ void __attribute__((always_inline)) loop(void)
       //Check each of the functions that has an RPM limit. Update the max allowed RPM if the function is active and has a lower RPM than already set
       if( checkEngineProtect() && (configPage4.engineProtectMaxRPM < maxAllowedRPM)) { maxAllowedRPM = configPage4.engineProtectMaxRPM; }
       if ( (currentStatus.launchingHard == true) && (configPage6.lnchHardLim < maxAllowedRPM) ) { maxAllowedRPM = configPage6.lnchHardLim; }
-      maxAllowedRPM = maxAllowedRPM * 100; //All of the above limits are divided by 100, convert back to RPM
+      maxAllowedRPM = maxAllowedRPM * 100U; //All of the above limits are divided by 100, convert back to RPM
       if ( (currentStatus.flatShiftingHard == true) && (currentStatus.clutchEngagedRPM < maxAllowedRPM) ) { maxAllowedRPM = currentStatus.clutchEngagedRPM; } //Flat shifting is a special case as the RPM limit is based on when the clutch was engaged. It is not divided by 100 as it is set with the actual RPM
     
       if( (configPage2.hardCutType == HARD_CUT_FULL) && (currentStatus.RPM > maxAllowedRPM) )
@@ -852,9 +857,9 @@ void __attribute__((always_inline)) loop(void)
         {
           case PROTECT_CUT_OFF:
             //Make sure all channels are turned on
-            ignitionChannelsOn = 0xFF;
-            fuelChannelsOn = 0xFF;
-            currentStatus.engineProtectStatus = 0;
+            ignitionChannelsOn = 0xFFU;
+            fuelChannelsOn = 0xFFU;
+            currentStatus.engineProtectStatus = 0U;
             break;
           case PROTECT_CUT_IGN:
             ignitionChannelsOn = 0;
@@ -874,16 +879,16 @@ void __attribute__((always_inline)) loop(void)
       } //Hard cut check
       else if( (configPage2.hardCutType == HARD_CUT_ROLLING) && (currentStatus.RPM > (maxAllowedRPM + (configPage15.rollingProtRPMDelta[0] * 10))) ) //Limit for rolling is the max allowed RPM minus the lowest value in the delta table (Delta values are negative!)
       { 
-        uint8_t revolutionsToCut = 1;
-        if(configPage2.strokes == FOUR_STROKE) { revolutionsToCut *= 2; } //4 stroke needs to cut for at least 2 revolutions
-        if( (configPage4.sparkMode != IGN_MODE_SEQUENTIAL) || (configPage2.injLayout != INJ_SEQUENTIAL) ) { revolutionsToCut *= 2; } //4 stroke and non-sequential will cut for 4 revolutions minimum. This is to ensure no half fuel ignition cycles take place
+        uint8_t revolutionsToCut = 1U;
+        if(configPage2.strokes == FOUR_STROKE) { revolutionsToCut *= 2U; } //4 stroke needs to cut for at least 2 revolutions
+        if( (configPage4.sparkMode != IGN_MODE_SEQUENTIAL) || (configPage2.injLayout != INJ_SEQUENTIAL) ) { revolutionsToCut *= 2U; } //4 stroke and non-sequential will cut for 4 revolutions minimum. This is to ensure no half fuel ignition cycles take place
 
-        if(rollingCutLastRev == 0) { rollingCutLastRev = currentStatus.startRevolutions; } //First time check
+        if(rollingCutLastRev == 0U) { rollingCutLastRev = currentStatus.startRevolutions; } //First time check
         if ( (currentStatus.startRevolutions >= (rollingCutLastRev + revolutionsToCut)) || (currentStatus.RPM > maxAllowedRPM) ) //If current RPM is over the max allowed RPM always cut, otherwise check if the required number of revolutions have passed since the last cut
         { 
-          uint8_t cutPercent = 0;
+          uint8_t cutPercent = 0U;
           int16_t rpmDelta = currentStatus.RPM - maxAllowedRPM;
-          if(rpmDelta >= 0) { cutPercent = 100; } //If the current RPM is over the max allowed RPM then cut is full (100%)
+          if(rpmDelta >= 0) { cutPercent = 100U; } //If the current RPM is over the max allowed RPM then cut is full (100%)
           else { cutPercent = table2D_getValue(&rollingCutTable, (rpmDelta / 10) ); } //
           
 
@@ -895,8 +900,8 @@ void __attribute__((always_inline)) loop(void)
               {
                 case PROTECT_CUT_OFF:
                   //Make sure all channels are turned on
-                  ignitionChannelsOn = 0xFF;
-                  fuelChannelsOn = 0xFF;
+                  ignitionChannelsOn = 0xFFU;
+                  fuelChannelsOn = 0xFFU;
                   break;
                 case PROTECT_CUT_IGN:
                   BIT_CLEAR(ignitionChannelsOn, x); //Turn off this ignition channel
@@ -923,7 +928,7 @@ void __attribute__((always_inline)) loop(void)
               //Turn fuel and ignition channels on
 
               //Special case for non-sequential, 4-stroke where both fuel and ignition are cut. The ignition pulses should wait 1 cycle after the fuel channels are turned back on before firing again
-              if( (revolutionsToCut == 4) &&                          //4 stroke and non-sequential
+              if( (revolutionsToCut == 4U) &&                          //4 stroke and non-sequential
                   (BIT_CHECK(fuelChannelsOn, x) == false) &&          //Fuel on this channel is currently off, meaning it is the first revolution after a cut
                   (configPage6.engineProtectType == PROTECT_CUT_BOTH) //Both fuel and ignition are cut
                 )
@@ -939,7 +944,7 @@ void __attribute__((always_inline)) loop(void)
 
         //Check whether there are any ignition channels that are waiting for injection pulses to occur before being turned back on. This can only occur when at least 2 revolutions have taken place since the fuel was turned back on
         //Note that ignitionChannelsPending can only be >0 on 4 stroke, non-sequential fuel when protect type is Both
-        if( (ignitionChannelsPending > 0) && (currentStatus.startRevolutions >= (rollingCutLastRev + 2)) )
+        if( (ignitionChannelsPending > 0U) && (currentStatus.startRevolutions >= (rollingCutLastRev + 2U)) )
         {
           ignitionChannelsOn = fuelChannelsOn;
           ignitionChannelsPending = 0;
@@ -984,9 +989,9 @@ void __attribute__((always_inline)) loop(void)
       //fixedCrankingOverride is used to extend the dwell during cranking so that the decoder can trigger the spark upon seeing a certain tooth. Currently only available on the basic distributor and 4g63 decoders.
       if ( configPage4.ignCranklock && BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) && (BIT_CHECK(decoderState, BIT_DECODER_HAS_FIXED_CRANKING)) )
       {
-        fixedCrankingOverride = currentStatus.dwell * 3;
+        fixedCrankingOverride = currentStatus.dwell * 3U;
         //This is a safety step to prevent the ignition start time occurring AFTER the target tooth pulse has already occurred. It simply moves the start time forward a little, which is compensated for by the increase in the dwell time
-        if(currentStatus.RPM < 250)
+        if(currentStatus.RPM < 250U)
         {
           ignitionSchedule1.chargeAngle -= 5;
           ignitionSchedule2.chargeAngle -= 5;
@@ -1008,7 +1013,7 @@ void __attribute__((always_inline)) loop(void)
       }
       else { fixedCrankingOverride = 0; }
 
-      if(ignitionChannelsOn > 0)
+      if(ignitionChannelsOn != 0U)
       {
         setIgnitionSchedules(ignitionLimits(getCrankAngle()), currentStatus.dwell + fixedCrankingOverride);
       } //Ignition schedules on
@@ -1277,7 +1282,7 @@ void calculateStaging(uint32_t pwLimit)
 {
   //Calculate staging pulsewidths if used
   //To run staged injection, the number of cylinders must be less than or equal to the injector channels (ie Assuming you're running paired injection, you need at least as many injector channels as you have cylinders, half for the primaries and half for the secondaries)
-  if( (configPage10.stagingEnabled == true) && (configPage2.nCylinders <= INJ_CHANNELS || configPage2.injType == INJ_TYPE_TBODY) && (fuelSchedule1.pw > inj_opentime_uS) ) //Final check is to ensure that DFCO isn't active, which would cause an overflow below (See #267)
+  if( (configPage10.stagingEnabled == true) && (configPage2.nCylinders <= (uint8_t)INJ_CHANNELS || configPage2.injType == INJ_TYPE_TBODY) && (fuelSchedule1.pw > inj_opentime_uS) ) //Final check is to ensure that DFCO isn't active, which would cause an overflow below (See #267)
   {
     //Scale the 'full' pulsewidth by each of the injector capacities
     fuelSchedule1.pw -= inj_opentime_uS; //Subtract the opening time from PW1 as it needs to be multiplied out again by the pri/sec req_fuel values below. It is added on again after that calculation. 
@@ -1478,7 +1483,7 @@ void calculateStaging(uint32_t pwLimit)
 
 }
 
-void checkLaunchAndFlatShift()
+void checkLaunchAndFlatShift(void)
 {
   //Check for launching/flat shift (clutch) based on the current and previous clutch states
   currentStatus.previousClutchTrigger = currentStatus.clutchTrigger;

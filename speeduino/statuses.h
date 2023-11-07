@@ -14,79 +14,79 @@
 using byte = uint8_t;
 
 //Define bit positions within engine variable
-#define BIT_ENGINE_RUN      0   // Engine running
-#define BIT_ENGINE_CRANK    1   // Engine cranking
-#define BIT_ENGINE_ASE      2   // after start enrichment (ASE)
-#define BIT_ENGINE_WARMUP   3   // Engine in warmup
-#define BIT_ENGINE_ACC      4   // in acceleration mode (TPS accel)
-#define BIT_ENGINE_DCC      5   // in deceleration mode
-#define BIT_ENGINE_MAPACC   6   // MAP acceleration mode
-#define BIT_ENGINE_MAPDCC   7   // MAP deceleration mode
+#define BIT_ENGINE_RUN      0U   // Engine running
+#define BIT_ENGINE_CRANK    1U   // Engine cranking
+#define BIT_ENGINE_ASE      2U   // after start enrichment (ASE)
+#define BIT_ENGINE_WARMUP   3U   // Engine in warmup
+#define BIT_ENGINE_ACC      4U   // in acceleration mode (TPS accel)
+#define BIT_ENGINE_DCC      5U   // in deceleration mode
+#define BIT_ENGINE_MAPACC   6U   // MAP acceleration mode
+#define BIT_ENGINE_MAPDCC   7U   // MAP deceleration mode
 
 // Bit masks for statuses::status1
-#define BIT_STATUS1_INJ1           0  //inj1
-#define BIT_STATUS1_INJ2           1  //inj2
-#define BIT_STATUS1_INJ3           2  //inj3
-#define BIT_STATUS1_INJ4           3  //inj4
-#define BIT_STATUS1_DFCO           4  //Deceleration fuel cutoff
-#define BIT_STATUS1_BOOSTCUT       5  //Fuel component of MAP based boost cut out
-#define BIT_STATUS1_TOOTHLOG1READY 6  //Used to flag if tooth log 1 is ready
-#define BIT_STATUS1_TOOTHLOG2READY 7  //Used to flag if tooth log 2 is ready (Log is not currently used)
+#define BIT_STATUS1_INJ1           0U  //inj1
+#define BIT_STATUS1_INJ2           1U  //inj2
+#define BIT_STATUS1_INJ3           2U  //inj3
+#define BIT_STATUS1_INJ4           3U  //inj4
+#define BIT_STATUS1_DFCO           4U  //Deceleration fuel cutoff
+#define BIT_STATUS1_BOOSTCUT       5U  //Fuel component of MAP based boost cut out
+#define BIT_STATUS1_TOOTHLOG1READY 6U  //Used to flag if tooth log 1 is ready
+#define BIT_STATUS1_TOOTHLOG2READY 7U  //Used to flag if tooth log 2 is ready (Log is not currently used)
 
 // Bit masks for statuses::status2
-#define BIT_STATUS2_HLAUNCH         0  //Hard Launch indicator
-#define BIT_STATUS2_SLAUNCH         1  //Soft Launch indicator
-#define BIT_STATUS2_HRDLIM          2  //Hard limiter indicator
-#define BIT_STATUS2_SFTLIM          3  //Soft limiter indicator
-#define BIT_STATUS2_BOOSTCUT        4  //Spark component of MAP based boost cut out
-#define BIT_STATUS2_ERROR           5  // Error is detected
-#define BIT_STATUS2_IDLE            6  // idle on
-#define BIT_STATUS2_SYNC            7  // Whether engine has sync or not
+#define BIT_STATUS2_HLAUNCH         0U  //Hard Launch indicator
+#define BIT_STATUS2_SLAUNCH         1U  //Soft Launch indicator
+#define BIT_STATUS2_HRDLIM          2U  //Hard limiter indicator
+#define BIT_STATUS2_SFTLIM          3U  //Soft limiter indicator
+#define BIT_STATUS2_BOOSTCUT        4U  //Spark component of MAP based boost cut out
+#define BIT_STATUS2_ERROR           5U  // Error is detected
+#define BIT_STATUS2_IDLE            6U  // idle on
+#define BIT_STATUS2_SYNC            7U  // Whether engine has sync or not
 
 // Bit masks for statuses::status3
-#define BIT_STATUS3_RESET_PREVENT 0 //Indicates whether reset prevention is enabled
-#define BIT_STATUS3_NITROUS       1
-#define BIT_STATUS3_FUEL2_ACTIVE  2
-#define BIT_STATUS3_VSS_REFRESH   3
-#define BIT_STATUS3_HALFSYNC      4 //shows if there is only sync from primary trigger, but not from secondary.
-#define BIT_STATUS3_NSQUIRTS1     5
-#define BIT_STATUS3_UNUSED1       6
-#define BIT_STATUS3_UNUSED2       7
+#define BIT_STATUS3_RESET_PREVENT 0U //Indicates whether reset prevention is enabled
+#define BIT_STATUS3_NITROUS       1U
+#define BIT_STATUS3_FUEL2_ACTIVE  2U
+#define BIT_STATUS3_VSS_REFRESH   3U
+#define BIT_STATUS3_HALFSYNC      4U //shows if there is only sync from primary trigger, but not from secondary.
+#define BIT_STATUS3_NSQUIRTS1     5U
+#define BIT_STATUS3_UNUSED1       6U
+#define BIT_STATUS3_UNUSED2       7U
 
 // Bit masks for statuses::status4
-#define BIT_STATUS4_WMI_EMPTY     0 //Indicates whether the WMI tank is empty
-#define BIT_STATUS4_VVT1_ERROR    1 //VVT1 cam angle within limits or not
-#define BIT_STATUS4_VVT2_ERROR    2 //VVT2 cam angle within limits or not
-#define BIT_STATUS4_FAN           3 //Fan Status
-#define BIT_STATUS4_BURNPENDING   4
-#define BIT_STATUS4_STAGING_ACTIVE 5
-#define BIT_STATUS4_COMMS_COMPAT  6
-#define BIT_STATUS4_ALLOW_LEGACY_COMMS       7
+#define BIT_STATUS4_WMI_EMPTY     0U //Indicates whether the WMI tank is empty
+#define BIT_STATUS4_VVT1_ERROR    1U //VVT1 cam angle within limits or not
+#define BIT_STATUS4_VVT2_ERROR    2U //VVT2 cam angle within limits or not
+#define BIT_STATUS4_FAN           3U //Fan Status
+#define BIT_STATUS4_BURNPENDING   4U
+#define BIT_STATUS4_STAGING_ACTIVE 5U
+#define BIT_STATUS4_COMMS_COMPAT  6U
+#define BIT_STATUS4_ALLOW_LEGACY_COMMS       7U
 
 // Bit masks for statuses::status5
-#define BIT_STATUS5_FLATSH         0  //Flat shift hard cut
-#define BIT_STATUS5_FLATSS         1  //Flat shift soft cut
-#define BIT_STATUS5_SPARK2_ACTIVE  2
-#define BIT_STATUS5_KNOCK_ACTIVE   3
-#define BIT_STATUS5_KNOCK_PULSE    4
-#define BIT_STATUS5_UNUSED6        5
-#define BIT_STATUS5_UNUSED7        6
-#define BIT_STATUS5_UNUSED8        7
+#define BIT_STATUS5_FLATSH         0U  //Flat shift hard cut
+#define BIT_STATUS5_FLATSS         1U  //Flat shift soft cut
+#define BIT_STATUS5_SPARK2_ACTIVE  2U
+#define BIT_STATUS5_KNOCK_ACTIVE   3U
+#define BIT_STATUS5_KNOCK_PULSE    4U
+#define BIT_STATUS5_UNUSED6        5U
+#define BIT_STATUS5_UNUSED7        6U
+#define BIT_STATUS5_UNUSED8        7U
 
-#define BIT_AIRCON_REQUEST        0 //Indicates whether the A/C button is pressed
-#define BIT_AIRCON_COMPRESSOR     1 //Indicates whether the A/C compressor is running
-#define BIT_AIRCON_RPM_LOCKOUT    2 //Indicates the A/C is locked out due to the RPM being too high/low, or the post-high/post-low-RPM "stand-down" lockout period
-#define BIT_AIRCON_TPS_LOCKOUT    3 //Indicates the A/C is locked out due to high TPS, or the post-high-TPS "stand-down" lockout period
-#define BIT_AIRCON_TURNING_ON     4 //Indicates the A/C request is on (i.e. A/C button pressed), the lockouts are off, however the start delay has not yet elapsed. This gives the idle up time to kick in before the compressor.
-#define BIT_AIRCON_CLT_LOCKOUT    5 //Indicates the A/C is locked out either due to high coolant temp.
-#define BIT_AIRCON_FAN            6 //Indicates whether the A/C fan is running
-#define BIT_AIRCON_UNUSED8        7
+#define BIT_AIRCON_REQUEST        0U //Indicates whether the A/C button is pressed
+#define BIT_AIRCON_COMPRESSOR     1U //Indicates whether the A/C compressor is running
+#define BIT_AIRCON_RPM_LOCKOUT    2U //Indicates the A/C is locked out due to the RPM being too high/low, or the post-high/post-low-RPM "stand-down" lockout period
+#define BIT_AIRCON_TPS_LOCKOUT    3U //Indicates the A/C is locked out due to high TPS, or the post-high-TPS "stand-down" lockout period
+#define BIT_AIRCON_TURNING_ON     4U //Indicates the A/C request is on (i.e. A/C button pressed), the lockouts are off, however the start delay has not yet elapsed. This gives the idle up time to kick in before the compressor.
+#define BIT_AIRCON_CLT_LOCKOUT    5U //Indicates the A/C is locked out either due to high coolant temp.
+#define BIT_AIRCON_FAN            6U //Indicates whether the A/C fan is running
+#define BIT_AIRCON_UNUSED8        7U
 
-#define ENGINE_PROTECT_BIT_RPM  0
-#define ENGINE_PROTECT_BIT_MAP  1
-#define ENGINE_PROTECT_BIT_OIL  2
-#define ENGINE_PROTECT_BIT_AFR  3
-#define ENGINE_PROTECT_BIT_COOLANT 4
+#define ENGINE_PROTECT_BIT_RPM  0U
+#define ENGINE_PROTECT_BIT_MAP  1U
+#define ENGINE_PROTECT_BIT_OIL  2U
+#define ENGINE_PROTECT_BIT_AFR  3U
+#define ENGINE_PROTECT_BIT_COOLANT 4U
 
 /** @brief The status struct with current values for all 'live' variables.
 * 
