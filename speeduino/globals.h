@@ -201,14 +201,14 @@
 #define BIT_STATUS3_NSQUIRTS2     6
 #define BIT_STATUS3_NSQUIRTS3     7
 
-#define BIT_STATUS4_WMI_EMPTY     0 //Indicates whether the WMI tank is empty
-#define BIT_STATUS4_VVT1_ERROR    1 //VVT1 cam angle within limits or not
-#define BIT_STATUS4_VVT2_ERROR    2 //VVT2 cam angle within limits or not
-#define BIT_STATUS4_FAN           3 //Fan Status
-#define BIT_STATUS4_BURNPENDING   4
-#define BIT_STATUS4_STAGING_ACTIVE 5
-#define BIT_STATUS4_COMMS_COMPAT  6
-#define BIT_STATUS4_ALLOW_LEGACY_COMMS       7
+#define BIT_STATUS4_WMI_EMPTY     0U //Indicates whether the WMI tank is empty
+#define BIT_STATUS4_VVT1_ERROR    1U //VVT1 cam angle within limits or not
+#define BIT_STATUS4_VVT2_ERROR    2U //VVT2 cam angle within limits or not
+#define BIT_STATUS4_FAN           3U //Fan Status
+#define BIT_STATUS4_BURNPENDING   4U
+#define BIT_STATUS4_STAGING_ACTIVE 5U
+#define BIT_STATUS4_COMMS_COMPAT  6U
+#define BIT_STATUS4_ALLOW_LEGACY_COMMS       7U
 
 #define BIT_AIRCON_REQUEST        0 //Indicates whether the A/C button is pressed
 #define BIT_AIRCON_COMPRESSOR     1 //Indicates whether the A/C compressor is running
@@ -223,9 +223,9 @@
 #define VALID_MAP_MIN 2 //The smallest ADC value that is valid for the MAP sensor
 
 #ifndef UNIT_TEST 
-#define TOOTH_LOG_SIZE      127
+#define TOOTH_LOG_SIZE      127U
 #else
-#define TOOTH_LOG_SIZE      1
+#define TOOTH_LOG_SIZE      1U
 #endif
 
 #define O2_CALIBRATION_PAGE   2U
@@ -244,16 +244,16 @@
 #define EGO_TYPE_NARROW   1
 #define EGO_TYPE_WIDE     2
 
-#define INJ_TYPE_PORT 0
-#define INJ_TYPE_TBODY 1
+#define INJ_TYPE_PORT 0U
+#define INJ_TYPE_TBODY 1U
 
-#define INJ_PAIRED 0
-#define INJ_SEMISEQUENTIAL 1
-#define INJ_BANKED          2
-#define INJ_SEQUENTIAL      3
+#define INJ_PAIRED 0U
+#define INJ_SEMISEQUENTIAL 1U
+#define INJ_BANKED          2U
+#define INJ_SEQUENTIAL      3U
 
-#define INJ_PAIR_13_24      0
-#define INJ_PAIR_14_23      1
+#define INJ_PAIR_13_24      0U
+#define INJ_PAIR_14_23      1U
 
 #define OUTPUT_CONTROL_DIRECT   0
 #define OUTPUT_CONTROL_MC33810  10
@@ -270,9 +270,9 @@
 #define SEC_TRIGGER_5_3_2   3
 #define SEC_TRIGGER_TOYOTA_3  4
 
-#define ROTARY_IGN_FC       0
-#define ROTARY_IGN_FD       1
-#define ROTARY_IGN_RX8      2
+#define ROTARY_IGN_FC       0U
+#define ROTARY_IGN_FD       1U
+#define ROTARY_IGN_RX8      2U
 
 #define BOOST_MODE_SIMPLE   0
 #define BOOST_MODE_FULL     1
@@ -285,11 +285,11 @@
 #define WMI_MODE_OPENLOOP     2
 #define WMI_MODE_CLOSEDLOOP   3
 
-#define HARD_CUT_FULL       0
-#define HARD_CUT_ROLLING    1
+#define HARD_CUT_FULL       0U
+#define HARD_CUT_ROLLING    1U
 
-#define EVEN_FIRE           0
-#define ODD_FIRE            1
+#define EVEN_FIRE           0U
+#define ODD_FIRE            1U
 
 #define EGO_ALGORITHM_SIMPLE  0
 #define EGO_ALGORITHM_PID     2
@@ -297,10 +297,10 @@
 #define STAGING_MODE_TABLE  0
 #define STAGING_MODE_AUTO   1
 
-#define NITROUS_OFF         0
-#define NITROUS_STAGE1      1
-#define NITROUS_STAGE2      2
-#define NITROUS_BOTH        3
+#define NITROUS_OFF         0U
+#define NITROUS_STAGE1      1U
+#define NITROUS_STAGE2      2U
+#define NITROUS_BOTH        3U
 
 #define PROTECT_CUT_OFF     0
 #define PROTECT_CUT_IGN     1
@@ -340,10 +340,10 @@
 #define SPARK2_CONDITION_TPS 2
 #define SPARK2_CONDITION_ETH 3
 
-#define RESET_CONTROL_DISABLED             0
-#define RESET_CONTROL_PREVENT_WHEN_RUNNING 1
-#define RESET_CONTROL_PREVENT_ALWAYS       2
-#define RESET_CONTROL_SERIAL_COMMAND       3
+#define RESET_CONTROL_DISABLED             0U
+#define RESET_CONTROL_PREVENT_WHEN_RUNNING 1U
+#define RESET_CONTROL_PREVENT_ALWAYS       2U
+#define RESET_CONTROL_SERIAL_COMMAND       3U
 
 #define OPEN_LOOP_BOOST     0
 #define CLOSED_LOOP_BOOST   1
@@ -370,23 +370,23 @@
 #define BATTV_COR_MODE_WHOLE 0
 #define BATTV_COR_MODE_OPENTIME 1
 
-#define INJ1_CMD_BIT      0
-#define INJ2_CMD_BIT      1
-#define INJ3_CMD_BIT      2
-#define INJ4_CMD_BIT      3
-#define INJ5_CMD_BIT      4
-#define INJ6_CMD_BIT      5
-#define INJ7_CMD_BIT      6
-#define INJ8_CMD_BIT      7
+#define INJ1_CMD_BIT      0U
+#define INJ2_CMD_BIT      1U
+#define INJ3_CMD_BIT      2U
+#define INJ4_CMD_BIT      3U
+#define INJ5_CMD_BIT      4U
+#define INJ6_CMD_BIT      5U
+#define INJ7_CMD_BIT      6U
+#define INJ8_CMD_BIT      7U
 
-#define IGN1_CMD_BIT      0
-#define IGN2_CMD_BIT      1
-#define IGN3_CMD_BIT      2
-#define IGN4_CMD_BIT      3
-#define IGN5_CMD_BIT      4
-#define IGN6_CMD_BIT      5
-#define IGN7_CMD_BIT      6
-#define IGN8_CMD_BIT      7
+#define IGN1_CMD_BIT      0U
+#define IGN2_CMD_BIT      1U
+#define IGN3_CMD_BIT      2U
+#define IGN4_CMD_BIT      3U
+#define IGN5_CMD_BIT      4U
+#define IGN6_CMD_BIT      5U
+#define IGN7_CMD_BIT      6U
+#define IGN8_CMD_BIT      7U
 
 #define ENGINE_PROTECT_BIT_RPM  0
 #define ENGINE_PROTECT_BIT_MAP  1

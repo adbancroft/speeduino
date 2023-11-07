@@ -13,7 +13,7 @@
 #define SPEEDUINO_H
 //#include "globals.h"
 
-#define CRANK_RUN_HYSTER    15
+#define CRANK_RUN_HYSTER    15U
 
 void setup(void);
 void loop(void);
