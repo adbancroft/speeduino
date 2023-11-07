@@ -62,7 +62,7 @@ static inline uint32_t _calculateInjectorTimeout(const FuelSchedule &schedule, i
 }
 
 static inline int16_t _calculateSparkAngle(const IgnitionSchedule &schedule, int8_t advance) {
-  int16_t angle = (schedule.channelDegrees==0 ? CRANK_ANGLE_MAX_IGN : schedule.channelDegrees) - advance;
+  int16_t angle = (schedule.channelDegrees==0U ? CRANK_ANGLE_MAX_IGN : (int16_t)schedule.channelDegrees) - advance;
   if(angle > CRANK_ANGLE_MAX_IGN) {angle -= CRANK_ANGLE_MAX_IGN;}
   return angle;
 }
