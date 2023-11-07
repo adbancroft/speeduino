@@ -230,8 +230,8 @@ struct IgnitionSchedule : public Schedule {
 
   volatile uint32_t _startTime; /**< The system time (in uS) that the schedule started, used by the overdwell protection in timers.ino */
   int16_t chargeAngle;        ///< Angle the coil should begin charging.
-  int16_t dischargeAngle;          ///< Angle the coil should discharge at. I.e. spark.
-  int16_t channelDegrees;    ///< The number of crank degrees until cylinder is at TDC  
+  int16_t dischargeAngle;     ///< Angle the coil should discharge at. I.e. spark.
+  uint16_t channelDegrees;     ///< The number of crank degrees until cylinder is at TDC  
 };
 
 /// @cond 
@@ -327,7 +327,7 @@ struct FuelSchedule : public Schedule {
 
   using Schedule::Schedule;
 
-  int16_t channelDegrees;      ///< The number of crank degrees until cylinder is at TDC  
+  uint16_t channelDegrees;      ///< The number of crank degrees until cylinder is at TDC  
   uint16_t pw;                 ///< Pulse width in uS
   table3d6RpmLoad trimTable;   ///< 6x6 Fuel trim map
 };
