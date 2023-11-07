@@ -168,7 +168,7 @@ static SCHEDULE_INLINE bool isRunning(const Schedule &schedule) {
   // Using flags and bitwise AND (&) to check multiple states is much quicker
   // than a logical or (||) (one less branch & 30% less instructions)
   static constexpr uint8_t flags = RUNNING | RUNNING_WITHNEXT;
-  return (bool)(schedule._status & flags);
+  return ((byte)schedule._status & flags)!=0U;
 }
 
 /// @cond 
@@ -204,7 +204,7 @@ void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidC
  */
 static SCHEDULE_INLINE bool isPending(const Schedule &schedule) {
   static constexpr uint8_t flags = PENDING | PENDING_WITH_OVERRIDE;
-  return (bool)(schedule._status & flags);
+  return ((byte)schedule._status & flags)!=0U;
 }
 
 /** @brief An ignition schedule.

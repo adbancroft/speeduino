@@ -56,7 +56,7 @@ uint8_t random1to100(void);
  * @param d The divisor (an integer)
  * @param t The type of the result. E.g. uint16_t
  */
-#define DIV_ROUND_CORRECT(d, t) ((t)(((d)>>1U)+(t)DIV_ROUND_BEHAVIOR))
+#define DIV_ROUND_CORRECT(d, t) ((t)(((d)>>(t)1U)+(t)DIV_ROUND_BEHAVIOR))
 ///@}
 
 /**
