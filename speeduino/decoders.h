@@ -4,9 +4,9 @@
 #include "globals.h"
 
 #if defined(CORE_AVR)
-  #define READ_PRI_TRIGGER() ((*triggerPri_pin_port & triggerPri_pin_mask) ? true : false)
-  #define READ_SEC_TRIGGER() ((*triggerSec_pin_port & triggerSec_pin_mask) ? true : false)
-  #define READ_THIRD_TRIGGER() ((*triggerThird_pin_port & triggerThird_pin_mask) ? true : false)
+  #define READ_PRI_TRIGGER() readPin(triggerPri_pin_port)
+  #define READ_SEC_TRIGGER() readPin(triggerSec_pin_port)
+  #define READ_THIRD_TRIGGER() readPin(triggerThird_pin_port)
 #else
   #define READ_PRI_TRIGGER() digitalRead(pinTrigger)
   #define READ_SEC_TRIGGER() digitalRead(pinTrigger2)
