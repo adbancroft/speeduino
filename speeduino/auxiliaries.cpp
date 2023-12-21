@@ -27,26 +27,16 @@ volatile char nextVVT;
 byte boostCounter;
 byte vvtCounter;
 
-volatile PORT_TYPE *boost_pin_port;
-volatile PINMASK_TYPE boost_pin_mask;
-volatile PORT_TYPE *n2o_stage1_pin_port;
-volatile PINMASK_TYPE n2o_stage1_pin_mask;
-volatile PORT_TYPE *n2o_stage2_pin_port;
-volatile PINMASK_TYPE n2o_stage2_pin_mask;
-volatile PORT_TYPE *n2o_arming_pin_port;
-volatile PINMASK_TYPE n2o_arming_pin_mask;
-volatile PORT_TYPE *aircon_comp_pin_port;
-volatile PINMASK_TYPE aircon_comp_pin_mask;
-volatile PORT_TYPE *aircon_fan_pin_port;
-volatile PINMASK_TYPE aircon_fan_pin_mask;
-volatile PORT_TYPE *aircon_req_pin_port;
-volatile PINMASK_TYPE aircon_req_pin_mask;
-volatile PORT_TYPE *vvt1_pin_port;
-volatile PINMASK_TYPE vvt1_pin_mask;
-volatile PORT_TYPE *vvt2_pin_port;
-volatile PINMASK_TYPE vvt2_pin_mask;
-volatile PORT_TYPE *fan_pin_port;
-volatile PINMASK_TYPE fan_pin_mask;
+ioPort boost_pin_port;
+ioPort n2o_stage1_pin_port;
+ioPort n2o_stage2_pin_port;
+ioPort n2o_arming_pin_port;
+ioPort aircon_comp_pin_port;
+ioPort aircon_fan_pin_port;
+ioPort aircon_req_pin_port;
+ioPort vvt1_pin_port;
+ioPort vvt2_pin_port;
+ioPort fan_pin_port;
 
 #if defined(PWM_FAN_AVAILABLE)//PWM fan not available on Arduino MEGA
 volatile bool fan_pwm_state;
@@ -107,17 +97,14 @@ void initialiseAirCon(void)
     BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_TURNING_ON);  // Bit 4
     BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_CLT_LOCKOUT); // Bit 5
     BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_FAN);         // Bit 6
-    aircon_req_pin_port = portInputRegister(digitalPinToPort(pinAirConRequest));
-    aircon_req_pin_mask = digitalPinToBitMask(pinAirConRequest);
-    aircon_comp_pin_port = portOutputRegister(digitalPinToPort(pinAirConComp));
-    aircon_comp_pin_mask = digitalPinToBitMask(pinAirConComp);
+    aircon_req_pin_port = pinToInputPort(pinAirConRequest, (configPage15.airConReqPol == 1 ? INPUT : INPUT_PULLUP));
+    aircon_comp_pin_port = pinToOutputPort(pinAirConComp);
 
     AIRCON_OFF();
 
     if((configPage15.airConFanEnabled > 0) && (pinAirConFan != 0))
     {
-      aircon_fan_pin_port = portOutputRegister(digitalPinToPort(pinAirConFan));
-      aircon_fan_pin_mask = digitalPinToBitMask(pinAirConFan);
+      aircon_fan_pin_port = pinToOutputPort(pinAirConFan);
       AIRCON_FAN_OFF();
       acStandAloneFanIsEnabled = true;
     }
@@ -218,9 +205,7 @@ bool READ_AIRCON_REQUEST(void)
     return false;
   }
   // Read the status of the A/C request pin (A/C button), taking into account the pin's polarity
-  bool acReqPinStatus = ( ((configPage15.airConReqPol)==1) ? 
-                             !!(*aircon_req_pin_port & aircon_req_pin_mask) :
-                             !(*aircon_req_pin_port & aircon_req_pin_mask));
+  bool acReqPinStatus = readPin(aircon_req_pin_port)==(configPage15.airConReqPol==1 ? HIGH : LOW);
   BIT_WRITE(currentStatus.airConStatus, BIT_AIRCON_REQUEST, acReqPinStatus);
   return acReqPinStatus;
 }
@@ -315,8 +300,7 @@ Fan control
 */
 void initialiseFan(void)
 {
-  fan_pin_port = portOutputRegister(digitalPinToPort(pinFan));
-  fan_pin_mask = digitalPinToBitMask(pinFan);
+  fan_pin_port = pinToOutputPort(pinFan);
   FAN_OFF();  //Initialise program with the fan in the off state
   BIT_CLEAR(currentStatus.status4, BIT_STATUS4_FAN);
   currentStatus.fanDuty = 0;
@@ -448,18 +432,11 @@ void fanControl(void)
 
 void initialiseAuxPWM(void)
 {
-  boost_pin_port = portOutputRegister(digitalPinToPort(pinBoost));
-  boost_pin_mask = digitalPinToBitMask(pinBoost);
-  vvt1_pin_port = portOutputRegister(digitalPinToPort(pinVVT_1));
-  vvt1_pin_mask = digitalPinToBitMask(pinVVT_1);
-  vvt2_pin_port = portOutputRegister(digitalPinToPort(pinVVT_2));
-  vvt2_pin_mask = digitalPinToBitMask(pinVVT_2);
-  n2o_stage1_pin_port = portOutputRegister(digitalPinToPort(configPage10.n2o_stage1_pin));
-  n2o_stage1_pin_mask = digitalPinToBitMask(configPage10.n2o_stage1_pin);
-  n2o_stage2_pin_port = portOutputRegister(digitalPinToPort(configPage10.n2o_stage2_pin));
-  n2o_stage2_pin_mask = digitalPinToBitMask(configPage10.n2o_stage2_pin);
-  n2o_arming_pin_port = portInputRegister(digitalPinToPort(configPage10.n2o_arming_pin));
-  n2o_arming_pin_mask = digitalPinToBitMask(configPage10.n2o_arming_pin);
+  boost_pin_port = pinToOutputPort(pinBoost);
+  vvt1_pin_port = pinToOutputPort(pinVVT_1);
+  vvt2_pin_port = pinToOutputPort(pinVVT_2);
+  n2o_stage1_pin_port = pinToOutputPort(configPage10.n2o_stage1_pin);
+  n2o_stage2_pin_port = pinToOutputPort(configPage10.n2o_stage2_pin);
 
   //This is a safety check that will be true if the board is uninitialised. This prevents hangs on a new board that could otherwise try to write to an invalid pin port/mask (Without this a new Teensy 4.x hangs on startup)
   //The n2o_minTPS variable is capped at 100 by TS, so 255 indicates a new board.
@@ -468,8 +445,7 @@ void initialiseAuxPWM(void)
   if(configPage10.n2o_enable > 0)
   {
     //The pin modes are only set if the if n2o is enabled to prevent them conflicting with other outputs. 
-    if(configPage10.n2o_pin_polarity == 1) { pinMode(configPage10.n2o_arming_pin, INPUT_PULLUP); }
-    else { pinMode(configPage10.n2o_arming_pin, INPUT); }
+    n2o_arming_pin_port = pinToInputPort(configPage10.n2o_arming_pin,(configPage10.n2o_pin_polarity == 1 ? INPUT_PULLUP : INPUT));
   }
 
   boostPID.SetOutputLimits(configPage2.boostMinDuty, configPage2.boostMaxDuty);
@@ -902,8 +878,8 @@ void vvtControl(void)
         if( (currentStatus.vvt1Duty == 0) && (currentStatus.vvt2Duty == 0) )
         {
           //Make sure solenoid is off (0% duty)
-          VVT1_PIN_OFF();
-          VVT2_PIN_OFF();
+          VVT1_OFF();
+          VVT2_OFF();
           vvt1_pwm_state = false;
           vvt1_max_pwm = false;
           vvt2_pwm_state = false;
@@ -913,8 +889,8 @@ void vvtControl(void)
         else if( (currentStatus.vvt1Duty >= 200) && (currentStatus.vvt2Duty >= 200) )
         {
           //Make sure solenoid is on (100% duty)
-          VVT1_PIN_ON();
-          VVT2_PIN_ON();
+          VVT1_ON();
+          VVT2_ON();
           vvt1_pwm_state = true;
           vvt1_max_pwm = true;
           vvt2_pwm_state = true;
@@ -934,14 +910,14 @@ void vvtControl(void)
         if( currentStatus.vvt1Duty == 0 )
         {
           //Make sure solenoid is off (0% duty)
-          VVT1_PIN_OFF();
+          VVT1_OFF();
           vvt1_pwm_state = false;
           vvt1_max_pwm = false;
         }
         else if( currentStatus.vvt1Duty >= 200 )
         {
           //Make sure solenoid is on (100% duty)
-          VVT1_PIN_ON();
+          VVT1_ON();
           vvt1_pwm_state = true;
           vvt1_max_pwm = true;
         }
@@ -1152,18 +1128,18 @@ void boostDisable(void)
     if( (vvt1_pwm_value > 0) && (vvt1_max_pwm == false) ) //Don't toggle if at 0%
     {
       #if defined(CORE_TEENSY41)
-      VVT1_PIN_OFF();
+      VVT1_OFF();
       #else
-      VVT1_PIN_ON();
+      VVT1_ON();
       #endif
       vvt1_pwm_state = true;
     }
     if( (vvt2_pwm_value > 0) && (vvt2_max_pwm == false) ) //Don't toggle if at 0%
     {
       #if defined(CORE_TEENSY41)
-      VVT2_PIN_OFF();
+      VVT2_OFF();
       #else
-      VVT2_PIN_ON();
+      VVT2_ON();
       #endif
       vvt2_pwm_state = true;
     }
@@ -1192,9 +1168,9 @@ void boostDisable(void)
       if(vvt1_pwm_value < (long)vvt_pwm_max_count) //Don't toggle if at 100%
       {
         #if defined(CORE_TEENSY41)
-        VVT1_PIN_ON();
+        VVT1_ON();
         #else
-        VVT1_PIN_OFF();
+        VVT1_OFF();
         #endif
         vvt1_pwm_state = false;
         vvt1_max_pwm = false;
@@ -1213,9 +1189,9 @@ void boostDisable(void)
       if(vvt2_pwm_value < (long)vvt_pwm_max_count) //Don't toggle if at 100%
       {
         #if defined(CORE_TEENSY41)
-        VVT2_PIN_ON();
+        VVT2_ON();
         #else
-        VVT2_PIN_OFF();
+        VVT2_OFF();
         #endif
         vvt2_pwm_state = false;
         vvt2_max_pwm = false;
@@ -1234,9 +1210,9 @@ void boostDisable(void)
       if(vvt1_pwm_value < (long)vvt_pwm_max_count) //Don't toggle if at 100%
       {
        #if defined(CORE_TEENSY41)
-        VVT1_PIN_ON();
+        VVT1_ON();
         #else
-        VVT1_PIN_OFF();
+        VVT1_OFF();
         #endif
         vvt1_pwm_state = false;
         vvt1_max_pwm = false;
@@ -1246,9 +1222,9 @@ void boostDisable(void)
       if(vvt2_pwm_value < (long)vvt_pwm_max_count) //Don't toggle if at 100%
       {
         #if defined(CORE_TEENSY41)
-        VVT2_PIN_ON();
+        VVT2_ON();
         #else
-        VVT2_PIN_OFF();
+        VVT2_OFF();
         #endif
         vvt2_pwm_state = false;
         vvt2_max_pwm = false;
