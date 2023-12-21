@@ -33,7 +33,7 @@ extern volatile unsigned long flexStartTime;
 extern volatile unsigned long flexPulseWidth;
 
 #if defined(CORE_AVR)
-  #define READ_FLEX() ((*flex_pin_port & flex_pin_mask) ? true : false)
+  #define READ_FLEX() (readPin(flex_pin_port)==HIGH)
 #else
   #define READ_FLEX() digitalRead(pinFlex)
 #endif

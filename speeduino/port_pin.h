@@ -53,8 +53,7 @@ static inline ioPort nullIoPort(void) {
 ioPort pinToOutputPort(uint8_t pin);
 
 /** Create & register a direct manipulation port */
-ioPort pinToInputPort(uint8_t pin);
-
+ioPort pinToInputPort(uint8_t pin, uint8_t inputMode=INPUT /* INPUT or INPUT_PULLUP*/);
 
 /** @brief Set an output pin low */
 static CRITICAL_INLINE void setPin_Low(ioPort &port) {
