@@ -4,6 +4,7 @@
 #include "globals.h"
 #include "table2d.h"
 #include "board_definition.h"
+#include "port_pin.h"
 
 #define IAC_ALGORITHM_NONE    0U
 #define IAC_ALGORITHM_ONOFF   1U
@@ -13,11 +14,6 @@
 #define IAC_ALGORITHM_STEP_CL 5U
 #define IAC_ALGORITHM_PWM_OLCL  6U //Openloop plus closedloop IAC control
 #define IAC_ALGORITHM_STEP_OLCL  7U //Openloop plus closedloop IAC control
-
-#define IDLE_PIN_LOW()  *idle_pin_port &= ~(idle_pin_mask)
-#define IDLE_PIN_HIGH() *idle_pin_port |= (idle_pin_mask)
-#define IDLE2_PIN_LOW()  *idle2_pin_port &= ~(idle2_pin_mask)
-#define IDLE2_PIN_HIGH() *idle2_pin_port |= (idle2_pin_mask)
 
 #define STEPPER_FORWARD 0
 #define STEPPER_BACKWARD 1

@@ -10,9 +10,9 @@ ioPort pinToOutputPort(uint8_t pin) {
 }
 
 /** Create & register a direct manipulation port */
-ioPort pinToInputPort(uint8_t pin) {
+ioPort pinToInputPort(uint8_t pin, uint8_t inputMode /* INPUT or INPUT_PULLUP*/) {
   if (isValidPin(pin)) {
-    pinMode(pin, INPUT);
+    pinMode(pin, inputMode);
     return { portInputRegister(digitalPinToPort(pin)), digitalPinToBitMask(pin) };
   }
   return nullIoPort();

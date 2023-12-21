@@ -1990,10 +1990,8 @@ void setPinMapping(byte boardID)
 //   EEPROM.begin(USE_SPI_EEPROM);
 // #endif
 
-  tach_pin_port = portOutputRegister(digitalPinToPort(pinTachOut));
-  tach_pin_mask = digitalPinToBitMask(pinTachOut);
-  pump_pin_port = portOutputRegister(digitalPinToPort(pinFuelPump));
-  pump_pin_mask = digitalPinToBitMask(pinFuelPump);
+  tach_pin_port = pinToOutputPort(pinTachOut);
+  pump_pin_port = pinToOutputPort(pinFuelPump);
 
   //And for inputs
   #if defined(CORE_STM32)
@@ -2116,16 +2114,11 @@ void setPinMapping(byte boardID)
   }  
 
   //These must come after the above pinMode statements
-  triggerPri_pin_port = portInputRegister(digitalPinToPort(pinTrigger));
-  triggerPri_pin_mask = digitalPinToBitMask(pinTrigger);
-  triggerSec_pin_port = portInputRegister(digitalPinToPort(pinTrigger2));
-  triggerSec_pin_mask = digitalPinToBitMask(pinTrigger2);
-  triggerThird_pin_port = portInputRegister(digitalPinToPort(pinTrigger3));
-  triggerThird_pin_mask = digitalPinToBitMask(pinTrigger3);
+  triggerPri_pin_port = pinToInputPort(pinTrigger);
+  triggerSec_pin_port = pinToInputPort(pinTrigger2);
+  triggerThird_pin_port = pinToInputPort(pinTrigger3);
 
-  flex_pin_port = portInputRegister(digitalPinToPort(pinFlex));
-  flex_pin_mask = digitalPinToBitMask(pinFlex);
-
+  flex_pin_port = pinToInputPort(pinFlex);
 }
 /** Initialise the chosen trigger decoder.
  * - Set Interrupt numbers @ref triggerInterrupt, @ref triggerInterrupt2 and @ref triggerInterrupt3  by pin their numbers (based on board CORE_* define)

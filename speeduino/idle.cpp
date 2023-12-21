@@ -6,6 +6,7 @@ A full copy of the license may be found in the projects root directory
 #include "idle.h"
 #include "maths.h"
 #include "timers.h"
+#include "port_pin.h"
 #include "src/PID_v1/PID_v1.h"
 
 #define STEPPER_LESS_AIR_DIRECTION() ((configPage9.iacStepperInv == 0) ? STEPPER_BACKWARD : STEPPER_FORWARD)
@@ -32,18 +33,17 @@ long FeedForwardTerm;
 unsigned long idle_pwm_target_value;
 long idle_cl_target_rpm;
 
-volatile PORT_TYPE *idle_pin_port;
-volatile PINMASK_TYPE idle_pin_mask;
-volatile PORT_TYPE *idle2_pin_port;
-volatile PINMASK_TYPE idle2_pin_mask;
-volatile PORT_TYPE *idleUpOutput_pin_port;
-volatile PINMASK_TYPE idleUpOutput_pin_mask;
+static ioPort idle_pin_port;
+static ioPort idle2_pin_port;
 
 struct table2D iacPWMTable;
 struct table2D iacStepTable;
 //Open loop tables specifically for cranking
 struct table2D iacCrankStepsTable;
 struct table2D iacCrankDutyTable;
+
+#define IDLE_PIN_LOW()  setPin_Low(idle_pin_port)
+#define IDLE_PIN_HIGH() setPin_High(idle_pin_port)
 
 /*
 These functions cover the PWM and stepper idle control
@@ -75,10 +75,8 @@ void initialiseIdle(bool forcehoming)
   IDLE_TIMER_DISABLE();
 
   //Pin masks must always be initialised, regardless of whether PWM idle is used. This is required for STM32 to prevent issues if the IRQ function fires on restart/overflow
-  idle_pin_port = portOutputRegister(digitalPinToPort(pinIdle1));
-  idle_pin_mask = digitalPinToBitMask(pinIdle1);
-  idle2_pin_port = portOutputRegister(digitalPinToPort(pinIdle2));
-  idle2_pin_mask = digitalPinToBitMask(pinIdle2);
+  idle_pin_port = pinToOutputPort(pinIdle1);
+  idle2_pin_port = pinToOutputPort(pinIdle2);
 
   //Initialising comprises of setting the 2D tables with the relevant values from the config pages
   switch(configPage6.iacAlgorithm)
@@ -280,9 +278,6 @@ void initialiseIdleUpOutput(void)
 
   if(configPage2.idleUpEnabled > 0) { digitalWrite(pinIdleUpOutput, idleUpOutputLOW); } //Initialise program with the idle up output in the off state if it is enabled. 
   currentStatus.idleUpOutputActive = false;
-
-  idleUpOutput_pin_port = portOutputRegister(digitalPinToPort(pinIdleUpOutput));
-  idleUpOutput_pin_mask = digitalPinToBitMask(pinIdleUpOutput);
 }
 
 /*
@@ -405,6 +400,20 @@ static inline byte isStepperHomed(void)
     isHomed = false;
   }
   return isHomed;
+}
+
+enum IdlePwmSignal {
+  Positive,
+  Negative,
+};
+
+static inline void setIdlePwmPinsState(IdlePwmSignal signal) {
+  static_assert(HIGH==1 && LOW==0, "This only works when HIGH==1 && LOW==0");
+  uint8_t pinSignal = signal==Positive ? !configPage6.iacPWMdir : configPage6.iacPWMdir;
+  setPinState(idle_pin_port, pinSignal);
+  if(configPage6.iacChannels == 1) {
+    setPinState(idle2_pin_port, !pinSignal); //If 2 idle channels are in use, flip idle2 to be the opposite of idle1
+  }
 }
 
 void idleControl(void)
@@ -770,18 +779,7 @@ void idleControl(void)
     {
       BIT_SET(currentStatus.status2, BIT_STATUS2_IDLE); //Turn the idle control flag on
       IDLE_TIMER_DISABLE();
-      if (configPage6.iacPWMdir == 0)
-      {
-        //Normal direction
-        IDLE_PIN_HIGH();  // Switch pin high
-        if(configPage6.iacChannels == 1) { IDLE2_PIN_LOW(); } //If 2 idle channels are in use, flip idle2 to be the opposite of idle1
-      }
-      else
-      {
-        //Reversed direction
-        IDLE_PIN_LOW();  // Switch pin to low
-        if(configPage6.iacChannels == 1) { IDLE2_PIN_HIGH(); } //If 2 idle channels are in use, flip idle2 to be the opposite of idle1
-      }
+      setIdlePwmPinsState(Positive);
     }
     else if (currentStatus.idleLoad == 0)
     {
@@ -802,18 +800,7 @@ void disableIdle(void)
   if( (configPage6.iacAlgorithm == IAC_ALGORITHM_PWM_CL) || (configPage6.iacAlgorithm == IAC_ALGORITHM_PWM_OL) )
   {
     IDLE_TIMER_DISABLE();
-    if (configPage6.iacPWMdir == 0)
-    {
-      //Normal direction
-      IDLE_PIN_LOW();  // Switch pin to low
-      if(configPage6.iacChannels == 1) { IDLE2_PIN_HIGH(); } //If 2 idle channels are in use, flip idle2 to be the opposite of idle1
-    }
-    else
-    {
-      //Reversed direction
-      IDLE_PIN_HIGH();  // Switch pin high
-      if(configPage6.iacChannels == 1) { IDLE2_PIN_LOW(); } //If 2 idle channels are in use, flip idle2 to be the opposite of idle1
-    }
+    setIdlePwmPinsState(Negative);
   }
   else if( (configPage6.iacAlgorithm == IAC_ALGORITHM_STEP_OL) || (configPage6.iacAlgorithm == IAC_ALGORITHM_STEP_CL) || (configPage6.iacAlgorithm == IAC_ALGORITHM_STEP_OLCL) )
   {
@@ -847,57 +834,18 @@ void idleInterrupt(void) //Most ARM chips can simply call a function
 {
   if (idle_pwm_state)
   {
-    if (configPage6.iacPWMdir == 0)
-    {
-      //Normal direction
-      #if defined (CORE_TEENSY41) //PIT TIMERS count down and have opposite effect on PWM
-      IDLE_PIN_HIGH();
-      if(configPage6.iacChannels == 1) { IDLE2_PIN_LOW(); }
-      #else
-      IDLE_PIN_LOW();  // Switch pin to low (1 pin mode)
-      if(configPage6.iacChannels == 1) { IDLE2_PIN_HIGH(); } //If 2 idle channels are in use, flip idle2 to be the opposite of idle1
-      #endif
-    }
-    else
-    {
-      //Reversed direction
-      #if defined (CORE_TEENSY41) //PIT TIMERS count down and have opposite effect on PWM
-      IDLE_PIN_LOW();
-      if(configPage6.iacChannels == 1) { IDLE2_PIN_HIGH(); }
-      #else
-      IDLE_PIN_HIGH();  // Switch pin high
-      if(configPage6.iacChannels == 1) { IDLE2_PIN_LOW(); } //If 2 idle channels are in use, flip idle2 to be the opposite of idle1
-      #endif
-    }
     SET_COMPARE(IDLE_COMPARE, IDLE_COUNTER + (idle_pwm_max_count - idle_pwm_cur_value) );
-    idle_pwm_state = false;
   }
   else
   {
-    if (configPage6.iacPWMdir == 0)
-    {
-      //Normal direction
-      #if defined (CORE_TEENSY41) //PIT TIMERS count down and have opposite effect on PWM
-      IDLE_PIN_LOW();
-      if(configPage6.iacChannels == 1) { IDLE2_PIN_HIGH(); }
-      #else
-      IDLE_PIN_HIGH();  // Switch pin high
-      if(configPage6.iacChannels == 1) { IDLE2_PIN_LOW(); } //If 2 idle channels are in use, flip idle2 to be the opposite of idle1
-      #endif
-    }
-    else
-    {
-      //Reversed direction
-      #if defined (CORE_TEENSY41) //PIT TIMERS count down and have opposite effect on PWM
-      IDLE_PIN_HIGH();
-      if(configPage6.iacChannels == 1) { IDLE2_PIN_LOW(); }
-      #else
-      IDLE_PIN_LOW();  // Switch pin to low (1 pin mode)
-      if(configPage6.iacChannels == 1) { IDLE2_PIN_HIGH(); } //If 2 idle channels are in use, flip idle2 to be the opposite of idle1
-      #endif
-    }
     SET_COMPARE(IDLE_COMPARE, IDLE_COUNTER + idle_pwm_target_value);
     idle_pwm_cur_value = idle_pwm_target_value;
-    idle_pwm_state = true;
   }
+
+  #if defined (CORE_TEENSY41) //PIT TIMERS count down and have opposite effect on PWM
+  setIdlePwmPinsState(idle_pwm_state ? Positive : Negative);
+  #else
+  setIdlePwmPinsState(idle_pwm_state ? Negative : Positive);
+  #endif
+  idle_pwm_state = !idle_pwm_state;
 }

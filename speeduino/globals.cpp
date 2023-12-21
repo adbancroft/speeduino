@@ -51,20 +51,13 @@ struct table2D coolantProtectTable;
 struct table2D fanPWMTable;
 struct table2D rollingCutTable;
 
-volatile PORT_TYPE *tach_pin_port;
-volatile PINMASK_TYPE tach_pin_mask;
-volatile PORT_TYPE *pump_pin_port;
-volatile PINMASK_TYPE pump_pin_mask;
+ioPort tach_pin_port;
+ioPort pump_pin_port;
+ioPort flex_pin_port;
 
-volatile PORT_TYPE *flex_pin_port;
-volatile PINMASK_TYPE flex_pin_mask;
-
-volatile PORT_TYPE *triggerPri_pin_port;
-volatile PINMASK_TYPE triggerPri_pin_mask;
-volatile PORT_TYPE *triggerSec_pin_port;
-volatile PINMASK_TYPE triggerSec_pin_mask;
-volatile PORT_TYPE *triggerThird_pin_port;
-volatile PINMASK_TYPE triggerThird_pin_mask;
+ioPort triggerPri_pin_port;
+ioPort triggerSec_pin_port;
+ioPort triggerThird_pin_port;
 
 //These are variables used across multiple files
 byte fpPrimeTime = 0; ///< The time (in seconds, based on @ref statuses.secl) that the fuel pump started priming

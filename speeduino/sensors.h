@@ -26,7 +26,7 @@ extern volatile byte flexCounter;
 extern volatile uint32_t flexPulseWidth;
 
 #if defined(CORE_AVR)
-  #define READ_FLEX() ((*flex_pin_port & flex_pin_mask) ? true : false)
+  #define READ_FLEX() (readPin(flex_pin_port)==HIGH)
 #else
   #define READ_FLEX() digitalRead(pinFlex)
 #endif

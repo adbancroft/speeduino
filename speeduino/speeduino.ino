@@ -473,8 +473,8 @@ void __attribute__((always_inline, hot)) loop(void)
       //This should only be run if the high speed logger are off because it will change the trigger interrupts back to defaults rather than the logger versions
       if( (currentStatus.toothLogEnabled == false) && (currentStatus.compositeTriggerUsed == 0U) ) { initialiseTriggers(); }
 
-      VVT1_PIN_LOW();
-      VVT2_PIN_LOW();
+      VVT1_OFF();
+      VVT2_OFF();
       DISABLE_VVT_TIMER();
       boostDisable();
       if(configPage4.ignBypassEnabled > 0U) { digitalWrite(pinIgnBypass, LOW); } //Reset the ignition bypass ready for next crank attempt
