@@ -29,12 +29,11 @@ extern ScheduleOutputControl injectorOutputControl;
 #endif
 
 /**
- * @brief Register an injector pin.
+ * @brief Setup the injector (fuel) pins and output control method
  * 
- * @param pin The pin number
- * @return ioPort 
+ * @param pins Pin numbers in cylinder order. *Assumption is that the array has at least IGN_CHANNELS elements*
  */
-ioPort registerInjectorPin(uint8_t pin);
+void initialiseInjectorPins(const uint8_t pins[]);
 
 #define SET_INJ_STATUS(channelIndex)   if ((channelIndex)-1U<=BIT_STATUS1_INJ4) { BIT_SET(currentStatus.status1, BIT_STATUS1_INJ1+(channelIndex)-1U); }
 #define CLEAR_INJ_STATUS(channelIndex) if ((channelIndex)-1U<=BIT_STATUS1_INJ4) { BIT_CLEAR(currentStatus.status1, BIT_STATUS1_INJ1+(channelIndex)-1U); }
@@ -100,12 +99,11 @@ extern ScheduleOutputControl ignitionOutputControl; //Specifies whether the coil
 #endif
 
 /**
- * @brief Register an ignition pin.
+ * @brief Setup the ignition (coil) pins and output control method
  * 
- * @param pin The pin number
- * @return ioPort 
+ * @param pins Pin numbers in cylinder order. *Assumption is that the array has at least IGN_CHANNELS elements*
  */
-ioPort registerIgnitionPin(uint8_t pin);
+void initialiseIgnitionPins(const uint8_t pins[]);
 
 #define tachoOutputOn() { if(configPage6.tachoMode) { TACHO_PULSE_LOW(); } else { tachoOutputFlag = READY; } }
 #define tachoOutputOff() { if(configPage6.tachoMode) { TACHO_PULSE_HIGH(); } }
