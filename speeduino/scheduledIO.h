@@ -28,12 +28,11 @@ extern ScheduleOutputControl injectorOutputControl;
 #endif
 
 /**
- * @brief Register an injector pin.
+ * @brief Setup the injector (fuel) pins and output control method
  * 
- * @param pin The pin number
- * @return ioPort 
+ * @param pins Pin numbers in cylinder order. *Assumption is that the array has at least IGN_CHANNELS elements*
  */
-ioPort registerInjectorPin(uint8_t pin);
+void initialiseInjectorPins(const uint8_t pins[]);
 
 /**
  * @brief Open an injector
@@ -100,12 +99,11 @@ extern ScheduleOutputControl ignitionOutputControl; //Specifies whether the coil
 #endif
 
 /**
- * @brief Register an ignition pin.
+ * @brief Setup the ignition (coil) pins and output control method
  * 
- * @param pin The pin number
- * @return ioPort 
+ * @param pins Pin numbers in cylinder order. *Assumption is that the array has at least IGN_CHANNELS elements*
  */
-ioPort registerIgnitionPin(uint8_t pin);
+void initialiseIgnitionPins(const uint8_t pins[]);
 
 /**
  * @brief Start charging a coil

@@ -6,7 +6,7 @@
 
 void test_status_initial_off(FuelSchedule &schedule)
 {
-    initialiseFuelSchedulers();
+    initialiseFuelSchedulers(pinInjectors);
     TEST_ASSERT_EQUAL(OFF, schedule._status);
 }
 
@@ -20,7 +20,7 @@ void test_status_initial_off_inj(void)
 
 void test_status_initial_off(IgnitionSchedule &schedule)
 {
-    initialiseFuelSchedulers();
+    initialiseFuelSchedulers(pinInjectors);
     TEST_ASSERT_EQUAL(OFF, schedule._status);
 }
 
