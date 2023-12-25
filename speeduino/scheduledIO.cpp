@@ -23,18 +23,32 @@ static inline ioPort registerIOPin(uint8_t pin, ScheduleOutputControl ioType) {
     }
 }
 
-ioPort registerInjectorPin(uint8_t pin) {
+static inline void registerPins(ioPort toRegister[], uint8_t toRegisterSize, const uint8_t pins[], ScheduleOutputControl ioType) {
+    for (uint8_t index=0U; index<toRegisterSize; ++index) {
+        toRegister[index] = registerIOPin(pins[index], ioType);
+    }
 #if defined(OUTPUT_CONTROL_SUPPORTED)
-    return registerIOPin(pin, injectorOutputControl);
-#else
-    return registerIOPin(pin, OUTPUT_CONTROL_DIRECT);
+    if (ioType==OUTPUT_CONTROL_MC33810) {
+        initMC33810();
+    }
 #endif
 }
 
-ioPort registerIgnitionPin(uint8_t pin) {
+void initialiseInjectorPins(const uint8_t pins[]) {
 #if defined(OUTPUT_CONTROL_SUPPORTED)
-    return registerIOPin(pin, ignitionOutputControl);
+    injectorOutputControl = isValidPin(pinMC33810_1_CS) ? OUTPUT_CONTROL_MC33810 : OUTPUT_CONTROL_DIRECT;
+    registerPins(injectorPins, _countof(injectorPins), pins, injectorOutputControl);
 #else
-    return registerIOPin(pin, OUTPUT_CONTROL_DIRECT);
+    registerPins(injectorPins, _countof(injectorPins), pins, OUTPUT_CONTROL_DIRECT);
 #endif
 }
+
+void initialiseIgnitionPins(const uint8_t pins[]) {
+#if defined(OUTPUT_CONTROL_SUPPORTED)
+    ignitionOutputControl = isValidPin(pinMC33810_2_CS) ? OUTPUT_CONTROL_MC33810 : OUTPUT_CONTROL_DIRECT;
+    registerPins(ignitionPins, _countof(ignitionPins), pins, ignitionOutputControl);
+#else
+    registerPins(ignitionPins, _countof(ignitionPins), pins, OUTPUT_CONTROL_DIRECT);
+#endif
+}
+

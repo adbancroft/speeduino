@@ -72,6 +72,9 @@ void initMC33810(void)
     SPI.transfer16(cmd);
     MC33810_2_INACTIVE();
     
+    if( (LED_BUILTIN != SCK) && (LED_BUILTIN != MOSI) && (LED_BUILTIN != MISO) ) { 
+        pinMode(LED_BUILTIN, OUTPUT); //This is required on as the LED pin can otherwise be reset to an input
+    }
 }
 
 #endif

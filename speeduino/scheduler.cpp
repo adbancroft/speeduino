@@ -33,6 +33,7 @@ A full copy of the license may be found in the projects root directory
 #include "utilities.h"
 #include "unit_testing.h"
 
+// cppcheck-suppress misra-c2012-9.3
 FuelSchedule fuelSchedules[INJ_CHANNELS] = {
   FuelSchedule(FUEL1_COUNTER, FUEL1_COMPARE),
 #if (INJ_CHANNELS >= 2)
@@ -58,6 +59,7 @@ FuelSchedule fuelSchedules[INJ_CHANNELS] = {
 #endif
 };
 
+// cppcheck-suppress misra-c2012-9.3
 IgnitionSchedule ignitionSchedules[IGN_CHANNELS]  = {
   IgnitionSchedule(IGN1_COUNTER, IGN1_COMPARE),
 #if IGN_CHANNELS >= 2
@@ -97,6 +99,12 @@ Schedule::Schedule(counter_t &_counter, compare_t &_compare)
 {
 }
 
+TESTABLE_INLINE_STATIC void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback)
+{
+  schedule._pStartCallback = pStartCallback;
+  schedule._pEndCallback = pEndCallback;
+}
+
 static void reset(Schedule &schedule)
 {
     schedule._status = OFF;
@@ -134,9 +142,15 @@ TESTABLE_INLINE_STATIC void resetIgnitionSchedulers(void)
 TESTABLE_INLINE_STATIC void startFuelSchedulers(void)
 {
   FUEL1_TIMER_ENABLE();
+#if INJ_CHANNELS >= 2
   FUEL2_TIMER_ENABLE();
+#endif
+#if INJ_CHANNELS >= 3
   FUEL3_TIMER_ENABLE();
+#endif
+#if INJ_CHANNELS >= 4
   FUEL4_TIMER_ENABLE();
+#endif
 #if INJ_CHANNELS >= 5
   FUEL5_TIMER_ENABLE();
 #endif
@@ -223,94 +237,120 @@ static void setFuelChannelAngles(void)
   }
 }
 
-static void setFuelScheduleCallbacks(uint8_t injLayout)
+struct callback_pair_t {
+  voidVoidCallback start;
+  voidVoidCallback end;
+};
+
+static inline void setCallbacks_P(Schedule &schedule, const callback_pair_t &cbPair) {
+  setCallbacks(schedule, (voidVoidCallback)pgm_read_ptr(&cbPair.start), (voidVoidCallback)pgm_read_ptr(&cbPair.end));
+}
+
+struct callback_pack_t {
+  const callback_pair_t *pCallbacks;
+  uint8_t length;
+};
+
+static callback_pack_t getSequentialInjectionCallbacks(void) {
+  static const callback_pair_t callbacks[] PROGMEM = {
+    { openInjectorT<1>, closeInjectorT<1> },
+    { openInjectorT<2>, closeInjectorT<2> },
+    { openInjectorT<3>, closeInjectorT<3> },
+    { openInjectorT<4>, closeInjectorT<4> },
+    { openInjectorT<5>, closeInjectorT<5> },
+    { openInjectorT<6>, closeInjectorT<6> },
+    { openInjectorT<7>, closeInjectorT<7> },
+    { openInjectorT<8>, closeInjectorT<8> },
+  };
+  static_assert((size_t)INJ_CHANNELS<=_countof(callbacks), "You need to define more sequential callbacks.");
+  return { callbacks, _countof(callbacks) };
+}
+
+static callback_pack_t getPairedInjectionCallbacks(void)  {
+  callback_pack_t cb = getSequentialInjectionCallbacks();
+  cb.length = min(cb.length, (uint8_t)INJ_CHANNELS);
+  return cb;
+}
+
+static callback_pack_t getSemiSequentialInjectionCallbacks(void)  {
+  //Semi-Sequential injection. Currently possible with 4, 6 and 8 cylinders. 5 cylinder is a special case
+  if( configPage2.nCylinders == 4U )
+  {
+    if(configPage4.inj4cylPairing == INJ_PAIR_13_24) {
+      static const callback_pair_t callbacks[] PROGMEM = {
+        { compoundCallback<openInjectorT<1>, openInjectorT<3>>, compoundCallback<closeInjectorT<1>, closeInjectorT<3>> },
+        { compoundCallback<openInjectorT<2>, openInjectorT<4>>, compoundCallback<closeInjectorT<2>, closeInjectorT<4>> },
+      };
+      return { callbacks, _countof(callbacks) };
+    }
+
+    static const callback_pair_t callbacks[] PROGMEM = {
+      { compoundCallback<openInjectorT<1>, openInjectorT<4>>, compoundCallback<closeInjectorT<1>, closeInjectorT<4>> },
+      { compoundCallback<openInjectorT<2>, openInjectorT<3>>, compoundCallback<closeInjectorT<2>, closeInjectorT<3>> },
+    };
+    return { callbacks, _countof(callbacks) };
+  }
+
+  if( configPage2.nCylinders == 5U ) { //This is similar to the paired injection but uses five injector outputs instead of four
+    static const callback_pair_t callbacks[] PROGMEM = {
+      { openInjectorT<1>, closeInjectorT<1> },
+      { openInjectorT<2>, closeInjectorT<2> },
+      { compoundCallback<openInjectorT<3>, openInjectorT<5>>, compoundCallback<closeInjectorT<3>, closeInjectorT<5>> },
+      { openInjectorT<4>, closeInjectorT<4> },
+    };
+    return { callbacks, _countof(callbacks) };
+  }
+
+  if( configPage2.nCylinders == 6U ) {
+    static const callback_pair_t callbacks[] PROGMEM = {
+      { compoundCallback<openInjectorT<1>, openInjectorT<4>>, compoundCallback<closeInjectorT<1>, closeInjectorT<4>> },
+      { compoundCallback<openInjectorT<2>, openInjectorT<5>>, compoundCallback<closeInjectorT<2>, closeInjectorT<5>> },
+      { compoundCallback<openInjectorT<3>, openInjectorT<6>>, compoundCallback<closeInjectorT<3>, closeInjectorT<6>> },
+    };
+    return { callbacks, _countof(callbacks) };
+  }
+
+  if( configPage2.nCylinders == 8U ) {
+    static const callback_pair_t callbacks[] PROGMEM = {
+      { compoundCallback<openInjectorT<1>, openInjectorT<5>>, compoundCallback<closeInjectorT<1>, closeInjectorT<5>> },
+      { compoundCallback<openInjectorT<2>, openInjectorT<6>>, compoundCallback<closeInjectorT<2>, closeInjectorT<6>> },
+      { compoundCallback<openInjectorT<3>, openInjectorT<7>>, compoundCallback<closeInjectorT<3>, closeInjectorT<7>> },
+      { compoundCallback<openInjectorT<4>, openInjectorT<8>>, compoundCallback<closeInjectorT<4>, closeInjectorT<8>> },
+    };
+    return { callbacks, _countof(callbacks) };
+  }
+  
+  return getPairedInjectionCallbacks();
+}
+
+static callback_pack_t getFuelScheduleCallbackPack(uint8_t injLayout)
 {
   switch(injLayout)
   {
   case INJ_SEMISEQUENTIAL:
-      //Semi-Sequential injection. Currently possible with 4, 6 and 8 cylinders. 5 cylinder is a special case
-      if( configPage2.nCylinders == 4U )
-      {
-        if(configPage4.inj4cylPairing == INJ_PAIR_13_24)
-        {
-          setCallbacks(fuelSchedules[0], openInjector1and3, closeInjector1and3);
-          setCallbacks(fuelSchedules[1], openInjector2and4, closeInjector2and4);
-        }
-        else
-        {
-          setCallbacks(fuelSchedules[0], openInjector1and4, closeInjector1and4);
-          setCallbacks(fuelSchedules[1], openInjector2and3, closeInjector2and3);
-        }
-      }
-#if INJ_CHANNELS>=5      
-      else if( configPage2.nCylinders == 5U ) //This is similar to the paired injection but uses five injector outputs instead of four
-      {
-        setCallbacks(fuelSchedules[0], openInjector1, closeInjector1);
-        setCallbacks(fuelSchedules[1], openInjector2, closeInjector2);
-        setCallbacks(fuelSchedules[2], openInjector3and5, closeInjector3and5);
-        setCallbacks(fuelSchedules[3], openInjector4, closeInjector4);
-      }
-#endif
-#if INJ_CHANNELS>=6
-      else if( configPage2.nCylinders == 6U )
-      {
-        setCallbacks(fuelSchedules[0], openInjector1and4, closeInjector1and4);
-        setCallbacks(fuelSchedules[1], openInjector2and5, closeInjector2and5);
-        setCallbacks(fuelSchedules[2], openInjector3and6, closeInjector3and6);
-      }
-#endif
-#if INJ_CHANNELS>=8
-      else if( configPage2.nCylinders == 8U )
-      {
-        setCallbacks(fuelSchedules[0], openInjector1and5, closeInjector1and5);
-        setCallbacks(fuelSchedules[1], openInjector2and6, closeInjector2and6);
-        setCallbacks(fuelSchedules[2], openInjector3and7, closeInjector3and7);
-        setCallbacks(fuelSchedules[3], openInjector4and8, closeInjector4and8);
-      }
-#endif
-      else
-      {
-        //Fall back to paired injection
-        setCallbacks(fuelSchedules[0], openInjector1, closeInjector1);
-        setCallbacks(fuelSchedules[1], openInjector2, closeInjector2);
-        setCallbacks(fuelSchedules[2], openInjector3, closeInjector3);
-        setCallbacks(fuelSchedules[3], openInjector4, closeInjector4);
-  #if INJ_CHANNELS >= 5
-        setCallbacks(fuelSchedules[4], openInjector5, closeInjector5);
-  #endif
-      }
+      return getSemiSequentialInjectionCallbacks();
       break;
 
   case INJ_SEQUENTIAL:
-      //Sequential injection
-      setCallbacks(fuelSchedules[0], openInjector1, closeInjector1);
-      setCallbacks(fuelSchedules[1], openInjector2, closeInjector2);
-      setCallbacks(fuelSchedules[2], openInjector3, closeInjector3);
-      setCallbacks(fuelSchedules[3], openInjector4, closeInjector4);
-  #if INJ_CHANNELS >= 5
-      setCallbacks(fuelSchedules[4], openInjector5, closeInjector5);
-  #endif
-  #if INJ_CHANNELS >= 6
-      setCallbacks(fuelSchedules[5], openInjector6, closeInjector6);
-  #endif
-  #if INJ_CHANNELS >= 7
-      setCallbacks(fuelSchedules[6], openInjector7, closeInjector7);
-  #endif
-  #if INJ_CHANNELS >= 8
-      setCallbacks(fuelSchedules[7], openInjector8, closeInjector8);
-  #endif
+      return getSequentialInjectionCallbacks(); 
       break;
 
   case INJ_PAIRED: // Paired injection
   default:
-      setCallbacks(fuelSchedules[0], openInjector1, closeInjector1);
-      setCallbacks(fuelSchedules[1], openInjector2, closeInjector2);
-      setCallbacks(fuelSchedules[2], openInjector3, closeInjector3);
-      setCallbacks(fuelSchedules[3], openInjector4, closeInjector4);
-  #if INJ_CHANNELS >= 5
-      setCallbacks(fuelSchedules[4], openInjector5, closeInjector5);
-  #endif
+      return getPairedInjectionCallbacks();
       break;
+  }
+}
+
+static void setFuelScheduleCallbacks(uint8_t injLayout) {
+  callback_pack_t cb = getFuelScheduleCallbackPack(injLayout);
+
+  for (uint8_t index = 0U; index<min((uint8_t)_countof(fuelSchedules), cb.length); ++index) {
+    setCallbacks_P(fuelSchedules[index], cb.pCallbacks[index]);
+  }
+  // Set any remaining to null.
+  for (uint8_t index = min((uint8_t)_countof(fuelSchedules), cb.length); index<_countof(fuelSchedules); ++index) {
+    setCallbacks(fuelSchedules[index], nullCallback, nullCallback);
   }
 }
 
@@ -366,10 +406,12 @@ static void initialiseFuelContext(void)
   currentStatus.status3 |= currentStatus.nSquirts << BIT_STATUS3_NSQUIRTS1; //Top 3 bits of the status3 variable are the number of squirts. This must be done after the above section due to nSquirts being forced to 1 for sequential
 }
 
-void initialiseFuelSchedulers(void)
+void initialiseFuelSchedulers(const uint8_t pins[])
 {
-  resetFuelSchedulers();
   turnOffInjectors();
+
+  resetFuelSchedulers();
+  initialiseInjectorPins(pins);
   initialiseFuelContext();
   setFuelChannelAngles();
   initialiseStagedInjection();
@@ -380,9 +422,15 @@ void initialiseFuelSchedulers(void)
 TESTABLE_INLINE_STATIC void startIgnitionSchedulers(void)
 {
   IGN1_TIMER_ENABLE();
+#if IGN_CHANNELS >= 2
   IGN2_TIMER_ENABLE();
+#endif
+#if IGN_CHANNELS >= 3
   IGN3_TIMER_ENABLE();
+#endif
+#if IGN_CHANNELS >= 4
   IGN4_TIMER_ENABLE();
+#endif
 #if IGN_CHANNELS >= 5
   IGN5_TIMER_ENABLE();
 #endif
@@ -446,167 +494,162 @@ static void setIgnitionChannelAngles(void)
   }    
 }
 
-static void setIgnitionScheduleCallbacks(uint8_t sparkMode)
-{
+static callback_pack_t getSingleChannelIgnitionCallbacks(void) {
+   // Single channel mode. All ignition pulses are on channel 1
+  static const callback_pair_t callbacks[] PROGMEM = {
+    { beginCoilChargeT<1>, endCoilChargeT<1> },
+    { beginCoilChargeT<1>, endCoilChargeT<1> },
+    { beginCoilChargeT<1>, endCoilChargeT<1> },
+    { beginCoilChargeT<1>, endCoilChargeT<1> },
+    { beginCoilChargeT<1>, endCoilChargeT<1> },
+    { beginCoilChargeT<1>, endCoilChargeT<1> },
+    { beginCoilChargeT<1>, endCoilChargeT<1> },
+    { beginCoilChargeT<1>, endCoilChargeT<1> },
+  };
+  return { callbacks, _countof(callbacks) };
+}
+
+
+static callback_pack_t getSequentialIgnitionCallbacks(void) {
+  static const callback_pair_t callbacks[] PROGMEM = {
+    { beginCoilChargeT<1>, endCoilChargeT<1> },
+    { beginCoilChargeT<2>, endCoilChargeT<2> },
+    { beginCoilChargeT<3>, endCoilChargeT<3> },
+    { beginCoilChargeT<4>, endCoilChargeT<4> },
+    { beginCoilChargeT<5>, endCoilChargeT<5> },
+    { beginCoilChargeT<6>, endCoilChargeT<6> },
+    { beginCoilChargeT<7>, endCoilChargeT<7> },
+    { beginCoilChargeT<8>, endCoilChargeT<8> },
+  };
+  static_assert((size_t)IGN_CHANNELS<=_countof(callbacks), "You need to define more sequential callbacks.");
+  return { callbacks, _countof(callbacks) };
+}
+
+static callback_pack_t getWastedSparkIgnitionCallbacks(void) {
+  callback_pack_t cb = getSequentialIgnitionCallbacks();
+  cb.length = 5;
+  return cb;
+}
+
+static callback_pack_t getWastedCopIgnitionCallbacks(void) {
+  //Wasted COP mode. Note, most of the boards can only run this for 4-cyl only.
+  if( configPage2.nCylinders <= 3U) {
+      //1-3 cylinder wasted COP is the same as regular wasted mode
+      callback_pack_t cb = getSequentialIgnitionCallbacks();
+      cb.length = 3;
+      return cb;      
+  }
+
+  if( configPage2.nCylinders == 4U ) {
+    //Wasted COP mode for 4 cylinders. Ignition channels 1&3 and 2&4 are paired together
+    static const callback_pair_t callbacks[] PROGMEM = {
+      { compoundCallback<beginCoilChargeT<1>, beginCoilChargeT<3>>, compoundCallback<endCoilChargeT<1>, endCoilChargeT<3>> },
+      { compoundCallback<beginCoilChargeT<2>, beginCoilChargeT<4>>, compoundCallback<endCoilChargeT<2>, endCoilChargeT<4>> },
+    };
+    return { callbacks, _countof(callbacks) };
+  }
+
+  if( configPage2.nCylinders == 6U ) {
+    //Wasted COP mode for 6 cylinders. Ignition channels 1&4, 2&5 and 3&6 are paired together
+    static const callback_pair_t callbacks[] PROGMEM = {
+      { compoundCallback<beginCoilChargeT<1>, beginCoilChargeT<4>>, compoundCallback<endCoilChargeT<1>, endCoilChargeT<4>> },
+      { compoundCallback<beginCoilChargeT<2>, beginCoilChargeT<5>>, compoundCallback<endCoilChargeT<2>, endCoilChargeT<5>> },
+      { compoundCallback<beginCoilChargeT<3>, beginCoilChargeT<6>>, compoundCallback<endCoilChargeT<3>, endCoilChargeT<6>> },
+    };
+    return { callbacks, _countof(callbacks) };
+  }
+  
+  if( configPage2.nCylinders == 8U ) {
+    //Wasted COP mode for 8 cylinders. Ignition channels 1&5, 2&6, 3&7 and 4&8 are paired together
+    static const callback_pair_t callbacks[] PROGMEM = {
+      { compoundCallback<beginCoilChargeT<1>, beginCoilChargeT<5>>, compoundCallback<endCoilChargeT<1>, endCoilChargeT<5>> },
+      { compoundCallback<beginCoilChargeT<2>, beginCoilChargeT<6>>, compoundCallback<endCoilChargeT<2>, endCoilChargeT<6>> },
+      { compoundCallback<beginCoilChargeT<3>, beginCoilChargeT<7>>, compoundCallback<endCoilChargeT<3>, endCoilChargeT<7>> },
+      { compoundCallback<beginCoilChargeT<4>, beginCoilChargeT<8>>, compoundCallback<endCoilChargeT<4>, endCoilChargeT<8>> },
+    };
+    return { callbacks, _countof(callbacks) };
+  };
+  
+  //If the person has inadvertently selected this when running more than 4 cylinders or other than 6 cylinders, just use standard Wasted spark mode
+  return getWastedSparkIgnitionCallbacks();
+}
+
+static callback_pack_t getRotaryIgnitionCallbacks(void) {
+  if(configPage10.rotaryType == ROTARY_IGN_FC) {
+    //Ignition channel 1 is a wasted spark signal for leading signal on both rotors
+    static const callback_pair_t callbacks[] PROGMEM = {
+      { beginCoilChargeT<1>, endCoilChargeT<1> },
+      { beginCoilChargeT<1>, endCoilChargeT<1> },
+      { beginCoilChargeT<2>, compoundCallback<endCoilChargeT<1>, beginCoilChargeT<2>> },
+      { beginCoilChargeT<2>, compoundCallback<endCoilChargeT<1>, endCoilChargeT<2>> },
+    };
+    return { callbacks, _countof(callbacks) };
+  }
+  
+  if(configPage10.rotaryType == ROTARY_IGN_FD) {
+    //Ignition channel 1 is a wasted spark signal for leading signal on both rotors
+    static const callback_pair_t callbacks[] PROGMEM = {
+      { beginCoilChargeT<1>, endCoilChargeT<1> },
+      { beginCoilChargeT<1>, endCoilChargeT<1> },
+    //Trailing coils have their own channel each
+    //IGN2 = front rotor trailing spark
+      { beginCoilChargeT<2>, endCoilChargeT<2> },
+    //IGN3 = rear rotor trailing spark
+      { beginCoilChargeT<3>, endCoilChargeT<3> },
+    //IGN4 not used
+    };
+    return { callbacks, _countof(callbacks) };
+  }
+  
+  if(configPage10.rotaryType == ROTARY_IGN_RX8) {
+    //RX8 outputs are simply 1 coil and 1 output per plug
+    callback_pack_t cb = getSequentialIgnitionCallbacks();
+    cb.length = 4;
+    return cb;
+  }
+
+  return { nullptr, 0 };
+}
+
+static callback_pack_t getIgnitionCallbackPack(uint8_t sparkMode) {
   switch(sparkMode)
   {
   case IGN_MODE_SINGLE:
-      //Single channel mode. All ignition pulses are on channel 1
-      setCallbacks(ignitionSchedules[0], beginCoil1Charge, endCoil1Charge);
-      setCallbacks(ignitionSchedules[1], beginCoil1Charge, endCoil1Charge);
-      setCallbacks(ignitionSchedules[2], beginCoil1Charge, endCoil1Charge);
-      setCallbacks(ignitionSchedules[3], beginCoil1Charge, endCoil1Charge);
-#if IGN_CHANNELS >= 5
-        setCallbacks(ignitionSchedules[4], beginCoil1Charge, endCoil1Charge);
-#endif
-#if IGN_CHANNELS >= 6
-      setCallbacks(ignitionSchedules[5], beginCoil1Charge, endCoil1Charge);
-#endif
-#if IGN_CHANNELS >= 7
-      setCallbacks(ignitionSchedules[6], beginCoil1Charge, endCoil1Charge);
-#endif
-#if IGN_CHANNELS >= 8
-      setCallbacks(ignitionSchedules[7], beginCoil1Charge, endCoil1Charge);
-#endif
+      return getSingleChannelIgnitionCallbacks();
       break;
 
   case IGN_MODE_WASTEDCOP:
-      //Wasted COP mode. Note, most of the boards can only run this for 4-cyl only.
-      if( configPage2.nCylinders <= 3U)
-      {
-          //1-3 cylinder wasted COP is the same as regular wasted mode
-        setCallbacks(ignitionSchedules[0], beginCoil1Charge, endCoil1Charge);
-        setCallbacks(ignitionSchedules[1], beginCoil2Charge, endCoil2Charge);
-        setCallbacks(ignitionSchedules[2], beginCoil3Charge, endCoil3Charge);
-        setCallbacks(ignitionSchedules[3], beginCoil4Charge, endCoil4Charge);          
-      }
-      else if( configPage2.nCylinders == 4U )
-      {
-        //Wasted COP mode for 4 cylinders. Ignition channels 1&3 and 2&4 are paired together
-        setCallbacks(ignitionSchedules[0], beginCoil1and3Charge, endCoil1and3Charge);
-        setCallbacks(ignitionSchedules[1], beginCoil2and4Charge, endCoil2and4Charge);
-
-        setCallbacks(ignitionSchedules[2], nullCallback, nullCallback);
-        setCallbacks(ignitionSchedules[3], nullCallback, nullCallback);
-      }
-      else if( configPage2.nCylinders == 6U )
-      {
-        //Wasted COP mode for 6 cylinders. Ignition channels 1&4, 2&5 and 3&6 are paired together
-        setCallbacks(ignitionSchedules[0], beginCoil1and4Charge, endCoil1and4Charge);
-        setCallbacks(ignitionSchedules[3], nullCallback, nullCallback);
-#if IGN_CHANNELS >= 5
-        setCallbacks(ignitionSchedules[1], beginCoil2and5Charge, endCoil2and5Charge);
-        setCallbacks(ignitionSchedules[4], nullCallback, nullCallback);
-#endif
-#if IGN_CHANNELS >= 6
-        setCallbacks(ignitionSchedules[2], beginCoil3and6Charge, endCoil3and6Charge);
-        setCallbacks(ignitionSchedules[5], nullCallback, nullCallback);
-#endif
-      }
-      else if( configPage2.nCylinders == 8U )
-      {
-        //Wasted COP mode for 8 cylinders. Ignition channels 1&5, 2&6, 3&7 and 4&8 are paired together
-        setCallbacks(ignitionSchedules[0], beginCoil1and5Charge, endCoil1and5Charge);
-#if IGN_CHANNELS >= 5
-        setCallbacks(ignitionSchedules[4], nullCallback, nullCallback);
-#endif
-#if IGN_CHANNELS >= 6
-        setCallbacks(ignitionSchedules[1], beginCoil2and6Charge, endCoil2and6Charge);
-        setCallbacks(ignitionSchedules[5], nullCallback, nullCallback);
-#endif
-#if IGN_CHANNELS >= 7
-        setCallbacks(ignitionSchedules[2], beginCoil3and7Charge, endCoil3and7Charge);
-        setCallbacks(ignitionSchedules[6], nullCallback, nullCallback);
-#endif
-#if IGN_CHANNELS >= 8
-        setCallbacks(ignitionSchedules[3], beginCoil4and8Charge, endCoil4and8Charge);
-        setCallbacks(ignitionSchedules[7], nullCallback, nullCallback);
-#endif
-      }
-      else
-      {
-        //If the person has inadvertently selected this when running more than 4 cylinders or other than 6 cylinders, just use standard Wasted spark mode
-        setCallbacks(ignitionSchedules[0], beginCoil1Charge, endCoil1Charge);
-        setCallbacks(ignitionSchedules[1], beginCoil2Charge, endCoil2Charge);
-        setCallbacks(ignitionSchedules[2], beginCoil3Charge, endCoil3Charge);
-        setCallbacks(ignitionSchedules[3], beginCoil4Charge, endCoil4Charge);
-#if IGN_CHANNELS >= 5
-        setCallbacks(ignitionSchedules[4], beginCoil5Charge, endCoil5Charge);
-#endif
-      }
+      return getWastedCopIgnitionCallbacks();
       break;
 
   case IGN_MODE_SEQUENTIAL:
-      setCallbacks(ignitionSchedules[0], beginCoil1Charge, endCoil1Charge);
-      setCallbacks(ignitionSchedules[1], beginCoil2Charge, endCoil2Charge);
-      setCallbacks(ignitionSchedules[2], beginCoil3Charge, endCoil3Charge);
-      setCallbacks(ignitionSchedules[3], beginCoil4Charge, endCoil4Charge);
-#if IGN_CHANNELS >= 5
-      setCallbacks(ignitionSchedules[4], beginCoil5Charge, endCoil5Charge);
-#endif
-#if IGN_CHANNELS >= 6
-      setCallbacks(ignitionSchedules[5], beginCoil6Charge, endCoil6Charge);
-#endif
-#if IGN_CHANNELS >= 7
-      setCallbacks(ignitionSchedules[6], beginCoil7Charge, endCoil7Charge);
-#endif
-#if IGN_CHANNELS >= 8
-      setCallbacks(ignitionSchedules[7], beginCoil8Charge, endCoil8Charge);
-#endif
+      return getSequentialIgnitionCallbacks();
       break;
 
   case IGN_MODE_ROTARY:
-      if(configPage10.rotaryType == ROTARY_IGN_FC)
-      {
-        //Ignition channel 1 is a wasted spark signal for leading signal on both rotors
-        setCallbacks(ignitionSchedules[0], beginCoil1Charge, endCoil1Charge);
-        setCallbacks(ignitionSchedules[1], beginCoil1Charge, endCoil1Charge);
-
-        setCallbacks(ignitionSchedules[2], beginTrailingCoilCharge, endTrailingCoilCharge1);
-        setCallbacks(ignitionSchedules[3], beginTrailingCoilCharge, endTrailingCoilCharge2);
-      }
-      else if(configPage10.rotaryType == ROTARY_IGN_FD)
-      {
-        //Ignition channel 1 is a wasted spark signal for leading signal on both rotors
-        setCallbacks(ignitionSchedules[0], beginCoil1Charge, endCoil1Charge);
-        setCallbacks(ignitionSchedules[1], beginCoil1Charge, endCoil1Charge);
-
-        //Trailing coils have their own channel each
-        //IGN2 = front rotor trailing spark
-        setCallbacks(ignitionSchedules[2], beginCoil2Charge, endCoil2Charge);
-        //IGN3 = rear rotor trailing spark
-        setCallbacks(ignitionSchedules[3], beginCoil3Charge, endCoil3Charge);
-
-        //IGN4 not used
-      }
-      else if(configPage10.rotaryType == ROTARY_IGN_RX8)
-      {
-        //RX8 outputs are simply 1 coil and 1 output per plug
-
-        //IGN1 is front rotor, leading spark
-        setCallbacks(ignitionSchedules[0], beginCoil1Charge, endCoil1Charge);
-        //IGN2 is rear rotor, leading spark
-        setCallbacks(ignitionSchedules[1], beginCoil2Charge, endCoil2Charge);
-        //IGN3 = front rotor trailing spark
-        setCallbacks(ignitionSchedules[2], beginCoil3Charge, endCoil3Charge);
-        //IGN4 = rear rotor trailing spark
-        setCallbacks(ignitionSchedules[3], beginCoil4Charge, endCoil4Charge);
-      }
-      else { } //No action for other RX ignition modes (Future expansion / MISRA compliant). 
+      return getRotaryIgnitionCallbacks();
       break;
 
   case IGN_MODE_WASTED: //Wasted Spark (Normal mode)
   default: //Wasted spark (Shouldn't ever happen anyway)
-      setCallbacks(ignitionSchedules[0], beginCoil1Charge, endCoil1Charge);
-      setCallbacks(ignitionSchedules[1], beginCoil2Charge, endCoil2Charge);
-      setCallbacks(ignitionSchedules[2], beginCoil3Charge, endCoil3Charge);
-      setCallbacks(ignitionSchedules[3], beginCoil4Charge, endCoil4Charge);
-#if IGN_CHANNELS >= 5
-      setCallbacks(ignitionSchedules[4], beginCoil5Charge, endCoil5Charge);
-#endif
+      return getWastedSparkIgnitionCallbacks();
       break;
   }
 }
+
+static void setIgnitionScheduleCallbacks(uint8_t sparkMode)
+{
+  callback_pack_t cb = getIgnitionCallbackPack(sparkMode);
+
+  for (uint8_t index = 0U; index<min((uint8_t)_countof(ignitionSchedules), cb.length); ++index) {
+    setCallbacks_P(ignitionSchedules[index], cb.pCallbacks[index]);
+  }
+  // Set any remaining to null.
+  for (uint8_t index = min((uint8_t)_countof(ignitionSchedules), cb.length); index<_countof(ignitionSchedules); ++index) {
+    setCallbacks(ignitionSchedules[index], nullCallback, nullCallback);
+  }
+}
+
 
 static void initialiseIgnitionContext(void)
 { 
@@ -640,20 +683,16 @@ static void initialiseIgnitionContext(void)
   CRANK_ANGLE_MAX_IGN = configPage4.sparkMode == IGN_MODE_SEQUENTIAL ? 720 : 360;
 }
 
-void initialiseIgnitionSchedulers(void)
+void initialiseIgnitionSchedulers(const uint8_t pins[])
 {
-  resetIgnitionSchedulers();
   turnOffCoils();
+
+  resetIgnitionSchedulers();
+  initialiseIgnitionPins(pins);
   initialiseIgnitionContext();
   setIgnitionChannelAngles();
   setIgnitionScheduleCallbacks(configPage4.sparkMode);  
   startIgnitionSchedulers();
-}
-
-void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback)
-{
-  schedule._pStartCallback = pStartCallback;
-  schedule._pEndCallback = pEndCallback;
 }
 
 void _setSchedulePending(Schedule &schedule, uint32_t timeout, uint32_t duration)

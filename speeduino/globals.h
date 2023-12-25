@@ -1345,13 +1345,17 @@ extern byte pinTrigger3;	//the 2nd cam sensor pin known as tertiary input
 extern byte pinTPS;//TPS input pin
 extern byte pinMAP; //MAP sensor pin
 extern byte pinEMAP; //EMAP sensor pin
+#if defined(USE_MAP2)
 extern byte pinMAP2; //2nd MAP sensor (Currently unused)
+#endif
 extern byte pinIAT; //IAT sensor pin
 extern byte pinCLT; //CLS sensor pin
 extern byte pinO2; //O2 Sensor pin
 extern byte pinO2_2; //second O2 pin
 extern byte pinBat; //Battery voltage pin
+#if defined(ENABLE_DISPLAY_RESET)
 extern byte pinDisplayReset; // OLED reset pin
+#endif
 extern byte pinTachOut; //Tacho output
 extern byte pinFuelPump; //Fuel pump on/off
 extern byte pinIdle1; //Single wire idle control
@@ -1361,21 +1365,29 @@ extern byte pinIdleUpOutput; //Output that follows (normal or inverted) the idle
 extern byte pinCTPS; //Input for triggering closed throttle state
 extern byte pinFuel2Input; //Input for switching to the 2nd fuel table
 extern byte pinSpark2Input; //Input for switching to the 2nd ignition table
+#if defined(ENABLE_SPARE_TEMP)
 extern byte pinSpareTemp1; // Future use only
 extern byte pinSpareTemp2; // Future use only
+#endif
+#if defined(ENABLE_SPARE_OUTPUT)
 extern byte pinSpareOut1; //Generic output
 extern byte pinSpareOut2; //Generic output
 extern byte pinSpareOut3; //Generic output
 extern byte pinSpareOut4; //Generic output
 extern byte pinSpareOut5; //Generic output
 extern byte pinSpareOut6; //Generic output
+#endif
+#if defined(ENABLE_SPARE_HIGH_OUTPUT)
 extern byte pinSpareHOut1; //spare high current output
 extern byte pinSpareHOut2; // spare high current output
+#endif
+#if defined(ENABLE_SPARE_LOW_OUTPUT)
 extern byte pinSpareLOut1; // spare low current output
 extern byte pinSpareLOut2; // spare low current output
 extern byte pinSpareLOut3;
 extern byte pinSpareLOut4;
 extern byte pinSpareLOut5;
+#endif
 extern byte pinBoost;
 extern byte pinVVT_1;		// vvt output 1
 extern byte pinVVT_2;		// vvt output 2

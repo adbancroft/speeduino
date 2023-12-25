@@ -81,7 +81,7 @@ extern byte maxIgnOutputs;
  * Assumes that all config pages have been configured - typically by
  * loading the tune from EEPROM
 */
-void initialiseFuelSchedulers(void);
+void initialiseFuelSchedulers(const uint8_t pins[]);
 
 /** @brief Configure all ignition schedulers based on the current tune
  * parameters
@@ -89,7 +89,7 @@ void initialiseFuelSchedulers(void);
  * Assumes that all config pages have been configured - typically by
  * loading the tune from EEPROM
 */
-void initialiseIgnitionSchedulers(void);
+void initialiseIgnitionSchedulers(const uint8_t pins[]);
 
 /** @brief Start fuel system  priming the fuel */
 void beginInjectorPriming(void);

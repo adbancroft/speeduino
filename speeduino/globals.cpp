@@ -102,13 +102,17 @@ byte pinTrigger3;	///< the 2nd cam sensor pin
 byte pinTPS;      //TPS input pin
 byte pinMAP;      //MAP sensor pin
 byte pinEMAP;     //EMAP sensor pin
+#if defined(USE_MAP2)
 byte pinMAP2;     //2nd MAP sensor (Currently unused)
+#endif
 byte pinIAT;      //IAT sensor pin
 byte pinCLT;      //CLS sensor pin
 byte pinO2;       //O2 Sensor pin
 byte pinO2_2;     //second O2 pin
 byte pinBat;      //Battery voltage pin
+#if defined(ENABLE_DISPLAY_RESET)
 byte pinDisplayReset; // OLED reset pin
+#endif
 byte pinTachOut;  //Tacho output
 byte pinFuelPump; //Fuel pump on/off
 byte pinIdle1;    //Single wire idle control
@@ -118,21 +122,29 @@ byte pinIdleUpOutput; //Output that follows (normal or inverted) the idle up pin
 byte pinCTPS;     //Input for triggering closed throttle state
 byte pinFuel2Input;  //Input for switching to the 2nd fuel table
 byte pinSpark2Input; //Input for switching to the 2nd ignition table
+#if defined(ENABLE_SPARE_TEMP)
 byte pinSpareTemp1;  // Future use only
 byte pinSpareTemp2;  // Future use only
+#endif
+#if defined(ENABLE_SPARE_OUTPUT)
 byte pinSpareOut1;  //Generic output
 byte pinSpareOut2;  //Generic output
 byte pinSpareOut3;  //Generic output
 byte pinSpareOut4;  //Generic output
 byte pinSpareOut5;  //Generic output
 byte pinSpareOut6;  //Generic output
+#endif
+#if defined(ENABLE_SPARE_HIGH_OUTPUT)
 byte pinSpareHOut1; //spare high current output
 byte pinSpareHOut2; // spare high current output
+#endif
+#if defined(ENABLE_SPARE_LOW_OUTPUT)
 byte pinSpareLOut1; // spare low current output
 byte pinSpareLOut2; // spare low current output
 byte pinSpareLOut3;
 byte pinSpareLOut4;
 byte pinSpareLOut5;
+#endif
 byte pinBoost;
 byte pinVVT_1;     ///< vvt (variable valve timing) output 1
 byte pinVVT_2;     ///< vvt (variable valve timing) output 2

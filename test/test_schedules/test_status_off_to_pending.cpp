@@ -12,7 +12,7 @@ static void emptyCallback(void) {  }
 
 void test_status_off_to_pending(FuelSchedule &schedule)
 {
-    initialiseFuelSchedulers();
+    initialiseFuelSchedulers(pinInjectors);
     _setSchedule(schedule, TIMEOUT, DURATION);
     TEST_ASSERT_EQUAL(PENDING, schedule._status);
 }
@@ -25,9 +25,11 @@ void test_status_off_to_pending_inj(void)
     }    
 }
 
+extern void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback);
+
 void test_status_off_to_pending_ign(IgnitionSchedule &schedule)
 {
-    initialiseIgnitionSchedulers();
+    initialiseIgnitionSchedulers(pinCoils);
     setCallbacks(schedule, emptyCallback, emptyCallback);
     _setSchedule(schedule, TIMEOUT, DURATION);
     TEST_ASSERT_EQUAL(PENDING, schedule._status);
