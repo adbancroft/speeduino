@@ -204,16 +204,6 @@ static SCHEDULE_INLINE void _setSchedule(Schedule &schedule, uint32_t timeout, u
 /// @endcond
 
 /**
- * @brief Set the schedule callbacks. I.e the functions called when the action
- * needs to start & stop
- * 
- * @param schedule Schedule to modify
- * @param pStartCallback The new start callback - called when the schedule switches to RUNNING status
- * @param pEndCallback The new end callback - called when the schedule switches to from RUNNING to OFF status
- */
-void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback);
-
-/**
  * @brief Is the schedule in pending state?
  * I.e. waiting for a timer interrupt to start the scheduled action. E.g. open an injector
  */
