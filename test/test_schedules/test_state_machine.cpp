@@ -12,6 +12,8 @@ static void endCallback(void) { ++endCount; }
 
 static constexpr COMPARE_TYPE TIMER_VARIANCE = 5;
 
+extern void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback);
+
 static void test_defaultPendingToRunning(void) {
     Schedule schedule(IGN1_COUNTER, IGN1_COMPARE);
     setCallbacks(schedule, startCallback, endCallback);

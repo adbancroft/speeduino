@@ -14,6 +14,9 @@ static uint32_t start_time, end_time;
 static void startCallback(void) { end_time = micros(); }
 static void endCallback(void) { /*Empty*/ }
 
+extern void resetFuelSchedulers(void);
+extern void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback);
+
 void test_accuracy_timeout(FuelSchedule &schedule)
 {
     extern void resetFuelSchedulers(void); 
