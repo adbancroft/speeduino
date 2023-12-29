@@ -8,6 +8,8 @@
 #define TIMEOUT 1000
 #define DURATION 1000
 
+void resetFuelSchedulers(void);
+
 void test_status_running_to_off(FuelSchedule &schedule)
 {
     extern void resetFuelSchedulers(void); 

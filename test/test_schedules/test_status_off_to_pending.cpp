@@ -25,6 +25,8 @@ void test_status_off_to_pending_inj(void)
     }    
 }
 
+extern void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback);
+
 void test_status_off_to_pending_ign(IgnitionSchedule &schedule)
 {
     initialiseIgnitionSchedulers(pinCoils);
