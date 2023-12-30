@@ -77,6 +77,50 @@ HardwareTimer Timer11(TIM7);
 #endif
 #endif
 
+/*
+  ***********************************************************************************************************
+  * Interrupt callback functions
+  */
+  #if ((STM32_CORE_VERSION_MINOR<=8) & (STM32_CORE_VERSION_MAJOR==1)) 
+  void oneMSInterval(HardwareTimer*){oneMSInterval();}
+  void boostInterrupt(HardwareTimer*){boostInterrupt();}
+  void fuelSchedule1Interrupt(HardwareTimer*){fuelSchedule1Interrupt();}
+  void fuelSchedule2Interrupt(HardwareTimer*){fuelSchedule2Interrupt();}
+  void fuelSchedule3Interrupt(HardwareTimer*){fuelSchedule3Interrupt();}
+  void fuelSchedule4Interrupt(HardwareTimer*){fuelSchedule4Interrupt();}
+  #if (INJ_CHANNELS >= 5)
+  void fuelSchedule5Interrupt(HardwareTimer*){fuelSchedule5Interrupt();}
+  #endif
+  #if (INJ_CHANNELS >= 6)
+  void fuelSchedule6Interrupt(HardwareTimer*){fuelSchedule6Interrupt();}
+  #endif
+  #if (INJ_CHANNELS >= 7)
+  void fuelSchedule7Interrupt(HardwareTimer*){fuelSchedule7Interrupt();}
+  #endif
+  #if (INJ_CHANNELS >= 8)
+  void fuelSchedule8Interrupt(HardwareTimer*){fuelSchedule8Interrupt();}
+  #endif
+  void idleInterrupt(HardwareTimer*){idleInterrupt();}
+  void vvtInterrupt(HardwareTimer*){vvtInterrupt();}
+  void fanInterrupt(HardwareTimer*){fanInterrupt();}
+  void ignitionSchedule1Interrupt(HardwareTimer*){ignitionSchedule1Interrupt();}
+  void ignitionSchedule2Interrupt(HardwareTimer*){ignitionSchedule2Interrupt();}
+  void ignitionSchedule3Interrupt(HardwareTimer*){ignitionSchedule3Interrupt();}
+  void ignitionSchedule4Interrupt(HardwareTimer*){ignitionSchedule4Interrupt();}
+  #if (IGN_CHANNELS >= 5)
+  void ignitionSchedule5Interrupt(HardwareTimer*){ignitionSchedule5Interrupt();}
+  #endif
+  #if (IGN_CHANNELS >= 6)
+  void ignitionSchedule6Interrupt(HardwareTimer*){ignitionSchedule6Interrupt();}
+  #endif
+  #if (IGN_CHANNELS >= 7)
+  void ignitionSchedule7Interrupt(HardwareTimer*){ignitionSchedule7Interrupt();}
+  #endif
+  #if (IGN_CHANNELS >= 8)
+  void ignitionSchedule8Interrupt(HardwareTimer*){ignitionSchedule8Interrupt();}
+  #endif
+  #endif //End core<=1.8
+
 #ifdef RTC_ENABLED
 STM32RTC& rtc = STM32RTC::getInstance();
 #endif
@@ -346,47 +390,4 @@ STM32RTC& rtc = STM32RTC::getInstance();
     #endif
   }
 
-  /*
-  ***********************************************************************************************************
-  * Interrupt callback functions
-  */
-  #if ((STM32_CORE_VERSION_MINOR<=8) & (STM32_CORE_VERSION_MAJOR==1)) 
-  void oneMSInterval(HardwareTimer*){oneMSInterval();}
-  void boostInterrupt(HardwareTimer*){boostInterrupt();}
-  void fuelSchedule1Interrupt(HardwareTimer*){fuelSchedule1Interrupt();}
-  void fuelSchedule2Interrupt(HardwareTimer*){fuelSchedule2Interrupt();}
-  void fuelSchedule3Interrupt(HardwareTimer*){fuelSchedule3Interrupt();}
-  void fuelSchedule4Interrupt(HardwareTimer*){fuelSchedule4Interrupt();}
-  #if (INJ_CHANNELS >= 5)
-  void fuelSchedule5Interrupt(HardwareTimer*){fuelSchedule5Interrupt();}
   #endif
-  #if (INJ_CHANNELS >= 6)
-  void fuelSchedule6Interrupt(HardwareTimer*){fuelSchedule6Interrupt();}
-  #endif
-  #if (INJ_CHANNELS >= 7)
-  void fuelSchedule7Interrupt(HardwareTimer*){fuelSchedule7Interrupt();}
-  #endif
-  #if (INJ_CHANNELS >= 8)
-  void fuelSchedule8Interrupt(HardwareTimer*){fuelSchedule8Interrupt();}
-  #endif
-  void idleInterrupt(HardwareTimer*){idleInterrupt();}
-  void vvtInterrupt(HardwareTimer*){vvtInterrupt();}
-  void fanInterrupt(HardwareTimer*){fanInterrupt();}
-  void ignitionSchedule1Interrupt(HardwareTimer*){ignitionSchedule1Interrupt();}
-  void ignitionSchedule2Interrupt(HardwareTimer*){ignitionSchedule2Interrupt();}
-  void ignitionSchedule3Interrupt(HardwareTimer*){ignitionSchedule3Interrupt();}
-  void ignitionSchedule4Interrupt(HardwareTimer*){ignitionSchedule4Interrupt();}
-  #if (IGN_CHANNELS >= 5)
-  void ignitionSchedule5Interrupt(HardwareTimer*){ignitionSchedule5Interrupt();}
-  #endif
-  #if (IGN_CHANNELS >= 6)
-  void ignitionSchedule6Interrupt(HardwareTimer*){ignitionSchedule6Interrupt();}
-  #endif
-  #if (IGN_CHANNELS >= 7)
-  void ignitionSchedule7Interrupt(HardwareTimer*){ignitionSchedule7Interrupt();}
-  #endif
-  #if (IGN_CHANNELS >= 8)
-  void ignitionSchedule8Interrupt(HardwareTimer*){ignitionSchedule8Interrupt();}
-  #endif
-  #endif //End core<=1.8
-#endif
