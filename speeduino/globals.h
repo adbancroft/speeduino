@@ -387,10 +387,6 @@ extern byte resetControl; ///< resetControl needs to be here (as global) because
 extern volatile byte TIMER_mask;
 extern volatile byte LOOP_TIMER;
 
-//These functions all do checks on a pin to determine if it is already in use by another (higher importance) function
-#define pinIsSensor(pin)    ( ((pin) == pinCLT) || ((pin) == pinIAT) || ((pin) == pinMAP) || ((pin) == pinTPS) || ((pin) == pinO2) || ((pin) == pinBat) || (((pin) == pinFlex) && (configPage2.flexEnabled != 0)) )
-
-
 /** The status struct with current values for all 'live' variables.
 * In current version this is 64 bytes. Instantiated as global currentStatus.
 * int *ADC (Analog-to-digital value / count) values contain the "raw" value from AD conversion, which get converted to
@@ -1371,8 +1367,5 @@ extern uint8_t  o2Calibration_values[32]; // Note 8-bit values
 extern struct table2D cltCalibrationTable; /**< A 32 bin array containing the coolant temperature sensor calibration values */
 extern struct table2D iatCalibrationTable; /**< A 32 bin array containing the inlet air temperature sensor calibration values */
 extern struct table2D o2CalibrationTable; /**< A 32 bin array containing the O2 sensor calibration values */
-
-bool pinIsOutput(byte pin);
-bool pinIsUsed(byte pin);
 
 #endif // GLOBALS_H

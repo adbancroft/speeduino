@@ -39,4 +39,18 @@ void initialiseIdleUpOutput(void);
 void disableIdle(void);
 void idleInterrupt(void);
 
+static inline bool isIdlePwm(const config6 &page6) {
+    return (page6.iacAlgorithm ==IAC_ALGORITHM_PWM_OL) 
+    || (page6.iacAlgorithm == IAC_ALGORITHM_PWM_CL)
+    || (page6.iacAlgorithm == IAC_ALGORITHM_PWM_OLCL)
+    ;
+}
+
+static inline bool isIdleStepper(const config6 &page6) {
+    return (page6.iacAlgorithm==IAC_ALGORITHM_STEP_OL) 
+    || (page6.iacAlgorithm ==IAC_ALGORITHM_STEP_CL) 
+    || (page6.iacAlgorithm == IAC_ALGORITHM_STEP_OLCL)
+    ;
+}
+
 #endif

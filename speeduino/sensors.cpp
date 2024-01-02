@@ -20,6 +20,7 @@ A full copy of the license may be found in the projects root directory
 #include "auxiliaries.h"
 #include "utilities.h"
 #include "board_definition.h"
+#include "pin_mapping.h"
 
 uint32_t MAPcurRev; //Tracks which revolution we're sampling on
 unsigned int MAPcount; //Number of samples taken in the current MAP cycle
