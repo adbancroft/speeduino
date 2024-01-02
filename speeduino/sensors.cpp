@@ -19,6 +19,7 @@ A full copy of the license may be found in the projects root directory
 #include "decoders.h"
 #include "auxiliaries.h"
 #include "utilities.h"
+#include "pin_mapping.h"
 #include BOARD_H
 
 uint32_t MAPcurRev; //Tracks which revolution we're sampling on

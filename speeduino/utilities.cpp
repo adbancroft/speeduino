@@ -16,6 +16,7 @@
 #include "scheduler.h"
 #include "scheduledIO.h"
 #include "speeduino.h"
+#include "pin_mapping.h"
 
 uint8_t ioDelay[sizeof(configPage13.outputPin)];
 uint8_t ioOutDelay[sizeof(configPage13.outputPin)];

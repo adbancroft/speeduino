@@ -2,6 +2,7 @@
 #include "pin_mapping.h"
 #include "utilities.h"
 #include "acc_mc33810.h"
+#include "idle.h"
 
 #ifndef SMALL_FLASH_MODE //No support for bluepill here anyway
 
@@ -1267,6 +1268,52 @@ static void setPinMappingsSTM32(void) {
 #endif
 }
 
+static inline bool pinIsOutput(uint8_t pin) {
+  bool used = false;
+  //Injector?
+  for (uint8_t index=0U; index<_countof(pinInjectors); ++index) {
+    used = used || (pin == pinInjectors[index]);
+  }
+  //Ignition?
+  for (uint8_t index=0U; index<_countof(pinCoils); ++index) {
+    used = used || (pin == pinCoils[index]);
+  }
+
+  //Functions?
+  if ((pin == pinFuelPump)
+  || ((pin == pinFan) && (configPage2.fanEnable == 1))
+  || ((pin == pinVVT_1) && (configPage6.vvtEnabled > 0))
+  || ((pin == pinVVT_1) && (configPage10.wmiEnabled > 0))
+  || ((pin == pinVVT_2) && (configPage10.vvt2Enabled > 0))
+  || ((pin == pinBoost) && (configPage6.boostEnabled == 1))
+  || ((pin == pinIdle1) && isIdlePwm(configPage6))
+  || ((pin == pinIdle2) && isIdlePwm(configPage6) && (configPage6.iacChannels == 1))
+  || ((pin == pinStepperEnable) && isIdleStepper(configPage6))
+  || ((pin == pinStepperStep) && isIdleStepper(configPage6))
+  || ((pin == pinStepperDir) && isIdleStepper(configPage6))
+  || (pin == pinTachOut)
+  || ((pin == pinAirConComp) && (configPage15.airConEnable > 0))
+  || ((pin == pinAirConFan) && (configPage15.airConEnable > 0) && (configPage15.airConFanEnabled > 0)) )
+  {
+    used = true;
+  }
+  //Forbiden or hardware reserved? (Defined at board_xyz.h file)
+  if ( pinIsReserved(pin) ) { used = true; }
+
+  return used;
+}
+
+static inline bool pinIsSensor(uint8_t pin) {
+  return (pin == pinCLT) 
+      || (pin == pinIAT)
+      || (pin == pinMAP)
+      || (pin == pinTPS)
+      || (pin == pinO2)
+      || (pin == pinBat)
+      || ((pin == pinFlex) && (configPage2.flexEnabled != 0));
+}
+
+
 /** Set board / microcontroller specific pin mappings / assignments.
  * The boardID is switch-case compared against raw boardID integers (not enum or defined label, and probably no need for that either)
  * which are originated from tuning SW (e.g. TS) set values and are available in reference/speeduino.ini (See pinLayout, note also that
@@ -1575,4 +1622,13 @@ void setPinMapping(byte boardID)
   }  
 
   flex_pin_port = pinToInputPort(pinFlex);
+}
+
+bool pinIsUsed(uint8_t pin)
+{
+  return 
+    //Analog input?
+    pinIsSensor(pin) 
+    //Functions?
+    || pinIsOutput(pin);
 }
