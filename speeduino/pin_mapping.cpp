@@ -4,6 +4,12 @@
 #include "acc_mc33810.h"
 #include "idle.h"
 
+static constexpr uint8_t NUM_PINS = sizeof(pin_mapping_t)/sizeof(uint8_t);
+static constexpr uint8_t NUM_OUTPUT_PINS = sizeof(output_pins_t)/sizeof(uint8_t);
+static constexpr uint8_t NUM_INDIVIDUAL_OUTPUT_PINS = (uint8_t)((sizeof(output_pins_t)-sizeof(output_pins_t::pinInjectors)-sizeof(output_pins_t::pinCoils))/sizeof(uint8_t));
+static constexpr uint8_t NUM_INPUT_PINS = sizeof(input_pins_t)/sizeof(uint8_t);
+static constexpr uint8_t NUM_SENSOR_PINS = sizeof(sensor_pins_t)/sizeof(uint8_t);
+
 #ifndef SMALL_FLASH_MODE //No support for bluepill here anyway
 
 static pin_mapping_t getPinMappingsV2_0Shield(void) {
@@ -1449,49 +1455,28 @@ static inline pin_mapping_t getDefaultPinMapping(uint8_t boardId) {
   }
 }
 
+static inline bool isOutputPin(uint8_t pin, const pin_mapping_t &pins) {
+  const uint8_t *pStart = (const uint8_t*)(&pins.outputs);
+  const uint8_t *pEnd = pStart + NUM_OUTPUT_PINS;
+  while (pStart!=pEnd && pin!=*pStart) {
+    ++pStart;
+  }
+  return pStart!=pEnd;  
+}
+
 static inline bool pinIsOutput(uint8_t pin, const pin_mapping_t &pins) {
-  bool used = false;
-  //Injector?
-  for (uint8_t index=0U; index<_countof(pins.outputs.pinInjectors); ++index) {
-    used = used || (pin == pins.outputs.pinInjectors[index]);
-  }
-  //Ignition?
-  for (uint8_t index=0U; index<_countof(pins.outputs.pinCoils); ++index) {
-    used = used || (pin == pins.outputs.pinCoils[index]);
-  }
-
-  //Functions?
-  if ((pin == pins.outputs.pinFuelPump)
-  || ((pin == pins.outputs.pinFan) && (configPage2.fanEnable == 1))
-  || ((pin == pins.outputs.pinVVT_1) && (configPage6.vvtEnabled > 0))
-  || ((pin == pins.outputs.pinVVT_1) && (configPage10.wmiEnabled > 0))
-  || ((pin == pins.outputs.pinVVT_2) && (configPage10.vvt2Enabled > 0))
-  || ((pin == pins.outputs.pinBoost) && (configPage6.boostEnabled == 1))
-  || ((pin == pins.outputs.pinIdle1) && isIdlePwm(configPage6))
-  || ((pin == pins.outputs.pinIdle2) && isIdlePwm(configPage6) && (configPage6.iacChannels == 1))
-  || ((pin == pins.outputs.pinStepperEnable) && isIdleStepper(configPage6))
-  || ((pin == pins.outputs.pinStepperStep) && isIdleStepper(configPage6))
-  || ((pin == pins.outputs.pinStepperDir) && isIdleStepper(configPage6))
-  || (pin == pins.outputs.pinTachOut)
-  || ((pin == pins.outputs.pinAirConComp) && (configPage15.airConEnable > 0))
-  || ((pin == pins.outputs.pinAirConFan) && (configPage15.airConEnable > 0) && (configPage15.airConFanEnabled > 0)) )
-  {
-    used = true;
-  }
-  //Forbiden or hardware reserved? (Defined at board_xyz.h file)
-  if ( pinIsReserved(pin) ) { used = true; }
-
-  return used;
+  return isOutputPin(pin, pins)
+      //Forbiden or hardware reserved? (Defined at board_xyz.h file)
+      || pinIsReserved(pin);
 }
 
 static inline bool pinIsSensor(uint8_t pin, const pin_mapping_t &pins) {
-  return (pin == pins.inputs.sensors.pinCLT) 
-      || (pin == pins.inputs.sensors.pinIAT)
-      || (pin == pins.inputs.sensors.pinMAP)
-      || (pin == pins.inputs.sensors.pinTPS)
-      || (pin == pins.inputs.sensors.pinO2)
-      || (pin == pins.inputs.sensors.pinBat)
-      || ((pin == pins.inputs.pinFlex) && (configPage2.flexEnabled != 0));
+  const uint8_t *pStart = (const uint8_t*)(&pins.inputs.sensors);
+  const uint8_t *pEnd = pStart + NUM_SENSOR_PINS;
+  while (pStart!=pEnd && pin!=*pStart) {
+    ++pStart;
+  }
+  return pStart!=pEnd;  
 }
 
 pin_mapping_t pinMapping;
