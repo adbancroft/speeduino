@@ -4,6 +4,7 @@
 #include "port_pin.h"
 #include "globals.h"
 #include "auxiliaries.h"
+#include "pin_mapping.h"
 
 static uint16_t nullGetRPM(void){return 0U;} //initialisation function for getRpm, returns safe value of 0
 static int nullGetCrankAngle(void){return 0;} //initialisation function for getCrankAngle, returns safe value of 0
@@ -212,13 +213,13 @@ static void initialiseDecoder(uint8_t pattern, uint8_t pinPrimary, uint8_t pinSe
 decoder_t decoder = NULL_DECODER;
 
 void initialiseDecoder(void) {
-  initialiseDecoder(configPage4.TrigPattern, pinTrigger, pinTrigger2, pinTrigger3);
+  initialiseDecoder(configPage4.TrigPattern, pinMapping.inputs.pinTrigger, pinMapping.inputs.pinTrigger2, pinMapping.inputs.pinTrigger3);
 
   if (!isValid(decoder.secondaryTrigger)) {
-    pinTrigger2 = NOT_A_PIN;
+    pinMapping.inputs.pinTrigger2 = NOT_A_PIN;
   }
   if (!isValid(decoder.tertiaryTrigger)) {
-    pinTrigger3 = NOT_A_PIN;
+    pinMapping.inputs.pinTrigger3 = NOT_A_PIN;
   }
   if (decoder.triggerSetEndTeeth==nullptr) {
     configPage2.perToothIgn = 0U;
@@ -227,15 +228,15 @@ void initialiseDecoder(void) {
 
 
 void attachPrimaryInterrupt(const trigger_t &trigger) {
-  attachInterrupt(pinTrigger, trigger);
+  attachInterrupt(pinMapping.inputs.pinTrigger, trigger);
 }
 
 void attachSecondaryInterrupt(const trigger_t &trigger) {
-  attachInterrupt(pinTrigger2, trigger);
+  attachInterrupt(pinMapping.inputs.pinTrigger2, trigger);
 }
 
 void attachTertiaryInterrupt(const trigger_t &trigger) {
-  attachInterrupt(pinTrigger3, trigger);
+  attachInterrupt(pinMapping.inputs.pinTrigger3, trigger);
 }
 
 uint8_t getTriggerPinState(const trigger_t &trigger) {

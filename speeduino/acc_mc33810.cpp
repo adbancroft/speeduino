@@ -2,6 +2,8 @@
 
 #if defined(OUTPUT_CONTROL_SUPPORTED)
 
+#include "pin_mapping.h"
+
 uint8_t MC33810_BIT_INJ1 = 1;
 uint8_t MC33810_BIT_INJ2 = 2;
 uint8_t MC33810_BIT_INJ3 = 3;
@@ -20,8 +22,6 @@ uint8_t MC33810_BIT_IGN6 = 6;
 uint8_t MC33810_BIT_IGN7 = 7;
 uint8_t MC33810_BIT_IGN8 = 8;
 
-byte pinMC33810_1_CS;
-byte pinMC33810_2_CS;
 ioPort portMC33810_1_CS;
 ioPort portMC33810_2_CS;
 
@@ -31,8 +31,8 @@ void initMC33810(void)
     mc33810_1_requestedState = 0;
     mc33810_2_requestedState = 0;
 
-    portMC33810_1_CS = pinToOutputPort(pinMC33810_1_CS);
-    portMC33810_2_CS = pinToOutputPort(pinMC33810_2_CS);
+    portMC33810_1_CS = pinToOutputPort(pinMapping.outputs.pinMC33810_1);
+    portMC33810_2_CS = pinToOutputPort(pinMapping.outputs.pinMC33810_2);
 
     SPI.begin();
     //These are the SPI settings per the datasheet

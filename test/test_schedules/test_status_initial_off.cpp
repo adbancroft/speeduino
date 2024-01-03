@@ -3,10 +3,12 @@
 #include "scheduler.h"
 #include "../test_utils.h"
 #include "utilities.h"
+#include "pin_mapping.h"
 
 void test_status_initial_off(FuelSchedule &schedule)
 {
-    initialiseFuelSchedulers(pinInjectors);
+    
+    initialiseFuelSchedulers(pin_mapping_t());
     TEST_ASSERT_EQUAL(OFF, schedule._status);
 }
 
@@ -20,7 +22,7 @@ void test_status_initial_off_inj(void)
 
 void test_status_initial_off(IgnitionSchedule &schedule)
 {
-    initialiseFuelSchedulers(pinInjectors);
+    initialiseFuelSchedulers(pin_mapping_t());
     TEST_ASSERT_EQUAL(OFF, schedule._status);
 }
 

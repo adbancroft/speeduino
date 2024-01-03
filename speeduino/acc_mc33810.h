@@ -8,9 +8,6 @@
 #include <SPI.h>
 #include "port_pin.h"
 
-extern byte pinMC33810_1_CS;
-extern byte pinMC33810_2_CS;
-
 //#define MC33810_ONOFF_CMD   3
 static constexpr uint8_t MC33810_ONOFF_CMD = 0x30; //48 in decimal
 static volatile uint8_t mc33810_1_requestedState; //Current binary state of the 1st ICs IGN and INJ values

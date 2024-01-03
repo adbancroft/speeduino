@@ -7,6 +7,7 @@ A full copy of the license may be found in the projects root directory
 #include "maths.h"
 #include "timers.h"
 #include "port_pin.h"
+#include "pin_mapping.h"
 #include "src/PID_v1/PID_v1.h"
 
 #define STEPPER_LESS_AIR_DIRECTION() ((configPage9.iacStepperInv == 0) ? STEPPER_BACKWARD : STEPPER_FORWARD)
@@ -71,8 +72,8 @@ void initialiseIdle(bool forcehoming)
   IDLE_TIMER_DISABLE();
 
   //Pin masks must always be initialised, regardless of whether PWM idle is used. This is required for STM32 to prevent issues if the IRQ function fires on restart/overflow
-  idle_pin_port = pinToOutputPort(pinIdle1);
-  idle2_pin_port = pinToOutputPort(pinIdle2);
+  idle_pin_port = pinToOutputPort(pinMapping.outputs.pinIdle1);
+  idle2_pin_port = pinToOutputPort(pinMapping.outputs.pinIdle2);
 
   //Initialising comprises of setting the 2D tables with the relevant values from the config pages
   switch(configPage6.iacAlgorithm)
@@ -272,7 +273,7 @@ void initialiseIdleUpOutput(void)
   if (configPage2.idleUpOutputInv == 1) { idleUpOutputHIGH = LOW; idleUpOutputLOW = HIGH; }
   else { idleUpOutputHIGH = HIGH; idleUpOutputLOW = LOW; }
 
-  if(configPage2.idleUpEnabled > 0) { digitalWrite(pinIdleUpOutput, idleUpOutputLOW); } //Initialise program with the idle up output in the off state if it is enabled. 
+  if(configPage2.idleUpEnabled > 0) { digitalWrite(pinMapping.outputs.pinIdleUpOutput, idleUpOutputLOW); } //Initialise program with the idle up output in the off state if it is enabled. 
   currentStatus.idleUpOutputActive = false;
 }
 
@@ -303,7 +304,7 @@ static inline byte checkForStepping(void)
       if(idleStepper.stepperStatus == STEPPING)
       {
         //Means we're currently in a step, but it needs to be turned off
-        digitalWrite(pinStepperStep, LOW); //Turn off the step
+        digitalWrite(pinMapping.outputs.pinStepperStep, LOW); //Turn off the step
         idleStepper.stepStartTime = micros_safe();
         
         // if there is no cool time we can miss that step out completely.
@@ -325,7 +326,7 @@ static inline byte checkForStepping(void)
         if(configPage9.iacStepperPower == STEPPER_POWER_WHEN_ACTIVE) 
         { 
           //Disable the DRV8825, but only if we're at the final step in this cycle. 
-          if(idleStepper.targetIdleStep == idleStepper.curIdleStep) { digitalWrite(pinStepperEnable, HIGH); } 
+          if(idleStepper.targetIdleStep == idleStepper.curIdleStep) { digitalWrite(pinMapping.outputs.pinStepperEnable, HIGH); } 
         }
       }
     }
@@ -350,18 +351,18 @@ static inline void doStep(void)
     if (error < 0)
     {
       // we are moving toward the home position (reducing air)
-      digitalWrite(pinStepperDir, STEPPER_LESS_AIR_DIRECTION() );
+      digitalWrite(pinMapping.outputs.pinStepperDir, STEPPER_LESS_AIR_DIRECTION() );
       idleStepper.curIdleStep--;
     }
     else
     {
       // we are moving away from the home position (adding air).
-      digitalWrite(pinStepperDir, STEPPER_MORE_AIR_DIRECTION() );
+      digitalWrite(pinMapping.outputs.pinStepperDir, STEPPER_MORE_AIR_DIRECTION() );
       idleStepper.curIdleStep++;
     }
 
-    digitalWrite(pinStepperEnable, LOW); //Enable the DRV8825
-    digitalWrite(pinStepperStep, HIGH);
+    digitalWrite(pinMapping.outputs.pinStepperEnable, LOW); //Enable the DRV8825
+    digitalWrite(pinMapping.outputs.pinStepperStep, HIGH);
     idleStepper.stepStartTime = micros_safe();
     idleStepper.stepperStatus = STEPPING;
     idleOn = true;
@@ -383,9 +384,9 @@ static inline byte isStepperHomed(void)
   bool isHomed = true; //As it's the most common scenario, default value is true
   if( completedHomeSteps < (configPage6.iacStepHome * 3) ) //Home steps are divided by 3 from TS
   {
-    digitalWrite(pinStepperDir, STEPPER_LESS_AIR_DIRECTION() ); //homing the stepper closes off the air bleed
-    digitalWrite(pinStepperEnable, LOW); //Enable the DRV8825
-    digitalWrite(pinStepperStep, HIGH);
+    digitalWrite(pinMapping.outputs.pinStepperDir, STEPPER_LESS_AIR_DIRECTION() ); //homing the stepper closes off the air bleed
+    digitalWrite(pinMapping.outputs.pinStepperEnable, LOW); //Enable the DRV8825
+    digitalWrite(pinMapping.outputs.pinStepperStep, HIGH);
     idleStepper.stepStartTime = micros_safe();
     idleStepper.stepperStatus = STEPPING;
     completedHomeSteps++;
@@ -417,19 +418,19 @@ void idleControl(void)
   //Check whether the idleUp is active
   if (configPage2.idleUpEnabled == true)
   {
-    if (configPage2.idleUpPolarity == 0) { currentStatus.idleUpActive = !digitalRead(pinIdleUp); } //Normal mode (ground switched)
-    else { currentStatus.idleUpActive = digitalRead(pinIdleUp); } //Inverted mode (5v activates idleUp)
+    if (configPage2.idleUpPolarity == 0) { currentStatus.idleUpActive = !digitalRead(pinMapping.inputs.pinIdleUp); } //Normal mode (ground switched)
+    else { currentStatus.idleUpActive = digitalRead(pinMapping.inputs.pinIdleUp); } //Inverted mode (5v activates idleUp)
 
     if (configPage2.idleUpOutputEnabled  == true)
     {
       if (currentStatus.idleUpActive == true)
       {
-        digitalWrite(pinIdleUpOutput, idleUpOutputHIGH);
+        digitalWrite(pinMapping.outputs.pinIdleUpOutput, idleUpOutputHIGH);
         currentStatus.idleUpOutputActive = true;
       }
       else
       {
-        digitalWrite(pinIdleUpOutput, idleUpOutputLOW);
+        digitalWrite(pinMapping.outputs.pinIdleUpOutput, idleUpOutputLOW);
         currentStatus.idleUpOutputActive = false;
       }      
     }

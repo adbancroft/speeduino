@@ -79,8 +79,8 @@ Air Conditioning Control
 void initialiseAirCon(void)
 {
   if( (configPage15.airConEnable) == 1 &&
-      pinAirConRequest != 0 &&
-      pinAirConComp != 0 )
+      isValidPin(pinMapping.inputs.pinAirConRequest) &&
+      isValidPin(pinMapping.outputs.pinAirConComp) )
   {
     // Hold the A/C off until a few seconds after cranking
     acAfterEngineStartDelay = 0;
@@ -97,14 +97,14 @@ void initialiseAirCon(void)
     BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_TURNING_ON);  // Bit 4
     BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_CLT_LOCKOUT); // Bit 5
     BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_FAN);         // Bit 6
-    aircon_req_pin_port = pinToInputPort(pinAirConRequest, (configPage15.airConReqPol == 1 ? INPUT : INPUT_PULLUP));
-    aircon_comp_pin_port = pinToOutputPort(pinAirConComp);
+    aircon_req_pin_port = pinToInputPort(pinMapping.inputs.pinAirConRequest, (configPage15.airConReqPol == 1 ? INPUT : INPUT_PULLUP));
+    aircon_comp_pin_port = pinToOutputPort(pinMapping.outputs.pinAirConComp);
 
     AIRCON_OFF();
 
-    if((configPage15.airConFanEnabled > 0) && (pinAirConFan != 0))
+    if((configPage15.airConFanEnabled > 0) && isValidPin(pinMapping.outputs.pinAirConFan))
     {
-      aircon_fan_pin_port = pinToOutputPort(pinAirConFan);
+      aircon_fan_pin_port = pinToOutputPort(pinMapping.outputs.pinAirConFan);
       AIRCON_FAN_OFF();
       acStandAloneFanIsEnabled = true;
     }
@@ -300,7 +300,7 @@ Fan control
 */
 void initialiseFan(void)
 {
-  fan_pin_port = pinToOutputPort(pinFan);
+  fan_pin_port = pinToOutputPort(pinMapping.outputs.pinFan);
   FAN_OFF();  //Initialise program with the fan in the off state
   BIT_CLEAR(currentStatus.status4, BIT_STATUS4_FAN);
   currentStatus.fanDuty = 0;
@@ -432,9 +432,9 @@ void fanControl(void)
 
 void initialiseAuxPWM(void)
 {
-  boost_pin_port = pinToOutputPort(pinBoost);
-  vvt1_pin_port = pinToOutputPort(pinVVT_1);
-  vvt2_pin_port = pinToOutputPort(pinVVT_2);
+  boost_pin_port = pinToOutputPort(pinMapping.outputs.pinBoost);
+  vvt1_pin_port = pinToOutputPort(pinMapping.outputs.pinVVT_1);
+  vvt2_pin_port = pinToOutputPort(pinMapping.outputs.pinVVT_2);
   n2o_stage1_pin_port = pinToOutputPort(configPage10.n2o_stage1_pin);
   n2o_stage2_pin_port = pinToOutputPort(configPage10.n2o_stage2_pin);
 
@@ -1053,11 +1053,11 @@ void wmiControl(void)
       vvt2_pwm_state = false;
       vvt2_max_pwm = false;
       if( configPage6.vvtEnabled == 0 ) { DISABLE_VVT_TIMER(); }
-      digitalWrite(pinWMIEnabled, LOW);
+      digitalWrite(pinMapping.outputs.pinWMIEnabled, LOW);
     }
     else
     {
-      digitalWrite(pinWMIEnabled, HIGH);
+      digitalWrite(pinMapping.outputs.pinWMIEnabled, HIGH);
       if (wmiPW >= 200)
       {
         // Make sure water pump is on (100% duty)
