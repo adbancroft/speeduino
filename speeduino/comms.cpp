@@ -19,6 +19,7 @@ A full copy of the license may be found in the projects root directory
 #include "page_crc.h"
 #include "logger.h"
 #include "comms_legacy.h"
+#include "pin_mapping.h"
 #include "src/FastCRC/FastCRC.h"
 #include <avr/pgmspace.h>
 #ifdef RTC_ENABLED
@@ -902,7 +903,7 @@ void processSerialCommand(void)
       #endif
 
         while (Serial.available() == 0) { }
-        digitalWrite(pinResetControl, LOW);
+        digitalWrite(pinMapping.outputs.pinResetControl, LOW);
       }
       else
       {

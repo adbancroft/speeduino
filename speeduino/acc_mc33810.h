@@ -8,8 +8,6 @@
 #include <SPI.h>
 #include "port_pin.h"
 
-extern byte pinMC33810_1_CS;
-extern byte pinMC33810_2_CS;
 extern ioPort portMC33810_1_CS;
 extern ioPort portMC33810_2_CS;
 

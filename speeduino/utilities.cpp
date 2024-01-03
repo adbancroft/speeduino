@@ -32,18 +32,18 @@ void setResetControlPinState(void)
   {
     case RESET_CONTROL_PREVENT_WHEN_RUNNING:
       /* Set the reset control pin LOW and change it to HIGH later when we get sync. */
-      digitalWrite(pinResetControl, LOW);
+      digitalWrite(pinMapping.outputs.pinResetControl, LOW);
       BIT_CLEAR(currentStatus.status3, BIT_STATUS3_RESET_PREVENT);
       break;
     case RESET_CONTROL_PREVENT_ALWAYS:
       /* Set the reset control pin HIGH and never touch it again. */
-      digitalWrite(pinResetControl, HIGH);
+      digitalWrite(pinMapping.outputs.pinResetControl, HIGH);
       BIT_SET(currentStatus.status3, BIT_STATUS3_RESET_PREVENT);
       break;
     case RESET_CONTROL_SERIAL_COMMAND:
       /* Set the reset control pin HIGH. There currently isn't any practical difference
          between this and PREVENT_ALWAYS but it doesn't hurt anything to have them separate. */
-      digitalWrite(pinResetControl, HIGH);
+      digitalWrite(pinMapping.outputs.pinResetControl, HIGH);
       BIT_CLEAR(currentStatus.status3, BIT_STATUS3_RESET_PREVENT);
       break;
     default:

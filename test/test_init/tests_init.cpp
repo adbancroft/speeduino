@@ -71,27 +71,27 @@ void test_initialisation_outputs_V03(void)
 
   char msg[32];
   strcpy_P(msg, PSTR("Coil1"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[0]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinCoils[0]), msg);
   strcpy_P(msg, PSTR("Coil2"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[1]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinCoils[1]), msg);
   strcpy_P(msg, PSTR("Coil3"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[2]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinCoils[2]), msg);
   strcpy_P(msg, PSTR("Coil4"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[3]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinCoils[3]), msg);
   strcpy_P(msg, PSTR("Injector 1"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[0]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinInjectors[0]), msg);
   strcpy_P(msg, PSTR("Injector 2"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[1]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinInjectors[1]), msg);
   strcpy_P(msg, PSTR("Injector 3"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[2]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinInjectors[2]), msg);
   strcpy_P(msg, PSTR("Injector 4"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[3]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinInjectors[3]), msg);
   strcpy_P(msg, PSTR("Tacho Out"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinTachOut), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinTachOut), msg);
   strcpy_P(msg, PSTR("Fuel Pump"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinFuelPump), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinFuelPump), msg);
   strcpy_P(msg, PSTR("Fan"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinFan), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinFan), msg);
 }
 
 //Test that all mandatory output pins have their mode correctly set to output
@@ -102,44 +102,44 @@ void test_initialisation_outputs_V04(void)
 
   char msg[32];
   strcpy_P(msg, PSTR("Coil1"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[0]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinCoils[0]), msg);
   strcpy_P(msg, PSTR("Coil2"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[1]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinCoils[1]), msg);
   strcpy_P(msg, PSTR("Coil3"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[2]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinCoils[2]), msg);
   strcpy_P(msg, PSTR("Coil4"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[3]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinCoils[3]), msg);
   strcpy_P(msg, PSTR("Injector 1"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[0]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinInjectors[0]), msg);
   strcpy_P(msg, PSTR("Injector 2"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[1]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinInjectors[1]), msg);
   strcpy_P(msg, PSTR("Injector 3"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[2]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinInjectors[2]), msg);
   strcpy_P(msg, PSTR("Injector 4"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[3]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinInjectors[3]), msg);
   strcpy_P(msg, PSTR("Tacho Out"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinTachOut), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinTachOut), msg);
   strcpy_P(msg, PSTR("Fuel Pump"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinFuelPump), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinFuelPump), msg);
   strcpy_P(msg, PSTR("Fan"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinFan), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinFan), msg);
   /*
   if(isIdlePWM) 
   {
-    TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinIdle1), "Idle 1");
-    TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinIdle2), "Idle 2");
+    TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinIdle1), "Idle 1");
+    TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinIdle2), "Idle 2");
   }
   else if (isIdleStepper)
   {
-    TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinStepperDir), "Stepper Dir");
-    TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinStepperStep), "Stepper Step");
-    TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinStepperEnable), "Stepper Enable");
+    TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinStepperDir), "Stepper Dir");
+    TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinStepperStep), "Stepper Step");
+    TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinStepperEnable), "Stepper Enable");
   }
   
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinFan), "Fan");
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinBoost), "Boost");
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinVVT_1), "VVT1");
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinVVT_2), "VVT2");
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinFan), "Fan");
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinBoost), "Boost");
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinVVT_1), "VVT1");
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinVVT_2), "VVT2");
   */
 
 }
@@ -152,27 +152,27 @@ void test_initialisation_outputs_MX5_8995(void)
 
   char msg[32];
   strcpy_P(msg, PSTR("Coil1"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[0]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinCoils[0]), msg);
   strcpy_P(msg, PSTR("Coil2"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[1]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinCoils[1]), msg);
   strcpy_P(msg, PSTR("Coil3"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[2]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinCoils[2]), msg);
   strcpy_P(msg, PSTR("Coil4"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinCoils[3]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinCoils[3]), msg);
   strcpy_P(msg, PSTR("Injector 1"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[0]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinInjectors[0]), msg);
   strcpy_P(msg, PSTR("Injector 2"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[1]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinInjectors[1]), msg);
   strcpy_P(msg, PSTR("Injector 3"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[2]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinInjectors[2]), msg);
   strcpy_P(msg, PSTR("Injector 4"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinInjectors[3]), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinInjectors[3]), msg);
   strcpy_P(msg, PSTR("Tacho Out"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinTachOut), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinTachOut), msg);
   strcpy_P(msg, PSTR("Fuel Pump"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinFuelPump), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinFuelPump), msg);
   strcpy_P(msg, PSTR("Fan"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinFan), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinFan), msg);
 }
 
 void test_initialisation_outputs_PWM_idle(void)
@@ -191,9 +191,9 @@ void test_initialisation_outputs_PWM_idle(void)
   strcpy_P(msg, PSTR("Is PWM Idle"));
   TEST_ASSERT_TRUE_MESSAGE(isIdlePWM, msg);
   strcpy_P(msg, PSTR("Idle 1"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinIdle1), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinIdle1), msg);
   strcpy_P(msg, PSTR("Idle 2"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinIdle2), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinIdle2), msg);
 }
 
 void test_initialisation_outputs_stepper_idle(void)
@@ -206,11 +206,11 @@ void test_initialisation_outputs_stepper_idle(void)
   strcpy_P(msg, PSTR("Is Stepper Idle"));
   TEST_ASSERT_TRUE_MESSAGE(isIdleStepper, msg);
   strcpy_P(msg, PSTR("Stepper Dir"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinStepperDir), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinStepperDir), msg);
   strcpy_P(msg, PSTR("Stepper Step"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinStepperStep), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinStepperStep), msg);
   strcpy_P(msg, PSTR("Stepper Enable"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinStepperEnable), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinStepperEnable), msg);
 }
 
 void test_initialisation_outputs_boost(void)
@@ -220,19 +220,19 @@ void test_initialisation_outputs_boost(void)
 
   char msg[32];
   strcpy_P(msg, PSTR("Boost"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinBoost), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinBoost), msg);
 }
 
 void test_initialisation_outputs_VVT(void)
 {
-  prepareForInitialiseAll(9);
+  prepareForInitialiseAll(3);
   initialiseAll(); //Run the main initialise function
 
   char msg[32];
   strcpy_P(msg, PSTR("VVT1"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinVVT_1), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinVVT_1), msg);
   strcpy_P(msg, PSTR("VVT2"));
-  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinVVT_2), msg);
+  TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinVVT_2), msg);
 }
 
 void test_initialisation_outputs_reset_control_use_board_default(void)
@@ -242,9 +242,9 @@ void test_initialisation_outputs_reset_control_use_board_default(void)
   configPage4.resetControlPin = 0; // Flags to use board default
   initialiseAll(); //Run the main initialise function
 
-  TEST_ASSERT_NOT_EQUAL(0, pinResetControl); 
+  TEST_ASSERT_NOT_EQUAL(0, pinMapping.outputs.pinResetControl); 
   TEST_ASSERT_EQUAL(resetControl, RESET_CONTROL_PREVENT_WHEN_RUNNING);
-  TEST_ASSERT_EQUAL(OUTPUT, getPinMode(pinResetControl));  
+  TEST_ASSERT_EQUAL(OUTPUT, getPinMode(pinMapping.outputs.pinResetControl));  
 }
 
 void test_initialisation_outputs_reset_control_override_board_default(void)
@@ -254,9 +254,9 @@ void test_initialisation_outputs_reset_control_override_board_default(void)
   configPage4.resetControlPin = 45; // Use a different pin
   initialiseAll(); //Run the main initialise function
 
-  TEST_ASSERT_EQUAL(45, pinResetControl);  
+  TEST_ASSERT_EQUAL(45, pinMapping.outputs.pinResetControl);  
   TEST_ASSERT_EQUAL(resetControl, RESET_CONTROL_PREVENT_WHEN_RUNNING);
-  TEST_ASSERT_EQUAL(OUTPUT, getPinMode(pinResetControl));
+  TEST_ASSERT_EQUAL(OUTPUT, getPinMode(pinMapping.outputs.pinResetControl));
 }
 
 void test_initialisation_user_pin_override_board_default(void)
@@ -267,8 +267,8 @@ void test_initialisation_user_pin_override_board_default(void)
   configPage2.tachoPin = 15;
   initialiseAll(); //Run the main initialise function
 
-  TEST_ASSERT_EQUAL(15, pinTachOut);  
-  TEST_ASSERT_EQUAL(OUTPUT, getPinMode(pinTachOut));
+  TEST_ASSERT_EQUAL(15, pinMapping.outputs.pinTachOut);  
+  TEST_ASSERT_EQUAL(OUTPUT, getPinMode(pinMapping.outputs.pinTachOut));
 }
 
 // All config user pin fields are <= 6 *bits*. So too small to
@@ -282,8 +282,8 @@ void test_initialisation_user_pin_not_valid_no_override(void)
   ++configPage2.tachoPin;
   initialiseAll(); //Run the main initialise function
 
-  TEST_ASSERT_EQUAL(49, pinTachOut);  
-  TEST_ASSERT_EQUAL(OUTPUT, getPinMode(pinTachOut));
+  TEST_ASSERT_EQUAL(49, pinMapping.outputs.pinTachOut);  
+  TEST_ASSERT_EQUAL(OUTPUT, getPinMode(pinMapping.outputs.pinTachOut));
 }
 #endif
 
@@ -294,9 +294,9 @@ void test_initialisation_input_user_pin_does_not_override_outputpin(void)
   configPage6.launchPin = 49; // 49 is the default tacho output
   initialiseAll(); //Run the main initialise function
 
-  TEST_ASSERT_EQUAL(49, pinTachOut);  
-  TEST_ASSERT_EQUAL(OUTPUT, getPinMode(pinTachOut));
-  TEST_ASSERT_EQUAL(49, pinLaunch);  
+  TEST_ASSERT_EQUAL(49, pinMapping.outputs.pinTachOut);  
+  TEST_ASSERT_EQUAL(OUTPUT, getPinMode(pinMapping.outputs.pinTachOut));
+  TEST_ASSERT_EQUAL(49, pinMapping.inputs.pinLaunch);  
 }
 
 void testInitialisation()

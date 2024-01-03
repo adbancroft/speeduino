@@ -12,6 +12,7 @@
 #include "logger.h"
 #include "rtc_common.h"
 #include "maths.h"
+#include "pin_mapping.h"
 
 //List of logger field names. This must be in the same order and length as logger_updateLogdataCSV()
 constexpr char header_0[] PROGMEM = "secl";
@@ -639,7 +640,7 @@ void checkForSDStart()
 
     if((configPage13.onboard_log_trigger_Epin) && (SD_status == SD_STATUS_READY) )
     {
-      if(digitalRead(pinSDEnable) == LOW)
+      if(digitalRead(pinMapping.inputs.pinSDEnable) == LOW)
       {
         beginSDLogging(); //Setup the log file, preallocation, header row
       }
@@ -693,7 +694,7 @@ void checkForSDStop()
     //External Pin
     if(configPage13.onboard_log_trigger_Epin)
     {
-      if(digitalRead(pinSDEnable) == LOW)
+      if(digitalRead(pinMapping.inputs.pinSDEnable) == LOW)
       {
         log_Epin = true;
       }

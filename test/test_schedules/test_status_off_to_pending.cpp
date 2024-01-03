@@ -4,6 +4,8 @@
 
 #include "scheduler.h"
 #include "utilities.h"
+#include "pin_mapping.h"
+#include "pin_mapping.h"
 
 #define TIMEOUT 1000
 #define DURATION 1000
@@ -12,7 +14,7 @@ static void emptyCallback(void) {  }
 
 void test_status_off_to_pending(FuelSchedule &schedule)
 {
-    initialiseFuelSchedulers(pinInjectors);
+    initialiseFuelSchedulers(pin_mapping_t());
     _setSchedule(schedule, TIMEOUT, DURATION);
     TEST_ASSERT_EQUAL(PENDING, schedule._status);
 }
@@ -27,7 +29,7 @@ void test_status_off_to_pending_inj(void)
 
 void test_status_off_to_pending_ign(IgnitionSchedule &schedule)
 {
-    initialiseIgnitionSchedulers(pinCoils);
+    initialiseIgnitionSchedulers(pin_mapping_t());
     setCallbacks(schedule, emptyCallback, emptyCallback);
     _setSchedule(schedule, TIMEOUT, DURATION);
     TEST_ASSERT_EQUAL(PENDING, schedule._status);

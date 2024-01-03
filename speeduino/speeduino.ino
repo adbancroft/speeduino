@@ -323,7 +323,7 @@ void __attribute__((always_inline)) loop(void)
       VVT2_OFF();
       DISABLE_VVT_TIMER();
       boostDisable();
-      if(configPage4.ignBypassEnabled > 0U) { digitalWrite(pinIgnBypass, LOW); } //Reset the ignition bypass ready for next crank attempt
+      if(configPage4.ignBypassEnabled > 0U) { digitalWrite(pinMapping.outputs.pinIgnBypass, LOW); } //Reset the ignition bypass ready for next crank attempt
     }
     //***Perform sensor reads***
     //-----------------------------------------------------------------------------------------------------
@@ -500,11 +500,11 @@ void __attribute__((always_inline)) loop(void)
         if (BIT_CHECK(currentStatus.status4, BIT_STATUS4_WMI_EMPTY) != 0U)
         {
           // flash with 1sec interval
-          digitalWrite(pinWMIIndicator, !digitalRead(pinWMIIndicator));
+          togglePin(pinMapping.outputs.pinWMIIndicator);
         }
         else
         {
-          digitalWrite(pinWMIIndicator, configPage10.wmiIndicatorPolarity ? HIGH : LOW);
+          digitalWrite(pinMapping.outputs.pinWMIIndicator, configPage10.wmiIndicatorPolarity ? HIGH : LOW);
         } 
       }
 
@@ -544,7 +544,7 @@ void __attribute__((always_inline)) loop(void)
           if( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
           {
             BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK);
-            if(configPage4.ignBypassEnabled > 0U) { digitalWrite(pinIgnBypass, HIGH); }
+            if(configPage4.ignBypassEnabled > 0U) { digitalWrite(pinMapping.outputs.pinIgnBypass, HIGH); }
           }
         }
         else
@@ -555,7 +555,7 @@ void __attribute__((always_inline)) loop(void)
             BIT_SET(currentStatus.engine, BIT_ENGINE_CRANK);
             BIT_CLEAR(currentStatus.engine, BIT_ENGINE_RUN);
             currentStatus.runSecs = 0; //We're cranking (hopefully), so reset the engine run time to prompt ASE.
-            if(configPage4.ignBypassEnabled > 0U) { digitalWrite(pinIgnBypass, LOW); }
+            if(configPage4.ignBypassEnabled > 0U) { digitalWrite(pinMapping.outputs.pinIgnBypass, LOW); }
 
             //Check whether the user has selected to disable to the fan during cranking
             if(configPage2.fanWhenCranking == 0U) { FAN_OFF(); }
@@ -773,13 +773,13 @@ void __attribute__((always_inline)) loop(void)
       if ( (!BIT_CHECK(currentStatus.status3, BIT_STATUS3_RESET_PREVENT)) && (resetControl == RESET_CONTROL_PREVENT_WHEN_RUNNING) ) 
       {
         //Reset prevention is supposed to be on while the engine is running but isn't. Fix that.
-        digitalWrite(pinResetControl, HIGH);
+        digitalWrite(pinMapping.outputs.pinResetControl, HIGH);
         BIT_SET(currentStatus.status3, BIT_STATUS3_RESET_PREVENT);
       }
     } //Has sync and RPM
     else if ( (BIT_CHECK(currentStatus.status3, BIT_STATUS3_RESET_PREVENT)) && (resetControl == RESET_CONTROL_PREVENT_WHEN_RUNNING) )
     {
-      digitalWrite(pinResetControl, LOW);
+      digitalWrite(pinMapping.outputs.pinResetControl, LOW);
       BIT_CLEAR(currentStatus.status3, BIT_STATUS3_RESET_PREVENT);
     }
     else { /* No op to keep MISRA happy. */ }
@@ -1036,11 +1036,11 @@ void checkLaunchAndFlatShift(void)
 {
   //Check for launching/flat shift (clutch) based on the current and previous clutch states
   currentStatus.previousClutchTrigger = currentStatus.clutchTrigger;
-  //Only check for pinLaunch if any function using it is enabled. Else pins might break starting a board
+  //Only check for pinMapping.inputs.pinLaunch if any function using it is enabled. Else pins might break starting a board
   if(configPage6.flatSEnable || configPage6.launchEnabled)
   {
-    if(configPage6.launchHiLo > 0) { currentStatus.clutchTrigger = digitalRead(pinLaunch); }
-    else { currentStatus.clutchTrigger = !digitalRead(pinLaunch); }
+    if(configPage6.launchHiLo > 0) { currentStatus.clutchTrigger = digitalRead(pinMapping.inputs.pinLaunch); }
+    else { currentStatus.clutchTrigger = !digitalRead(pinMapping.inputs.pinLaunch); }
   }
   if(currentStatus.clutchTrigger && (currentStatus.previousClutchTrigger != currentStatus.clutchTrigger) ) { currentStatus.clutchEngagedRPM = currentStatus.RPM; } //Check whether the clutch has been engaged or disengaged and store the current RPM if so
 

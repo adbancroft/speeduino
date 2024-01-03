@@ -315,7 +315,7 @@ void initialiseAll(void)
     #endif
 
     //Set the tacho output default state
-    digitalWrite(pinTachOut, HIGH);
+    digitalWrite(pinMapping.outputs.pinTachOut, HIGH);
     //Perform all initialisations
     //initialiseDisplay();
     initialiseIdle(true);
@@ -330,13 +330,13 @@ void initialiseAll(void)
     //Check whether the flex sensor is enabled and if so, attach an interrupt for it
     if(configPage2.flexEnabled > 0)
     {
-      attachInterrupt(digitalPinToInterrupt(pinFlex), flexPulse, CHANGE);
+      attachInterrupt(digitalPinToInterrupt(pinMapping.inputs.pinFlex), flexPulse, CHANGE);
       currentStatus.ethanolPct = 0;
     }
     //Same as above, but for the VSS input
     if(configPage2.vssMode > 1) // VSS modes 2 and 3 are interrupt drive (Mode 1 is CAN)
     {
-      attachInterrupt(digitalPinToInterrupt(pinVSS), vssPulse, RISING);
+      attachInterrupt(digitalPinToInterrupt(pinMapping.inputs.pinVSS), vssPulse, RISING);
     }
 
     //Once the configs have been loaded, a number of one time calculations can be completed
@@ -388,8 +388,8 @@ void initialiseAll(void)
     initialiseDecoder();
 
     //The secondary input can be used for VSS if nothing else requires it. Allows for the standard VR conditioner to be used for VSS. This MUST be run after the initialiseTriggers() function
-    if( VSS_USES_RPM2() ) { attachInterrupt(digitalPinToInterrupt(pinVSS), vssPulse, RISING); } //Secondary trigger input can safely be used for VSS
-    if( FLEX_USES_RPM2() ) { attachInterrupt(digitalPinToInterrupt(pinFlex), flexPulse, CHANGE); } //Secondary trigger input can safely be used for Flex sensor
+    if( VSS_USES_RPM2() ) { attachInterrupt(digitalPinToInterrupt(pinMapping.inputs.pinVSS), vssPulse, RISING); } //Secondary trigger input can safely be used for VSS
+    if( FLEX_USES_RPM2() ) { attachInterrupt(digitalPinToInterrupt(pinMapping.inputs.pinFlex), flexPulse, CHANGE); } //Secondary trigger input can safely be used for Flex sensor
 
     //End crank trigger interrupt attachment
 
@@ -397,8 +397,8 @@ void initialiseAll(void)
     currentLoopTime = micros_safe();
     mainLoopCount = 0;
     
-    initialiseFuelSchedulers(pinInjectors);
-    initialiseIgnitionSchedulers(pinCoils);
+    initialiseFuelSchedulers(pinMapping.outputs.pinInjectors);
+    initialiseIgnitionSchedulers(pinMapping.outputs.pinCoils);
 
     //Begin priming the fuel pump. This is turned off in the low resolution, 1s interrupt in timers.ino
     //First check that the priming time is not 0

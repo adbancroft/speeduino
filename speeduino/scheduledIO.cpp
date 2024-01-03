@@ -1,4 +1,5 @@
 #include "scheduledIO.h"
+#include "pin_mapping.h"
 
 /** @file
  * Injector and Coil (toggle/open/close) control (under various situations, eg with particular cylinder count, rotary engine type or wasted spark ign, etc.).
@@ -36,7 +37,7 @@ static inline void registerPins(ioPort toRegister[], uint8_t toRegisterSize, con
 
 void initialiseInjectorPins(const uint8_t pins[]) {
 #if defined(OUTPUT_CONTROL_SUPPORTED)
-    injectorOutputControl = isValidPin(pinMC33810_1_CS) ? OUTPUT_CONTROL_MC33810 : OUTPUT_CONTROL_DIRECT;
+    injectorOutputControl = isValidPin(pinMapping.outputs.pinMC33810_1) ? OUTPUT_CONTROL_MC33810 : OUTPUT_CONTROL_DIRECT;
     registerPins(injectorPins, _countof(injectorPins), pins, injectorOutputControl);
 #else
     registerPins(injectorPins, _countof(injectorPins), pins, OUTPUT_CONTROL_DIRECT);
@@ -45,7 +46,7 @@ void initialiseInjectorPins(const uint8_t pins[]) {
 
 void initialiseIgnitionPins(const uint8_t pins[]) {
 #if defined(OUTPUT_CONTROL_SUPPORTED)
-    ignitionOutputControl = isValidPin(pinMC33810_2_CS) ? OUTPUT_CONTROL_MC33810 : OUTPUT_CONTROL_DIRECT;
+    ignitionOutputControl = isValidPin(pinMapping.outputs.pinMC33810_2) ? OUTPUT_CONTROL_MC33810 : OUTPUT_CONTROL_DIRECT;
     registerPins(ignitionPins, _countof(ignitionPins), pins, ignitionOutputControl);
 #else
     registerPins(ignitionPins, _countof(ignitionPins), pins, OUTPUT_CONTROL_DIRECT);
