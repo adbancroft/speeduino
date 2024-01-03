@@ -2,8 +2,6 @@
 
 #if defined(OUTPUT_CONTROL_SUPPORTED)
 
-#include "pin_mapping.h"
-
 uint8_t MC33810_BIT_INJ1 = 1;
 uint8_t MC33810_BIT_INJ2 = 2;
 uint8_t MC33810_BIT_INJ3 = 3;
@@ -25,7 +23,7 @@ uint8_t MC33810_BIT_IGN8 = 8;
 ioPort portMC33810_1_CS;
 ioPort portMC33810_2_CS;
 
-void initMC33810(void)
+void initMC33810(const pin_mapping_t &pins)
 {
     //Set the output states of both ICs to be off to fuel and ignition
     mc33810_1_requestedState = 0;
@@ -33,8 +31,8 @@ void initMC33810(void)
     mc33810_1_returnState = 0;
     mc33810_2_returnState = 0;
 
-    portMC33810_1_CS = pinToOutputPort(pinMapping.outputs.pinMC33810_1);
-    portMC33810_2_CS = pinToOutputPort(pinMapping.outputs.pinMC33810_2);
+    portMC33810_1_CS = pinToOutputPort(pins.outputs.pinMC33810_1);
+    portMC33810_2_CS = pinToOutputPort(pins.outputs.pinMC33810_2);
 
     SPI.begin();
     //These are the SPI settings per the datasheet

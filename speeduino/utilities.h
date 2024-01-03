@@ -4,7 +4,8 @@ These are some utility functions and variables used through the main code
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <Arduino.h>
+#include "globals.h"
+#include "pin_mapping.h"
 
 #define COMPARATOR_EQUAL 0
 #define COMPARATOR_NOT_EQUAL 1
@@ -29,7 +30,7 @@ extern uint8_t currentRuleStatus;
 //uint8_t outputPin[sizeof(configPage13.outputPin)];
 
 void setResetControlPinState(void);
-void initialiseProgrammableIO(void);
+void initialiseProgrammableIO(const pin_mapping_t &pins);
 void checkProgrammableIO(void);
 int16_t ProgrammableIOGetData(uint16_t index);
 

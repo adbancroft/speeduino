@@ -11,6 +11,7 @@
 #include "scheduledIO_direct.h"
 #include "scheduledIO_MC33810.h"
 #include "timers.h"
+#include "pin_mapping.h"
 
 /** \enum ScheduleOutputControl
  * @brief Controls how coil & injection pins are controlled
@@ -33,7 +34,7 @@ extern ScheduleOutputControl injectorOutputControl;
  * 
  * @param pins Pin numbers in cylinder order. *Assumption is that the array has at least IGN_CHANNELS elements*
  */
-void initialiseInjectorPins(const uint8_t pins[]);
+void initialiseInjectorPins(const pin_mapping_t &pins);
 
 #define SET_INJ_STATUS(channelIndex)   if ((channelIndex)-1U<=BIT_STATUS1_INJ4) { BIT_SET(currentStatus.status1, BIT_STATUS1_INJ1+(channelIndex)-1U); }
 #define CLEAR_INJ_STATUS(channelIndex) if ((channelIndex)-1U<=BIT_STATUS1_INJ4) { BIT_CLEAR(currentStatus.status1, BIT_STATUS1_INJ1+(channelIndex)-1U); }
@@ -103,7 +104,7 @@ extern ScheduleOutputControl ignitionOutputControl; //Specifies whether the coil
  * 
  * @param pins Pin numbers in cylinder order. *Assumption is that the array has at least IGN_CHANNELS elements*
  */
-void initialiseIgnitionPins(const uint8_t pins[]);
+void initialiseIgnitionPins(const pin_mapping_t &pins);
 
 #define tachoOutputOn() { if(configPage6.tachoMode) { TACHO_PULSE_LOW(); } else { tachoOutputFlag = READY; } }
 #define tachoOutputOff() { if(configPage6.tachoMode) { TACHO_PULSE_HIGH(); } }

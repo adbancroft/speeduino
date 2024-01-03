@@ -66,14 +66,21 @@ static inline void enableIdle(void)
   }
 }
 
+void initialiseIdle(bool forcehoming, const pin_mapping_t &pins) {
+  //Pin masks must always be initialised, regardless of whether PWM idle is used. This is required for STM32 to prevent issues if the IRQ function fires on restart/overflow
+  idle_pin_port = pinToOutputPort(pins.outputs.pinIdle1);
+  idle2_pin_port = pinToOutputPort(pins.outputs.pinIdle2);
+  pinMode(pins.outputs.pinStepperDir, OUTPUT);
+  pinMode(pins.outputs.pinStepperStep, OUTPUT);
+  pinMode(pins.outputs.pinStepperEnable, OUTPUT);
+
+  initialiseIdle(forcehoming);
+}
+
 void initialiseIdle(bool forcehoming)
 {
   //By default, turn off the PWM interrupt (It gets turned on below if needed)
   IDLE_TIMER_DISABLE();
-
-  //Pin masks must always be initialised, regardless of whether PWM idle is used. This is required for STM32 to prevent issues if the IRQ function fires on restart/overflow
-  idle_pin_port = pinToOutputPort(pinMapping.outputs.pinIdle1);
-  idle2_pin_port = pinToOutputPort(pinMapping.outputs.pinIdle2);
 
   //Initialising comprises of setting the 2D tables with the relevant values from the config pages
   switch(configPage6.iacAlgorithm)

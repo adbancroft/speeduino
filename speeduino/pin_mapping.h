@@ -104,4 +104,4 @@ struct pin_mapping_t {
 extern pin_mapping_t pinMapping;
 
 void setPinMapping(uint8_t boardId);
-bool pinIsUsed(uint8_t pin);
+bool pinIsUsed(uint8_t pin, const pin_mapping_t &pins);

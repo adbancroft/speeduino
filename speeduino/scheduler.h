@@ -41,7 +41,7 @@ See page 136 of the processors datasheet: http://www.atmel.com/Images/doc2549.pd
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
-#include "globals.h"
+// #include "globals.h"
 #include "scheduler_callbacks.h"
 #include "atomic.h"
 
@@ -65,7 +65,7 @@ extern byte maxIgnOutputs;
  * Assumes that all config pages have been configured - typically by
  * loading the tune from EEPROM
 */
-void initialiseFuelSchedulers(const uint8_t pins[]);
+void initialiseFuelSchedulers(const pin_mapping_t &pins);
 
 /** @brief Configure all ignition schedulers based on the current tune
  * parameters
@@ -73,7 +73,7 @@ void initialiseFuelSchedulers(const uint8_t pins[]);
  * Assumes that all config pages have been configured - typically by
  * loading the tune from EEPROM
 */
-void initialiseIgnitionSchedulers(const uint8_t pins[]);
+void initialiseIgnitionSchedulers(const pin_mapping_t &pins);
 
 /** @brief Start fuel system  priming the fuel */
 void beginInjectorPriming(void);

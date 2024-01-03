@@ -6,7 +6,7 @@
 #include "port_pin.h"
 #include "pin_mapping.h"
 
-void initialiseAuxPWM(void);
+void initialiseAuxPWM(const pin_mapping_t &pins);
 void boostControl(void);
 void boostDisable(void);
 void boostByGear(void);
@@ -19,8 +19,8 @@ static inline bool isVVT_2Enabled(void) {
   return isVVT_1Enabled() && configPage10.vvt2Enabled != 0U;
 }
 
-void initialiseFan(void);
-void initialiseAirCon(void);
+void initialiseFan(const pin_mapping_t &pins);
+void initialiseAirCon(const pin_mapping_t &pins);
 void nitrousControl(void);
 void fanControl(void);
 void airConControl(void);

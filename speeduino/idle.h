@@ -2,8 +2,8 @@
 #define IDLE_H
 
 #include "globals.h"
-#include "table2d.h"
 #include "port_pin.h"
+#include "pin_mapping.h"
 
 #define IAC_ALGORITHM_NONE    0U
 #define IAC_ALGORITHM_ONOFF   1U
@@ -32,6 +32,7 @@ struct StepperIdle
 extern uint16_t idle_pwm_max_count; //Used for variable PWM frequency
 extern long FeedForwardTerm;
 
+void initialiseIdle(bool forcehoming, const pin_mapping_t &pins);
 void initialiseIdle(bool forcehoming);
 void idleControl(void);
 void initialiseIdleUpOutput(void);
