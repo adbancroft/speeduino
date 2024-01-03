@@ -84,7 +84,7 @@ ISR(ADC_vect)
 
 /** Init all ADC conversions by setting resolutions, etc.
  */
-void initialiseADC(void)
+void initialiseADC(const pin_mapping_t &pins)
 {
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega1281__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega2561__) //AVR chips use the ISR for this
 
@@ -144,7 +144,7 @@ void initialiseADC(void)
             || (((configPage9.enable_secondarySerial == 0) && (configPage9.enable_intcan == 0)) && ((configPage9.caninput_sel[currentStatus.current_caninchannel]&3) == 2)))  
     {  //if current input channel is enabled as analog local pin check caninput_selxb(bits 2:3) with &12 and caninput_selxa(bits 0:1) with &3
       byte pinNumber = pinTranslateAnalog(configPage9.Auxinpina[currentStatus.current_caninchannel]&63);
-      if( pinIsUsed(pinNumber) )
+      if( pinIsUsed(pinNumber, pins) )
       {
         //Do nothing here as the pin is already in use.
         BIT_SET(currentStatus.engineProtectStatus, PROTECT_IO_ERROR); //Tell user that there is problem by lighting up the I/O error indicator
@@ -162,7 +162,7 @@ void initialiseADC(void)
             || (((configPage9.enable_secondarySerial == 0) && (configPage9.enable_intcan == 0)) && ((configPage9.caninput_sel[currentStatus.current_caninchannel]&3) == 3)))
     {  //if current input channel is enabled as digital local pin check caninput_selxb(bits 2:3) with &12 and caninput_selxa(bits 0:1) with &3
        byte pinNumber = (configPage9.Auxinpinb[currentStatus.current_caninchannel]&63) + 1;
-       if( pinIsUsed(pinNumber) )
+       if( pinIsUsed(pinNumber, pins) )
        {
          //Do nothing here as the pin is already in use.
         BIT_SET(currentStatus.engineProtectStatus, PROTECT_IO_ERROR); //Tell user that there is problem by lighting up the I/O error indicator

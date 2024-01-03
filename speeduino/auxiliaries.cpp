@@ -76,11 +76,11 @@ static inline void checkAirConRPMLockout(void);
 /*
 Air Conditioning Control
 */
-void initialiseAirCon(void)
+void initialiseAirCon(const pin_mapping_t &pins)
 {
   if( (configPage15.airConEnable) == 1 &&
-      isValidPin(pinMapping.inputs.pinAirConRequest) &&
-      isValidPin(pinMapping.outputs.pinAirConComp) )
+      isValidPin(pins.inputs.pinAirConRequest) &&
+      isValidPin(pins.outputs.pinAirConComp) )
   {
     // Hold the A/C off until a few seconds after cranking
     acAfterEngineStartDelay = 0;
@@ -97,14 +97,16 @@ void initialiseAirCon(void)
     BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_TURNING_ON);  // Bit 4
     BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_CLT_LOCKOUT); // Bit 5
     BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_FAN);         // Bit 6
-    aircon_req_pin_port = pinToInputPort(pinMapping.inputs.pinAirConRequest, (configPage15.airConReqPol == 1 ? INPUT : INPUT_PULLUP));
-    aircon_comp_pin_port = pinToOutputPort(pinMapping.outputs.pinAirConComp);
+    // Inverted: +5V is ON, Use external pull-down resistor for OFF
+    // Normal: Pin pulled to Ground is ON. Floating (internally pulled up to +5V) is OFF.
+    aircon_req_pin_port = pinToInputPort(pins.inputs.pinAirConRequest, (configPage15.airConReqPol == 1 ? INPUT : INPUT_PULLUP));
+    aircon_comp_pin_port = pinToOutputPort(pins.outputs.pinAirConComp);
 
     AIRCON_OFF();
 
-    if((configPage15.airConFanEnabled > 0) && isValidPin(pinMapping.outputs.pinAirConFan))
+    if((configPage15.airConFanEnabled > 0) && isValidPin(pins.outputs.pinAirConFan))
     {
-      aircon_fan_pin_port = pinToOutputPort(pinMapping.outputs.pinAirConFan);
+      aircon_fan_pin_port = pinToOutputPort(pins.outputs.pinAirConFan);
       AIRCON_FAN_OFF();
       acStandAloneFanIsEnabled = true;
     }
@@ -298,9 +300,9 @@ static inline void checkAirConRPMLockout(void)
 /*
 Fan control
 */
-void initialiseFan(void)
+void initialiseFan(const pin_mapping_t &pins)
 {
-  fan_pin_port = pinToOutputPort(pinMapping.outputs.pinFan);
+  fan_pin_port = pinToOutputPort(pins.outputs.pinFan);
   FAN_OFF();  //Initialise program with the fan in the off state
   BIT_CLEAR(currentStatus.status4, BIT_STATUS4_FAN);
   currentStatus.fanDuty = 0;
@@ -430,11 +432,11 @@ void fanControl(void)
   }
 }
 
-void initialiseAuxPWM(void)
+void initialiseAuxPWM(const pin_mapping_t &pins)
 {
-  boost_pin_port = pinToOutputPort(pinMapping.outputs.pinBoost);
-  vvt1_pin_port = pinToOutputPort(pinMapping.outputs.pinVVT_1);
-  vvt2_pin_port = pinToOutputPort(pinMapping.outputs.pinVVT_2);
+  boost_pin_port = pinToOutputPort(pins.outputs.pinBoost);
+  vvt1_pin_port = pinToOutputPort(pins.outputs.pinVVT_1);
+  vvt2_pin_port = pinToOutputPort(pins.outputs.pinVVT_2);
   n2o_stage1_pin_port = pinToOutputPort(configPage10.n2o_stage1_pin);
   n2o_stage2_pin_port = pinToOutputPort(configPage10.n2o_stage2_pin);
 

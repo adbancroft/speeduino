@@ -318,14 +318,14 @@ void initialiseAll(void)
     digitalWrite(pinMapping.outputs.pinTachOut, HIGH);
     //Perform all initialisations
     //initialiseDisplay();
-    initialiseIdle(true);
-    initialiseFan();
-    initialiseAirCon();
-    initialiseAuxPWM();
+    initialiseIdle(true, pinMapping);
+    initialiseFan(pinMapping);
+    initialiseAirCon(pinMapping);
+    initialiseAuxPWM(pinMapping);
     initialiseCorrections();
     BIT_CLEAR(currentStatus.engineProtectStatus, PROTECT_IO_ERROR); //Clear the I/O error bit. The bit will be set in initialiseADC() if there is problem in there.
-    initialiseADC();
-    initialiseProgrammableIO();
+    initialiseADC(pinMapping);
+    initialiseProgrammableIO(pinMapping);
 
     //Check whether the flex sensor is enabled and if so, attach an interrupt for it
     if(configPage2.flexEnabled > 0)
@@ -397,8 +397,8 @@ void initialiseAll(void)
     currentLoopTime = micros_safe();
     mainLoopCount = 0;
     
-    initialiseFuelSchedulers(pinMapping.outputs.pinInjectors);
-    initialiseIgnitionSchedulers(pinMapping.outputs.pinCoils);
+    initialiseFuelSchedulers(pinMapping);
+    initialiseIgnitionSchedulers(pinMapping);
 
     //Begin priming the fuel pump. This is turned off in the low resolution, 1s interrupt in timers.ino
     //First check that the priming time is not 0

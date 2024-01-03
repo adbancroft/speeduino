@@ -10,6 +10,7 @@
 #include "scheduledIO_direct.h"
 #include "scheduledIO_MC33810.h"
 #include "timers.h"
+#include "pin_mapping.h"
 
 /** \enum ScheduleOutputControl
  * @brief Controls how coil & injection pins are controlled
@@ -32,7 +33,7 @@ extern ScheduleOutputControl injectorOutputControl;
  * 
  * @param pins Pin numbers in cylinder order. *Assumption is that the array has at least IGN_CHANNELS elements*
  */
-void initialiseInjectorPins(const uint8_t pins[]);
+void initialiseInjectorPins(const pin_mapping_t &pins);
 
 /**
  * @brief Open an injector
@@ -103,7 +104,7 @@ extern ScheduleOutputControl ignitionOutputControl; //Specifies whether the coil
  * 
  * @param pins Pin numbers in cylinder order. *Assumption is that the array has at least IGN_CHANNELS elements*
  */
-void initialiseIgnitionPins(const uint8_t pins[]);
+void initialiseIgnitionPins(const pin_mapping_t &pins);
 
 /**
  * @brief Start charging a coil

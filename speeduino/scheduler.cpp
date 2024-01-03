@@ -410,7 +410,7 @@ static void initialiseFuelContext(void)
   currentStatus.status3 |= currentStatus.nSquirts << BIT_STATUS3_NSQUIRTS1; //Top 3 bits of the status3 variable are the number of squirts. This must be done after the above section due to nSquirts being forced to 1 for sequential
 }
 
-void initialiseFuelSchedulers(const uint8_t pins[])
+void initialiseFuelSchedulers(const pin_mapping_t &pins)
 {
   turnOffInjectors();
 
@@ -687,7 +687,7 @@ static void initialiseIgnitionContext(void)
   CRANK_ANGLE_MAX_IGN = configPage4.sparkMode == IGN_MODE_SEQUENTIAL ? 720 : 360;
 }
 
-void initialiseIgnitionSchedulers(const uint8_t pins[])
+void initialiseIgnitionSchedulers(const pin_mapping_t &pins)
 {
   turnOffCoils();
 

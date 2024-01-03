@@ -7,13 +7,14 @@
 
 #include <SPI.h>
 #include "port_pin.h"
+#include "pin_mapping.h"
 
 //#define MC33810_ONOFF_CMD   3
 static constexpr uint8_t MC33810_ONOFF_CMD = 0x30; //48 in decimal
 static volatile uint8_t mc33810_1_requestedState; //Current binary state of the 1st ICs IGN and INJ values
 static volatile uint8_t mc33810_2_requestedState; //Current binary state of the 2nd ICs IGN and INJ values
 
-void initMC33810(void);
+void initMC33810(const pin_mapping_t &pins);
 
 #define MC33810_1_ACTIVE() { extern ioPort portMC33810_1_CS; setPin_Low(portMC33810_1_CS); }
 #define MC33810_1_INACTIVE() { extern ioPort portMC33810_1_CS; setPin_High(portMC33810_1_CS); }

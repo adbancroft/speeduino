@@ -53,7 +53,7 @@ void setResetControlPinState(void)
 }
 
 //*********************************************************************************************************************************************************************************
-void initialiseProgrammableIO(void)
+void initialiseProgrammableIO(const pin_mapping_t &pins)
 {
   uint8_t outputPin;
   for (uint8_t y = 0; y < sizeof(configPage13.outputPin); y++)
@@ -68,7 +68,7 @@ void initialiseProgrammableIO(void)
         BIT_WRITE(currentStatus.outputsStatus, y, BIT_CHECK(configPage13.outputInverted, y));
         BIT_SET(pinIsValid, y);
       }
-      else if ( !pinIsUsed(outputPin) )
+      else if ( !pinIsUsed(outputPin, pins) )
       {
         pinMode(outputPin, OUTPUT);
         digitalWrite(outputPin, BIT_CHECK(configPage13.outputInverted, y));

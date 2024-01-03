@@ -1547,18 +1547,7 @@ void setPinMapping(byte boardID)
   
 
   //Finally, set the relevant pin modes for outputs
-  pinMode(pinMapping.outputs.pinTachOut, OUTPUT);
-  pinMode(pinMapping.outputs.pinIdle1, OUTPUT);
-  pinMode(pinMapping.outputs.pinIdle2, OUTPUT);
   pinMode(pinMapping.outputs.pinIdleUpOutput, OUTPUT);
-  pinMode(pinMapping.outputs.pinFuelPump, OUTPUT);
-  pinMode(pinMapping.outputs.pinFan, OUTPUT);
-  pinMode(pinMapping.outputs.pinStepperDir, OUTPUT);
-  pinMode(pinMapping.outputs.pinStepperStep, OUTPUT);
-  pinMode(pinMapping.outputs.pinStepperEnable, OUTPUT);
-  pinMode(pinMapping.outputs.pinBoost, OUTPUT);
-  pinMode(pinMapping.outputs.pinVVT_1, OUTPUT);
-  pinMode(pinMapping.outputs.pinVVT_2, OUTPUT);
   if(configPage4.ignBypassEnabled > 0) { pinMode(pinMapping.outputs.pinIgnBypass, OUTPUT); }
 
   //This is a legacy mode option to revert the MAP reading behaviour to match what was in place prior to the 201905 firmware
@@ -1663,40 +1652,14 @@ void setPinMapping(byte boardID)
     }
   } 
 
-  if((pinMapping.outputs.pinAirConComp>0) && ((configPage15.airConEnable) == 1))
-  {
-    pinMode(pinMapping.outputs.pinAirConComp, OUTPUT);
-  }
-
-  if((pinMapping.inputs.pinAirConRequest > 0) && ((configPage15.airConEnable) == 1) && (!pinIsOutput(pinMapping.inputs.pinAirConRequest, pinMapping)))
-  {
-    if((configPage15.airConReqPol) == 1)
-    {
-      // Inverted
-      // +5V is ON, Use external pull-down resistor for OFF
-      pinMode(pinMapping.inputs.pinAirConRequest, INPUT);
-    }
-    else
-    {
-      //Normal
-      // Pin pulled to Ground is ON. Floating (internally pulled up to +5V) is OFF.
-      pinMode(pinMapping.inputs.pinAirConRequest, INPUT_PULLUP);
-    }
-  }
-
-  if((pinMapping.outputs.pinAirConFan > 0) && ((configPage15.airConEnable) == 1) && ((configPage15.airConFanEnabled) == 1))
-  {
-    pinMode(pinMapping.outputs.pinAirConFan, OUTPUT);
-  }  
-
   flex_pin_port = pinToInputPort(pinMapping.inputs.pinFlex);
 }
 
-bool pinIsUsed(uint8_t pin)
+bool pinIsUsed(uint8_t pin, const pin_mapping_t &pins)
 {
   return 
     //Analog input?
-    pinIsSensor(pin, pinMapping) 
+    pinIsSensor(pin, pins) 
     //Functions?
-    || pinIsOutput(pin, pinMapping);
+    || pinIsOutput(pin, pins);
 }

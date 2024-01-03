@@ -1,7 +1,7 @@
 #ifndef SENSORS_H
 #define SENSORS_H
 
-#include "globals.h"
+#include "pin_mapping.h"
 
 // The following are alpha values for the ADC filters.
 // Their values are from 0 to 240, with 0 being no filtering and 240 being maximum
@@ -50,7 +50,7 @@ extern uint16_t MAPlast; /**< The previous MAP reading */
 extern unsigned long MAP_time; //The time the MAP sample was taken
 extern unsigned long MAPlast_time; //The time the previous MAP sample was taken
 
-void initialiseADC(void);
+void initialiseADC(const pin_mapping_t &pins);
 void readTPS(bool useFilter=true); //Allows the option to override the use of the filter
 void readO2_2(void);
 void flexPulse(void);
