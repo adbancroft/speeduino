@@ -1456,12 +1456,12 @@ static inline pin_mapping_t getDefaultPinMapping(uint8_t boardId) {
 }
 
 static inline bool isOutputPin(uint8_t pin, const pin_mapping_t &pins) {
-  const uint8_t *pStart = (const uint8_t*)(&pins.outputs);
-  const uint8_t *pEnd = pStart + NUM_OUTPUT_PINS;
-  while (pStart!=pEnd && pin!=*pStart) {
-    ++pStart;
+  const uint8_t *pOutputPin = (const uint8_t*)(&pins.outputs);
+  const uint8_t *pEnd = pOutputPin + NUM_OUTPUT_PINS;
+  while (pOutputPin!=pEnd && pin!=*pOutputPin) {
+    ++pOutputPin;
   }
-  return pStart!=pEnd;  
+  return pOutputPin!=pEnd;  
 }
 
 static inline bool pinIsOutput(uint8_t pin, const pin_mapping_t &pins) {
@@ -1471,12 +1471,236 @@ static inline bool pinIsOutput(uint8_t pin, const pin_mapping_t &pins) {
 }
 
 static inline bool pinIsSensor(uint8_t pin, const pin_mapping_t &pins) {
-  const uint8_t *pStart = (const uint8_t*)(&pins.inputs.sensors);
-  const uint8_t *pEnd = pStart + NUM_SENSOR_PINS;
-  while (pStart!=pEnd && pin!=*pStart) {
-    ++pStart;
+  const uint8_t *pSensorPin = (const uint8_t*)(&pins.inputs.sensors);
+  const uint8_t *pEnd = pSensorPin + NUM_SENSOR_PINS;
+  while (pSensorPin!=pEnd && pin!=*pSensorPin) {
+    ++pSensorPin;
   }
-  return pStart!=pEnd;  
+  return pSensorPin!=pEnd;  
+}
+
+static inline uint8_t overrideDefaultPin(uint8_t boardDefaultPin, uint8_t userEnteredPin) {
+  if ( isValidPin(userEnteredPin) ) { 
+    return pinTranslate(userEnteredPin);
+  }
+  return boardDefaultPin;
+}
+
+static inline uint8_t overrideDefaultPinAnalog(uint8_t boardDefaultPin, uint8_t userEnteredPin) {
+  if ( isValidPin(userEnteredPin) ) { 
+    return pinTranslateAnalog(userEnteredPin);
+  }
+  return boardDefaultPin;  
+}
+
+static pin_mapping_t applyOutputPinUserOverrides(pin_mapping_t pins) {
+  pins.outputs.pinTachOut = overrideDefaultPin(pins.outputs.pinTachOut, configPage2.tachoPin);
+  pins.outputs.pinIgnBypass = overrideDefaultPin(pins.outputs.pinIgnBypass, configPage4.ignBypassPin);
+  pins.outputs.pinFuelPump = overrideDefaultPin(pins.outputs.pinFuelPump, configPage4.fuelPumpPin);
+  pins.outputs.pinFan = overrideDefaultPin(pins.outputs.pinFan, configPage6.fanPin);
+  pins.outputs.pinBoost = overrideDefaultPin(pins.outputs.pinBoost, configPage6.boostPin);
+  pins.outputs.pinVVT_1 = overrideDefaultPin(pins.outputs.pinVVT_1, configPage6.vvt1Pin);
+  pins.outputs.pinVVT_2 = overrideDefaultPin(pins.outputs.pinVVT_2, configPage10.vvt2Pin);
+  pins.outputs.pinWMIEnabled = overrideDefaultPin(pins.outputs.pinWMIEnabled, configPage10.wmiEnabledPin);
+  pins.outputs.pinWMIIndicator = overrideDefaultPin(pins.outputs.pinWMIIndicator, configPage10.wmiIndicatorPin);
+  pins.outputs.pinIdleUpOutput = overrideDefaultPin(pins.outputs.pinIdleUpOutput, configPage2.idleUpOutputPin);
+  pins.outputs.pinAirConComp = overrideDefaultPin(pins.outputs.pinAirConComp, configPage15.airConCompPin);
+  pins.outputs.pinAirConFan = overrideDefaultPin(pins.outputs.pinAirConFan, configPage15.airConFanPin);
+  pins.outputs.pinResetControl = overrideDefaultPin(pins.outputs.pinResetControl, configPage4.resetControlPin);
+  return pins;
+}
+
+
+static inline bool isPinFanEnabled(void) {
+  return configPage2.fanEnable == 1U;
+}
+static inline bool isPinVVT_1Enabled(void) {
+  return configPage6.vvtEnabled > 0U || configPage10.wmiEnabled > 0U;
+}
+static inline bool isPinVVT_2Enabled(void) {
+  return configPage10.vvt2Enabled > 0U;
+}
+static inline bool isPinBoostEnabled(void) {
+  return configPage6.boostEnabled;
+}
+static inline bool isPinIdle1Enabled(void) {
+  return isIdlePwm(configPage6);
+}
+static inline bool isPinIdle2Enabled(void) {
+  return isPinIdle1Enabled() && (configPage6.iacChannels == 1U);
+}
+static inline bool isPinStepperEnableEnabled(void) {
+  return isIdleStepper(configPage6);
+}
+static inline bool isPinStepperStepEnabled(void) {
+  return isIdleStepper(configPage6);
+}
+static inline bool isPinStepperDirEnabled(void) {
+  return isIdleStepper(configPage6);
+}
+static inline bool isPinAirConCompEnabled(void) {
+  return configPage15.airConEnable > 0U;
+}
+static inline bool isPinAirConFanEnabled(void) {
+  return isPinAirConCompEnabled() && (configPage15.airConFanEnabled > 0U);
+}
+static inline bool isPinFlexEnabled(void) {
+  return configPage2.flexEnabled != 0U;
+}
+static inline bool isPinBaroEnabled(void) {
+  return configPage6.useExtBaro != 0U;
+}
+static inline bool isPinEMAPEnabled(void) {
+  return configPage6.useEMAP != 0U;
+}
+static inline bool isPinFuelPressureEnabled(void) {
+  return configPage10.fuelPressureEnable;
+}
+static inline bool isPinOilPressureEnabled(void) {
+  return configPage10.oilPressureEnable;
+}
+static inline bool isPinSDEnableEnabled(void) {
+  return configPage13.onboard_log_trigger_Epin != 0U;
+}
+static inline bool isPinIgnBypassEnabled(void) {
+  return configPage4.ignBypassEnabled > 0U;
+}
+static inline bool isPinWMIEnabledEnabled(void) {
+  return configPage10.wmiEnabled > 0U;
+}
+static inline bool isPinWMIIndicatorEnabled(void) {
+  return isPinWMIEnabledEnabled() && configPage10.wmiIndicatorEnabled > 0U;
+}
+static inline bool isPinWMIEmptyEnabled(void) {
+  return isPinWMIEnabledEnabled() && configPage10.wmiEmptyEnabled > 0U;
+}
+static inline bool isPinIdleUpEnabled(void) {
+  return configPage2.idleUpEnabled > 0U;
+}
+static inline bool isPinIdleUpOutputEnabled(void) {
+  return isPinIdleUpEnabled() && configPage2.idleUpOutputEnabled!=0U;
+}
+static inline bool isPinResetControlEnabled(void) {
+  return configPage4.resetControlConfig != RESET_CONTROL_DISABLED;
+}
+static inline bool isPinLaunchEnabled(void) {
+  return configPage6.launchEnabled > 0U;
+}
+static inline bool isPinVSSEnabled(void) {
+  return configPage2.vssMode > 1U;
+}
+static inline bool isPinCTPSEnabled(void) {
+  return configPage2.CTPSEnabled > 0U;
+}
+static inline bool isPinFuel2InputEnabled(void) {
+  return configPage10.fuel2Mode == FUEL2_MODE_INPUT_SWITCH;
+}
+static inline bool isPinSpark2InputEnabled(void) {
+  return configPage10.spark2Mode == SPARK2_MODE_INPUT_SWITCH;
+}
+static inline bool isPinAirConRequestEnabled(void) {
+  return configPage15.airConEnable == 1U;
+}
+
+typedef bool (*enable_func_t)(void);
+
+struct pin_disable_t {
+  enable_func_t pEnableFunc;
+  size_t pinOffset;
+};
+
+static pin_mapping_t conditionalPinDisable(const pin_disable_t pinDisableMap[], uint8_t mapLength, pin_mapping_t pins) {
+  for (uint8_t index=0U; index<mapLength; ++index) {
+    enable_func_t pEnableFunc = (enable_func_t)pgm_read_ptr(&pinDisableMap[index].pEnableFunc);
+    if (!pEnableFunc()) {
+      size_t offset = pgm_read_word(&pinDisableMap[index].pinOffset);
+      *(uint8_t*)(((byte*)&pins)+offset) = (uint8_t)NOT_A_PIN;
+    }
+  }
+  return pins;
+}
+
+// The board can set a default pin for a feature that is not used in the tune.
+// By detecting this and setting the pin to NOT_A_PIN, we can free up pins for use
+// by other features. E.g. programmable IO
+static pin_mapping_t disableUnusedOutputPins(const pin_mapping_t &pins) {
+  // Map each feature test function to the pin it controls.
+  static const pin_disable_t isEnableMap[] PROGMEM = { //cppcheck-suppress[misra-c2012-17.7]
+    { isPinFanEnabled, offsetof(pin_mapping_t, outputs.pinFan) },
+    { isPinResetControlEnabled, offsetof(pin_mapping_t, outputs.pinResetControl) },
+    { isPinIdle1Enabled, offsetof(pin_mapping_t, outputs.pinIdle1) },
+    { isPinIdle2Enabled, offsetof(pin_mapping_t, outputs.pinIdle2) },
+    { isPinIdleUpOutputEnabled, offsetof(pin_mapping_t, outputs.pinIdleUpOutput) },
+    { isPinStepperDirEnabled, offsetof(pin_mapping_t, outputs.pinStepperDir) },
+    { isPinStepperStepEnabled, offsetof(pin_mapping_t, outputs.pinStepperStep) },
+    { isPinStepperEnableEnabled, offsetof(pin_mapping_t, outputs.pinStepperEnable) },
+    { isPinBoostEnabled, offsetof(pin_mapping_t, outputs.pinBoost) },
+    { isPinVVT_1Enabled, offsetof(pin_mapping_t, outputs.pinVVT_1) },
+    { isPinVVT_2Enabled, offsetof(pin_mapping_t, outputs.pinVVT_2) },
+    { isPinIgnBypassEnabled, offsetof(pin_mapping_t, outputs.pinIgnBypass) },
+    { isPinWMIEnabledEnabled, offsetof(pin_mapping_t, outputs.pinWMIEnabled) },
+    { isPinWMIIndicatorEnabled, offsetof(pin_mapping_t, outputs.pinWMIIndicator) },
+    { isPinAirConCompEnabled, offsetof(pin_mapping_t, outputs.pinAirConComp) },
+    { isPinAirConFanEnabled, offsetof(pin_mapping_t, outputs.pinAirConFan) },
+  };
+  return conditionalPinDisable(isEnableMap, _countof(isEnableMap), pins);
+}
+
+// Allow the user to override the input pins set by the board default
+static pin_mapping_t applyInputPinUserOverrides(pin_mapping_t pins) {
+  pins.inputs.pinLaunch = overrideDefaultPin(pins.inputs.pinLaunch, configPage6.launchPin);
+  pins.inputs.sensors.pinBaro = overrideDefaultPinAnalog(pins.inputs.sensors.pinBaro, configPage6.baroPin);
+  pins.inputs.sensors.pinEMAP = overrideDefaultPinAnalog(pins.inputs.sensors.pinEMAP, configPage10.EMAPPin);
+  pins.inputs.pinFuel2Input = overrideDefaultPin(pins.inputs.pinFuel2Input, configPage10.fuel2InputPin);
+  pins.inputs.pinSpark2Input = overrideDefaultPin(pins.inputs.pinSpark2Input, configPage10.spark2InputPin);
+  pins.inputs.pinVSS = overrideDefaultPin(pins.inputs.pinVSS, configPage2.vssPin);
+  pins.inputs.sensors.pinFuelPressure = overrideDefaultPinAnalog(pins.inputs.sensors.pinFuelPressure, configPage10.fuelPressurePin);
+  pins.inputs.sensors.pinOilPressure = overrideDefaultPinAnalog(pins.inputs.sensors.pinOilPressure, configPage10.oilPressurePin);
+  pins.inputs.pinWMIEmpty = overrideDefaultPin(pins.inputs.pinWMIEmpty, configPage10.wmiEmptyPin);
+#ifdef SD_LOGGING  
+  pins.inputs.pinSDEnable = overrideDefaultPin(pins.inputs.pinSDEnable, configPage13.onboard_log_tr5_Epin_pin);
+#endif
+  pins.inputs.pinIdleUp = overrideDefaultPin(pins.inputs.pinIdleUp, configPage2.idleUpPin);
+  pins.inputs.pinCTPS = overrideDefaultPin(pins.inputs.pinCTPS, configPage2.CTPSPin);
+  pins.inputs.pinAirConRequest = overrideDefaultPin(pins.inputs.pinAirConRequest, configPage15.airConReqPin);
+  return pins;
+}
+
+// The board can set a default pin for a feature that is not used in the tune.
+// By detecting this and setting the pin to NOT_A_PIN, we can free up pins for use
+// by other features. E.g. programmable IO
+static pin_mapping_t disableUnusedInputPins(const pin_mapping_t &pins) {
+  static const pin_disable_t isEnableMap[] PROGMEM = { //cppcheck-suppress[misra-c2012-17.7]
+    { isPinLaunchEnabled, offsetof(pin_mapping_t, inputs.pinLaunch) },
+    { isPinBaroEnabled, offsetof(pin_mapping_t, inputs.sensors.pinBaro) },
+    { isPinEMAPEnabled, offsetof(pin_mapping_t, inputs.sensors.pinEMAP) },
+    { isPinFuel2InputEnabled, offsetof(pin_mapping_t, inputs.pinFuel2Input) },
+    { isPinSpark2InputEnabled, offsetof(pin_mapping_t, inputs.pinSpark2Input) },
+    { isPinVSSEnabled, offsetof(pin_mapping_t, inputs.pinVSS) },
+    { isPinFuelPressureEnabled, offsetof(pin_mapping_t, inputs.sensors.pinFuelPressure) },
+    { isPinOilPressureEnabled, offsetof(pin_mapping_t, inputs.sensors.pinOilPressure) },
+    { isPinWMIEmptyEnabled, offsetof(pin_mapping_t, inputs.pinWMIEmpty) },
+#ifdef SD_LOGGING  
+    { isPinSDEnableEnabled, offsetof(pin_mapping_t, inputs.pinSDEnable) },
+#endif
+    { isPinIdleUpEnabled, offsetof(pin_mapping_t, inputs.pinIdleUp) },
+    { isPinCTPSEnabled, offsetof(pin_mapping_t, inputs.pinCTPS) },
+    { isPinAirConRequestEnabled, offsetof(pin_mapping_t, inputs.pinAirConRequest) },
+  };
+  return conditionalPinDisable(isEnableMap, _countof(isEnableMap), pins);
+}
+
+// Disables any input pin that overlaps with an output pin
+static pin_mapping_t disableInputOutputOverlapPins(pin_mapping_t pins) {
+  uint8_t *pInputPin = (uint8_t*)(&pins.inputs);
+  const uint8_t *pEnd = pInputPin + NUM_INPUT_PINS;
+  while (pInputPin!=pEnd) {
+    if (isValidPin(*pInputPin) && pinIsOutput(*pInputPin, pins)) {
+      *pInputPin = NOT_A_PIN;
+    }
+    ++pInputPin;
+  }
+  return pins;
 }
 
 pin_mapping_t pinMapping;
@@ -1488,61 +1712,22 @@ pin_mapping_t pinMapping;
  */
 void setPinMapping(byte boardID)
 {
-  pinMapping = getDefaultPinMapping(boardID);
-
-  //Setup any devices that are using selectable pins
-
-  if ( (configPage6.launchPin != 0) && (configPage6.launchPin < BOARD_MAX_IO_PINS) ) { pinMapping.inputs.pinLaunch = pinTranslate(configPage6.launchPin); }
-  if ( (configPage4.ignBypassPin != 0) && (configPage4.ignBypassPin < BOARD_MAX_IO_PINS) ) { pinMapping.outputs.pinIgnBypass = pinTranslate(configPage4.ignBypassPin); }
-  if ( (configPage2.tachoPin != 0) && (configPage2.tachoPin < BOARD_MAX_IO_PINS) ) { pinMapping.outputs.pinTachOut = pinTranslate(configPage2.tachoPin); }
-  if ( (configPage4.fuelPumpPin != 0) && (configPage4.fuelPumpPin < BOARD_MAX_IO_PINS) ) { pinMapping.outputs.pinFuelPump = pinTranslate(configPage4.fuelPumpPin); }
-  if ( (configPage6.fanPin != 0) && (configPage6.fanPin < BOARD_MAX_IO_PINS) ) { pinMapping.outputs.pinFan = pinTranslate(configPage6.fanPin); }
-  if ( (configPage6.boostPin != 0) && (configPage6.boostPin < BOARD_MAX_IO_PINS) ) { pinMapping.outputs.pinBoost = pinTranslate(configPage6.boostPin); }
-  if ( (configPage6.vvt1Pin != 0) && (configPage6.vvt1Pin < BOARD_MAX_IO_PINS) ) { pinMapping.outputs.pinVVT_1 = pinTranslate(configPage6.vvt1Pin); }
-  if ( (configPage6.useExtBaro != 0) && (configPage6.baroPin < BOARD_MAX_IO_PINS) ) { pinMapping.inputs.sensors.pinBaro = pinTranslateAnalog(configPage6.baroPin); }
-  if ( (configPage6.useEMAP != 0) && (configPage10.EMAPPin < BOARD_MAX_IO_PINS) ) { pinMapping.inputs.sensors.pinEMAP = pinTranslateAnalog(configPage10.EMAPPin); }
-  if ( (configPage10.fuel2InputPin != 0) && (configPage10.fuel2InputPin < BOARD_MAX_IO_PINS) ) { pinMapping.inputs.pinFuel2Input = pinTranslate(configPage10.fuel2InputPin); }
-  if ( (configPage10.spark2InputPin != 0) && (configPage10.spark2InputPin < BOARD_MAX_IO_PINS) ) { pinMapping.inputs.pinSpark2Input = pinTranslate(configPage10.spark2InputPin); }
-  if ( (configPage2.vssPin != 0) && (configPage2.vssPin < BOARD_MAX_IO_PINS) ) { pinMapping.inputs.pinVSS = pinTranslate(configPage2.vssPin); }
-  if ( (configPage10.fuelPressureEnable) && (configPage10.fuelPressurePin < BOARD_MAX_IO_PINS) ) { pinMapping.inputs.sensors.pinFuelPressure = pinTranslateAnalog(configPage10.fuelPressurePin); }
-  if ( (configPage10.oilPressureEnable) && (configPage10.oilPressurePin < BOARD_MAX_IO_PINS) ) { pinMapping.inputs.sensors.pinOilPressure = pinTranslateAnalog(configPage10.oilPressurePin); }
-  
-  if ( (configPage10.wmiEmptyPin != 0) && (configPage10.wmiEmptyPin < BOARD_MAX_IO_PINS) ) { pinMapping.inputs.pinWMIEmpty = pinTranslate(configPage10.wmiEmptyPin); }
-  if ( (configPage10.wmiIndicatorPin != 0) && (configPage10.wmiIndicatorPin < BOARD_MAX_IO_PINS) ) { pinMapping.outputs.pinWMIIndicator = pinTranslate(configPage10.wmiIndicatorPin); }
-  if ( (configPage10.wmiEnabledPin != 0) && (configPage10.wmiEnabledPin < BOARD_MAX_IO_PINS) ) { pinMapping.outputs.pinWMIEnabled = pinTranslate(configPage10.wmiEnabledPin); }
-  if ( (configPage10.vvt2Pin != 0) && (configPage10.vvt2Pin < BOARD_MAX_IO_PINS) ) { pinMapping.outputs.pinVVT_2 = pinTranslate(configPage10.vvt2Pin); }
-#ifdef SD_LOGGING  
-  if ( (configPage13.onboard_log_trigger_Epin != 0 ) && (configPage13.onboard_log_trigger_Epin != 0) && (configPage13.onboard_log_tr5_Epin_pin < BOARD_MAX_IO_PINS) ) { pinMapping.inputs.pinSDEnable = pinTranslate(configPage13.onboard_log_tr5_Epin_pin); }
-#endif  
-
-  //Currently there's no default pin for Idle Up
-  
-  pinMapping.inputs.pinIdleUp = pinTranslate(configPage2.idleUpPin);
-
-  //Currently there's no default pin for Idle Up Output
-  pinMapping.outputs.pinIdleUpOutput = pinTranslate(configPage2.idleUpOutputPin);
-
-  //Currently there's no default pin for closed throttle position sensor
-  pinMapping.inputs.pinCTPS = pinTranslate(configPage2.CTPSPin);
-  
-  // Air conditioning control initialisation
-  if ((configPage15.airConCompPin != 0) && (configPage15.airConCompPin < BOARD_MAX_IO_PINS) ) { pinMapping.outputs.pinAirConComp = pinTranslate(configPage15.airConCompPin); }
-  if ((configPage15.airConFanPin != 0) && (configPage15.airConFanPin < BOARD_MAX_IO_PINS) ) { pinMapping.outputs.pinAirConFan = pinTranslate(configPage15.airConFanPin); }
-  if ((configPage15.airConReqPin != 0) && (configPage15.airConReqPin < BOARD_MAX_IO_PINS) ) { pinMapping.inputs.pinAirConRequest = pinTranslate(configPage15.airConReqPin); }
+  pinMapping = disableInputOutputOverlapPins(
+                  disableUnusedInputPins(
+                    applyInputPinUserOverrides(
+                      disableUnusedOutputPins(
+                          applyOutputPinUserOverrides(
+                              getDefaultPinMapping(boardID))))));
     
   /* Reset control is a special case. If reset control is enabled, it needs its initial state set BEFORE its pinMode.
      If that doesn't happen and reset control is in "Serial Command" mode, the Arduino will end up in a reset loop
      because the control pin will go low as soon as the pinMode is set to OUTPUT. */
-  if ( (configPage4.resetControlConfig != 0) && (configPage4.resetControlPin < BOARD_MAX_IO_PINS) )
+  if (isValidPin(pinMapping.outputs.pinResetControl) )
   {
-    if (configPage4.resetControlPin!=0U) {
-      pinMapping.outputs.pinResetControl = pinTranslate(configPage4.resetControlPin);
-    }
     resetControl = configPage4.resetControlConfig;
     setResetControlPinState();
     pinMode(pinMapping.outputs.pinResetControl, OUTPUT);
   }
-  
 
   //Finally, set the relevant pin modes for outputs
   pinMode(pinMapping.outputs.pinIdleUpOutput, OUTPUT);
@@ -1578,67 +1763,60 @@ void setPinMapping(byte boardID)
   #endif
 
   //Each of the below are only set when their relevant function is enabled. This can help prevent pin conflicts that users aren't aware of with unused functions
-  if( (configPage2.flexEnabled > 0) && (!pinIsOutput(pinMapping.inputs.pinFlex, pinMapping)) )
+  if(isValidPin(pinMapping.inputs.pinFlex) )
   {
     pinMode(pinMapping.inputs.pinFlex, INPUT); //Standard GM / Continental flex sensor requires pullup, but this should be onboard. The internal pullup will not work (Requires ~3.3k)!
   }
-  if( (configPage2.vssMode > 1) && (!pinIsOutput(pinMapping.inputs.pinVSS, pinMapping)) ) //Pin mode 1 for VSS is CAN
+  if(isValidPin(pinMapping.inputs.pinVSS) ) //Pin mode 1 for VSS is CAN
   {
     pinMode(pinMapping.inputs.pinVSS, INPUT);
   }
-  if( (configPage6.launchEnabled > 0) && (!pinIsOutput(pinMapping.inputs.pinLaunch, pinMapping)) )
+  if(isValidPin(pinMapping.inputs.pinLaunch) )
   {
-    if (configPage6.lnchPullRes == true) { pinMode(pinMapping.inputs.pinLaunch, INPUT_PULLUP); }
-    else { pinMode(pinMapping.inputs.pinLaunch, INPUT); } //If Launch Pull Resistor is not set make input float.
+    pinMode(pinMapping.inputs.pinLaunch, (configPage6.lnchPullRes ? INPUT_PULLUP : INPUT));
   }
-  if( (configPage2.idleUpEnabled > 0) && (!pinIsOutput(pinMapping.inputs.pinIdleUp, pinMapping)) )
+  if(isValidPin(pinMapping.inputs.pinIdleUp) )
   {
-    if (configPage2.idleUpPolarity == 0) { pinMode(pinMapping.inputs.pinIdleUp, INPUT_PULLUP); } //Normal setting
-    else { pinMode(pinMapping.inputs.pinIdleUp, INPUT); } //inverted setting
+    pinMode(pinMapping.inputs.pinIdleUp, (configPage2.idleUpPolarity == 0 ? INPUT_PULLUP : INPUT));
   }
-  if( (configPage2.CTPSEnabled > 0) && (!pinIsOutput(pinMapping.inputs.pinCTPS, pinMapping)) )
+  if(isValidPin(pinMapping.inputs.pinCTPS) )
   {
-    if (configPage2.CTPSPolarity == 0) { pinMode(pinMapping.inputs.pinCTPS, INPUT_PULLUP); } //Normal setting
-    else { pinMode(pinMapping.inputs.pinCTPS, INPUT); } //inverted setting
+    pinMode(pinMapping.inputs.pinCTPS, (configPage2.CTPSPolarity == 0 ? INPUT_PULLUP : INPUT));
   }
-  if( (configPage10.fuel2Mode == FUEL2_MODE_INPUT_SWITCH) && (!pinIsOutput(pinMapping.inputs.pinFuel2Input, pinMapping)) )
+  if(isValidPin(pinMapping.inputs.pinFuel2Input) )
   {
-    if (configPage10.fuel2InputPullup == true) { pinMode(pinMapping.inputs.pinFuel2Input, INPUT_PULLUP); } //With pullup
-    else { pinMode(pinMapping.inputs.pinFuel2Input, INPUT); } //Normal input
+    pinMode(pinMapping.inputs.pinFuel2Input, (configPage10.fuel2InputPullup ? INPUT_PULLUP : INPUT));
   }
-  if( (configPage10.spark2Mode == SPARK2_MODE_INPUT_SWITCH) && (!pinIsOutput(pinMapping.inputs.pinSpark2Input, pinMapping)) )
+  if(isValidPin(pinMapping.inputs.pinSpark2Input) )
   {
-    if (configPage10.spark2InputPullup == true) { pinMode(pinMapping.inputs.pinSpark2Input, INPUT_PULLUP); } //With pullup
-    else { pinMode(pinMapping.inputs.pinSpark2Input, INPUT); } //Normal input
+    pinMode(pinMapping.inputs.pinSpark2Input, (configPage10.spark2InputPullup ? INPUT_PULLUP : INPUT));
   }
-  if( (configPage10.fuelPressureEnable > 0)  && (!pinIsOutput(pinMapping.inputs.sensors.pinFuelPressure, pinMapping)) )
+  if(isValidPin(pinMapping.inputs.sensors.pinFuelPressure) )
   {
     pinMode(pinMapping.inputs.sensors.pinFuelPressure, INPUT);
   }
-  if( (configPage10.oilPressureEnable > 0) && (!pinIsOutput(pinMapping.inputs.sensors.pinOilPressure, pinMapping)) )
+  if(isValidPin(pinMapping.inputs.sensors.pinOilPressure) )
   {
     pinMode(pinMapping.inputs.sensors.pinOilPressure, INPUT);
   }
 #ifdef SD_LOGGING  
-  if( (configPage13.onboard_log_trigger_Epin > 0) && (!pinIsOutput(pinMapping.inputs.pinSDEnable, pinMapping)) )
+  if(isValidPin(pinMapping.inputs.pinSDEnable) )
   {
     pinMode(pinMapping.inputs.pinSDEnable, INPUT);
   }
 #endif
-  if(configPage10.wmiEnabled > 0)
-  {
+  if (isValidPin(pinMapping.outputs.pinWMIEnabled)) {
     pinMode(pinMapping.outputs.pinWMIEnabled, OUTPUT);
-    if(configPage10.wmiIndicatorEnabled > 0)
-    {
-      pinMode(pinMapping.outputs.pinWMIIndicator, OUTPUT);
-      if (configPage10.wmiIndicatorPolarity > 0) { digitalWrite(pinMapping.outputs.pinWMIIndicator, HIGH); }
-    }
-    if( (configPage10.wmiEmptyEnabled > 0) && (!pinIsOutput(pinMapping.inputs.pinWMIEmpty, pinMapping)) )
-    {
-      if (configPage10.wmiEmptyPolarity == 0) { pinMode(pinMapping.inputs.pinWMIEmpty, INPUT_PULLUP); } //Normal setting
-      else { pinMode(pinMapping.inputs.pinWMIEmpty, INPUT); } //inverted setting
-    }
-  } 
+  }
+  if (isValidPin(pinMapping.outputs.pinWMIIndicator))
+  {
+    pinMode(pinMapping.outputs.pinWMIIndicator, OUTPUT);
+    if (configPage10.wmiIndicatorPolarity > 0) { digitalWrite(pinMapping.outputs.pinWMIIndicator, HIGH); }
+  }
+  if(isValidPin(pinMapping.inputs.pinWMIEmpty) )
+  {
+    pinMode(pinMapping.inputs.pinWMIEmpty, (configPage10.wmiEmptyPolarity ? INPUT_PULLUP : INPUT));
+  }
 
   flex_pin_port = pinToInputPort(pinMapping.inputs.pinFlex);
 }

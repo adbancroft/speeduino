@@ -4,6 +4,7 @@
 #include "scheduledIO_Direct.h"
 #include "../test_utils.h"
 #include "storage.h"
+#include "idle.h"
 
 void prepareForInitialiseAll(uint8_t boardId);
 
@@ -98,6 +99,7 @@ void test_initialisation_outputs_V03(void)
 void test_initialisation_outputs_V04(void)
 {
   prepareForInitialiseAll(3);
+  configPage2.fanEnable = 1;
   initialiseAll(); //Run the main initialise function
 
   char msg[32];
@@ -148,6 +150,7 @@ void test_initialisation_outputs_V04(void)
 void test_initialisation_outputs_MX5_8995(void)
 {
   prepareForInitialiseAll(9);
+  configPage2.fanEnable = 1;
   initialiseAll(); //Run the main initialise function
 
   char msg[32];
@@ -199,12 +202,11 @@ void test_initialisation_outputs_PWM_idle(void)
 void test_initialisation_outputs_stepper_idle(void)
 {
   prepareForInitialiseAll(9);
-  bool isIdleStepper = (configPage6.iacAlgorithm > 3) && (configPage6.iacAlgorithm != 6);
   initialiseAll(); //Run the main initialise function
 
   char msg[32];
   strcpy_P(msg, PSTR("Is Stepper Idle"));
-  TEST_ASSERT_TRUE_MESSAGE(isIdleStepper, msg);
+  TEST_ASSERT_TRUE_MESSAGE(isIdleStepper(configPage6), msg);
   strcpy_P(msg, PSTR("Stepper Dir"));
   TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinStepperDir), msg);
   strcpy_P(msg, PSTR("Stepper Step"));
@@ -216,6 +218,7 @@ void test_initialisation_outputs_stepper_idle(void)
 void test_initialisation_outputs_boost(void)
 {
   prepareForInitialiseAll(9);
+  configPage6.boostEnabled = 1;
   initialiseAll(); //Run the main initialise function
 
   char msg[32];
@@ -226,6 +229,8 @@ void test_initialisation_outputs_boost(void)
 void test_initialisation_outputs_VVT(void)
 {
   prepareForInitialiseAll(3);
+  configPage6.vvtEnabled = 1;
+  configPage10.vvt2Enabled = 1;
   initialiseAll(); //Run the main initialise function
 
   char msg[32];
@@ -296,7 +301,7 @@ void test_initialisation_input_user_pin_does_not_override_outputpin(void)
 
   TEST_ASSERT_EQUAL(49, pinMapping.outputs.pinTachOut);  
   TEST_ASSERT_EQUAL(OUTPUT, getPinMode(pinMapping.outputs.pinTachOut));
-  TEST_ASSERT_EQUAL(49, pinMapping.inputs.pinLaunch);  
+  TEST_ASSERT_EQUAL(NOT_A_PIN, pinMapping.inputs.pinLaunch);  
 }
 
 void testInitialisation()
