@@ -136,6 +136,7 @@ STM32RTC& rtc = STM32RTC::getInstance();
     #endif
     delay(10);
 
+    configPage9.intcan_available = 1;   // device has internal canbus
     #ifndef HAVE_HWSERIAL2 //Hack to get the code to compile on BlackPills
     #define Serial2 Serial1
     #endif

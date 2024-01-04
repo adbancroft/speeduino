@@ -130,6 +130,7 @@ void initialiseADC(const pin_mapping_t &pins)
 
   //The following checks the aux inputs and initialises pins if required
   auxIsEnabled = false;
+  BIT_CLEAR(currentStatus.engineProtectStatus, PROTECT_IO_ERROR); //Clear the I/O error bit. The bit will be set below if there is problem in there.
   for (byte AuxinChan = 0; AuxinChan <16 ; AuxinChan++)
   {
     currentStatus.current_caninchannel = AuxinChan;                   
