@@ -1,5 +1,8 @@
 #ifndef COMMS_CAN_H
 #define COMMS_CAN_H
+
+#include "board_definition.h"
+
 #if defined(NATIVE_CAN_AVAILABLE)
 
 //For BMW e46/e39/e38, rover and mini other CAN instrument clusters

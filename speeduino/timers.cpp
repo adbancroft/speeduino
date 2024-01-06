@@ -25,25 +25,32 @@ Timers are typically low resolution (Compared to Schedulers), with maximum frequ
   #include <avr/wdt.h>
 #endif
 
-volatile uint16_t lastRPM_100ms; //Need to record this for rpmDOT calculation
-volatile byte loop5ms;
-volatile byte loop33ms;
-volatile byte loop66ms;
-volatile byte loop100ms;
-volatile byte loop250ms;
-volatile int loopSec;
-volatile uint8_t tachoEndTime; //The time (in ms) that the tacho pulse needs to end at
+static volatile uint16_t lastRPM_100ms; //Need to record this for rpmDOT calculation
+static volatile byte loop5ms;
+static volatile byte loop33ms;
+static volatile byte loop66ms;
+static volatile byte loop100ms;
+static volatile byte loop250ms;
+static volatile int loopSec;
+static volatile uint8_t tachoEndTime; //The time (in ms) that the tacho pulse needs to end at
+
 volatile TachoOutputStatus tachoOutputFlag;
-volatile uint16_t tachoSweepIncr;
-volatile uint16_t tachoSweepAccum;
-volatile uint8_t testInjectorPulseCount = 0;
-volatile uint8_t testIgnitionPulseCount = 0;
+
+static volatile uint16_t tachoSweepIncr;
+static volatile uint16_t tachoSweepAccum;
+static volatile uint8_t testInjectorPulseCount = 0;
+static volatile uint8_t testIgnitionPulseCount = 0;
+ioPort tach_pin_port;
+
+#define TACHO_SWEEP_TIME_MS 1500
+#define TACHO_SWEEP_RAMP_MS (TACHO_SWEEP_TIME_MS * 2 / 3)
+#define MS_PER_SEC  1000
 
 #if defined (CORE_TEENSY)
   IntervalTimer lowResTimer;
 #endif
 
-void initialiseTimers(void)
+void initialiseTimers(const pin_mapping_t &pin)
 {
   lastRPM_100ms = 0;
   loop5ms = 0;
@@ -53,6 +60,17 @@ void initialiseTimers(void)
   loop250ms = 0;
   loopSec = 0;
   tachoOutputFlag = TACHO_INACTIVE;
+
+  //Set the tacho output default state
+  digitalWrite(pin.outputs.pinTachOut, HIGH);
+
+  tach_pin_port = pinToOutputPort(pin.outputs.pinTachOut);
+
+  /* tacho sweep function. */
+  currentStatus.tachoSweepEnabled = (configPage2.useTachoSweep > 0);
+  /* SweepMax is stored as a byte, RPM/100. divide by 60 to convert min to sec (net 5/3).  Multiply by ignition pulses per rev.
+      tachoSweepIncr is also the number of tach pulses per second */
+  tachoSweepIncr = configPage2.tachoSweepMaxRPM * maxIgnOutputs * 5 / 3;
 }
 
 //Timer2 Overflow Interrupt Vector, called when the timer overflows.

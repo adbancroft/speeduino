@@ -1,5 +1,4 @@
 #include "scheduledIO.h"
-#include "pin_mapping.h"
 
 /** @file
  * Injector and Coil (toggle/open/close) control (under various situations, eg with particular cylinder count, rotary engine type or wasted spark ign, etc.).

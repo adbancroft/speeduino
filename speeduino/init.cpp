@@ -10,7 +10,6 @@
 #include "comms_secondary.h"
 #include "comms_CAN.h"
 #include "utilities.h"
-#include "scheduledIO.h"
 #include "scheduler.h"
 #include "auxiliaries.h"
 #include "sensors.h"
@@ -18,16 +17,14 @@
 #include "corrections.h"
 #include "idle.h"
 #include "table2d.h"
-#include "acc_mc33810.h"
-#include "board_definition.h"
 #include "decoder_triggers.h"
+#include "pin_mapping.h"
+#include "secondaryTables.h"
 #if defined(EEPROM_RESET_PIN)
-  #include EEPROM_LIB_H
+#include EEPROM_LIB_H
 #endif
-#ifdef SD_LOGGING
-  #include "SD_logger.h"
-  #include "rtc_common.h"
-#endif
+#include "SD_logger.h"
+#include "rtc_common.h"
 
 static void configure2dTables(void) {
   //Repoint the 2D table structs to the config pages that were just loaded
@@ -319,10 +316,14 @@ void initialiseAll(void)
 
     checkForEepromReset();
   
+    configure2dTables();
+
     // Unit tests should be independent of any stored configuration on the board!
 #if !defined(UNIT_TEST)
     loadConfig();
     doUpdates(); //Check if any data items need updating (Occurs with firmware updates)
+    //Setup the calibration tables
+    loadCalibration();
 #endif
 
     // Always start with a clean slate on the bootloader capabilities level
@@ -330,20 +331,9 @@ void initialiseAll(void)
     configPage4.bootloaderCaps = 0;
     
     initBoard(); //This calls the current individual boards init function. See the board_xxx.ino files for these.
-    initialiseTimers();
     
-  #ifdef SD_LOGGING
-    initRTC();
-    initSD();
-  #endif
-
     Serial.begin(115200);
     BIT_SET(currentStatus.status4, BIT_STATUS4_ALLOW_LEGACY_COMMS); //Flag legacy comms as being allowed on startup
-
-    configure2dTables();
-
-    //Setup the calibration tables
-    loadCalibration();
 
     //Set the pin mappings
     if((configPage2.pinMapping == 255) || (configPage2.pinMapping == 0)) //255 = EEPROM value in a blank AVR; 0 = EEPROM value in new FRAM
@@ -366,10 +356,12 @@ void initialiseAll(void)
       if (configPage9.enable_secondarySerial == 1) { secondarySerial.begin(115200); }
     #endif
 
-    //Set the tacho output default state
-    digitalWrite(pinMapping.outputs.pinTachOut, HIGH);
     //Perform all initialisations
     //initialiseDisplay();
+  #ifdef SD_LOGGING
+    initRTC();
+    initSD(pinMapping);
+  #endif
     initialiseIdle(true, pinMapping);
     initialiseFan(pinMapping);
     initialiseAirCon(pinMapping);
@@ -377,18 +369,16 @@ void initialiseAll(void)
     initialiseCorrections();
     initialiseADC(pinMapping);
     initialiseProgrammableIO(pinMapping);
-
-    //Check whether the flex sensor is enabled and if so, attach an interrupt for it
-    if(configPage2.flexEnabled > 0)
-    {
-      attachInterrupt(digitalPinToInterrupt(pinMapping.inputs.pinFlex), flexPulse, CHANGE);
-      currentStatus.ethanolPct = 0;
-    }
-    //Same as above, but for the VSS input
-    if(configPage2.vssMode > 1) // VSS modes 2 and 3 are interrupt drive (Mode 1 is CAN)
-    {
-      attachInterrupt(digitalPinToInterrupt(pinMapping.inputs.pinVSS), vssPulse, RISING);
-    }
+    initialiseResetControl(pinMapping);
+    initialiseIgnitionByPass(pinMapping);
+    initialiseLaunchControl(pinMapping);
+    initialiseMapBaroSensors(pinMapping);
+    initialiseTPS(pinMapping);
+    initialiseCoreSensors(pinMapping);
+    initialiseNonCoreSensors(pinMapping);
+    initialiseFuelPump(pinMapping);
+    initialiseSecondaryTables(pinMapping);
+    initialiseWmi(pinMapping);
 
     //Once the configs have been loaded, a number of one time calculations can be completed
     calculateRequiredFuel();
@@ -397,20 +387,24 @@ void initialiseAll(void)
     //The interrupt numbering is a bit odd - See here for reference: arduino.cc/en/Reference/AttachInterrupt
     //These assignments are based on the Arduino Mega AND VARY BETWEEN BOARDS. Please confirm the board you are using and update accordingly.
     initialiseCurrentStatus();
-    fpPrimeTime = 0;
     ms_counter = 0;
     toothHistoryIndex = 0;
 
-    //Lookup the current MAP reading for barometric pressure
-    instanteneousMAPReading();
-    readBaro();
-    
     noInterrupts();
     initialiseDecoder();
 
-    //The secondary input can be used for VSS if nothing else requires it. Allows for the standard VR conditioner to be used for VSS. This MUST be run after the initialiseTriggers() function
-    if( VSS_USES_RPM2() ) { attachInterrupt(digitalPinToInterrupt(pinMapping.inputs.pinVSS), vssPulse, RISING); } //Secondary trigger input can safely be used for VSS
-    if( FLEX_USES_RPM2() ) { attachInterrupt(digitalPinToInterrupt(pinMapping.inputs.pinFlex), flexPulse, CHANGE); } //Secondary trigger input can safely be used for Flex sensor
+    // Post trigger initialization we can check if the trigger secondary
+    // trigger pins are available for use.
+    if ((pinMapping.inputs.pinVSS == pinMapping.inputs.pinTrigger2)
+      && BIT_CHECK(decoderState, BIT_DECODER_HAS_SECONDARY)) {
+      pinMapping.inputs.pinVSS = NOT_A_PIN;
+    }
+    initialiseVss(pinMapping);
+    if ((pinMapping.inputs.pinFlex == pinMapping.inputs.pinTrigger2)
+      && BIT_CHECK(decoderState, BIT_DECODER_HAS_SECONDARY)) {
+        pinMapping.inputs.pinFlex = NOT_A_PIN;
+    }
+    initialiseFlexFuel(pinMapping);
 
     //End crank trigger interrupt attachment
 
@@ -421,24 +415,12 @@ void initialiseAll(void)
     initialiseFuelSchedulers(pinMapping);
     initialiseIgnitionSchedulers(pinMapping);
 
-    //Begin priming the fuel pump. This is turned off in the low resolution, 1s interrupt in timers.ino
-    //First check that the priming time is not 0
-    if(configPage2.fpPrime > 0)
-    {
-      FUEL_PUMP_ON();
-    }
-    else { currentStatus.fpPrimed = true; } //If the user has set 0 for the pump priming, immediately mark the priming as being completed
-
     interrupts();
     readCLT(false); // Need to read coolant temp to make priming pulsewidth work correctly. The false here disables use of the filter
     readTPS(false); // Need to read tps to detect flood clear state
 
-    /* tacho sweep function. */
-    currentStatus.tachoSweepEnabled = (configPage2.useTachoSweep > 0);
-    /* SweepMax is stored as a byte, RPM/100. divide by 60 to convert min to sec (net 5/3).  Multiply by ignition pulses per rev.
-       tachoSweepIncr is also the number of tach pulses per second */
-    tachoSweepIncr = configPage2.tachoSweepMaxRPM * maxIgnOutputs * 5 / 3;
-    
+    initialiseTimers(pinMapping);
+
     currentStatus.initialisationComplete = true;
     digitalWrite(LED_BUILTIN, HIGH);
 }

@@ -19,16 +19,12 @@ A full copy of the license may be found in the projects root directory
 #include "page_crc.h"
 #include "logger.h"
 #include "comms_legacy.h"
-#include "pin_mapping.h"
+#include "board_definition.h"
 #include "src/FastCRC/FastCRC.h"
 #include <avr/pgmspace.h>
-#ifdef RTC_ENABLED
-  #include "rtc_common.h"
-  #include "comms_sd.h"
-#endif
-#ifdef SD_LOGGING
-  #include "SD_logger.h"
-#endif
+#include "rtc_common.h"
+#include "comms_sd.h"
+#include "SD_logger.h"
 
 // Forward declarations
 
@@ -907,7 +903,7 @@ void processSerialCommand(void)
       #endif
 
         while (Serial.available() == 0) { }
-        digitalWrite(pinMapping.outputs.pinResetControl, LOW);
+        resetAllow();
       }
       else
       {

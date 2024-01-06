@@ -7,14 +7,11 @@ A full copy of the license may be found in the projects root directory
 #include "maths.h"
 #include "timers.h"
 #include "port_pin.h"
-#include "pin_mapping.h"
 #include "src/PID_v1/PID_v1.h"
 
 #define STEPPER_LESS_AIR_DIRECTION() ((configPage9.iacStepperInv == 0) ? STEPPER_BACKWARD : STEPPER_FORWARD)
 #define STEPPER_MORE_AIR_DIRECTION() ((configPage9.iacStepperInv == 0) ? STEPPER_FORWARD : STEPPER_BACKWARD)
 
-byte idleUpOutputHIGH = HIGH; // Used to invert the idle Up Output 
-byte idleUpOutputLOW = LOW;   // Used to invert the idle Up Output 
 byte idleCounter; //Used for tracking the number of calls to the idle control function
 uint8_t idleTaper;
 
@@ -68,11 +65,27 @@ static inline void enableIdle(void)
 
 void initialiseIdle(bool forcehoming, const pin_mapping_t &pins) {
   //Pin masks must always be initialised, regardless of whether PWM idle is used. This is required for STM32 to prevent issues if the IRQ function fires on restart/overflow
-  idle_pin_port = pinToOutputPort(pins.outputs.pinIdle1);
-  idle2_pin_port = pinToOutputPort(pins.outputs.pinIdle2);
-  pinMode(pins.outputs.pinStepperDir, OUTPUT);
-  pinMode(pins.outputs.pinStepperStep, OUTPUT);
-  pinMode(pins.outputs.pinStepperEnable, OUTPUT);
+  idle_pin_port = isIdlePwm(configPage6) ? pinToOutputPort(pins.outputs.pinIdle1) : nullIoPort();
+  idle2_pin_port = (isIdlePwm(configPage6) && configPage6.iacChannels == 1U) ? pinToOutputPort(pins.outputs.pinIdle2) : nullIoPort();  
+
+  if(configPage2.idleUpEnabled > 0U && isValidPin(pins.outputs.pinIdleUpOutput) ) {
+    pinMode(pins.outputs.pinIdleUpOutput, OUTPUT);
+  }
+  if(isIdleStepper(configPage6)) {
+    if (isValidPin(pins.outputs.pinStepperDir) ) {
+      pinMode(pins.outputs.pinStepperDir, OUTPUT);
+    }
+    if(isValidPin(pins.outputs.pinStepperStep) ) {
+      pinMode(pins.outputs.pinStepperStep, OUTPUT);
+    }
+    if(isValidPin(pins.outputs.pinStepperEnable) ) {
+      pinMode(pins.outputs.pinStepperEnable, OUTPUT);
+    }
+  }
+
+  if(configPage2.idleUpEnabled > 0U && isValidPin(pins.inputs.pinIdleUp) ) {
+    pinMode(pins.inputs.pinIdleUp, (configPage2.idleUpPolarity == 0 ? INPUT_PULLUP : INPUT));
+  }
 
   initialiseIdle(forcehoming);
 }
@@ -275,12 +288,19 @@ void initialiseIdle(bool forcehoming)
   currentStatus.idleLoad = 0;
 }
 
+static inline uint8_t getIdleUpOutputHIGH(void) {
+  return !configPage2.idleUpOutputInv;
+}
+
+static inline uint8_t getIdleUpOutputLOW(void) {
+  return configPage2.idleUpOutputInv;
+}
+
 void initialiseIdleUpOutput(void)
 {
-  if (configPage2.idleUpOutputInv == 1) { idleUpOutputHIGH = LOW; idleUpOutputLOW = HIGH; }
-  else { idleUpOutputHIGH = HIGH; idleUpOutputLOW = LOW; }
-
-  if(configPage2.idleUpEnabled > 0) { digitalWrite(pinMapping.outputs.pinIdleUpOutput, idleUpOutputLOW); } //Initialise program with the idle up output in the off state if it is enabled. 
+  if(configPage2.idleUpEnabled > 0 && isValidPin(pinMapping.outputs.pinIdleUpOutput)) { 
+    digitalWrite(pinMapping.outputs.pinIdleUpOutput, getIdleUpOutputLOW()); //Initialise program with the idle up output in the off state if it is enabled. 
+  }
   currentStatus.idleUpOutputActive = false;
 }
 
@@ -432,12 +452,12 @@ void idleControl(void)
     {
       if (currentStatus.idleUpActive == true)
       {
-        digitalWrite(pinMapping.outputs.pinIdleUpOutput, idleUpOutputHIGH);
+        digitalWrite(pinMapping.outputs.pinIdleUpOutput, getIdleUpOutputHIGH());
         currentStatus.idleUpOutputActive = true;
       }
       else
       {
-        digitalWrite(pinMapping.outputs.pinIdleUpOutput, idleUpOutputLOW);
+        digitalWrite(pinMapping.outputs.pinIdleUpOutput, getIdleUpOutputLOW());
         currentStatus.idleUpOutputActive = false;
       }      
     }

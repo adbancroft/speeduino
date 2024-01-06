@@ -1,18 +1,18 @@
-#include "globals.h"
 #include "board_definition.h"
 
 #ifdef SD_LOGGING
+#include "globals.h"
+#include "SD_logger.h"
 #include <SPI.h>
 #ifdef __SD_H__
   #include <SD.h>
 #else
   #include "SdFat.h"
 #endif
-#include "SD_logger.h"
 #include "logger.h"
 #include "rtc_common.h"
 #include "maths.h"
-#include "pin_mapping.h"
+#include "port_pin.h"
 
 //List of logger field names. This must be in the same order and length as logger_updateLogdataCSV()
 constexpr char header_0[] PROGMEM = "secl";
@@ -277,8 +277,12 @@ uint16_t currentLogFileNumber;
 bool manualLogActive = false;
 uint32_t logStartTime = 0; //In ms
 
-void initSD()
+void initSD(const pin_mapping_t &pins)
 {
+  if (configPage13.onboard_log_trigger_Epin != 0U && isValidPin(pins.inputs.pinSDEnable)) {
+    pinMode(pins.inputs.pinSDEnable, INPUT);
+  }
+  
   //Set default state to ready. If any stage of the init fails, this will be changed
   SD_status = SD_STATUS_READY; 
 

@@ -8,6 +8,8 @@
 #include "pin_mapping.h"
 
 void initialiseAuxPWM(const pin_mapping_t &pins);
+
+void boostInterrupt(void);
 void boostControl(void);
 void boostDisable(void);
 void boostByGear(void);
@@ -19,18 +21,34 @@ static inline bool isVVT_1Enabled(void) {
 static inline bool isVVT_2Enabled(void) {
   return isVVT_1Enabled() && configPage10.vvt2Enabled != 0U;
 }
+void vvtInterrupt(void);
 
 void initialiseFan(const pin_mapping_t &pins);
-void initialiseAirCon(const pin_mapping_t &pins);
-void nitrousControl(void);
 void fanControl(void);
+
+void nitrousControl(void);
+
+void initialiseAirCon(const pin_mapping_t &pins);
 void airConControl(void);
 bool READ_AIRCON_REQUEST(void);
+
+void initialiseWmi(const pin_mapping_t &pins);
 void wmiControl(void);
+void setWmiIndicator(void);
+void toggleWmiIndicator(void);
+
+void initialiseFuelPump(const pin_mapping_t &pins);
+void beginPrimeFuelPump(void);
 
 #define SIMPLE_BOOST_P  1
 #define SIMPLE_BOOST_I  1
 #define SIMPLE_BOOST_D  1
+
+extern ioPort vvt1_pin_port;
+extern ioPort vvt2_pin_port;
+extern ioPort fan_pin_port;
+
+extern ioPort pump_pin_port;
 
 #if(defined(CORE_TEENSY) || defined(CORE_STM32))
 #define BOOST_PIN_LOW()         (setPinState(pinMapping.outputs.pinBoost, LOW))
@@ -86,7 +104,6 @@ void wmiControl(void);
 
 #define WMI_TANK_IS_EMPTY() ((configPage10.wmiEmptyEnabled) ? ((configPage10.wmiEmptyPolarity) ? digitalRead(pinMapping.inputs.pinWMIEmpty) : !digitalRead(pinMapping.inputs.pinWMIEmpty)) : 1)
 
-
 #if defined(PWM_FAN_AVAILABLE)//PWM fan not available on Arduino MEGA
 extern uint16_t fan_pwm_max_count; //Used for variable PWM frequency
 void fanInterrupt(void);
@@ -94,8 +111,5 @@ void fanInterrupt(void);
 
 extern uint16_t vvt_pwm_max_count; //Used for variable PWM frequency
 extern uint16_t boost_pwm_max_count; //Used for variable PWM frequency
-
-void boostInterrupt(void);
-void vvtInterrupt(void);
 
 #endif

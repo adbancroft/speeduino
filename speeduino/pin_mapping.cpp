@@ -1517,7 +1517,7 @@ static inline bool isPinFanEnabled(void) {
   return configPage2.fanEnable == 1U;
 }
 static inline bool isPinVVT_1Enabled(void) {
-  return configPage6.vvtEnabled > 0U || configPage10.wmiEnabled > 0U;
+  return configPage6.vvtEnabled > 0U;
 }
 static inline bool isPinVVT_2Enabled(void) {
   return configPage10.vvt2Enabled > 0U;
@@ -1720,117 +1720,6 @@ void setPinMapping(byte boardID)
                       disableUnusedOutputPins(
                           applyOutputPinUserOverrides(
                               getDefaultPinMapping(boardID))))));
-    
-  /* Reset control is a special case. If reset control is enabled, it needs its initial state set BEFORE its pinMode.
-     If that doesn't happen and reset control is in "Serial Command" mode, the Arduino will end up in a reset loop
-     because the control pin will go low as soon as the pinMode is set to OUTPUT. */
-  if (isValidPin(pinMapping.outputs.pinResetControl) )
-  {
-    resetControl = configPage4.resetControlConfig;
-    setResetControlPinState();
-    pinMode(pinMapping.outputs.pinResetControl, OUTPUT);
-  }
-
-  //Finally, set the relevant pin modes for outputs
-  pinMode(pinMapping.outputs.pinIdleUpOutput, OUTPUT);
-  if(configPage4.ignBypassEnabled > 0) { pinMode(pinMapping.outputs.pinIgnBypass, OUTPUT); }
-
-  //This is a legacy mode option to revert the MAP reading behaviour to match what was in place prior to the 201905 firmware
-  if(configPage2.legacyMAP > 0) { digitalWrite(pinMapping.inputs.sensors.pinMAP, HIGH); }
-
-  tach_pin_port = pinToOutputPort(pinMapping.outputs.pinTachOut);
-  pump_pin_port = pinToOutputPort(pinMapping.outputs.pinFuelPump);
-
-  //And for inputs
-  #if defined(CORE_STM32)
-    #ifdef INPUT_ANALOG
-      pinMode(pinMapping.inputs.sensors.pinMAP, INPUT_ANALOG);
-      pinMode(pinMapping.inputs.sensors.pinO2, INPUT_ANALOG);
-      pinMode(pinMapping.inputs.sensors.pinO2_2, INPUT_ANALOG);
-      pinMode(pinMapping.inputs.sensors.pinTPS, INPUT_ANALOG);
-      pinMode(pinMapping.inputs.sensors.pinIAT, INPUT_ANALOG);
-      pinMode(pinMapping.inputs.sensors.pinCLT, INPUT_ANALOG);
-      pinMode(pinMapping.inputs.sensors.pinBat, INPUT_ANALOG);
-      pinMode(pinMapping.inputs.sensors.pinBaro, INPUT_ANALOG);
-    #else
-      pinMode(pinMapping.inputs.sensors.pinMAP, INPUT);
-      pinMode(pinMapping.inputs.sensors.pinO2, INPUT);
-      pinMode(pinMapping.inputs.sensors.pinO2_2, INPUT);
-      pinMode(pinMapping.inputs.sensors.pinTPS, INPUT);
-      pinMode(pinMapping.inputs.sensors.pinIAT, INPUT);
-      pinMode(pinMapping.inputs.sensors.pinCLT, INPUT);
-      pinMode(pinMapping.inputs.sensors.pinBat, INPUT);
-      pinMode(pinMapping.inputs.sensors.pinBaro, INPUT);
-    #endif
-  #elif defined(CORE_TEENSY41)
-    //Teensy 4.1 has a weak pull down resistor that needs to be disabled for all analog pins. 
-    pinMode(pinMAP, INPUT_DISABLE);
-    pinMode(pinO2, INPUT_DISABLE);
-    pinMode(pinO2_2, INPUT_DISABLE);
-    pinMode(pinTPS, INPUT_DISABLE);
-    pinMode(pinIAT, INPUT_DISABLE);
-    pinMode(pinCLT, INPUT_DISABLE);
-    pinMode(pinBat, INPUT_DISABLE);
-    pinMode(pinBaro, INPUT_DISABLE);
-  #endif
-
-  //Each of the below are only set when their relevant function is enabled. This can help prevent pin conflicts that users aren't aware of with unused functions
-  if(isValidPin(pinMapping.inputs.pinFlex) )
-  {
-    pinMode(pinMapping.inputs.pinFlex, INPUT); //Standard GM / Continental flex sensor requires pullup, but this should be onboard. The internal pullup will not work (Requires ~3.3k)!
-  }
-  if(isValidPin(pinMapping.inputs.pinVSS) ) //Pin mode 1 for VSS is CAN
-  {
-    pinMode(pinMapping.inputs.pinVSS, INPUT);
-  }
-  if(isValidPin(pinMapping.inputs.pinLaunch) )
-  {
-    pinMode(pinMapping.inputs.pinLaunch, (configPage6.lnchPullRes ? INPUT_PULLUP : INPUT));
-  }
-  if(isValidPin(pinMapping.inputs.pinIdleUp) )
-  {
-    pinMode(pinMapping.inputs.pinIdleUp, (configPage2.idleUpPolarity == 0 ? INPUT_PULLUP : INPUT));
-  }
-  if(isValidPin(pinMapping.inputs.pinCTPS) )
-  {
-    pinMode(pinMapping.inputs.pinCTPS, (configPage2.CTPSPolarity == 0 ? INPUT_PULLUP : INPUT));
-  }
-  if(isValidPin(pinMapping.inputs.pinFuel2Input) )
-  {
-    pinMode(pinMapping.inputs.pinFuel2Input, (configPage10.fuel2InputPullup ? INPUT_PULLUP : INPUT));
-  }
-  if(isValidPin(pinMapping.inputs.pinSpark2Input) )
-  {
-    pinMode(pinMapping.inputs.pinSpark2Input, (configPage10.spark2InputPullup ? INPUT_PULLUP : INPUT));
-  }
-  if(isValidPin(pinMapping.inputs.sensors.pinFuelPressure) )
-  {
-    pinMode(pinMapping.inputs.sensors.pinFuelPressure, INPUT);
-  }
-  if(isValidPin(pinMapping.inputs.sensors.pinOilPressure) )
-  {
-    pinMode(pinMapping.inputs.sensors.pinOilPressure, INPUT);
-  }
-#ifdef SD_LOGGING  
-  if(isValidPin(pinMapping.inputs.pinSDEnable) )
-  {
-    pinMode(pinMapping.inputs.pinSDEnable, INPUT);
-  }
-#endif
-  if (isValidPin(pinMapping.outputs.pinWMIEnabled)) {
-    pinMode(pinMapping.outputs.pinWMIEnabled, OUTPUT);
-  }
-  if (isValidPin(pinMapping.outputs.pinWMIIndicator))
-  {
-    pinMode(pinMapping.outputs.pinWMIIndicator, OUTPUT);
-    if (configPage10.wmiIndicatorPolarity > 0) { digitalWrite(pinMapping.outputs.pinWMIIndicator, HIGH); }
-  }
-  if(isValidPin(pinMapping.inputs.pinWMIEmpty) )
-  {
-    pinMode(pinMapping.inputs.pinWMIEmpty, (configPage10.wmiEmptyPolarity ? INPUT_PULLUP : INPUT));
-  }
-
-  flex_pin_port = pinToInputPort(pinMapping.inputs.pinFlex);
 }
 
 bool pinIsUsed(uint8_t pin, const pin_mapping_t &pins)

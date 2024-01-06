@@ -105,3 +105,12 @@ extern pin_mapping_t pinMapping;
 
 void setPinMapping(uint8_t boardId);
 bool pinIsUsed(uint8_t pin, const pin_mapping_t &pins);
+
+#if defined(CORE_STM32) && defined(INPUT_ANALOG)
+#define SENSOR_PIN_MODE INPUT_ANALOG
+#elif defined(CORE_TEENSY41)
+//Teensy 4.1 has a weak pull down resistor that needs to be disabled for all analog pins. 
+#define SENSOR_PIN_MODE INPUT_DISABLE
+#else
+#define SENSOR_PIN_MODE INPUT
+#endif

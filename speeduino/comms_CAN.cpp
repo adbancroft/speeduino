@@ -7,10 +7,10 @@ A full copy of the license may be found in the projects root directory
 /*
 This is for handling the data broadcasted to various CAN dashes and instrument clusters.
 */
-#include "globals.h"
+#include "comms_CAN.h"
 
 #if defined(NATIVE_CAN_AVAILABLE)
-#include "comms_CAN.h"
+#include "globals.h"
 #include "utilities.h"
 
 CAN_message_t inMsg;

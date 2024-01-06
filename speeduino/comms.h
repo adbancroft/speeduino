@@ -10,6 +10,8 @@
 #ifndef NEW_COMMS_H
 #define NEW_COMMS_H
 
+#include "board_definition.h"
+
 #if defined(CORE_TEENSY)
   #define BLOCKING_FACTOR       251
   #define TABLE_BLOCKING_FACTOR 256
@@ -19,6 +21,8 @@
 #elif defined(CORE_AVR)
   #define BLOCKING_FACTOR       121
   #define TABLE_BLOCKING_FACTOR 64
+#else
+  #error "Unknown core - needs setup in board_definition.h"
 #endif
 
 /**

@@ -1,6 +1,7 @@
 #ifndef SENSORS_H
 #define SENSORS_H
 
+#include "port_pin.h"
 #include "pin_mapping.h"
 
 // The following are alpha values for the ADC filters.
@@ -34,7 +35,7 @@ extern volatile unsigned long flexStartTime;
 extern volatile unsigned long flexPulseWidth;
 
 #if defined(CORE_AVR)
-  #define READ_FLEX() (readPin(flex_pin_port)==HIGH)
+  static inline bool READ_FLEX() { extern ioPort flex_pin_port; return readPin(flex_pin_port)==HIGH; }
 #else
   #define READ_FLEX() digitalRead(pinMapping.inputs.pinFlex)
 #endif
@@ -51,6 +52,12 @@ extern unsigned long MAP_time; //The time the MAP sample was taken
 extern unsigned long MAPlast_time; //The time the previous MAP sample was taken
 
 void initialiseADC(const pin_mapping_t &pins);
+void initialiseFlexFuel(const pin_mapping_t &pins);
+void initialiseVss(const pin_mapping_t &pins);
+void initialiseMapBaroSensors(const pin_mapping_t &pins);
+void initialiseTPS(const pin_mapping_t &pins);
+void initialiseCoreSensors(const pin_mapping_t &pins);  // Sensors that are always required
+void initialiseNonCoreSensors(const pin_mapping_t &pins); // Sensors that are optional
 void readTPS(bool useFilter=true); //Allows the option to override the use of the filter
 void readO2_2(void);
 void flexPulse(void);

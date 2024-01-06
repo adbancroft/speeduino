@@ -22,7 +22,6 @@ A full copy of the license may be found in the projects root directory
 #include "board_definition.h"
 #include "scheduler.h"
 #include "pin_mapping.h"
-
 #ifdef RTC_ENABLED
   #include "rtc_common.h"
 #endif
@@ -357,7 +356,7 @@ void legacySerialCommand(void)
       #endif
 
         while (Serial.available() == 0) { }
-        digitalWrite(pinMapping.outputs.pinResetControl, LOW);
+        resetAllow();
       }
       else
       {
