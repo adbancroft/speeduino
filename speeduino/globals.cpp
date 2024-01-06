@@ -51,10 +51,6 @@ struct table2D coolantProtectTable;
 struct table2D fanPWMTable;
 struct table2D rollingCutTable;
 
-ioPort tach_pin_port;
-ioPort pump_pin_port;
-ioPort flex_pin_port;
-
 //These are variables used across multiple files
 byte fpPrimeTime = 0; ///< The time (in seconds, based on @ref statuses.secl) that the fuel pump started priming
 uint8_t softLimitTime = 0; //The time (in 0.1 seconds, based on seclx10) that the soft limiter started
@@ -63,8 +59,6 @@ uint32_t revolutionTime; //The time in uS that one revolution would take at curr
 volatile unsigned long ms_counter = 0; //A counter that increments once per ms
 volatile uint32_t toothHistory[TOOTH_LOG_SIZE]; ///< Tooth trigger history - delta time (in uS) from last tooth (Indexed by @ref toothHistoryIndex)
 volatile uint8_t compositeLogHistory[TOOTH_LOG_SIZE]; 
-volatile bool fpPrimed = false; ///< Tracks whether or not the fuel pump priming has been completed yet
-volatile bool injPrimed = false; ///< Tracks whether or not the injectors priming has been completed yet
 volatile uint8_t toothHistoryIndex = 0; ///< Current index to @ref toothHistory array
 unsigned long currentLoopTime; /**< The time (in uS) that the current mainloop started */
 volatile uint16_t ignitionCount; /**< The count of ignition events that have taken place since the engine started */

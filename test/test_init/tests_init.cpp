@@ -68,6 +68,7 @@ void test_initialisation_ports(void)
 void test_initialisation_outputs_V03(void)
 {
   prepareForInitialiseAll(2);
+  configPage2.fanEnable = 1U;
   initialiseAll(); //Run the main initialise function
 
   char msg[32];

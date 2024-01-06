@@ -28,7 +28,6 @@
 #include <assert.h>
 #include "table2d.h"
 #include "table3d.h"
-#include "port_pin.h"
 
 //Handy bitsetting macros
 #define BIT_SET(a,b) ((a) |= (1U<<(b)))
@@ -360,10 +359,6 @@ extern struct table2D coolantProtectTable; //6 bin coolant temperature protectio
 extern struct table2D fanPWMTable;
 extern struct table2D rollingCutTable;
 
-extern ioPort tach_pin_port;
-extern ioPort pump_pin_port;
-extern ioPort flex_pin_port;
-
 extern byte fpPrimeTime; //The time (in seconds, based on currentStatus.secl) that the fuel pump started priming
 extern uint8_t softLimitTime; //The time (in 0.1 seconds, based on seclx10) that the soft limiter started
 extern volatile uint16_t mainLoopCount;
@@ -371,8 +366,6 @@ extern unsigned long revolutionTime; //The time in uS that one revolution would 
 extern volatile unsigned long ms_counter; //A counter that increments once per ms
 extern volatile uint32_t toothHistory[TOOTH_LOG_SIZE];
 extern volatile uint8_t compositeLogHistory[TOOTH_LOG_SIZE];
-extern volatile bool fpPrimed; //Tracks whether or not the fuel pump priming has been completed yet
-extern volatile bool injPrimed; //Tracks whether or not the injector priming has been completed yet
 extern volatile uint8_t toothHistoryIndex;
 static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check type of toothHistoryIndex");
 extern unsigned long currentLoopTime; /**< The time (in uS) that the current mainloop started */

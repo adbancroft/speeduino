@@ -1,6 +1,8 @@
 #ifndef SD_LOGGER_H
 #define SD_LOGGER_H
 
+#include "board_selector.h"
+
 #ifdef SD_LOGGING
 
 #ifdef __SD_H__
@@ -9,7 +11,7 @@
   #include "SdFat.h"
 #endif
 #include "RingBuf.h"
-
+#include "pin_mapping.h"
 
 #define SD_STATUS_OFF               0 /**< SD system is inactive. FS and file remain closed */
 #define SD_STATUS_READY             1 /**< Card is present and ready, but a log session has not commenced */
@@ -69,7 +71,7 @@ extern uint8_t SD_status;
 extern uint16_t currentLogFileNumber;
 extern bool manualLogActive;
 
-void initSD();
+void initSD(const pin_mapping_t &pins);
 void writeSDLogEntry();
 void writetSDLogHeader();
 void beginSDLogging();

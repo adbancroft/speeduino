@@ -105,3 +105,9 @@ extern pin_mapping_t pinMapping;
 
 void setPinMapping(uint8_t boardId);
 bool pinIsUsed(uint8_t pin, const pin_mapping_t &pins);
+
+#if defined(CORE_STM32) && defined(INPUT_ANALOG)
+#define SENSOR_PIN_MODE INPUT_ANALOG
+#else
+#define SENSOR_PIN_MODE INPUT
+#endif

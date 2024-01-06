@@ -23,15 +23,20 @@ These are some utility functions and variables used through the main code
 
 #define REUSE_RULES 240
 
-extern uint8_t ioOutDelay[sizeof(configPage13.outputPin)];
-extern uint8_t ioDelay[sizeof(configPage13.outputPin)];
-extern uint8_t pinIsValid;
-extern uint8_t currentRuleStatus;
-//uint8_t outputPin[sizeof(configPage13.outputPin)];
-
+void initialiseResetControl(const pin_mapping_t &pins);
 void setResetControlPinState(void);
+void resetPrevent(void);
+void resetAllow(void);
+
+void initialiseIgnitionByPass(const pin_mapping_t &pins);
+void ignitionByPassOn(void);
+void ignitionByPassOff(void);
+
 void initialiseProgrammableIO(const pin_mapping_t &pins);
 void checkProgrammableIO(void);
 int16_t ProgrammableIOGetData(uint16_t index);
+
+void initialiseLaunchControl(const pin_mapping_t &pins);
+bool isClutchTriggerOn(void);
 
 #endif // UTILS_H

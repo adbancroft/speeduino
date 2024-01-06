@@ -19,8 +19,6 @@ A full copy of the license may be found in the projects root directory
 #include "decoders.h"
 #include "auxiliaries.h"
 #include "utilities.h"
-#include "pin_mapping.h"
-#include BOARD_H
 
 uint32_t MAPcurRev; //Tracks which revolution we're sampling on
 unsigned int MAPcount; //Number of samples taken in the current MAP cycle
@@ -124,10 +122,6 @@ void initialiseADC(const pin_mapping_t &pins)
 #elif defined(ARDUINO_ARCH_STM32) //STM32GENERIC core and ST STM32duino core, change analog read to 12 bit
   analogReadResolution(10); //use 10bits for analog reading on STM32 boards
 #endif
-  MAPcurRev = 0;
-  MAPcount = 0;
-  MAPrunningValue = 0;
-
   //The following checks the aux inputs and initialises pins if required
   auxIsEnabled = false;
   BIT_CLEAR(currentStatus.engineProtectStatus, PROTECT_IO_ERROR); //Clear the I/O error bit. The bit will be set below if there is problem in there.
@@ -178,23 +172,6 @@ void initialiseADC(const pin_mapping_t &pins)
 
     }
   } //For loop iterating through aux in lines
-  
-
-  //Sanity checks to ensure none of the filter values are set above 240 (Which would include the 255 value which is the default on a new arduino)
-  //If an invalid value is detected, it's reset to the default the value and burned to EEPROM. 
-  //Each sensor has it's own default value
-  if(configPage4.ADCFILTER_TPS  > 240) { configPage4.ADCFILTER_TPS   = ADCFILTER_TPS_DEFAULT;   writeConfig(ignSetPage); }
-  if(configPage4.ADCFILTER_CLT  > 240) { configPage4.ADCFILTER_CLT   = ADCFILTER_CLT_DEFAULT;   writeConfig(ignSetPage); }
-  if(configPage4.ADCFILTER_IAT  > 240) { configPage4.ADCFILTER_IAT   = ADCFILTER_IAT_DEFAULT;   writeConfig(ignSetPage); }
-  if(configPage4.ADCFILTER_O2   > 240) { configPage4.ADCFILTER_O2    = ADCFILTER_O2_DEFAULT;    writeConfig(ignSetPage); }
-  if(configPage4.ADCFILTER_BAT  > 240) { configPage4.ADCFILTER_BAT   = ADCFILTER_BAT_DEFAULT;   writeConfig(ignSetPage); }
-  if(configPage4.ADCFILTER_MAP  > 240) { configPage4.ADCFILTER_MAP   = ADCFILTER_MAP_DEFAULT;   writeConfig(ignSetPage); }
-  if(configPage4.ADCFILTER_BARO > 240) { configPage4.ADCFILTER_BARO  = ADCFILTER_BARO_DEFAULT;  writeConfig(ignSetPage); }
-  if(configPage4.FILTER_FLEX    > 240) { configPage4.FILTER_FLEX     = FILTER_FLEX_DEFAULT;     writeConfig(ignSetPage); }
-
-  flexStartTime = micros();
-
-  vssIndex = 0;
 }
 
 static inline void validateMAP(void)
@@ -221,6 +198,37 @@ static inline void validateMAP(void)
     }
     mapErrorCount = 0;
   }
+}
+
+void initialiseMapBaroSensors(const pin_mapping_t &pins) {
+  MAPcurRev = 0;
+  MAPcount = 0;
+  MAPrunningValue = 0;
+
+  if (isValidPin(pins.inputs.sensors.pinMAP)) {
+    pinMode(pins.inputs.sensors.pinMAP, SENSOR_PIN_MODE);
+
+    //This is a legacy mode option to revert the MAP reading behaviour to match what was in place prior to the 201905 firmware
+    if (configPage2.legacyMAP > 0U) {
+      setPin_High(pins.inputs.sensors.pinMAP); 
+    }
+  }
+  if(configPage4.ADCFILTER_MAP > 240U) { 
+    configPage4.ADCFILTER_MAP = ADCFILTER_MAP_DEFAULT;
+    writeConfig(ignSetPage); 
+  }
+
+  if (configPage6.useExtBaro != 0U && isValidPin(pins.inputs.sensors.pinBaro)) {
+    pinMode(pins.inputs.sensors.pinBaro, SENSOR_PIN_MODE);
+  }
+  if(configPage4.ADCFILTER_BARO > 240U) { 
+    configPage4.ADCFILTER_BARO = ADCFILTER_BARO_DEFAULT;
+    writeConfig(ignSetPage);
+  }
+
+  //Lookup the current MAP reading for barometric pressure
+  instanteneousMAPReading();
+  readBaro();
 }
 
 void instanteneousMAPReading(void)
@@ -469,6 +477,20 @@ void readMAP(void)
   }
 }
 
+void initialiseTPS(const pin_mapping_t &pins) {
+  if (isValidPin(pins.inputs.sensors.pinTPS)) {
+    pinMode(pins.inputs.sensors.pinTPS, SENSOR_PIN_MODE);
+  }
+  if(configPage4.ADCFILTER_TPS > 240U) { 
+    configPage4.ADCFILTER_TPS = ADCFILTER_TPS_DEFAULT;
+    writeConfig(ignSetPage);
+  }
+
+  if (configPage2.CTPSEnabled > 0U && isValidPin(pins.inputs.pinCTPS)) {
+    pinMode(pins.inputs.pinCTPS, (configPage2.CTPSPolarity == 0U) ? INPUT_PULLUP : INPUT);
+  }  
+}
+
 void readTPS(bool useFilter)
 {
   currentStatus.TPSlast = currentStatus.TPS;
@@ -512,6 +534,55 @@ void readTPS(bool useFilter)
     else { currentStatus.CTPSActive = digitalRead(pinMapping.inputs.pinCTPS); } //Inverted mode (5v activates closed throttle position sensor)
   }
   else { currentStatus.CTPSActive = 0; }
+}
+
+
+void initialiseCoreSensors(const pin_mapping_t &pins) {
+  if (isValidPin(pins.inputs.sensors.pinCLT)) {
+    pinMode(pins.inputs.sensors.pinCLT, SENSOR_PIN_MODE);
+  }
+  if(configPage4.ADCFILTER_CLT > 240U) { 
+    configPage4.ADCFILTER_CLT = ADCFILTER_CLT_DEFAULT;
+    writeConfig(ignSetPage); 
+  }
+
+  if (isValidPin(pins.inputs.sensors.pinIAT)) {
+    pinMode(pins.inputs.sensors.pinIAT, SENSOR_PIN_MODE);
+  }
+  if(configPage4.ADCFILTER_IAT > 240U) { 
+    configPage4.ADCFILTER_IAT = ADCFILTER_IAT_DEFAULT;
+    writeConfig(ignSetPage);
+  }
+
+  if (isValidPin(pins.inputs.sensors.pinO2)) {
+    pinMode(pins.inputs.sensors.pinO2, SENSOR_PIN_MODE);
+  }
+  if(configPage4.ADCFILTER_O2 > 240U) { 
+    configPage4.ADCFILTER_O2 = ADCFILTER_O2_DEFAULT;
+    writeConfig(ignSetPage);
+  }
+
+  if (isValidPin(pins.inputs.sensors.pinO2_2)) {
+    pinMode(pins.inputs.sensors.pinO2_2, SENSOR_PIN_MODE);
+  }
+}
+
+void initialiseNonCoreSensors(const pin_mapping_t &pins) {
+  if (isValidPin(pins.inputs.sensors.pinBat)) {
+    pinMode(pins.inputs.sensors.pinBat, SENSOR_PIN_MODE);
+  }
+  if(configPage4.ADCFILTER_BAT > 240U) { 
+    configPage4.ADCFILTER_BAT = ADCFILTER_BAT_DEFAULT;
+    writeConfig(ignSetPage); 
+  }
+
+  if (configPage10.fuelPressureEnable && isValidPin(pins.inputs.sensors.pinFuelPressure)) {
+    pinMode(pins.inputs.sensors.pinFuelPressure, SENSOR_PIN_MODE);
+  }
+  if (configPage10.oilPressureEnable && isValidPin(pins.inputs.sensors.pinOilPressure)) {
+    pinMode(pins.inputs.sensors.pinOilPressure, SENSOR_PIN_MODE);
+  }
+
 }
 
 void readCLT(bool useFilter)
@@ -654,12 +725,10 @@ void readBat(void)
   if( (currentStatus.battery10 < 55) && (tempReading > 70) && (currentStatus.RPM == 0) )
   {
     //Re-prime the fuel pump
-    fpPrimeTime = currentStatus.secl;
-    currentStatus.fpPrimed = false;
-    FUEL_PUMP_ON();
+    beginPrimeFuelPump();
 
     //Redo the stepper homing
-    if( (configPage6.iacAlgorithm == IAC_ALGORITHM_STEP_CL) || (configPage6.iacAlgorithm == IAC_ALGORITHM_STEP_OL) )
+    if ( isIdleStepper(configPage6) )
     {
       initialiseIdle(true);
     }
@@ -806,6 +875,27 @@ byte getOilPressure(void)
   return (byte)tempOilPressure;
 }
 
+#if defined(CORE_AVR)    
+ioPort flex_pin_port;
+#endif
+
+void initialiseFlexFuel(const pin_mapping_t &pins) {
+  if(configPage2.flexEnabled > 0 && isValidPin(pins.inputs.pinFlex))
+  {
+    pinMode(pins.inputs.pinFlex, INPUT); // Standard GM / Continental flex sensor requires pullup, but this should be onboard. The internal pullup will not work (Requires ~3.3k)!
+    attachInterrupt(digitalPinToInterrupt(pins.inputs.pinFlex), flexPulse, CHANGE);
+#if defined(CORE_AVR)    
+    flex_pin_port = pinToInputPort(pins.inputs.pinFlex);
+#endif
+    currentStatus.ethanolPct = 0;
+  }
+  if(configPage4.FILTER_FLEX > 240U) { 
+    configPage4.FILTER_FLEX = FILTER_FLEX_DEFAULT;
+    writeConfig(ignSetPage); 
+  }
+  flexStartTime = micros();
+}
+
 /*
  * The interrupt function for reading the flex sensor frequency and pulse width
  * flexCounter value is incremented with every pulse and reset back to 0 once per second
@@ -838,6 +928,14 @@ void knockPulse(void)
   }
   else { ++knockCounter; } //Knock has already started, so just increment the counter for this
 
+}
+
+void initialiseVss(const pin_mapping_t &pins) {
+  if ((configPage2.vssMode > 1) && isValidPin(pins.inputs.pinVSS)) {
+    pinMode(pins.inputs.pinVSS, INPUT);
+    attachInterrupt(digitalPinToInterrupt(pins.inputs.pinVSS), vssPulse, RISING);
+  }
+  vssIndex = 0;
 }
 
 /**

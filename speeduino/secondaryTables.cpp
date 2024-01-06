@@ -1,7 +1,21 @@
 #include "globals.h"
 #include "secondaryTables.h"
 #include "corrections.h"
-#include "pin_mapping.h"
+#include "port_pin.h"
+
+void initialiseSecondaryTables(const pin_mapping_t &pins) {
+  if(configPage10.fuel2Mode > 0 && isValidPin(pins.inputs.pinFuel2Input) )
+  {
+    pinMode(pins.inputs.pinFuel2Input, (configPage10.fuel2InputPullup ? INPUT_PULLUP : INPUT));
+  }
+  if(configPage10.spark2Mode > 0 && isValidPin(pins.inputs.pinSpark2Input) )
+  {
+    pinMode(pins.inputs.pinSpark2Input, (configPage10.spark2InputPullup ? INPUT_PULLUP : INPUT));
+  } 
+}
+
+static byte getVE2(void);
+static byte getAdvance2(void);
 
 void calculateSecondaryFuel(void)
 {

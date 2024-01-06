@@ -20,7 +20,6 @@ A full copy of the license may be found in the projects root directory
 #include "logger.h"
 #include "table3d_axis_io.h"
 #include "scheduler.h"
-#include "pin_mapping.h"
 #include BOARD_H
 #ifdef RTC_ENABLED
   #include "rtc_common.h"
@@ -356,7 +355,7 @@ void legacySerialCommand(void)
       #endif
 
         while (Serial.available() == 0) { }
-        digitalWrite(pinMapping.outputs.pinResetControl, LOW);
+        resetAllow();
       }
       else
       {

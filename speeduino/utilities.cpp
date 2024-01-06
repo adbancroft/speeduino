@@ -10,18 +10,50 @@
 #include <avr/pgmspace.h>
 #include "globals.h"
 #include "utilities.h"
-#include "decoders.h"
-#include "comms.h"
 #include "logger.h"
-#include "scheduler.h"
-#include "scheduledIO.h"
-#include "speeduino.h"
-#include "pin_mapping.h"
+#include "port_pin.h"
 
-uint8_t ioDelay[sizeof(configPage13.outputPin)];
-uint8_t ioOutDelay[sizeof(configPage13.outputPin)];
-uint8_t pinIsValid = 0;
-uint8_t currentRuleStatus = 0;
+static uint8_t ioDelay[sizeof(configPage13.outputPin)];
+static uint8_t ioOutDelay[sizeof(configPage13.outputPin)];
+static uint8_t pinIsValid = 0;
+static uint8_t currentRuleStatus = 0;
+
+// ===================== Ignition Bypass =====================
+
+void initialiseIgnitionByPass(const pin_mapping_t &pins) {
+  if (isValidPin(pins.outputs.pinIgnBypass)) {
+    pinMode(pins.outputs.pinIgnBypass, OUTPUT);
+  }
+}
+
+void ignitionByPassOn(void) {
+  setPin_High(pinMapping.outputs.pinIgnBypass);
+}
+void ignitionByPassOff(void) {
+  setPin_Low(pinMapping.outputs.pinIgnBypass);
+}
+
+
+// ===================== Reset Prevention =====================
+ 
+void initialiseResetControl(const pin_mapping_t &pins) {
+  if (isValidPin(pins.outputs.pinResetControl)) {
+  /* Reset control is a special case. If reset control is enabled, it needs its initial state set BEFORE its pinMode.
+    If that doesn't happen and reset control is in "Serial Command" mode, the Arduino will end up in a reset loop
+    because the control pin will go low as soon as the pinMode is set to OUTPUT. */
+    resetControl = configPage4.resetControlConfig;
+    setResetControlPinState();
+    pinMode(pins.outputs.pinResetControl, OUTPUT);
+  }  
+}
+
+void resetPrevent(void) {
+  setPin_High(pinMapping.outputs.pinResetControl);
+}
+
+void resetAllow(void) {
+  setPin_Low(pinMapping.outputs.pinResetControl);
+}
 
 void setResetControlPinState(void)
 {
@@ -32,24 +64,39 @@ void setResetControlPinState(void)
   {
     case RESET_CONTROL_PREVENT_WHEN_RUNNING:
       /* Set the reset control pin LOW and change it to HIGH later when we get sync. */
-      digitalWrite(pinMapping.outputs.pinResetControl, LOW);
+      resetAllow();
       BIT_CLEAR(currentStatus.status3, BIT_STATUS3_RESET_PREVENT);
       break;
     case RESET_CONTROL_PREVENT_ALWAYS:
       /* Set the reset control pin HIGH and never touch it again. */
-      digitalWrite(pinMapping.outputs.pinResetControl, HIGH);
+      resetPrevent();
       BIT_SET(currentStatus.status3, BIT_STATUS3_RESET_PREVENT);
       break;
     case RESET_CONTROL_SERIAL_COMMAND:
       /* Set the reset control pin HIGH. There currently isn't any practical difference
          between this and PREVENT_ALWAYS but it doesn't hurt anything to have them separate. */
-      digitalWrite(pinMapping.outputs.pinResetControl, HIGH);
+      resetPrevent();
       BIT_CLEAR(currentStatus.status3, BIT_STATUS3_RESET_PREVENT);
       break;
     default:
       // Do nothing - keep MISRA happy
       break;
   }
+}
+
+
+// ===================== Launch Control =====================
+
+void initialiseLaunchControl(const pin_mapping_t &pins) {
+  if (isValidPin(pins.inputs.pinLaunch)) {
+    pinMode(pins.inputs.pinLaunch, configPage6.lnchPullRes ? INPUT_PULLUP : INPUT);
+  } 
+}
+
+bool isClutchTriggerOn(void) {
+ return (configPage6.flatSEnable || configPage6.launchEnabled)
+      && isValidPin(pinMapping.inputs.pinLaunch)
+      && readPin(pinMapping.inputs.pinLaunch)==(configPage6.launchHiLo==0U ? LOW: HIGH);
 }
 
 //*********************************************************************************************************************************************************************************

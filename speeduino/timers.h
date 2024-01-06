@@ -19,21 +19,18 @@ Hence we will preload the timer with 131 cycles to leave 125 until overflow (1ms
 #ifndef TIMERS_H
 #define TIMERS_H
 
-#include "globals.h"
+// #include "globals.h"
+#include "pin_mapping.h"
+#include "port_pin.h"
 
 #define SET_COMPARE(compare, value) compare = (COMPARE_TYPE)(value) // It is important that we cast this to the actual overflow limit of the timer. The compare variables type can be bigger than the timer overflow.
 
+extern ioPort tach_pin_port;
 #define TACHO_PULSE_HIGH() setPin_High(tach_pin_port)
 #define TACHO_PULSE_LOW() setPin_Low(tach_pin_port)
+
 enum TachoOutputStatus {TACHO_INACTIVE, READY, ACTIVE}; //The 3 statuses that the tacho output pulse can have. NOTE: Cannot just use 'INACTIVE' as this is already defined within the Teensy Libs
-
 extern volatile TachoOutputStatus tachoOutputFlag;
-extern volatile bool tachoSweepEnabled;
-extern volatile uint16_t tachoSweepIncr;
-
-#define TACHO_SWEEP_TIME_MS 1500
-#define TACHO_SWEEP_RAMP_MS (TACHO_SWEEP_TIME_MS * 2 / 3)
-#define MS_PER_SEC  1000
 
 #if defined (CORE_TEENSY)
   extern IntervalTimer lowResTimer;
@@ -41,6 +38,6 @@ extern volatile uint16_t tachoSweepIncr;
 #elif defined (ARDUINO_ARCH_STM32)
   void oneMSInterval(void);
 #endif
-void initialiseTimers(void);
+void initialiseTimers(const pin_mapping_t &pin);
 
 #endif // TIMERS_H

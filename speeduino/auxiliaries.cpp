@@ -13,19 +13,19 @@ A full copy of the license may be found in the projects root directory
 
 static long vvt1_pwm_value;
 static long vvt2_pwm_value;
-volatile unsigned int vvt1_pwm_cur_value;
-volatile unsigned int vvt2_pwm_cur_value;
+static volatile unsigned int vvt1_pwm_cur_value;
+static volatile unsigned int vvt2_pwm_cur_value;
 static long vvt_pid_target_angle;
 static long vvt2_pid_target_angle;
 static long vvt_pid_current_angle;
 static long vvt2_pid_current_angle;
-volatile bool vvt1_pwm_state;
-volatile bool vvt2_pwm_state;
-volatile bool vvt1_max_pwm;
-volatile bool vvt2_max_pwm;
-volatile char nextVVT;
-byte boostCounter;
-byte vvtCounter;
+static volatile bool vvt1_pwm_state;
+static volatile bool vvt2_pwm_state;
+static volatile bool vvt1_max_pwm;
+static volatile bool vvt2_max_pwm;
+static volatile char nextVVT;
+static byte boostCounter;
+static byte vvtCounter;
 
 ioPort boost_pin_port;
 ioPort n2o_stage1_pin_port;
@@ -39,27 +39,25 @@ ioPort vvt2_pin_port;
 ioPort fan_pin_port;
 
 #if defined(PWM_FAN_AVAILABLE)//PWM fan not available on Arduino MEGA
-volatile bool fan_pwm_state;
+static volatile bool fan_pwm_state;
 uint16_t fan_pwm_max_count; //Used for variable PWM frequency
-volatile unsigned int fan_pwm_cur_value;
-long fan_pwm_value;
+static volatile unsigned int fan_pwm_cur_value;
+static long fan_pwm_value;
 #endif
 
-bool acIsEnabled;
-bool acStandAloneFanIsEnabled;
-uint8_t acStartDelay;
-uint8_t acTPSLockoutDelay;
-uint8_t acRPMLockoutDelay;
-uint8_t acAfterEngineStartDelay;
-bool waitedAfterCranking; // This starts false and prevents the A/C from running until a few seconds after cranking
+static uint8_t acStartDelay;
+static uint8_t acTPSLockoutDelay;
+static uint8_t acRPMLockoutDelay;
+static uint8_t acAfterEngineStartDelay;
+static bool waitedAfterCranking; // This starts false and prevents the A/C from running until a few seconds after cranking
 
 long boost_pwm_target_value;
 volatile bool boost_pwm_state;
 volatile unsigned int boost_pwm_cur_value = 0;
 
-uint32_t vvtWarmTime;
-bool vvtIsHot;
-bool vvtTimeHold;
+static uint32_t vvtWarmTime;
+static bool vvtIsHot;
+static bool vvtTimeHold;
 uint16_t vvt_pwm_max_count; //Used for variable PWM frequency
 uint16_t boost_pwm_max_count; //Used for variable PWM frequency
 
@@ -108,25 +106,13 @@ void initialiseAirCon(const pin_mapping_t &pins)
     {
       aircon_fan_pin_port = pinToOutputPort(pins.outputs.pinAirConFan);
       AIRCON_FAN_OFF();
-      acStandAloneFanIsEnabled = true;
     }
-    else
-    {
-      acStandAloneFanIsEnabled = false;
-    }
-
-    acIsEnabled = true;
-
-  }
-  else
-  {
-    acIsEnabled = false;
   }
 }
 
 void airConControl(void)
 {
-  if(acIsEnabled == true)
+  if(isValidIoPort(aircon_comp_pin_port))
   {
     // ------------------------------------------------------------------------------------------------------
     // Check that the engine has been running past the post-start delay period before enabling the compressor
@@ -169,7 +155,7 @@ void airConControl(void)
       BIT_SET(currentStatus.airConStatus, BIT_AIRCON_TURNING_ON);
 
       // Stand-alone fan operation
-      if(acStandAloneFanIsEnabled == true)
+      if(isValidIoPort(aircon_fan_pin_port))
       {
         AIRCON_FAN_ON();
       }
@@ -189,7 +175,7 @@ void airConControl(void)
       BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_TURNING_ON);
 
       // Stand-alone fan operation
-      if(acStandAloneFanIsEnabled == true)
+      if(isValidIoPort(aircon_fan_pin_port))
       {
         AIRCON_FAN_OFF();
       }
@@ -202,7 +188,7 @@ void airConControl(void)
 
 bool READ_AIRCON_REQUEST(void)
 {
-  if(acIsEnabled == false)
+  if(!isValidIoPort(aircon_comp_pin_port))
   {
     return false;
   }
@@ -326,7 +312,6 @@ void fanControl(void)
     int onTemp = (int)configPage6.fanSP - CALIBRATION_TEMPERATURE_OFFSET;
     int offTemp = onTemp - configPage6.fanHyster;
     bool fanPermit = false;
-
     
     if ( configPage2.fanWhenOff == true) { fanPermit = true; }
     else { fanPermit = BIT_CHECK(currentStatus.engine, BIT_ENGINE_RUN); }
@@ -434,20 +419,40 @@ void fanControl(void)
 
 void initialiseAuxPWM(const pin_mapping_t &pins)
 {
-  boost_pin_port = pinToOutputPort(pins.outputs.pinBoost);
-  vvt1_pin_port = pinToOutputPort(pins.outputs.pinVVT_1);
-  vvt2_pin_port = pinToOutputPort(pins.outputs.pinVVT_2);
-  n2o_stage1_pin_port = pinToOutputPort(configPage10.n2o_stage1_pin);
-  n2o_stage2_pin_port = pinToOutputPort(configPage10.n2o_stage2_pin);
+  boost_pin_port = nullIoPort();
+  if (configPage6.boostEnabled) {
+    boost_pin_port = pinToOutputPort(pins.outputs.pinBoost);
+  }
+
+  vvt1_pin_port = nullIoPort();
+  if (configPage6.vvtEnabled > 0U) {
+    vvt1_pin_port = pinToOutputPort(pins.outputs.pinVVT_1);
+  }
+
+  vvt2_pin_port = nullIoPort();
+  if (configPage10.vvt2Enabled > 0U) {
+    vvt2_pin_port = pinToOutputPort(pins.outputs.pinVVT_2);
+  }
 
   //This is a safety check that will be true if the board is uninitialised. This prevents hangs on a new board that could otherwise try to write to an invalid pin port/mask (Without this a new Teensy 4.x hangs on startup)
   //The n2o_minTPS variable is capped at 100 by TS, so 255 indicates a new board.
   if(configPage10.n2o_minTPS == 255) { configPage10.n2o_enable = 0; }
 
+  n2o_stage1_pin_port = nullIoPort();
+  n2o_stage2_pin_port = nullIoPort();
+  n2o_arming_pin_port = nullIoPort();
   if(configPage10.n2o_enable > 0)
   {
-    //The pin modes are only set if the if n2o is enabled to prevent them conflicting with other outputs. 
-    n2o_arming_pin_port = pinToInputPort(configPage10.n2o_arming_pin,(configPage10.n2o_pin_polarity == 1 ? INPUT_PULLUP : INPUT));
+    //The pin modes are only set if the if n2o is enabled to prevent them conflicting with other outputs.   
+    if (!pinIsUsed(configPage10.n2o_stage1_pin, pins)) {
+      n2o_stage1_pin_port = pinToOutputPort(configPage10.n2o_stage1_pin);
+    }
+    if (!pinIsUsed(configPage10.n2o_stage2_pin, pins)) {
+      n2o_stage2_pin_port = pinToOutputPort(configPage10.n2o_stage2_pin);
+    }
+    if (!pinIsUsed(configPage10.n2o_arming_pin, pins)) {
+      n2o_arming_pin_port = pinToInputPort(configPage10.n2o_arming_pin, (configPage10.n2o_pin_polarity == 1 ? INPUT_PULLUP : INPUT));
+    }
   }
 
   boostPID.SetOutputLimits(configPage2.boostMinDuty, configPage2.boostMaxDuty);
@@ -1001,6 +1006,23 @@ void nitrousControl(void)
   }
 }
 
+void initialiseWmi(const pin_mapping_t &pins) {
+  if (configPage10.wmiEnabled > 0U) {
+    if (isValidPin(pins.outputs.pinWMIEnabled)) {
+      pinMode(pins.outputs.pinWMIEnabled, OUTPUT);
+    }
+    if (configPage10.wmiIndicatorEnabled > 0U && isValidPin(pins.outputs.pinWMIIndicator))
+    {
+      pinMode(pins.outputs.pinWMIIndicator, OUTPUT);
+      if (configPage10.wmiIndicatorPolarity > 0) { digitalWrite(pins.outputs.pinWMIIndicator, HIGH); }
+    }
+    if(configPage10.wmiEmptyEnabled > 0U && isValidPin(pins.inputs.pinWMIEmpty) )
+    {
+      pinMode(pins.inputs.pinWMIEmpty, (configPage10.wmiEmptyPolarity ? INPUT_PULLUP : INPUT));
+    }
+  }
+}
+
 // Water methanol injection control
 void wmiControl(void)
 {
@@ -1072,6 +1094,14 @@ void wmiControl(void)
       }
     }
   }
+}
+
+void toggleWmiIndicator(void) {
+  togglePin(pinMapping.outputs.pinWMIIndicator);
+}
+
+void setWmiIndicator(void) {
+  digitalWrite(pinMapping.outputs.pinWMIIndicator, configPage10.wmiIndicatorPolarity ? HIGH : LOW);
 }
 
 void boostDisable(void)
@@ -1250,3 +1280,26 @@ void boostDisable(void)
   }
 }
 #endif
+
+ioPort pump_pin_port;
+
+void initialiseFuelPump(const pin_mapping_t &pins) {
+  pump_pin_port = pinToOutputPort(pins.outputs.pinFuelPump);
+
+  currentStatus.injPrimed = false;
+
+  //Begin priming the fuel pump. This is turned off in the low resolution, 1s interrupt in timers.ino
+  //First check that the priming time is not 0
+  currentStatus.fpPrimed = configPage2.fpPrime==0U; //If the user has set 0 for the pump priming, immediately mark the priming as being completed
+  if (!currentStatus.fpPrimed) {
+    beginPrimeFuelPump();
+  } else {
+    fpPrimeTime = 0U;
+  }
+}
+
+void beginPrimeFuelPump(void) {
+  fpPrimeTime = currentStatus.secl;
+  currentStatus.fpPrimed = false;
+  FUEL_PUMP_ON();
+}
