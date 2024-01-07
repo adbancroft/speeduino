@@ -207,7 +207,7 @@ void test_initialisation_outputs_stepper_idle(void)
 
   char msg[32];
   strcpy_P(msg, PSTR("Is Stepper Idle"));
-  TEST_ASSERT_TRUE_MESSAGE(isIdleStepper(configPage6), msg);
+  TEST_ASSERT_TRUE_MESSAGE(isIdleStepper(), msg);
   strcpy_P(msg, PSTR("Stepper Dir"));
   TEST_ASSERT_EQUAL_MESSAGE(OUTPUT, getPinMode(pinMapping.outputs.pinStepperDir), msg);
   strcpy_P(msg, PSTR("Stepper Step"));

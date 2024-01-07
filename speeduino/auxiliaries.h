@@ -11,7 +11,9 @@ void initialiseAuxPWM(const pin_mapping_t &pins);
 void boostInterrupt(void);
 void boostControl(void);
 void boostDisable(void);
-void boostByGear(void);
+static inline bool isBoostEnabled(void) {
+  return configPage6.boostEnabled==1U;
+}
 
 void vvtControl(void);
 static inline bool isVVT_1Enabled(void) {
@@ -22,19 +24,41 @@ static inline bool isVVT_2Enabled(void) {
 }
 void vvtInterrupt(void);
 
+#define FAN_MODE_OFF                    0U
+#define FAN_MODE_ONOFF                  1U
+#define FAN_MODE_PWM                    2U
+
 void initialiseFan(const pin_mapping_t &pins);
 void fanControl(void);
+static inline bool isFanEnabled(void) {
+  return configPage2.fanEnable != FAN_MODE_OFF;
+}
 
 void nitrousControl(void);
 
 void initialiseAirCon(const pin_mapping_t &pins);
 void airConControl(void);
-bool READ_AIRCON_REQUEST(void);
+static inline bool isAirConEnabled(void) {
+  return configPage15.airConEnable !=0U;
+}
+static inline bool isAirConFanEnabled(void) {
+  return isAirConEnabled() && (configPage15.airConFanEnabled > 0U);
+}
+
 
 void initialiseWmi(const pin_mapping_t &pins);
 void wmiControl(void);
 void setWmiIndicator(void);
 void toggleWmiIndicator(void);
+static inline bool isWMIEnabled(void) {
+  return configPage10.wmiEnabled != 0U;
+}
+static inline bool isWMIIndicatorEnabled(void) {
+  return isWMIEnabled() && configPage10.wmiIndicatorEnabled != 0U;
+}
+static inline bool isWMIEmptyEnabled(void) {
+  return isWMIEnabled() && configPage10.wmiEmptyEnabled != 0U;
+}
 
 void initialiseFuelPump(const pin_mapping_t &pins);
 void beginPrimeFuelPump(void);
@@ -101,7 +125,7 @@ extern ioPort pump_pin_port;
 #define VVT2_OFF()    VVT2_PIN_LOW();
 #define VVT_TIME_DELAY_MULTIPLIER  50
 
-#define WMI_TANK_IS_EMPTY() ((configPage10.wmiEmptyEnabled) ? ((configPage10.wmiEmptyPolarity) ? digitalRead(pinMapping.inputs.pinWMIEmpty) : !digitalRead(pinMapping.inputs.pinWMIEmpty)) : 1)
+#define WMI_TANK_IS_EMPTY() (isWMIEmptyEnabled() ? digitalRead(pinMapping.inputs.pinWMIEmpty)==configPage10.wmiEmptyPolarity : true)
 
 #if defined(PWM_FAN_AVAILABLE)//PWM fan not available on Arduino MEGA
 extern uint16_t fan_pwm_max_count; //Used for variable PWM frequency

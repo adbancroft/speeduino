@@ -86,8 +86,7 @@ uint16_t getNextSDLogFileNumber();
 bool getSDLogFileDetails(uint8_t* , uint16_t);
 void readSDSectors(uint8_t*, uint32_t, uint16_t);
 uint32_t sectorCount();
-
-
+bool isSDLoggingEnabled(void);
 
 #endif //SD_LOGGING
 #endif //SD_LOGGER_H

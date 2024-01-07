@@ -323,7 +323,7 @@ void __attribute__((always_inline)) loop(void)
       VVT2_OFF();
       DISABLE_VVT_TIMER();
       boostDisable();
-      if(configPage4.ignBypassEnabled > 0U) { ignitionByPassOff(); } //Reset the ignition bypass ready for next crank attempt
+      if(isIgnBypassEnabled()) { ignitionByPassOff(); } //Reset the ignition bypass ready for next crank attempt
     }
     //***Perform sensor reads***
     //-----------------------------------------------------------------------------------------------------
@@ -494,7 +494,7 @@ void __attribute__((always_inline)) loop(void)
       BIT_CLEAR(TIMER_mask, BIT_TIMER_1HZ);
       readBaro(); //Infrequent baro readings are not an issue.
 
-      if ( (configPage10.wmiEnabled > 0U) && (configPage10.wmiIndicatorEnabled > 0U) )
+      if ( isWMIIndicatorEnabled() )
       {
         // water tank empty
         if (BIT_CHECK(currentStatus.status4, BIT_STATUS4_WMI_EMPTY) != 0U)
@@ -544,7 +544,7 @@ void __attribute__((always_inline)) loop(void)
           if( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
           {
             BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK);
-            if(configPage4.ignBypassEnabled > 0U) { ignitionByPassOn(); }
+            if(isIgnBypassEnabled()) { ignitionByPassOn(); }
           }
         }
         else
@@ -555,7 +555,7 @@ void __attribute__((always_inline)) loop(void)
             BIT_SET(currentStatus.engine, BIT_ENGINE_CRANK);
             BIT_CLEAR(currentStatus.engine, BIT_ENGINE_RUN);
             currentStatus.runSecs = 0; //We're cranking (hopefully), so reset the engine run time to prompt ASE.
-            if(configPage4.ignBypassEnabled > 0U) { ignitionByPassOff(); }
+            if(isIgnBypassEnabled()) { ignitionByPassOff(); }
 
             //Check whether the user has selected to disable to the fan during cranking
             if(configPage2.fanWhenCranking == 0U) { FAN_OFF(); }
@@ -1036,7 +1036,7 @@ void checkLaunchAndFlatShift(void)
 {
   //Check for launching/flat shift (clutch) based on the current and previous clutch states
   currentStatus.previousClutchTrigger = currentStatus.clutchTrigger;
-  currentStatus.clutchTrigger = (configPage6.flatSEnable || configPage6.launchEnabled) && isClutchTriggerOn();
+  currentStatus.clutchTrigger = isClutchTriggerEnabled() && isClutchTriggerOn();
   if(currentStatus.clutchTrigger && (currentStatus.previousClutchTrigger != currentStatus.clutchTrigger) ) { currentStatus.clutchEngagedRPM = currentStatus.RPM; } //Check whether the clutch has been engaged or disengaged and store the current RPM if so
 
   //Default flags to off
@@ -1044,7 +1044,7 @@ void checkLaunchAndFlatShift(void)
   BIT_CLEAR(currentStatus.spark, BIT_SPARK_HLAUNCH); 
   currentStatus.flatShiftingHard = false;
 
-  if (configPage6.launchEnabled && currentStatus.clutchTrigger && (currentStatus.clutchEngagedRPM < ((unsigned int)(configPage6.flatSArm) * 100)) && (currentStatus.TPS >= configPage10.lnchCtrlTPS) ) 
+  if (isLaunchEnabled() && currentStatus.clutchTrigger && (currentStatus.clutchEngagedRPM < ((unsigned int)(configPage6.flatSArm) * 100)) && (currentStatus.TPS >= configPage10.lnchCtrlTPS) ) 
   { 
     //Check whether RPM is above the launch limit
     uint16_t launchRPMLimit = (configPage6.lnchHardLim * 100);
@@ -1060,7 +1060,7 @@ void checkLaunchAndFlatShift(void)
   else 
   { 
     //If launch is not active, check whether flat shift should be active
-    if(configPage6.flatSEnable && currentStatus.clutchTrigger && (currentStatus.clutchEngagedRPM >= ((unsigned int)(configPage6.flatSArm * 100)) ) ) 
+    if(isFlatShiftEnabled() && currentStatus.clutchTrigger && (currentStatus.clutchEngagedRPM >= ((unsigned int)(configPage6.flatSArm * 100)) ) ) 
     { 
       uint16_t flatRPMLimit = currentStatus.clutchEngagedRPM;
       if( (configPage2.hardCutType == HARD_CUT_ROLLING) ) { flatRPMLimit += (configPage15.rollingProtRPMDelta[0] * 10); } //Add the rolling cut delta if enabled (Delta is a negative value)

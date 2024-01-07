@@ -4044,7 +4044,7 @@ void triggerSec_FordST170(void)
     //Record the VVT Angle
     //We use the first tooth after the long gap as our reference, this remains in the same engine
     //cycle even when the VVT is at either end of its full swing.
-    if( (configPage6.vvtEnabled > 0U) && (revolutionOne == true) && (secondaryToothCount == 1U) )
+    if( isVVT_1Enabled() && (revolutionOne == true) && (secondaryToothCount == 1U) )
     {
       int16_t curAngle;
       curAngle = getCrankAngle();
@@ -5134,7 +5134,7 @@ static void triggerSec_RoverMEMS(void)
     toothLastSecToothTime = curTime2;
     
     //Record the VVT Angle
-    if( configPage6.vvtEnabled > 0U &&
+    if( isVVT_1Enabled() &&
         ( (configPage4.trigPatternSec == SEC_TRIGGER_SINGLE) || 
           (configPage4.trigPatternSec == SEC_TRIGGER_5_3_2 && secondaryToothCount == 6U ) ) )
     {

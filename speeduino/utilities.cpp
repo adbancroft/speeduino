@@ -37,14 +37,14 @@ void ignitionByPassOff(void) {
 // ===================== Reset Prevention =====================
  
 void initialiseResetControl(const pin_mapping_t &pins) {
-  if (isValidPin(pins.outputs.pinResetControl)) {
+  if (isResetControlEnabled() && isValidPin(pins.outputs.pinResetControl)) {
   /* Reset control is a special case. If reset control is enabled, it needs its initial state set BEFORE its pinMode.
     If that doesn't happen and reset control is in "Serial Command" mode, the Arduino will end up in a reset loop
     because the control pin will go low as soon as the pinMode is set to OUTPUT. */
-    resetControl = configPage4.resetControlConfig;
     setResetControlPinState();
     pinMode(pins.outputs.pinResetControl, OUTPUT);
   }  
+  resetControl = configPage4.resetControlConfig;
 }
 
 void resetPrevent(void) {
@@ -88,15 +88,16 @@ void setResetControlPinState(void)
 // ===================== Launch Control =====================
 
 void initialiseLaunchControl(const pin_mapping_t &pins) {
-  if (isValidPin(pins.inputs.pinLaunch)) {
+  if (isClutchTriggerEnabled() && isValidPin(pins.inputs.pinLaunch)) {
     pinMode(pins.inputs.pinLaunch, configPage6.lnchPullRes ? INPUT_PULLUP : INPUT);
   } 
 }
 
 bool isClutchTriggerOn(void) {
- return (configPage6.flatSEnable || configPage6.launchEnabled)
+  static_assert(LOW==0 && HIGH==1, "Equality check below will fail");
+  return isClutchTriggerEnabled()
       && isValidPin(pinMapping.inputs.pinLaunch)
-      && readPin(pinMapping.inputs.pinLaunch)==(configPage6.launchHiLo==0U ? LOW: HIGH);
+      && readPin(pinMapping.inputs.pinLaunch)==configPage6.launchHiLo;
 }
 
 //*********************************************************************************************************************************************************************************

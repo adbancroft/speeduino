@@ -218,7 +218,7 @@ void initialiseMapBaroSensors(const pin_mapping_t &pins) {
     writeConfig(ignSetPage); 
   }
 
-  if (configPage6.useExtBaro != 0U && isValidPin(pins.inputs.sensors.pinBaro)) {
+  if (isExtBaroEnabled() && isValidPin(pins.inputs.sensors.pinBaro)) {
     pinMode(pins.inputs.sensors.pinBaro, SENSOR_PIN_MODE);
   }
   if(configPage4.ADCFILTER_BARO > 240U) { 
@@ -258,7 +258,7 @@ void instanteneousMAPReading(void)
   if(currentStatus.MAP < 0) { currentStatus.MAP = 0; } //Sanity check
   
   //Repeat for EMAP if it's enabled
-  if(configPage6.useEMAP == true)
+  if(isExhMAPEnabled())
   {
     #if defined(ANALOG_ISR_MAP)
       tempReading = AnChannel[pinMapping.inputs.sensors.pinEMAP-A0];
@@ -314,7 +314,7 @@ void readMAP(void)
           else { mapErrorCount += 1; }
 
           //Repeat for EMAP if it's enabled
-          if(configPage6.useEMAP == true)
+          if(isExhMAPEnabled())
           {
             #if defined(ANALOG_ISR_MAP)
               tempReading = AnChannel[pinMapping.inputs.sensors.pinEMAP-A0];
@@ -348,7 +348,7 @@ void readMAP(void)
             validateMAP();
 
             //If EMAP is enabled, the process is identical to the above
-            if(configPage6.useEMAP == true)
+            if(isExhMAPEnabled())
             {
               currentStatus.EMAPADC = udiv_32_16(EMAPrunningValue, MAPcount); //Note that the MAP count can be reused here as it will always be the same count.
               currentStatus.EMAP = fastMap10Bit(currentStatus.EMAPADC, configPage2.EMAPMin, configPage2.EMAPMax);
@@ -367,7 +367,7 @@ void readMAP(void)
       {
         instanteneousMAPReading();
         MAPrunningValue = currentStatus.mapADC; //Keep updating the MAPrunningValue to give it head start when switching to cycle average.
-        if(configPage6.useEMAP == true)
+        if(isExhMAPEnabled())
         {
           EMAPrunningValue = currentStatus.EMAPADC;
         }
@@ -485,10 +485,10 @@ void initialiseTPS(const pin_mapping_t &pins) {
     configPage4.ADCFILTER_TPS = ADCFILTER_TPS_DEFAULT;
     writeConfig(ignSetPage);
   }
-
-  if (configPage2.CTPSEnabled > 0U && isValidPin(pins.inputs.pinCTPS)) {
+  
+  if (isCTPSEnabled() && isValidPin(pins.inputs.pinCTPS)) {
     pinMode(pins.inputs.pinCTPS, (configPage2.CTPSPolarity == 0U) ? INPUT_PULLUP : INPUT);
-  }  
+  }
 }
 
 void readTPS(bool useFilter)
@@ -528,7 +528,7 @@ void readTPS(bool useFilter)
   }
 
   //Check whether the closed throttle position sensor is active
-  if(configPage2.CTPSEnabled == true)
+  if(isCTPSEnabled())
   {
     if(configPage2.CTPSPolarity == 0) { currentStatus.CTPSActive = !digitalRead(pinMapping.inputs.pinCTPS); } //Normal mode (ground switched)
     else { currentStatus.CTPSActive = digitalRead(pinMapping.inputs.pinCTPS); } //Inverted mode (5v activates closed throttle position sensor)
@@ -575,11 +575,10 @@ void initialiseNonCoreSensors(const pin_mapping_t &pins) {
     configPage4.ADCFILTER_BAT = ADCFILTER_BAT_DEFAULT;
     writeConfig(ignSetPage); 
   }
-
-  if (configPage10.fuelPressureEnable && isValidPin(pins.inputs.sensors.pinFuelPressure)) {
+  if (isFuelPressureEnabled() && isValidPin(pins.inputs.sensors.pinFuelPressure)) {
     pinMode(pins.inputs.sensors.pinFuelPressure, SENSOR_PIN_MODE);
   }
-  if (configPage10.oilPressureEnable && isValidPin(pins.inputs.sensors.pinOilPressure)) {
+  if (isOilPressureEnabled() && isValidPin(pins.inputs.sensors.pinOilPressure)) {
     pinMode(pins.inputs.sensors.pinOilPressure, SENSOR_PIN_MODE);
   }
 
@@ -617,7 +616,7 @@ void readIAT(void)
 
 void readBaro(void)
 {
-  if ( configPage6.useExtBaro != 0 )
+  if ( isExtBaroEnabled() )
   {
     uint16_t tempReading;
     // readings
@@ -728,7 +727,7 @@ void readBat(void)
     beginPrimeFuelPump();
 
     //Redo the stepper homing
-    if ( isIdleStepper(configPage6) )
+    if ( isIdleStepper() )
     {
       initialiseIdle(true);
     }
@@ -763,7 +762,7 @@ uint16_t getSpeed(void)
 {
   uint16_t tempSpeed = 0;
   // Get VSS from CAN, Serial or Analog by using Aux input channels.
-  if(configPage2.vssMode == 1)
+  if(configPage2.vssMode == VSS_MODE_CANBUS)
   {
     // Direct reading from Aux channel
     if (configPage2.vssPulsesPerKm == 0)
@@ -778,7 +777,7 @@ uint16_t getSpeed(void)
     tempSpeed = LOW_PASS_FILTER(tempSpeed, configPage2.vssSmoothing, currentStatus.vss); //Apply speed smoothing factor
   }
   // Interrupt driven mode
-  else if(configPage2.vssMode > 1)
+  else if(isVssModeInterrupt())
   {
     uint32_t pulseTime = 0;
     uint32_t vssTotalTime = 0;
@@ -828,7 +827,7 @@ byte getFuelPressure(void)
   int16_t tempFuelPressure = 0;
   uint16_t tempReading;
 
-  if(configPage10.fuelPressureEnable > 0)
+  if(isFuelPressureEnabled())
   {
     //Perform ADC read
     #if defined(ANALOG_ISR)
@@ -853,7 +852,7 @@ byte getOilPressure(void)
   int16_t tempOilPressure = 0;
   uint16_t tempReading;
 
-  if(configPage10.oilPressureEnable > 0)
+  if(isOilPressureEnabled())
   {
     //Perform ADC read
     #if defined(ANALOG_ISR)
@@ -880,7 +879,7 @@ ioPort flex_pin_port;
 #endif
 
 void initialiseFlexFuel(const pin_mapping_t &pins) {
-  if(configPage2.flexEnabled > 0 && isValidPin(pins.inputs.pinFlex))
+  if(isFlexEnabled() && isValidPin(pins.inputs.pinFlex))
   {
     pinMode(pins.inputs.pinFlex, INPUT); // Standard GM / Continental flex sensor requires pullup, but this should be onboard. The internal pullup will not work (Requires ~3.3k)!
     attachInterrupt(digitalPinToInterrupt(pins.inputs.pinFlex), flexPulse, CHANGE);
@@ -931,7 +930,7 @@ void knockPulse(void)
 }
 
 void initialiseVss(const pin_mapping_t &pins) {
-  if ((configPage2.vssMode > 1) && isValidPin(pins.inputs.pinVSS)) {
+  if (isVssModeInterrupt() && isValidPin(pins.inputs.pinVSS)) {
     pinMode(pins.inputs.pinVSS, INPUT);
     attachInterrupt(digitalPinToInterrupt(pins.inputs.pinVSS), vssPulse, RISING);
   }

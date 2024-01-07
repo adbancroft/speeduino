@@ -235,7 +235,7 @@ void oneMSInterval(void) //Most ARM chips can simply call a function
     currentStatus.secl++;
     //**************************************************************************************************************************************************
     //Check the fan output status
-    if (configPage2.fanEnable >= 1)
+    if (isFanEnabled())
     {
        fanControl();            // Function to turn the cooling fan on/off
     }
@@ -256,7 +256,7 @@ void oneMSInterval(void) //Most ARM chips can simply call a function
     }
     //**************************************************************************************************************************************************
     //Set the flex reading (if enabled). The flexCounter is updated with every pulse from the sensor. If cleared once per second, we get a frequency reading
-    if(configPage2.flexEnabled == true)
+    if(isFlexEnabled())
     {
       uint8_t tempEthPct = 0U; 
       if(flexCounter < 50U)

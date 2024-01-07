@@ -293,7 +293,7 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
     //VSS Calibration routines
     case TS_CMD_VSS_60KMH:
       {
-        if(configPage2.vssMode == 1U)
+        if(configPage2.vssMode == VSS_MODE_CANBUS)
         {
           //Calculate the ratio of VSS reading from Aux input and actual VSS (assuming that actual VSS is really 60km/h).
           configPage2.vssPulsesPerKm = (currentStatus.canin[configPage2.vssAuxCh] / 60U);

@@ -3,6 +3,10 @@
 #include "utilities.h"
 #include "acc_mc33810.h"
 #include "idle.h"
+#include "sensors.h"
+#include "auxiliaries.h"
+#include "SD_logger.h"
+#include "utilities.h"
 
 static constexpr uint8_t NUM_PINS = sizeof(pin_mapping_t)/sizeof(uint8_t);
 static constexpr uint8_t NUM_OUTPUT_PINS = sizeof(output_pins_t)/sizeof(uint8_t);
@@ -1510,96 +1514,11 @@ static pin_mapping_t applyOutputPinUserOverrides(pin_mapping_t pins) {
   return pins;
 }
 
-
-static inline bool isPinFanEnabled(void) {
-  return configPage2.fanEnable == 1U;
-}
-static inline bool isPinVVT_1Enabled(void) {
-  return configPage6.vvtEnabled > 0U;
-}
-static inline bool isPinVVT_2Enabled(void) {
-  return configPage10.vvt2Enabled > 0U;
-}
-static inline bool isPinBoostEnabled(void) {
-  return configPage6.boostEnabled;
-}
-static inline bool isPinIdle1Enabled(void) {
-  return isIdlePwm(configPage6);
-}
-static inline bool isPinIdle2Enabled(void) {
-  return isPinIdle1Enabled() && (configPage6.iacChannels == 1U);
-}
-static inline bool isPinStepperEnableEnabled(void) {
-  return isIdleStepper(configPage6);
-}
-static inline bool isPinStepperStepEnabled(void) {
-  return isIdleStepper(configPage6);
-}
-static inline bool isPinStepperDirEnabled(void) {
-  return isIdleStepper(configPage6);
-}
-static inline bool isPinAirConCompEnabled(void) {
-  return configPage15.airConEnable > 0U;
-}
-static inline bool isPinAirConFanEnabled(void) {
-  return isPinAirConCompEnabled() && (configPage15.airConFanEnabled > 0U);
-}
-static inline bool isPinFlexEnabled(void) {
-  return configPage2.flexEnabled != 0U;
-}
-static inline bool isPinBaroEnabled(void) {
-  return configPage6.useExtBaro != 0U;
-}
-static inline bool isPinEMAPEnabled(void) {
-  return configPage6.useEMAP != 0U;
-}
-static inline bool isPinFuelPressureEnabled(void) {
-  return configPage10.fuelPressureEnable;
-}
-static inline bool isPinOilPressureEnabled(void) {
-  return configPage10.oilPressureEnable;
-}
-static inline bool isPinSDEnableEnabled(void) {
-  return configPage13.onboard_log_trigger_Epin != 0U;
-}
-static inline bool isPinIgnBypassEnabled(void) {
-  return configPage4.ignBypassEnabled > 0U;
-}
-static inline bool isPinWMIEnabledEnabled(void) {
-  return configPage10.wmiEnabled > 0U;
-}
-static inline bool isPinWMIIndicatorEnabled(void) {
-  return isPinWMIEnabledEnabled() && configPage10.wmiIndicatorEnabled > 0U;
-}
-static inline bool isPinWMIEmptyEnabled(void) {
-  return isPinWMIEnabledEnabled() && configPage10.wmiEmptyEnabled > 0U;
-}
-static inline bool isPinIdleUpEnabled(void) {
-  return configPage2.idleUpEnabled > 0U;
-}
-static inline bool isPinIdleUpOutputEnabled(void) {
-  return isPinIdleUpEnabled() && configPage2.idleUpOutputEnabled!=0U;
-}
-static inline bool isPinResetControlEnabled(void) {
-  return configPage4.resetControlConfig != RESET_CONTROL_DISABLED;
-}
-static inline bool isPinLaunchEnabled(void) {
-  return configPage6.launchEnabled > 0U;
-}
-static inline bool isPinVSSEnabled(void) {
-  return configPage2.vssMode > 1U;
-}
-static inline bool isPinCTPSEnabled(void) {
-  return configPage2.CTPSEnabled > 0U;
-}
 static inline bool isPinFuel2InputEnabled(void) {
   return configPage10.fuel2Mode == FUEL2_MODE_INPUT_SWITCH;
 }
 static inline bool isPinSpark2InputEnabled(void) {
   return configPage10.spark2Mode == SPARK2_MODE_INPUT_SWITCH;
-}
-static inline bool isPinAirConRequestEnabled(void) {
-  return configPage15.airConEnable == 1U;
 }
 
 typedef bool (*enable_func_t)(void);
@@ -1626,22 +1545,22 @@ static pin_mapping_t conditionalPinDisable(const pin_disable_t pinDisableMap[], 
 static pin_mapping_t disableUnusedOutputPins(const pin_mapping_t &pins) {
   // Map each feature test function to the pin it controls.
   static const pin_disable_t isEnableMap[] PROGMEM = { //cppcheck-suppress[misra-c2012-17.7]
-    { isPinFanEnabled, offsetof(pin_mapping_t, outputs.pinFan) },
-    { isPinResetControlEnabled, offsetof(pin_mapping_t, outputs.pinResetControl) },
-    { isPinIdle1Enabled, offsetof(pin_mapping_t, outputs.pinIdle1) },
-    { isPinIdle2Enabled, offsetof(pin_mapping_t, outputs.pinIdle2) },
-    { isPinIdleUpOutputEnabled, offsetof(pin_mapping_t, outputs.pinIdleUpOutput) },
-    { isPinStepperDirEnabled, offsetof(pin_mapping_t, outputs.pinStepperDir) },
-    { isPinStepperStepEnabled, offsetof(pin_mapping_t, outputs.pinStepperStep) },
-    { isPinStepperEnableEnabled, offsetof(pin_mapping_t, outputs.pinStepperEnable) },
-    { isPinBoostEnabled, offsetof(pin_mapping_t, outputs.pinBoost) },
-    { isPinVVT_1Enabled, offsetof(pin_mapping_t, outputs.pinVVT_1) },
-    { isPinVVT_2Enabled, offsetof(pin_mapping_t, outputs.pinVVT_2) },
-    { isPinIgnBypassEnabled, offsetof(pin_mapping_t, outputs.pinIgnBypass) },
-    { isPinWMIEnabledEnabled, offsetof(pin_mapping_t, outputs.pinWMIEnabled) },
-    { isPinWMIIndicatorEnabled, offsetof(pin_mapping_t, outputs.pinWMIIndicator) },
-    { isPinAirConCompEnabled, offsetof(pin_mapping_t, outputs.pinAirConComp) },
-    { isPinAirConFanEnabled, offsetof(pin_mapping_t, outputs.pinAirConFan) },
+    { isFanEnabled, offsetof(pin_mapping_t, outputs.pinFan) },
+    { isResetControlEnabled, offsetof(pin_mapping_t, outputs.pinResetControl) },
+    { isIdlePwm, offsetof(pin_mapping_t, outputs.pinIdle1) },
+    { isIdle2PwmEnabled, offsetof(pin_mapping_t, outputs.pinIdle2) },
+    { isIdleUpOutputEnabled, offsetof(pin_mapping_t, outputs.pinIdleUpOutput) },
+    { isIdleStepper, offsetof(pin_mapping_t, outputs.pinStepperDir) },
+    { isIdleStepper, offsetof(pin_mapping_t, outputs.pinStepperStep) },
+    { isIdleStepper, offsetof(pin_mapping_t, outputs.pinStepperEnable) },
+    { isBoostEnabled, offsetof(pin_mapping_t, outputs.pinBoost) },
+    { isVVT_1Enabled, offsetof(pin_mapping_t, outputs.pinVVT_1) },
+    { isVVT_2Enabled, offsetof(pin_mapping_t, outputs.pinVVT_2) },
+    { isIgnBypassEnabled, offsetof(pin_mapping_t, outputs.pinIgnBypass) },
+    { isWMIEnabled, offsetof(pin_mapping_t, outputs.pinWMIEnabled) },
+    { isWMIIndicatorEnabled, offsetof(pin_mapping_t, outputs.pinWMIIndicator) },
+    { isAirConEnabled, offsetof(pin_mapping_t, outputs.pinAirConComp) },
+    { isAirConFanEnabled, offsetof(pin_mapping_t, outputs.pinAirConFan) },
   };
   return conditionalPinDisable(isEnableMap, _countof(isEnableMap), pins);
 }
@@ -1671,21 +1590,22 @@ static pin_mapping_t applyInputPinUserOverrides(pin_mapping_t pins) {
 // by other features. E.g. programmable IO
 static pin_mapping_t disableUnusedInputPins(const pin_mapping_t &pins) {
   static const pin_disable_t isEnableMap[] PROGMEM = { //cppcheck-suppress[misra-c2012-17.7]
-    { isPinLaunchEnabled, offsetof(pin_mapping_t, inputs.pinLaunch) },
-    { isPinBaroEnabled, offsetof(pin_mapping_t, inputs.sensors.pinBaro) },
-    { isPinEMAPEnabled, offsetof(pin_mapping_t, inputs.sensors.pinEMAP) },
+    { isClutchTriggerEnabled, offsetof(pin_mapping_t, inputs.pinLaunch) },
+    { isExtBaroEnabled, offsetof(pin_mapping_t, inputs.sensors.pinBaro) },
+    { isExhMAPEnabled, offsetof(pin_mapping_t, inputs.sensors.pinEMAP) },
     { isPinFuel2InputEnabled, offsetof(pin_mapping_t, inputs.pinFuel2Input) },
     { isPinSpark2InputEnabled, offsetof(pin_mapping_t, inputs.pinSpark2Input) },
-    { isPinVSSEnabled, offsetof(pin_mapping_t, inputs.pinVSS) },
-    { isPinFuelPressureEnabled, offsetof(pin_mapping_t, inputs.sensors.pinFuelPressure) },
-    { isPinOilPressureEnabled, offsetof(pin_mapping_t, inputs.sensors.pinOilPressure) },
-    { isPinWMIEmptyEnabled, offsetof(pin_mapping_t, inputs.pinWMIEmpty) },
+    { isVssModeInterrupt, offsetof(pin_mapping_t, inputs.pinVSS) },
+    { isFuelPressureEnabled, offsetof(pin_mapping_t, inputs.sensors.pinFuelPressure) },
+    { isOilPressureEnabled, offsetof(pin_mapping_t, inputs.sensors.pinOilPressure) },
+    { isWMIEmptyEnabled, offsetof(pin_mapping_t, inputs.pinWMIEmpty) },
 #ifdef SD_LOGGING  
-    { isPinSDEnableEnabled, offsetof(pin_mapping_t, inputs.pinSDEnable) },
+    { isSDLoggingEnabled, offsetof(pin_mapping_t, inputs.pinSDEnable) },
 #endif
-    { isPinIdleUpEnabled, offsetof(pin_mapping_t, inputs.pinIdleUp) },
-    { isPinCTPSEnabled, offsetof(pin_mapping_t, inputs.pinCTPS) },
-    { isPinAirConRequestEnabled, offsetof(pin_mapping_t, inputs.pinAirConRequest) },
+    { isIdleUpEnabled, offsetof(pin_mapping_t, inputs.pinIdleUp) },
+    { isCTPSEnabled, offsetof(pin_mapping_t, inputs.pinCTPS) },
+    { isAirConEnabled, offsetof(pin_mapping_t, inputs.pinAirConRequest) },
+    { isFlexEnabled, offsetof(pin_mapping_t, inputs.pinFlex) },
   };
   return conditionalPinDisable(isEnableMap, _countof(isEnableMap), pins);
 }
