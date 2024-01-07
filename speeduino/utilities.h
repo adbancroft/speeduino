@@ -27,10 +27,16 @@ void initialiseResetControl(const pin_mapping_t &pins);
 void setResetControlPinState(void);
 void resetPrevent(void);
 void resetAllow(void);
+static inline bool isResetControlEnabled(void) {
+  return configPage4.resetControlConfig != RESET_CONTROL_DISABLED;
+}
 
 void initialiseIgnitionByPass(const pin_mapping_t &pins);
 void ignitionByPassOn(void);
 void ignitionByPassOff(void);
+static inline bool isIgnBypassEnabled(void) {
+  return configPage4.ignBypassEnabled != 0U;
+}
 
 void initialiseProgrammableIO(const pin_mapping_t &pins);
 void checkProgrammableIO(void);
@@ -38,5 +44,14 @@ int16_t ProgrammableIOGetData(uint16_t index);
 
 void initialiseLaunchControl(const pin_mapping_t &pins);
 bool isClutchTriggerOn(void);
+static inline bool isLaunchEnabled(void) {
+  return configPage6.launchEnabled != 0U;
+}
+static inline bool isFlatShiftEnabled(void) {
+  return configPage6.flatSEnable != 0U;
+}
+static inline bool isClutchTriggerEnabled(void) {
+  return isLaunchEnabled() || isFlatShiftEnabled();
+}
 
 #endif // UTILS_H

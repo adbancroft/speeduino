@@ -47,7 +47,7 @@ void initBoard()
     ***********************************************************************************************************
     * Idle
     */
-    if(isIdlePwm(configPage6))
+    if(isIdlePwm())
     {
       PIT_TCTRL0 = 0;
       PIT_TCTRL0 |= PIT_TCTRL_TIE; // enable Timer 1 interrupts
@@ -72,14 +72,14 @@ void initBoard()
     ***********************************************************************************************************
     * Auxiliaries
     */
-    if (configPage6.boostEnabled == 1)
+    if (isBoostEnabled())
     {
       PIT_TCTRL1 = 0;
       PIT_TCTRL1 |= PIT_TCTRL_TIE; // enable Timer 2 interrupts
       PIT_TCTRL1 |= PIT_TCTRL_TEN; // start Timer 2
       PIT_LDVAL1 = 1; //1 * 2uS = 2uS
     }
-    if (configPage6.vvtEnabled == 1)
+    if (isVVT_1Enabled())
     {
       PIT_TCTRL2 = 0;
       PIT_TCTRL2 |= PIT_TCTRL_TIE; // enable Timer 3 interrupts

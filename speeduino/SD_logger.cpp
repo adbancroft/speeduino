@@ -279,7 +279,7 @@ uint32_t logStartTime = 0; //In ms
 
 void initSD(const pin_mapping_t &pins)
 {
-  if (configPage13.onboard_log_trigger_Epin != 0U && isValidPin(pins.inputs.pinSDEnable)) {
+  if (isSDLoggingEnabled() && isValidPin(pins.inputs.pinSDEnable)) {
     pinMode(pins.inputs.pinSDEnable, INPUT);
   }
   
@@ -642,7 +642,7 @@ void checkForSDStart()
 
     }
 
-    if((configPage13.onboard_log_trigger_Epin) && (SD_status == SD_STATUS_READY) )
+    if(isSDLoggingEnabled() && (SD_status == SD_STATUS_READY) )
     {
       if(digitalRead(pinMapping.inputs.pinSDEnable) == LOW)
       {
@@ -696,7 +696,7 @@ void checkForSDStop()
     }
 
     //External Pin
-    if(configPage13.onboard_log_trigger_Epin)
+    if(isSDLoggingEnabled())
     {
       if(digitalRead(pinMapping.inputs.pinSDEnable) == LOW)
       {
@@ -798,6 +798,10 @@ void dateTime(uint16_t* date, uint16_t* time, uint8_t* ms10) {
 uint32_t sectorCount()
 {
   return sd.card()->sectorCount();
+}
+
+bool isSDLoggingEnabled(void) {
+  return configPage13.onboard_log_trigger_Epin != 0U;
 }
 
 #endif

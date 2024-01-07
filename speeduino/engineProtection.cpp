@@ -2,6 +2,7 @@
 #include "globals.h"
 #include "engineProtection.h"
 #include "maths.h"
+#include "sensors.h"
 
 static inline byte checkAFRLimit(void);
 static inline byte checkBoostLimit(void);
@@ -104,7 +105,7 @@ static inline byte checkOilPressureLimit(void)
 
   if (configPage6.engineProtectType != PROTECT_CUT_OFF) 
   {
-    if( (configPage10.oilPressureProtEnbl == true) && (configPage10.oilPressureEnable == true) )
+    if( (configPage10.oilPressureProtEnbl == true) && isOilPressureEnabled() )
     {
       byte oilLimit = table2D_getValue(&oilPressureProtectTable, currentStatus.RPMdiv100);
       if(currentStatus.oilPressure < oilLimit)

@@ -31,7 +31,7 @@ void initBoard()
     ***********************************************************************************************************
     * Idle
     */
-    if (isIdlePwm(configPage6))
+    if (isIdlePwm())
     {
         //FlexTimer 2, compare channel 0 is used for idle
         FTM2_MODE |= FTM_MODE_WPDIS; // Write Protection Disable
@@ -100,7 +100,7 @@ void initBoard()
     ***********************************************************************************************************
     * BOOST and VVT
     */
-    if (configPage6.boostEnabled == 1 || configPage6.vvtEnabled == 1)
+    if (isBoostEnabled() || isVVT_1Enabled())
     {
         //FlexTimer 2, compare channel 0 is used for idle
         FTM1_MODE |= FTM_MODE_WPDIS; // Write Protection Disable

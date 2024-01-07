@@ -10,6 +10,7 @@ A full copy of the license may be found in the projects root directory
 #include "decoders.h"
 #include "timers.h"
 #include "scheduler.h"
+#include "sensors.h"
 
 static long vvt1_pwm_value;
 static long vvt2_pwm_value;
@@ -76,7 +77,7 @@ Air Conditioning Control
 */
 void initialiseAirCon(const pin_mapping_t &pins)
 {
-  if( (configPage15.airConEnable) == 1 &&
+  if( isAirConEnabled() &&
       isValidPin(pins.inputs.pinAirConRequest) &&
       isValidPin(pins.outputs.pinAirConComp) )
   {
@@ -102,13 +103,15 @@ void initialiseAirCon(const pin_mapping_t &pins)
 
     AIRCON_OFF();
 
-    if((configPage15.airConFanEnabled > 0) && isValidPin(pins.outputs.pinAirConFan))
+    if(isAirConFanEnabled() && isValidPin(pins.outputs.pinAirConFan))
     {
       aircon_fan_pin_port = pinToOutputPort(pins.outputs.pinAirConFan);
       AIRCON_FAN_OFF();
     }
   }
 }
+
+bool READ_AIRCON_REQUEST(void); // Forward declare
 
 void airConControl(void)
 {
@@ -295,7 +298,7 @@ void initialiseFan(const pin_mapping_t &pins)
 
   #if defined(PWM_FAN_AVAILABLE)
     DISABLE_FAN_TIMER(); //disable FAN timer if available
-    if ( configPage2.fanEnable == 2 ) // PWM Fan control
+    if ( configPage2.fanEnable == FAN_MODE_PWM ) // PWM Fan control
     {
       #if defined(CORE_TEENSY)
         fan_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (32U * configPage6.fanFreq * 2U)); //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle. Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
@@ -307,7 +310,7 @@ void initialiseFan(const pin_mapping_t &pins)
 
 void fanControl(void)
 {
-  if( configPage2.fanEnable == 1 ) // regular on/off fan control
+  if( configPage2.fanEnable == FAN_MODE_ONOFF ) // regular on/off fan control
   {
     int onTemp = (int)configPage6.fanSP - CALIBRATION_TEMPERATURE_OFFSET;
     int offTemp = onTemp - configPage6.fanHyster;
@@ -341,7 +344,7 @@ void fanControl(void)
       BIT_CLEAR(currentStatus.status4, BIT_STATUS4_FAN);
     }
   }
-  else if( configPage2.fanEnable == 2 )// PWM Fan control
+  else if( configPage2.fanEnable == FAN_MODE_PWM )// PWM Fan control
   {
     bool fanPermit = false;
     if ( configPage2.fanWhenOff == true) { fanPermit = true; }
@@ -420,17 +423,17 @@ void fanControl(void)
 void initialiseAuxPWM(const pin_mapping_t &pins)
 {
   boost_pin_port = nullIoPort();
-  if (configPage6.boostEnabled) {
+  if (isBoostEnabled()) {
     boost_pin_port = pinToOutputPort(pins.outputs.pinBoost);
   }
 
   vvt1_pin_port = nullIoPort();
-  if (configPage6.vvtEnabled > 0U) {
+  if (isVVT_1Enabled()) {
     vvt1_pin_port = pinToOutputPort(pins.outputs.pinVVT_1);
   }
 
   vvt2_pin_port = nullIoPort();
-  if (configPage10.vvt2Enabled > 0U) {
+  if (isVVT_2Enabled()) {
     vvt2_pin_port = pinToOutputPort(pins.outputs.pinVVT_2);
   }
 
@@ -459,7 +462,7 @@ void initialiseAuxPWM(const pin_mapping_t &pins)
   if(configPage6.boostMode == BOOST_MODE_SIMPLE) { boostPID.SetTunings(SIMPLE_BOOST_P, SIMPLE_BOOST_I, SIMPLE_BOOST_D); }
   else { boostPID.SetTunings(configPage6.boostKP, configPage6.boostKI, configPage6.boostKD); }
 
-  if( configPage6.vvtEnabled > 0)
+  if( isVVT_1Enabled() )
   {
     currentStatus.vvt1Angle = 0;
     currentStatus.vvt2Angle = 0;
@@ -478,7 +481,7 @@ void initialiseAuxPWM(const pin_mapping_t &pins)
       vvtPID.SetTunings(configPage10.vvtCLKP, configPage10.vvtCLKI, configPage10.vvtCLKD);
       vvtPID.SetSampleTime(33); //30Hz is 33,33ms
       vvtPID.SetMode(AUTOMATIC); //Turn PID on
-      if (configPage10.vvt2Enabled == 1) // same for VVT2 if it's enabled
+      if (isVVT_2Enabled()) // same for VVT2 if it's enabled
       {
         vvt2PID.SetOutputLimits(configPage10.vvtCLminDuty, configPage10.vvtCLmaxDuty);
         vvt2PID.SetTunings(configPage10.vvtCLKP, configPage10.vvtCLKI, configPage10.vvtCLKD);
@@ -496,7 +499,7 @@ void initialiseAuxPWM(const pin_mapping_t &pins)
     if (currentStatus.coolant >= (int)(configPage4.vvtMinClt - CALIBRATION_TEMPERATURE_OFFSET)) { vvtIsHot = true; } //Checks to see if coolant's already at operating temperature
   }
   
-  if( (configPage6.vvtEnabled == 0) && (configPage10.wmiEnabled >= 1) )
+  if( !isVVT_1Enabled() && isWMIEnabled() )
   {
     // config wmi pwm output to use vvt output
     #if defined(CORE_AVR)
@@ -665,12 +668,12 @@ void boostByGear(void)
 
 void boostControl(void)
 {
-  if( configPage6.boostEnabled==1 )
+  if ( isBoostEnabled() )
   {
     if(configPage4.boostType == OPEN_LOOP_BOOST)
     {
       //Open loop
-      if ( (configPage9.boostByGearEnabled > 0) && (configPage2.vssMode > 1) ){ boostByGear(); }
+      if ( (configPage9.boostByGearEnabled > 0) && isVssModeInterrupt() ){ boostByGear(); }
       else{ currentStatus.boostDuty = get3DTableValue(&boostTable, (currentStatus.TPS * 2), currentStatus.RPM) * 2 * 100; }
 
       if(currentStatus.boostDuty > 10000) { currentStatus.boostDuty = 10000; } //Safety check
@@ -684,11 +687,11 @@ void boostControl(void)
     {
       if( (boostCounter & 7) == 1) 
       { 
-        if ( (configPage9.boostByGearEnabled > 0) && (configPage2.vssMode > 1) ){ boostByGear(); }
+        if ( (configPage9.boostByGearEnabled > 0) && isVssModeInterrupt() ){ boostByGear(); }
         else{ currentStatus.boostTarget = get3DTableValue(&boostTable, (currentStatus.TPS * 2), currentStatus.RPM) << 1; } //Boost target table is in kpa and divided by 2
 
         //If flex fuel is enabled, there can be an adder to the boost target based on ethanol content
-        if( configPage2.flexEnabled == 1 )
+        if( isFlexEnabled() )
         {
           currentStatus.flexBoostCorrection = table2D_getValue(&flexBoostTable, currentStatus.ethanolPct);
           currentStatus.boostTarget += currentStatus.flexBoostCorrection;
@@ -762,7 +765,7 @@ void boostControl(void)
 
 void vvtControl(void)
 {
-  if( (configPage6.vvtEnabled == 1) && (currentStatus.coolant >= (int)(configPage4.vvtMinClt - CALIBRATION_TEMPERATURE_OFFSET)) && (BIT_CHECK(currentStatus.engine, BIT_ENGINE_RUN)))
+  if( isVVT_1Enabled() && (currentStatus.coolant >= (int)(configPage4.vvtMinClt - CALIBRATION_TEMPERATURE_OFFSET)) && (BIT_CHECK(currentStatus.engine, BIT_ENGINE_RUN)))
   {
     if(vvtTimeHold == false) 
     {
@@ -785,7 +788,7 @@ void vvtControl(void)
 
         vvt1_pwm_value = halfPercentage(currentStatus.vvt1Duty, vvt_pwm_max_count);
 
-        if (configPage10.vvt2Enabled == 1) // same for VVT2 if it's enabled
+        if (isVVT_2Enabled()) // same for VVT2 if it's enabled
         {
           //Lookup VVT duty based on either MAP or TPS
           if(configPage6.vvtLoadSource == VVT_LOAD_TPS) { currentStatus.vvt2Duty = get3DTableValue(&vvt2Table, (currentStatus.TPS * 2), currentStatus.RPM); }
@@ -838,7 +841,7 @@ void vvtControl(void)
           BIT_CLEAR(currentStatus.status4, BIT_STATUS4_VVT1_ERROR);
         }
 
-        if (configPage10.vvt2Enabled == 1) // same for VVT2 if it's enabled
+        if (isVVT_2Enabled()) // same for VVT2 if it's enabled
         {
           if(configPage6.vvtLoadSource == VVT_LOAD_TPS) { currentStatus.vvt2TargetAngle = get3DTableValue(&vvt2Table, (currentStatus.TPS * 2), currentStatus.RPM); }
           else { currentStatus.vvt2TargetAngle = get3DTableValue(&vvt2Table, currentStatus.MAP, currentStatus.RPM); }
@@ -877,7 +880,7 @@ void vvtControl(void)
       }
 
       //Set the PWM state based on the above lookups
-      if( configPage10.wmiEnabled == 0 ) //Added possibility to use vvt and wmi at the same time
+      if( !isWMIEnabled() ) //Added possibility to use vvt and wmi at the same time
       {
         if( (currentStatus.vvt1Duty == 0) && (currentStatus.vvt2Duty == 0) )
         {
@@ -936,7 +939,7 @@ void vvtControl(void)
   }
   else 
   { 
-    if (configPage10.wmiEnabled == 0)
+    if (!isWMIEnabled())
     {
       // Disable timer channel
       DISABLE_VVT_TIMER();
@@ -1010,16 +1013,16 @@ void nitrousControl(void)
 }
 
 void initialiseWmi(const pin_mapping_t &pins) {
-  if (configPage10.wmiEnabled > 0U) {
+  if (isWMIEnabled()) {
     if (isValidPin(pins.outputs.pinWMIEnabled)) {
       pinMode(pins.outputs.pinWMIEnabled, OUTPUT);
     }
-    if (configPage10.wmiIndicatorEnabled > 0U && isValidPin(pins.outputs.pinWMIIndicator))
+    if (isWMIIndicatorEnabled() && isValidPin(pins.outputs.pinWMIIndicator))
     {
       pinMode(pins.outputs.pinWMIIndicator, OUTPUT);
       if (configPage10.wmiIndicatorPolarity > 0) { digitalWrite(pins.outputs.pinWMIIndicator, HIGH); }
     }
-    if(configPage10.wmiEmptyEnabled > 0U && isValidPin(pins.inputs.pinWMIEmpty) )
+    if(isWMIEmptyEnabled() && isValidPin(pins.inputs.pinWMIEmpty) )
     {
       pinMode(pins.inputs.pinWMIEmpty, (configPage10.wmiEmptyPolarity ? INPUT_PULLUP : INPUT));
     }
@@ -1032,7 +1035,7 @@ void wmiControl(void)
   int wmiPW = 0;
   
   // wmi can only work when vvt2 is disabled 
-  if( (configPage10.vvt2Enabled == 0) && (configPage10.wmiEnabled >= 1) )
+  if( !isVVT_2Enabled() && isWMIEnabled() )
   {
     if( WMI_TANK_IS_EMPTY() )
     {
@@ -1076,7 +1079,7 @@ void wmiControl(void)
       VVT2_PIN_LOW();
       vvt2_pwm_state = false;
       vvt2_max_pwm = false;
-      if( configPage6.vvtEnabled == 0 ) { DISABLE_VVT_TIMER(); }
+      if( !isVVT_1Enabled() ) { DISABLE_VVT_TIMER(); }
       digitalWrite(pinMapping.outputs.pinWMIEnabled, LOW);
     }
     else
@@ -1088,7 +1091,7 @@ void wmiControl(void)
         VVT2_PIN_HIGH();
         vvt2_pwm_state = true;
         vvt2_max_pwm = true;
-        if( configPage6.vvtEnabled == 0 ) { DISABLE_VVT_TIMER(); }
+        if( !isVVT_1Enabled() ) { DISABLE_VVT_TIMER(); }
       }
       else
       {

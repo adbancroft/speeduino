@@ -1,6 +1,7 @@
 #ifndef SENSORS_H
 #define SENSORS_H
 
+#include "globals.h"
 #include "port_pin.h"
 #include "pin_mapping.h"
 
@@ -52,29 +53,74 @@ extern unsigned long MAP_time; //The time the MAP sample was taken
 extern unsigned long MAPlast_time; //The time the previous MAP sample was taken
 
 void initialiseADC(const pin_mapping_t &pins);
-void initialiseFlexFuel(const pin_mapping_t &pins);
+
+#define VSS_MODE_OFF        0U
+#define VSS_MODE_CANBUS     1U
+#define VSS_MODE_PULSES_KM  2U // Interrupt driven pulses per kilometer
+#define VSS_MODE_PULSES_MI  3U // Interrupt driven pulses per mile
+
 void initialiseVss(const pin_mapping_t &pins);
-void initialiseMapBaroSensors(const pin_mapping_t &pins);
+static inline bool isVssEnabled(void) {
+  return configPage2.vssMode != VSS_MODE_OFF;
+}
+static inline bool isVssModeInterrupt(void) {
+  return configPage2.vssMode > VSS_MODE_CANBUS;
+}
+
+
 void initialiseTPS(const pin_mapping_t &pins);
+void readTPS(bool useFilter=true); //Allows the option to override the use of the filter
+
+// CTPS == closed throttle position sensor
+static inline bool isCTPSEnabled(void) {
+  return configPage2.CTPSEnabled != 0U;;
+}
+
 void initialiseCoreSensors(const pin_mapping_t &pins);  // Sensors that are always required
 void initialiseNonCoreSensors(const pin_mapping_t &pins); // Sensors that are optional
-void readTPS(bool useFilter=true); //Allows the option to override the use of the filter
-void readO2_2(void);
+
+void initialiseFlexFuel(const pin_mapping_t &pins);
 void flexPulse(void);
+static inline bool isFlexEnabled(void) {
+  return configPage2.flexEnabled != 0U;
+}
+
 uint32_t vssGetPulseGap(byte toothHistoryIndex);
 void vssPulse(void);
 uint16_t getSpeed(void);
 byte getGear(void);
+
 byte getFuelPressure(void);
+static inline bool isFuelPressureEnabled(void) {
+  return configPage10.fuelPressureEnable!=0U;
+}
+
 byte getOilPressure(void);
+static inline bool isOilPressureEnabled(void) {
+  return configPage10.oilPressureEnable;
+}
+
 uint16_t readAuxanalog(uint8_t analogPin);
 uint16_t readAuxdigital(uint8_t digitalPin);
+
 void readCLT(bool useFilter=true); //Allows the option to override the use of the filter
+
 void readIAT(void);
+
 void readO2(void);
+void readO2_2(void);
+
 void readBat(void);
+
+void initialiseMapBaroSensors(const pin_mapping_t &pins);
 void readBaro(void);
+static inline bool isExtBaroEnabled(void) {
+  return configPage6.useExtBaro != 0U;
+}
 void readMAP(void);
 void instanteneousMAPReading(void);
+static inline bool isExhMAPEnabled(void) {
+  return configPage6.useEMAP != 0U;
+}
 
 #endif // SENSORS_H

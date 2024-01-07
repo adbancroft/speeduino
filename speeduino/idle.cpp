@@ -57,7 +57,7 @@ integerPID idlePID(&currentStatus.longRPM, &idle_pid_target_value, &idle_cl_targ
 //Typically this is enabling the PWM interrupt
 static inline void enableIdle(void)
 {
-  if( isIdlePwm(configPage6) )
+  if( isIdlePwm() )
   {
     IDLE_TIMER_ENABLE();
   }
@@ -65,13 +65,13 @@ static inline void enableIdle(void)
 
 void initialiseIdle(bool forcehoming, const pin_mapping_t &pins) {
   //Pin masks must always be initialised, regardless of whether PWM idle is used. This is required for STM32 to prevent issues if the IRQ function fires on restart/overflow
-  idle_pin_port = isIdlePwm(configPage6) ? pinToOutputPort(pins.outputs.pinIdle1) : nullIoPort();
-  idle2_pin_port = (isIdlePwm(configPage6) && configPage6.iacChannels == 1U) ? pinToOutputPort(pins.outputs.pinIdle2) : nullIoPort();  
+  idle_pin_port = isIdlePwm() ? pinToOutputPort(pins.outputs.pinIdle1) : nullIoPort();
+  idle2_pin_port = isIdle2PwmEnabled() ? pinToOutputPort(pins.outputs.pinIdle2) : nullIoPort();  
 
-  if(configPage2.idleUpEnabled > 0U && isValidPin(pins.outputs.pinIdleUpOutput) ) {
+  if(isIdleUpOutputEnabled() && isValidPin(pins.outputs.pinIdleUpOutput) ) {
     pinMode(pins.outputs.pinIdleUpOutput, OUTPUT);
-  }
-  if(isIdleStepper(configPage6)) {
+  }  
+  if(isIdleStepper()) {
     if (isValidPin(pins.outputs.pinStepperDir) ) {
       pinMode(pins.outputs.pinStepperDir, OUTPUT);
     }
@@ -83,9 +83,6 @@ void initialiseIdle(bool forcehoming, const pin_mapping_t &pins) {
     }
   }
 
-  if(configPage2.idleUpEnabled > 0U && isValidPin(pins.inputs.pinIdleUp) ) {
-    pinMode(pins.inputs.pinIdleUp, (configPage2.idleUpPolarity == 0 ? INPUT_PULLUP : INPUT));
-  }
 
   initialiseIdle(forcehoming);
 }
@@ -298,7 +295,8 @@ static inline uint8_t getIdleUpOutputLOW(void) {
 
 void initialiseIdleUpOutput(void)
 {
-  if(configPage2.idleUpEnabled > 0 && isValidPin(pinMapping.outputs.pinIdleUpOutput)) { 
+  if(isIdleUpOutputEnabled() && isValidPin(pinMapping.outputs.pinIdleUpOutput)) { 
+    pinMode(pinMapping.inputs.pinIdleUp, (configPage2.idleUpPolarity == 0 ? INPUT_PULLUP : INPUT));
     digitalWrite(pinMapping.outputs.pinIdleUpOutput, getIdleUpOutputLOW()); //Initialise program with the idle up output in the off state if it is enabled. 
   }
   currentStatus.idleUpOutputActive = false;
@@ -432,7 +430,7 @@ static inline void setIdlePwmPinsState(IdlePwmSignal signal) {
   static_assert(HIGH==1 && LOW==0, "This only works when HIGH==1 && LOW==0");
   uint8_t pinSignal = signal==Positive ? !configPage6.iacPWMdir : configPage6.iacPWMdir;
   setPinState(idle_pin_port, pinSignal);
-  if(configPage6.iacChannels == 1) {
+  if(isIdle2PwmEnabled()) {
     setPinState(idle2_pin_port, !pinSignal); //If 2 idle channels are in use, flip idle2 to be the opposite of idle1
   }
 }
@@ -443,23 +441,16 @@ void idleControl(void)
   if( (currentStatus.RPM > 0) || (configPage6.iacPWMrun == true) ) { enableIdle(); }
 
   //Check whether the idleUp is active
-  if (configPage2.idleUpEnabled == true)
+  if (isIdleUpEnabled())
   {
     if (configPage2.idleUpPolarity == 0) { currentStatus.idleUpActive = !digitalRead(pinMapping.inputs.pinIdleUp); } //Normal mode (ground switched)
     else { currentStatus.idleUpActive = digitalRead(pinMapping.inputs.pinIdleUp); } //Inverted mode (5v activates idleUp)
 
-    if (configPage2.idleUpOutputEnabled  == true)
+    if (isIdleUpOutputEnabled())
     {
-      if (currentStatus.idleUpActive == true)
-      {
-        digitalWrite(pinMapping.outputs.pinIdleUpOutput, getIdleUpOutputHIGH());
-        currentStatus.idleUpOutputActive = true;
-      }
-      else
-      {
-        digitalWrite(pinMapping.outputs.pinIdleUpOutput, getIdleUpOutputLOW());
-        currentStatus.idleUpOutputActive = false;
-      }      
+      currentStatus.idleUpOutputActive = currentStatus.idleUpActive;
+      digitalWrite( pinMapping.outputs.pinIdleUpOutput, 
+                    currentStatus.idleUpOutputActive ? getIdleUpOutputHIGH() : getIdleUpOutputLOW());
     }
   }
   else { currentStatus.idleUpActive = false; }
@@ -794,7 +785,7 @@ void idleControl(void)
   lastDFCOValue = BIT_CHECK(currentStatus.status1, BIT_STATUS1_DFCO);
 
   //Check for 100% and 0% DC on PWM idle
-  if( isIdlePwm(configPage6) )
+  if( isIdlePwm() )
   {
     if(currentStatus.idleLoad >= 100)
     {
@@ -823,7 +814,7 @@ void disableIdle(void)
     IDLE_TIMER_DISABLE();
     setIdlePwmPinsState(Negative);
   }
-  else if( isIdleStepper(configPage6) )
+  else if( isIdleStepper() )
   {
     //Only disable the stepper motor if homing is completed
     if( (checkForStepping() == false) && (isStepperHomed() == true) )

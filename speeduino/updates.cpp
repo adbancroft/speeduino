@@ -373,7 +373,7 @@ void doUpdates(void)
     configPage2.SoftLimitMode = SOFT_LIMIT_FIXED;
 
     //VSS was added for testing, disable it by default
-    configPage2.vssMode = 0;
+    configPage2.vssMode = VSS_MODE_OFF;
 
     writeAllConfig();
     storeEEPROMVersion(14);
