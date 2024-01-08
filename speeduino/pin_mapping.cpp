@@ -7,6 +7,7 @@
 #include "auxiliaries.h"
 #include "SD_logger.h"
 #include "utilities.h"
+#include "secondaryTables.h"
 
 static constexpr uint8_t NUM_PINS = sizeof(pin_mapping_t)/sizeof(uint8_t);
 static constexpr uint8_t NUM_OUTPUT_PINS = sizeof(output_pins_t)/sizeof(uint8_t);
@@ -1512,13 +1513,6 @@ static pin_mapping_t applyOutputPinUserOverrides(pin_mapping_t pins) {
   pins.outputs.pinAirConFan = overrideDefaultPin(pins.outputs.pinAirConFan, configPage15.airConFanPin);
   pins.outputs.pinResetControl = overrideDefaultPin(pins.outputs.pinResetControl, configPage4.resetControlPin);
   return pins;
-}
-
-static inline bool isPinFuel2InputEnabled(void) {
-  return configPage10.fuel2Mode == FUEL2_MODE_INPUT_SWITCH;
-}
-static inline bool isPinSpark2InputEnabled(void) {
-  return configPage10.spark2Mode == SPARK2_MODE_INPUT_SWITCH;
 }
 
 typedef bool (*enable_func_t)(void);

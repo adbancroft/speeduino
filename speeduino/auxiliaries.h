@@ -35,6 +35,9 @@ static inline bool isFanEnabled(void) {
 }
 
 void nitrousControl(void);
+static inline bool isNitrousEnabled(void) {
+  return configPage10.n2o_enable != 0U;
+}
 
 void initialiseAirCon(const pin_mapping_t &pins);
 void airConControl(void);

@@ -21,9 +21,7 @@ static uint8_t currentRuleStatus = 0;
 // ===================== Ignition Bypass =====================
 
 void initialiseIgnitionByPass(const pin_mapping_t &pins) {
-  if (isValidPin(pins.outputs.pinIgnBypass)) {
-    pinMode(pins.outputs.pinIgnBypass, OUTPUT);
-  }
+  MATCH_PIN_TO_FEATURE(isIgnBypassEnabled, pins.outputs.pinIgnBypass, OUTPUT, configPage4.ignBypassEnabled)
 }
 
 void ignitionByPassOn(void) {
@@ -37,13 +35,18 @@ void ignitionByPassOff(void) {
 // ===================== Reset Prevention =====================
  
 void initialiseResetControl(const pin_mapping_t &pins) {
-  if (isResetControlEnabled() && isValidPin(pins.outputs.pinResetControl)) {
-  /* Reset control is a special case. If reset control is enabled, it needs its initial state set BEFORE its pinMode.
-    If that doesn't happen and reset control is in "Serial Command" mode, the Arduino will end up in a reset loop
-    because the control pin will go low as soon as the pinMode is set to OUTPUT. */
-    setResetControlPinState();
-    pinMode(pins.outputs.pinResetControl, OUTPUT);
-  }  
+  if (configPage4.resetControlConfig==RESET_CONTROL_SERIAL_COMMAND) {
+    if (isValidPin(pins.outputs.pinResetControl)) {
+      /* Reset control is a special case. If reset control is enabled, it needs its initial state set BEFORE its pinMode.
+         If that doesn't happen and reset control is in "Serial Command" mode, the Arduino will end up in a reset loop
+         because the control pin will go low as soon as the pinMode is set to OUTPUT. */
+      setResetControlPinState();
+      pinMode(pins.outputs.pinResetControl, OUTPUT);
+    } else {
+      configPage4.resetControlConfig = RESET_CONTROL_DISABLED;
+    }
+  }
+   
   resetControl = configPage4.resetControlConfig;
 }
 
@@ -88,9 +91,7 @@ void setResetControlPinState(void)
 // ===================== Launch Control =====================
 
 void initialiseLaunchControl(const pin_mapping_t &pins) {
-  if (isClutchTriggerEnabled() && isValidPin(pins.inputs.pinLaunch)) {
-    pinMode(pins.inputs.pinLaunch, configPage6.lnchPullRes ? INPUT_PULLUP : INPUT);
-  } 
+  MATCH_PIN_TO_FEATURE(isClutchTriggerEnabled, pins.inputs.pinLaunch, (configPage6.lnchPullRes ? INPUT_PULLUP : INPUT), configPage6.launchEnabled)
 }
 
 bool isClutchTriggerOn(void) {
