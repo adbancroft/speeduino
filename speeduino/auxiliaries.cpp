@@ -407,6 +407,10 @@ void fanControl(void)
   }
 }
 
+#define SIMPLE_BOOST_P  1
+#define SIMPLE_BOOST_I  1
+#define SIMPLE_BOOST_D  1
+
 void initialiseAuxPWM(const pin_mapping_t &pins)
 {
   if (isBoostEnabled()) {
@@ -986,7 +990,7 @@ void initialiseWmi(const pin_mapping_t &pins) {
     if (isWMIIndicatorEnabled() && isValidPin(pins.outputs.pinWMIIndicator))
     {
       pinMode(pins.outputs.pinWMIIndicator, OUTPUT);
-      if (configPage10.wmiIndicatorPolarity > 0) { digitalWrite(pins.outputs.pinWMIIndicator, HIGH); }
+      if (configPage10.wmiIndicatorPolarity > 0) { setPin_Low(pins.outputs.pinWMIIndicator); }
     }
     if(isWMIEmptyEnabled() && isValidPin(pins.inputs.pinWMIEmpty) )
     {
@@ -1042,19 +1046,19 @@ void wmiControl(void)
     if(wmiPW == 0)
     {
       // Make sure water pump is off
-      VVT2_PIN_LOW();
+      VVT2_OFF();
       vvt2_pwm_state = false;
       vvt2_max_pwm = false;
       if( !isVVT_1Enabled() ) { DISABLE_VVT_TIMER(); }
-      digitalWrite(pinMapping.outputs.pinWMIEnabled, LOW);
+      setPin_Low(pinMapping.outputs.pinWMIEnabled);
     }
     else
     {
-      digitalWrite(pinMapping.outputs.pinWMIEnabled, HIGH);
+      setPin_High(pinMapping.outputs.pinWMIEnabled);
       if (wmiPW >= 200)
       {
         // Make sure water pump is on (100% duty)
-        VVT2_PIN_HIGH();
+        VVT2_ON();
         vvt2_pwm_state = true;
         vvt2_max_pwm = true;
         if( !isVVT_1Enabled() ) { DISABLE_VVT_TIMER(); }
@@ -1073,7 +1077,7 @@ void toggleWmiIndicator(void) {
 }
 
 void setWmiIndicator(void) {
-  digitalWrite(pinMapping.outputs.pinWMIIndicator, configPage10.wmiIndicatorPolarity ? HIGH : LOW);
+  setPinState(pinMapping.outputs.pinWMIIndicator, configPage10.wmiIndicatorPolarity ? HIGH : LOW);
 }
 
 void boostDisable(void)

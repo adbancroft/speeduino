@@ -63,16 +63,8 @@ static inline bool isWMIEmptyEnabled(void) {
 void initialiseFuelPump(const pin_mapping_t &pins);
 void beginPrimeFuelPump(void);
 
-#define SIMPLE_BOOST_P  1
-#define SIMPLE_BOOST_I  1
-#define SIMPLE_BOOST_D  1
-
 #define BOOST_PIN_LOW()         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(pinMapping.outputs.pinBoost); }
 #define BOOST_PIN_HIGH()        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(pinMapping.outputs.pinBoost);  }
-#define VVT1_PIN_LOW()          ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(pinMapping.outputs.pinVVT_1);   }
-#define VVT1_PIN_HIGH()         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(pinMapping.outputs.pinVVT_1);    }
-#define VVT2_PIN_LOW()          ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(pinMapping.outputs.pinVVT_2);   }
-#define VVT2_PIN_HIGH()         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(pinMapping.outputs.pinVVT_2);    }
 #define N2O_STAGE1_PIN_LOW()    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(configPage10.n2o_stage1_pin);  }
 #define N2O_STAGE1_PIN_HIGH()   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(configPage10.n2o_stage1_pin);   }
 #define N2O_STAGE2_PIN_LOW()    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(configPage10.n2o_stage2_pin);  }
@@ -90,13 +82,13 @@ void beginPrimeFuelPump(void);
 
 #define READ_N2O_ARM_PIN()    (readPin(configPage10.n2o_arming_pin)==HIGH)
 
-#define VVT1_ON()     VVT1_PIN_HIGH();
-#define VVT1_OFF()    VVT1_PIN_LOW();
-#define VVT2_ON()     VVT2_PIN_HIGH();
-#define VVT2_OFF()    VVT2_PIN_LOW();
+#define VVT1_ON()               ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(pinMapping.outputs.pinVVT_1); }
+#define VVT1_OFF()              ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(pinMapping.outputs.pinVVT_1);  }
+#define VVT2_ON()               ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(pinMapping.outputs.pinVVT_2); }
+#define VVT2_OFF()              ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(pinMapping.outputs.pinVVT_2);  }
 #define VVT_TIME_DELAY_MULTIPLIER  50
 
-#define WMI_TANK_IS_EMPTY() (isWMIEmptyEnabled() ? digitalRead(pinMapping.inputs.pinWMIEmpty)==configPage10.wmiEmptyPolarity : true)
+#define WMI_TANK_IS_EMPTY() (isWMIEmptyEnabled() ? readPin(pinMapping.inputs.pinWMIEmpty)==configPage10.wmiEmptyPolarity : true)
 
 #if defined(PWM_FAN_AVAILABLE)//PWM fan not available on Arduino MEGA
 void fanInterrupt(void);
