@@ -52,3 +52,22 @@
 #else
   #error Incorrect board selected. Please select the correct board (Usually Mega 2560) and upload again
 #endif
+
+/**
+ * @brief Get the timer tick interval for the target CPU
+ * 
+ * @return uint8_t Timer interval in microseconds
+ */
+static inline constexpr uint8_t getTimerInterval(void) {
+#if defined(TIMER_RESOLUTION)
+  return TIMER_RESOLUTION;
+#elif defined(CORE_AVR)
+  return 16U;
+#elif defined(CORE_TEENSY35)
+  return 32U;
+#elif defined(CORE_TEENSY41)
+  return 2U;
+#else
+  static_assert(false, "Unknown timer tick interval");
+#endif
+}
