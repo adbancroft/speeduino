@@ -876,25 +876,18 @@ byte getOilPressure(void)
   return (byte)tempOilPressure;
 }
 
-#if defined(CORE_AVR)    
-ioPort flex_pin_port;
-#endif
-
 void initialiseFlexFuel(const pin_mapping_t &pins) {
   if(isFlexEnabled() && isValidPin(pins.inputs.pinFlex))
   {
     pinMode(pins.inputs.pinFlex, INPUT); // Standard GM / Continental flex sensor requires pullup, but this should be onboard. The internal pullup will not work (Requires ~3.3k)!
     attachInterrupt(digitalPinToInterrupt(pins.inputs.pinFlex), flexPulse, CHANGE);
-#if defined(CORE_AVR)    
-    flex_pin_port = pinToInputPort(pins.inputs.pinFlex);
-#endif
-    currentStatus.ethanolPct = 0;
   }
   if(configPage4.FILTER_FLEX > 240U) { 
     configPage4.FILTER_FLEX = FILTER_FLEX_DEFAULT;
     writeConfig(ignSetPage); 
   }
   flexStartTime = micros();
+  currentStatus.ethanolPct = 0;
 }
 
 /*

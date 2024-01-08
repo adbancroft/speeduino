@@ -35,11 +35,7 @@ extern volatile byte flexCounter;
 extern volatile unsigned long flexStartTime;
 extern volatile unsigned long flexPulseWidth;
 
-#if defined(CORE_AVR)
-  static inline bool READ_FLEX() { extern ioPort flex_pin_port; return readPin(flex_pin_port)==HIGH; }
-#else
-  #define READ_FLEX() digitalRead(pinMapping.inputs.pinFlex)
-#endif
+#define READ_FLEX() readPin(pinMapping.inputs.pinFlex)
 
 #define ADMUX_DEFAULT_CONFIG  0x40 //AVCC reference, ADC0 input, right adjusted, ADC enabled
 

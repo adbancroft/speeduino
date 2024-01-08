@@ -28,17 +28,6 @@ static volatile char nextVVT;
 static byte boostCounter;
 static byte vvtCounter;
 
-ioPort boost_pin_port;
-ioPort n2o_stage1_pin_port;
-ioPort n2o_stage2_pin_port;
-ioPort n2o_arming_pin_port;
-ioPort aircon_comp_pin_port;
-ioPort aircon_fan_pin_port;
-ioPort aircon_req_pin_port;
-ioPort vvt1_pin_port;
-ioPort vvt2_pin_port;
-ioPort fan_pin_port;
-
 #if defined(PWM_FAN_AVAILABLE)//PWM fan not available on Arduino MEGA
 static volatile bool fan_pwm_state;
 uint16_t fan_pwm_max_count; //Used for variable PWM frequency
@@ -98,14 +87,14 @@ void initialiseAirCon(const pin_mapping_t &pins)
     BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_FAN);         // Bit 6
     // Inverted: +5V is ON, Use external pull-down resistor for OFF
     // Normal: Pin pulled to Ground is ON. Floating (internally pulled up to +5V) is OFF.
-    aircon_req_pin_port = pinToInputPort(pins.inputs.pinAirConRequest, (configPage15.airConReqPol == 1 ? INPUT : INPUT_PULLUP));
-    aircon_comp_pin_port = pinToOutputPort(pins.outputs.pinAirConComp);
+    pinMode(pins.inputs.pinAirConRequest, (configPage15.airConReqPol == 1 ? INPUT : INPUT_PULLUP));
+    pinMode(pins.outputs.pinAirConComp, OUTPUT);
 
     AIRCON_OFF();
 
     if(isAirConFanEnabled() && isValidPin(pins.outputs.pinAirConFan))
     {
-      aircon_fan_pin_port = pinToOutputPort(pins.outputs.pinAirConFan);
+      pinMode(pins.outputs.pinAirConFan, OUTPUT);
       AIRCON_FAN_OFF();
     }
   }
@@ -115,7 +104,7 @@ bool READ_AIRCON_REQUEST(void); // Forward declare
 
 void airConControl(void)
 {
-  if(isValidIoPort(aircon_comp_pin_port))
+  if(isAirConEnabled())
   {
     // ------------------------------------------------------------------------------------------------------
     // Check that the engine has been running past the post-start delay period before enabling the compressor
@@ -158,7 +147,7 @@ void airConControl(void)
       BIT_SET(currentStatus.airConStatus, BIT_AIRCON_TURNING_ON);
 
       // Stand-alone fan operation
-      if(isValidIoPort(aircon_fan_pin_port))
+      if(isAirConFanEnabled())
       {
         AIRCON_FAN_ON();
       }
@@ -178,7 +167,7 @@ void airConControl(void)
       BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_TURNING_ON);
 
       // Stand-alone fan operation
-      if(isValidIoPort(aircon_fan_pin_port))
+      if(isAirConFanEnabled())
       {
         AIRCON_FAN_OFF();
       }
@@ -191,12 +180,12 @@ void airConControl(void)
 
 bool READ_AIRCON_REQUEST(void)
 {
-  if(!isValidIoPort(aircon_comp_pin_port))
+  if(!isAirConEnabled())
   {
     return false;
   }
   // Read the status of the A/C request pin (A/C button), taking into account the pin's polarity
-  bool acReqPinStatus = readPin(aircon_req_pin_port)==(configPage15.airConReqPol==1 ? HIGH : LOW);
+  bool acReqPinStatus = readPin(pinMapping.inputs.pinAirConRequest)==configPage15.airConReqPol;
   BIT_WRITE(currentStatus.airConStatus, BIT_AIRCON_REQUEST, acReqPinStatus);
   return acReqPinStatus;
 }
@@ -291,7 +280,7 @@ Fan control
 */
 void initialiseFan(const pin_mapping_t &pins)
 {
-  fan_pin_port = pinToOutputPort(pins.outputs.pinFan);
+  pinMode(pins.outputs.pinFan, OUTPUT);
   FAN_OFF();  //Initialise program with the fan in the off state
   BIT_CLEAR(currentStatus.status4, BIT_STATUS4_FAN);
   currentStatus.fanDuty = 0;
@@ -422,39 +411,33 @@ void fanControl(void)
 
 void initialiseAuxPWM(const pin_mapping_t &pins)
 {
-  boost_pin_port = nullIoPort();
   if (isBoostEnabled()) {
-    boost_pin_port = pinToOutputPort(pins.outputs.pinBoost);
+    pinMode(pins.outputs.pinBoost, OUTPUT);
   }
 
-  vvt1_pin_port = nullIoPort();
   if (isVVT_1Enabled()) {
-    vvt1_pin_port = pinToOutputPort(pins.outputs.pinVVT_1);
+    pinMode(pins.outputs.pinVVT_1, OUTPUT);
   }
 
-  vvt2_pin_port = nullIoPort();
   if (isVVT_2Enabled()) {
-    vvt2_pin_port = pinToOutputPort(pins.outputs.pinVVT_2);
+    pinMode(pins.outputs.pinVVT_2, OUTPUT);
   }
 
   //This is a safety check that will be true if the board is uninitialised. This prevents hangs on a new board that could otherwise try to write to an invalid pin port/mask (Without this a new Teensy 4.x hangs on startup)
   //The n2o_minTPS variable is capped at 100 by TS, so 255 indicates a new board.
   if(configPage10.n2o_minTPS == 255) { configPage10.n2o_enable = 0; }
 
-  n2o_stage1_pin_port = nullIoPort();
-  n2o_stage2_pin_port = nullIoPort();
-  n2o_arming_pin_port = nullIoPort();
   if(configPage10.n2o_enable > 0)
   {
     //The pin modes are only set if the if n2o is enabled to prevent them conflicting with other outputs.   
     if (!pinIsUsed(configPage10.n2o_stage1_pin, pins)) {
-      n2o_stage1_pin_port = pinToOutputPort(configPage10.n2o_stage1_pin);
+      pinMode(configPage10.n2o_stage1_pin, OUTPUT);
     }
     if (!pinIsUsed(configPage10.n2o_stage2_pin, pins)) {
-      n2o_stage2_pin_port = pinToOutputPort(configPage10.n2o_stage2_pin);
+      pinMode(configPage10.n2o_stage2_pin, OUTPUT);
     }
     if (!pinIsUsed(configPage10.n2o_arming_pin, pins)) {
-      n2o_arming_pin_port = pinToInputPort(configPage10.n2o_arming_pin, (configPage10.n2o_pin_polarity == 1 ? INPUT_PULLUP : INPUT));
+      pinMode(configPage10.n2o_arming_pin, (configPage10.n2o_pin_polarity == 1 ? INPUT_PULLUP : INPUT));
     }
   }
 
@@ -1287,10 +1270,8 @@ void boostDisable(void)
 }
 #endif
 
-ioPort pump_pin_port;
-
 void initialiseFuelPump(const pin_mapping_t &pins) {
-  pump_pin_port = pinToOutputPort(pins.outputs.pinFuelPump);
+  pinMode(pins.outputs.pinFuelPump, OUTPUT);
 
   currentStatus.injPrimed = false;
 
