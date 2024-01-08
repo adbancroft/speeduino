@@ -31,17 +31,11 @@ long FeedForwardTerm;
 unsigned long idle_pwm_target_value;
 long idle_cl_target_rpm;
 
-static ioPort idle_pin_port;
-static ioPort idle2_pin_port;
-
 struct table2D iacPWMTable;
 struct table2D iacStepTable;
 //Open loop tables specifically for cranking
 struct table2D iacCrankStepsTable;
 struct table2D iacCrankDutyTable;
-
-#define IDLE_PIN_LOW()  setPin_Low(idle_pin_port)
-#define IDLE_PIN_HIGH() setPin_High(idle_pin_port)
 
 /*
 These functions cover the PWM and stepper idle control
@@ -65,9 +59,12 @@ static inline void enableIdle(void)
 
 void initialiseIdle(bool forcehoming, const pin_mapping_t &pins) {
   //Pin masks must always be initialised, regardless of whether PWM idle is used. This is required for STM32 to prevent issues if the IRQ function fires on restart/overflow
-  idle_pin_port = isIdlePwm() ? pinToOutputPort(pins.outputs.pinIdle1) : nullIoPort();
-  idle2_pin_port = isIdle2PwmEnabled() ? pinToOutputPort(pins.outputs.pinIdle2) : nullIoPort();  
-
+  if (isIdlePwm() && isValidPin(pins.outputs.pinIdle1)) {
+    pinMode(pins.outputs.pinIdle1, OUTPUT);
+  }
+  if (isIdle2PwmEnabled() && isValidPin(pins.outputs.pinIdle2)) {
+    pinMode(pins.outputs.pinIdle2, OUTPUT);
+  }
   if(isIdleUpOutputEnabled() && isValidPin(pins.outputs.pinIdleUpOutput) ) {
     pinMode(pins.outputs.pinIdleUpOutput, OUTPUT);
   }  
@@ -103,7 +100,7 @@ void initialiseIdle(bool forcehoming)
       //Case 1 is on/off idle control
       if ((currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET) < configPage6.iacFastTemp)
       {
-        IDLE_PIN_HIGH();
+        setPin_High(pinMapping.outputs.pinIdle1);
         idleOn = true;
       }
       break;
@@ -429,9 +426,9 @@ enum IdlePwmSignal {
 static inline void setIdlePwmPinsState(IdlePwmSignal signal) {
   static_assert(HIGH==1 && LOW==0, "This only works when HIGH==1 && LOW==0");
   uint8_t pinSignal = signal==Positive ? !configPage6.iacPWMdir : configPage6.iacPWMdir;
-  setPinState(idle_pin_port, pinSignal);
+  setPinState(pinMapping.outputs.pinIdle1, pinSignal);
   if(isIdle2PwmEnabled()) {
-    setPinState(idle2_pin_port, !pinSignal); //If 2 idle channels are in use, flip idle2 to be the opposite of idle1
+    setPinState(pinMapping.outputs.pinIdle2, !pinSignal); //If 2 idle channels are in use, flip idle2 to be the opposite of idle1
   }
 }
 
@@ -464,14 +461,14 @@ void idleControl(void)
     case IAC_ALGORITHM_ONOFF:      //Case 1 is on/off idle control
       if ( (currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET) < configPage6.iacFastTemp) //All temps are offset by 40 degrees
       {
-        IDLE_PIN_HIGH();
+        setPin_High(pinMapping.outputs.pinIdle1);
         idleOn = true;
         BIT_SET(currentStatus.spark, BIT_SPARK_IDLE); //Turn the idle control flag on
 		    currentStatus.idleLoad = 100;
       }
       else if (idleOn)
       {
-        IDLE_PIN_LOW();
+        setPin_Low(pinMapping.outputs.pinIdle1);
         idleOn = false; 
         BIT_CLEAR(currentStatus.spark, BIT_SPARK_IDLE); //Turn the idle control flag on
 		    currentStatus.idleLoad = 0;

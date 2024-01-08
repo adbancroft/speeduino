@@ -67,57 +67,28 @@ void beginPrimeFuelPump(void);
 #define SIMPLE_BOOST_I  1
 #define SIMPLE_BOOST_D  1
 
-extern ioPort vvt1_pin_port;
-extern ioPort vvt2_pin_port;
-extern ioPort fan_pin_port;
+#define BOOST_PIN_LOW()         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(pinMapping.outputs.pinBoost); }
+#define BOOST_PIN_HIGH()        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(pinMapping.outputs.pinBoost);  }
+#define VVT1_PIN_LOW()          ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(pinMapping.outputs.pinVVT_1);   }
+#define VVT1_PIN_HIGH()         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(pinMapping.outputs.pinVVT_1);    }
+#define VVT2_PIN_LOW()          ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(pinMapping.outputs.pinVVT_2);   }
+#define VVT2_PIN_HIGH()         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(pinMapping.outputs.pinVVT_2);    }
+#define N2O_STAGE1_PIN_LOW()    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(configPage10.n2o_stage1_pin);  }
+#define N2O_STAGE1_PIN_HIGH()   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(configPage10.n2o_stage1_pin);   }
+#define N2O_STAGE2_PIN_LOW()    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(configPage10.n2o_stage2_pin);  }
+#define N2O_STAGE2_PIN_HIGH()   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(configPage10.n2o_stage2_pin);   }
+#define FUEL_PUMP_ON()          ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(pinMapping.outputs.pinFuelPump); }
+#define FUEL_PUMP_OFF()         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(pinMapping.outputs.pinFuelPump); }
 
-extern ioPort pump_pin_port;
+#define AIRCON_ON()             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(pinMapping.outputs.pinAirConComp, !(configPage15.airConCompPol)); BIT_SET(currentStatus.airConStatus, BIT_AIRCON_COMPRESSOR); }
+#define AIRCON_OFF()            ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(pinMapping.outputs.pinAirConComp,  (configPage15.airConCompPol)); BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_COMPRESSOR); }
+#define AIRCON_FAN_ON()         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(pinMapping.outputs.pinAirConFan, !(configPage15.airConFanPol)); BIT_SET(currentStatus.airConStatus, BIT_AIRCON_FAN); }
+#define AIRCON_FAN_OFF()        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(pinMapping.outputs.pinAirConFan,  (configPage15.airConFanPol)); BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_FAN); }
 
-#if(defined(CORE_TEENSY) || defined(CORE_STM32))
-#define BOOST_PIN_LOW()         (setPinState(pinMapping.outputs.pinBoost, LOW))
-#define BOOST_PIN_HIGH()        (setPinState(pinMapping.outputs.pinBoost, HIGH))
-#define VVT1_PIN_LOW()          (setPinState(pinMapping.outputs.pinVVT_1, LOW))
-#define VVT1_PIN_HIGH()         (setPinState(pinMapping.outputs.pinVVT_1, HIGH))
-#define VVT2_PIN_LOW()          (setPinState(pinMapping.outputs.pinVVT_2, LOW))
-#define VVT2_PIN_HIGH()         (setPinState(pinMapping.outputs.pinVVT_2, HIGH))
-#define N2O_STAGE1_PIN_LOW()    (setPinState(configPage10.n2o_stage1_pin, LOW))
-#define N2O_STAGE1_PIN_HIGH()   (setPinState(configPage10.n2o_stage1_pin, HIGH))
-#define N2O_STAGE2_PIN_LOW()    (setPinState(configPage10.n2o_stage2_pin, LOW))
-#define N2O_STAGE2_PIN_HIGH()   (setPinState(configPage10.n2o_stage2_pin, HIGH))
-#define FUEL_PUMP_ON()          (setPinState(pinMapping.outputs.pinFuelPump, HIGH))
-#define FUEL_PUMP_OFF()         (setPinState(pinMapping.outputs.pinFuelPump, LOW))
+#define FAN_ON()                ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(pinMapping.outputs.pinFan, !(configPage6.fanInv)); }
+#define FAN_OFF()               ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(pinMapping.outputs.pinFan,  (configPage6.fanInv)); }
 
-#define AIRCON_ON()             { setPinState(pinMapping.outputs.pinAirConComp, !(configPage15.airConCompPol)); BIT_SET(currentStatus.airConStatus, BIT_AIRCON_COMPRESSOR); }
-#define AIRCON_OFF()            { setPinState(pinMapping.outputs.pinAirConComp,  (configPage15.airConCompPol)); BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_COMPRESSOR); }
-#define AIRCON_FAN_ON()         { setPinState(pinMapping.outputs.pinAirConFan, !(configPage15.airConFanPol)); BIT_SET(currentStatus.airConStatus, BIT_AIRCON_FAN); }
-#define AIRCON_FAN_OFF()        { setPinState(pinMapping.outputs.pinAirConFan,  (configPage15.airConFanPol)); BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_FAN); }
-
-#define FAN_ON()                { setPinState(pinMapping.outputs.pinFan, !(configPage6.fanInv)); }
-#define FAN_OFF()               { setPinState(pinMapping.outputs.pinFan,  (configPage6.fanInv)); }
-#else
-#define BOOST_PIN_LOW()         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(boost_pin_port); }
-#define BOOST_PIN_HIGH()        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(boost_pin_port);  }
-#define VVT1_PIN_LOW()          ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(vvt1_pin_port);   }
-#define VVT1_PIN_HIGH()         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(vvt1_pin_port);    }
-#define VVT2_PIN_LOW()          ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(vvt2_pin_port);   }
-#define VVT2_PIN_HIGH()         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(vvt2_pin_port);    }
-#define N2O_STAGE1_PIN_LOW()    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(n2o_stage1_pin_port);  }
-#define N2O_STAGE1_PIN_HIGH()   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(n2o_stage1_pin_port);   }
-#define N2O_STAGE2_PIN_LOW()    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(n2o_stage2_pin_port);  }
-#define N2O_STAGE2_PIN_HIGH()   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(n2o_stage2_pin_port);   }
-#define FUEL_PUMP_ON()          ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(pump_pin_port); }
-#define FUEL_PUMP_OFF()         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(pump_pin_port); }
-
-#define AIRCON_ON()             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(aircon_comp_pin_port, !(configPage15.airConCompPol)); BIT_SET(currentStatus.airConStatus, BIT_AIRCON_COMPRESSOR); }
-#define AIRCON_OFF()            ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(aircon_comp_pin_port,  (configPage15.airConCompPol)); BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_COMPRESSOR); }
-#define AIRCON_FAN_ON()         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(aircon_fan_pin_port, !(configPage15.airConFanPol)); BIT_SET(currentStatus.airConStatus, BIT_AIRCON_FAN); }
-#define AIRCON_FAN_OFF()        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(aircon_fan_pin_port,  (configPage15.airConFanPol)); BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_FAN); }
-
-#define FAN_ON()                ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(fan_pin_port, !(configPage6.fanInv)); }
-#define FAN_OFF()               ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(fan_pin_port,  (configPage6.fanInv)); }
-#endif
-
-#define READ_N2O_ARM_PIN()    (readPin(n2o_arming_pin_port)==HIGH)
+#define READ_N2O_ARM_PIN()    (readPin(configPage10.n2o_arming_pin)==HIGH)
 
 #define VVT1_ON()     VVT1_PIN_HIGH();
 #define VVT1_OFF()    VVT1_PIN_LOW();
