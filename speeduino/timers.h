@@ -22,8 +22,20 @@ Hence we will preload the timer with 131 cycles to leave 125 until overflow (1ms
 // #include "globals.h"
 #include "pin_mapping.h"
 #include "port_pin.h"
+#include "board_selector.h"
+#include "globals.h"
 
 #define SET_COMPARE(compare, value) compare = (COMPARE_TYPE)(value) // It is important that we cast this to the actual overflow limit of the timer. The compare variables type can be bigger than the timer overflow.
+
+/**
+ * @brief Convert a frequency to timer ticks
+ * 
+ * @param frequency The frequency in Hz
+ * @return uint16_t the equivalent numebr of ticks
+ */
+static inline uint16_t frequencyToTimerTicks(uint16_t frequency) {
+  return (uint16_t)(MICROS_PER_SEC / (getTimerInterval() * frequency));
+}
 
 extern ioPort tach_pin_port;
 #define TACHO_PULSE_HIGH() setPin_High(tach_pin_port)

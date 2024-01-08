@@ -29,7 +29,6 @@ struct StepperIdle
   volatile unsigned long stepStartTime;
 };
 
-extern uint16_t idle_pwm_max_count; //Used for variable PWM frequency
 extern long FeedForwardTerm;
 
 void initialiseIdle(bool forcehoming, const pin_mapping_t &pins);

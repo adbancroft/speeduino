@@ -25,12 +25,11 @@ static volatile bool vvt2_pwm_state;
 static volatile bool vvt1_max_pwm;
 static volatile bool vvt2_max_pwm;
 static volatile char nextVVT;
-static byte boostCounter;
 static byte vvtCounter;
 
 #if defined(PWM_FAN_AVAILABLE)//PWM fan not available on Arduino MEGA
 static volatile bool fan_pwm_state;
-uint16_t fan_pwm_max_count; //Used for variable PWM frequency
+static uint16_t fan_pwm_max_count; //Used for variable PWM frequency
 static volatile unsigned int fan_pwm_cur_value;
 static long fan_pwm_value;
 #endif
@@ -41,21 +40,22 @@ static uint8_t acRPMLockoutDelay;
 static uint8_t acAfterEngineStartDelay;
 static bool waitedAfterCranking; // This starts false and prevents the A/C from running until a few seconds after cranking
 
-long boost_pwm_target_value;
-volatile bool boost_pwm_state;
-volatile unsigned int boost_pwm_cur_value = 0;
+static byte boostCounter;
+static long boost_pwm_target_value;
+static volatile bool boost_pwm_state;
+static volatile unsigned int boost_pwm_cur_value = 0;
+static uint16_t boost_pwm_max_count; //Used for variable PWM frequency
 
 static uint32_t vvtWarmTime;
 static bool vvtIsHot;
 static bool vvtTimeHold;
-uint16_t vvt_pwm_max_count; //Used for variable PWM frequency
-uint16_t boost_pwm_max_count; //Used for variable PWM frequency
+static uint16_t vvt_pwm_max_count; //Used for variable PWM frequency
 
 //Old PID method. Retained in case the new one has issues
 //integerPID boostPID(&MAPx100, &boost_pwm_target_value, &boostTargetx100, configPage6.boostKP, configPage6.boostKI, configPage6.boostKD, DIRECT);
-integerPID_ideal boostPID(&currentStatus.MAP, &currentStatus.boostDuty , &currentStatus.boostTarget, &configPage10.boostSens, &configPage10.boostIntv, configPage6.boostKP, configPage6.boostKI, configPage6.boostKD, DIRECT); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
-integerPID vvtPID(&vvt_pid_current_angle, &currentStatus.vvt1Duty, &vvt_pid_target_angle, configPage10.vvtCLKP, configPage10.vvtCLKI, configPage10.vvtCLKD, configPage6.vvtPWMdir); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
-integerPID vvt2PID(&vvt2_pid_current_angle, &currentStatus.vvt2Duty, &vvt2_pid_target_angle, configPage10.vvtCLKP, configPage10.vvtCLKI, configPage10.vvtCLKD, configPage4.vvt2PWMdir); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID_ideal boostPID(&currentStatus.MAP, &currentStatus.boostDuty , &currentStatus.boostTarget, &configPage10.boostSens, &configPage10.boostIntv, configPage6.boostKP, configPage6.boostKI, configPage6.boostKD, DIRECT); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID vvtPID(&vvt_pid_current_angle, &currentStatus.vvt1Duty, &vvt_pid_target_angle, configPage10.vvtCLKP, configPage10.vvtCLKI, configPage10.vvtCLKD, configPage6.vvtPWMdir); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID vvt2PID(&vvt2_pid_current_angle, &currentStatus.vvt2Duty, &vvt2_pid_target_angle, configPage10.vvtCLKP, configPage10.vvtCLKI, configPage10.vvtCLKD, configPage4.vvt2PWMdir); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
 
 static inline void checkAirConCoolantLockout(void);
 static inline void checkAirConTPSLockout(void);
@@ -289,9 +289,7 @@ void initialiseFan(const pin_mapping_t &pins)
     DISABLE_FAN_TIMER(); //disable FAN timer if available
     if ( configPage2.fanEnable == FAN_MODE_PWM ) // PWM Fan control
     {
-      #if defined(CORE_TEENSY)
-        fan_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (32U * configPage6.fanFreq * 2U)); //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle. Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
-      #endif
+      fan_pwm_max_count = frequencyToTimerTicks(configPage6.fanFreq*2U); // Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
       fan_pwm_value = 0;
     }
   #endif
@@ -412,6 +410,7 @@ void fanControl(void)
 void initialiseAuxPWM(const pin_mapping_t &pins)
 {
   if (isBoostEnabled()) {
+    boost_pwm_max_count = frequencyToTimerTicks(configPage6.boostFreq*2U); // Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
     pinMode(pins.outputs.pinBoost, OUTPUT);
   }
 
@@ -449,14 +448,7 @@ void initialiseAuxPWM(const pin_mapping_t &pins)
   {
     currentStatus.vvt1Angle = 0;
     currentStatus.vvt2Angle = 0;
-
-    #if defined(CORE_AVR)
-      vvt_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (16U * configPage6.vvtFreq * 2U)); //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle. Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
-    #elif defined(CORE_TEENSY35)
-      vvt_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (32U * configPage6.vvtFreq * 2U)); //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle. Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
-    #elif defined(CORE_TEENSY41)
-      vvt_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (2U * configPage6.vvtFreq * 2U)); //Converts the frequency in Hz to the number of ticks (at 2uS) it takes to complete 1 cycle. Note that the frequency is divided by 2 coming fro TS to allow for up to 512hz
-    #endif
+    vvt_pwm_max_count = frequencyToTimerTicks(configPage6.vvtFreq * 2U); // Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
 
     if(configPage6.vvtMode == VVT_MODE_CLOSED_LOOP)
     {
@@ -485,13 +477,7 @@ void initialiseAuxPWM(const pin_mapping_t &pins)
   if( !isVVT_1Enabled() && isWMIEnabled() )
   {
     // config wmi pwm output to use vvt output
-    #if defined(CORE_AVR)
-      vvt_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (16U * configPage6.vvtFreq * 2U)); //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle. Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
-    #elif defined(CORE_TEENSY35)
-      vvt_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (32U * configPage6.vvtFreq * 2U)); //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle. Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
-    #elif defined(CORE_TEENSY41)
-      vvt_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (2U * configPage6.vvtFreq * 2U)); //Converts the frequency in Hz to the number of ticks (at 2uS) it takes to complete 1 cycle. Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
-    #endif
+    vvt_pwm_max_count = frequencyToTimerTicks(configPage6.vvtFreq * 2U); // Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
     BIT_CLEAR(currentStatus.status4, BIT_STATUS4_WMI_EMPTY);
     currentStatus.wmiPW = 0;
     vvt1_pwm_value = 0;
