@@ -62,7 +62,7 @@ void initialiseTimers(const pin_mapping_t &pin)
   tachoOutputFlag = TACHO_INACTIVE;
 
   //Set the tacho output default state
-  digitalWrite(pin.outputs.pinTachOut, HIGH);
+  setPin_Low(pin.outputs.pinTachOut);
 
   tach_pin_port = pinToOutputPort(pin.outputs.pinTachOut);
 
@@ -208,7 +208,7 @@ void oneMSInterval(void) //Most ARM chips can simply call a function
     loop250ms = 0; //Reset Counter
     BIT_SET(TIMER_mask, BIT_TIMER_4HZ);
     #if defined(CORE_STM32) //debug purpose, only visual for running code
-      digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+      togglePin(LED_BUILTIN);
     #endif
   }
 

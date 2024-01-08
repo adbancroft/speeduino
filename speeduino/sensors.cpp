@@ -530,12 +530,8 @@ void readTPS(bool useFilter)
   }
 
   //Check whether the closed throttle position sensor is active
-  if(isCTPSEnabled())
-  {
-    if(configPage2.CTPSPolarity == 0) { currentStatus.CTPSActive = !digitalRead(pinMapping.inputs.pinCTPS); } //Normal mode (ground switched)
-    else { currentStatus.CTPSActive = digitalRead(pinMapping.inputs.pinCTPS); } //Inverted mode (5v activates closed throttle position sensor)
-  }
-  else { currentStatus.CTPSActive = 0; }
+  configPage2.CTPSPolarity = isCTPSEnabled() 
+                          && readPin(pinMapping.inputs.pinCTPS)==configPage2.CTPSPolarity;
 }
 
 
@@ -896,7 +892,7 @@ void initialiseFlexFuel(const pin_mapping_t &pins) {
  */
 void flexPulse(void)
 {
-  if(READ_FLEX() == true)
+  if(readPin(pinMapping.inputs.pinFlex)==HIGH)
   {
     uint16_t tempPW = clamp(micros() - flexStartTime, 0UL, (unsigned long)UINT16_MAX); //Calculate the pulse width
     flexPulseWidth = LOW_PASS_FILTER(tempPW, configPage4.FILTER_FLEX, flexPulseWidth);
@@ -961,7 +957,5 @@ uint16_t readAuxanalog(uint8_t analogPin)
 uint16_t readAuxdigital(uint8_t digitalPin)
 {
   //read the Aux digital value for pin set by digitalPin 
-  unsigned int tempReading;
-  tempReading = digitalRead(digitalPin); 
-  return tempReading;
+  return readPin(digitalPin); 
 } 

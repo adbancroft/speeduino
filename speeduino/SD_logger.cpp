@@ -644,7 +644,7 @@ void checkForSDStart()
 
     if(isSDLoggingEnabled() && (SD_status == SD_STATUS_READY) )
     {
-      if(digitalRead(pinMapping.inputs.pinSDEnable) == LOW)
+      if(readPin(pinMapping.inputs.pinSDEnable) == LOW)
       {
         beginSDLogging(); //Setup the log file, preallocation, header row
       }
@@ -698,7 +698,7 @@ void checkForSDStop()
     //External Pin
     if(isSDLoggingEnabled())
     {
-      if(digitalRead(pinMapping.inputs.pinSDEnable) == LOW)
+      if(readPin(pinMapping.inputs.pinSDEnable) == LOW)
       {
         log_Epin = true;
       }

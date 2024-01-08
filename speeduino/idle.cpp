@@ -276,7 +276,7 @@ void initialiseIdleUpOutput(void)
 {
   if(isIdleUpOutputEnabled() && isValidPin(pinMapping.outputs.pinIdleUpOutput)) { 
     pinMode(pinMapping.inputs.pinIdleUp, (configPage2.idleUpPolarity == 0 ? INPUT_PULLUP : INPUT));
-    digitalWrite(pinMapping.outputs.pinIdleUpOutput, getIdleUpOutputLOW()); //Initialise program with the idle up output in the off state if it is enabled. 
+    setPinState(pinMapping.outputs.pinIdleUpOutput, getIdleUpOutputLOW()); //Initialise program with the idle up output in the off state if it is enabled. 
   }
   currentStatus.idleUpOutputActive = false;
 }
@@ -308,7 +308,7 @@ static inline byte checkForStepping(void)
       if(idleStepper.stepperStatus == STEPPING)
       {
         //Means we're currently in a step, but it needs to be turned off
-        digitalWrite(pinMapping.outputs.pinStepperStep, LOW); //Turn off the step
+        setPin_Low(pinMapping.outputs.pinStepperStep); //Turn off the step
         idleStepper.stepStartTime = micros_safe();
         
         // if there is no cool time we can miss that step out completely.
@@ -330,7 +330,7 @@ static inline byte checkForStepping(void)
         if(configPage9.iacStepperPower == STEPPER_POWER_WHEN_ACTIVE) 
         { 
           //Disable the DRV8825, but only if we're at the final step in this cycle. 
-          if(idleStepper.targetIdleStep == idleStepper.curIdleStep) { digitalWrite(pinMapping.outputs.pinStepperEnable, HIGH); } 
+          if(idleStepper.targetIdleStep == idleStepper.curIdleStep) { setPin_High(pinMapping.outputs.pinStepperEnable); } 
         }
       }
     }
@@ -355,18 +355,18 @@ static inline void doStep(void)
     if (error < 0)
     {
       // we are moving toward the home position (reducing air)
-      digitalWrite(pinMapping.outputs.pinStepperDir, STEPPER_LESS_AIR_DIRECTION() );
+      setPinState(pinMapping.outputs.pinStepperDir, STEPPER_LESS_AIR_DIRECTION() );
       idleStepper.curIdleStep--;
     }
     else
     {
       // we are moving away from the home position (adding air).
-      digitalWrite(pinMapping.outputs.pinStepperDir, STEPPER_MORE_AIR_DIRECTION() );
+      setPinState(pinMapping.outputs.pinStepperDir, STEPPER_MORE_AIR_DIRECTION() );
       idleStepper.curIdleStep++;
     }
 
-    digitalWrite(pinMapping.outputs.pinStepperEnable, LOW); //Enable the DRV8825
-    digitalWrite(pinMapping.outputs.pinStepperStep, HIGH);
+    setPin_Low(pinMapping.outputs.pinStepperEnable); //Enable the DRV8825
+    setPin_High(pinMapping.outputs.pinStepperStep);
     idleStepper.stepStartTime = micros_safe();
     idleStepper.stepperStatus = STEPPING;
     idleOn = true;
@@ -388,9 +388,9 @@ static inline byte isStepperHomed(void)
   bool isHomed = true; //As it's the most common scenario, default value is true
   if( completedHomeSteps < (configPage6.iacStepHome * 3) ) //Home steps are divided by 3 from TS
   {
-    digitalWrite(pinMapping.outputs.pinStepperDir, STEPPER_LESS_AIR_DIRECTION() ); //homing the stepper closes off the air bleed
-    digitalWrite(pinMapping.outputs.pinStepperEnable, LOW); //Enable the DRV8825
-    digitalWrite(pinMapping.outputs.pinStepperStep, HIGH);
+    setPinState(pinMapping.outputs.pinStepperDir, STEPPER_LESS_AIR_DIRECTION() ); //homing the stepper closes off the air bleed
+    setPin_Low(pinMapping.outputs.pinStepperEnable); //Enable the DRV8825
+    setPin_High(pinMapping.outputs.pinStepperStep);
     idleStepper.stepStartTime = micros_safe();
     idleStepper.stepperStatus = STEPPING;
     completedHomeSteps++;
@@ -422,13 +422,11 @@ void idleControl(void)
   //Check whether the idleUp is active
   if (isIdleUpEnabled())
   {
-    if (configPage2.idleUpPolarity == 0) { currentStatus.idleUpActive = !digitalRead(pinMapping.inputs.pinIdleUp); } //Normal mode (ground switched)
-    else { currentStatus.idleUpActive = digitalRead(pinMapping.inputs.pinIdleUp); } //Inverted mode (5v activates idleUp)
-
+    currentStatus.idleUpActive = readPin(pinMapping.inputs.pinIdleUp)==configPage2.idleUpPolarity;
     if (isIdleUpOutputEnabled())
     {
       currentStatus.idleUpOutputActive = currentStatus.idleUpActive;
-      digitalWrite( pinMapping.outputs.pinIdleUpOutput, 
+      setPinState( pinMapping.outputs.pinIdleUpOutput, 
                     currentStatus.idleUpOutputActive ? getIdleUpOutputHIGH() : getIdleUpOutputLOW());
     }
   }

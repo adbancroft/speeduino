@@ -533,7 +533,7 @@ struct config2 {
   byte multiplyMAP : 2; ///< MAP value processing: 0 = off, 1 = div by currentStatus.baro, 2 = div by 100 (to gain usable value)
   byte wueValues[10];   ///< Warm up enrichment array (10 bytes, transferred to @ref WUETable)
   byte crankingPct;     ///< Cranking enrichment (See @ref config10, updates.ino)
-  byte pinMapping;      ///< The board / ping mapping number / id to be used (See: @ref setPinMapping in init.ino)
+  byte boardId;      ///< The board / ping mapping number / id to be used (See: @ref setPinMapping in init.ino)
   byte tachoPin : 6;    ///< Custom pin setting for tacho output (if != 0, override copied to pinTachOut, which defaults to board assigned tach pin)
   byte tachoDiv : 2;    ///< Whether to change the tacho speed ("half speed tacho" ?)
   byte tachoDuration;   //The duration of the tacho pulse in mS
