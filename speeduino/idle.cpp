@@ -59,27 +59,12 @@ static inline void enableIdle(void)
 
 void initialiseIdle(bool forcehoming, const pin_mapping_t &pins) {
   //Pin masks must always be initialised, regardless of whether PWM idle is used. This is required for STM32 to prevent issues if the IRQ function fires on restart/overflow
-  if (isIdlePwm() && isValidPin(pins.outputs.pinIdle1)) {
-    pinMode(pins.outputs.pinIdle1, OUTPUT);
-  }
-  if (isIdle2PwmEnabled() && isValidPin(pins.outputs.pinIdle2)) {
-    pinMode(pins.outputs.pinIdle2, OUTPUT);
-  }
-  if(isIdleUpOutputEnabled() && isValidPin(pins.outputs.pinIdleUpOutput) ) {
-    pinMode(pins.outputs.pinIdleUpOutput, OUTPUT);
-  }  
-  if(isIdleStepper()) {
-    if (isValidPin(pins.outputs.pinStepperDir) ) {
-      pinMode(pins.outputs.pinStepperDir, OUTPUT);
-    }
-    if(isValidPin(pins.outputs.pinStepperStep) ) {
-      pinMode(pins.outputs.pinStepperStep, OUTPUT);
-    }
-    if(isValidPin(pins.outputs.pinStepperEnable) ) {
-      pinMode(pins.outputs.pinStepperEnable, OUTPUT);
-    }
-  }
-
+  MATCH_PIN_TO_FEATURE(isIdlePwm, pins.outputs.pinIdle1, OUTPUT, configPage6.iacAlgorithm)
+  MATCH_PIN_TO_FEATURE(isIdle2PwmEnabled, pins.outputs.pinIdle2, OUTPUT, configPage6.iacAlgorithm)
+  MATCH_PIN_TO_FEATURE(isIdleUpOutputEnabled, pins.outputs.pinIdleUpOutput, OUTPUT, configPage2.idleUpOutputEnabled)
+  MATCH_PIN_TO_FEATURE(isIdleStepper, pins.outputs.pinStepperDir, OUTPUT, configPage6.iacAlgorithm)
+  MATCH_PIN_TO_FEATURE(isIdleStepper, pins.outputs.pinStepperStep, OUTPUT, configPage6.iacAlgorithm)
+  MATCH_PIN_TO_FEATURE(isIdleStepper, pins.outputs.pinStepperEnable, OUTPUT, configPage6.iacAlgorithm)
 
   initialiseIdle(forcehoming);
 }
@@ -274,8 +259,8 @@ static inline uint8_t getIdleUpOutputLOW(void) {
 
 void initialiseIdleUpOutput(void)
 {
-  if(isIdleUpOutputEnabled() && isValidPin(pinMapping.outputs.pinIdleUpOutput)) { 
-    pinMode(pinMapping.inputs.pinIdleUp, (configPage2.idleUpPolarity == 0 ? INPUT_PULLUP : INPUT));
+  MATCH_PIN_TO_FEATURE(isIdleUpOutputEnabled, pinMapping.outputs.pinIdleUpOutput, (configPage2.idleUpPolarity == 0 ? INPUT_PULLUP : INPUT), configPage2.idleUpOutputEnabled)
+  if (isIdleUpOutputEnabled()) {
     setPinState(pinMapping.outputs.pinIdleUpOutput, getIdleUpOutputLOW()); //Initialise program with the idle up output in the off state if it is enabled. 
   }
   currentStatus.idleUpOutputActive = false;

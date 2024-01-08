@@ -279,9 +279,7 @@ uint32_t logStartTime = 0; //In ms
 
 void initSD(const pin_mapping_t &pins)
 {
-  if (isSDLoggingEnabled() && isValidPin(pins.inputs.pinSDEnable)) {
-    pinMode(pins.inputs.pinSDEnable, INPUT);
-  }
+  MATCH_PIN_TO_FEATURE(isSDLoggingEnabled, pins.inputs.pinSDEnable, INPUT, configPage13.onboard_log_trigger_Epin)
   
   //Set default state to ready. If any stage of the init fails, this will be changed
   SD_status = SD_STATUS_READY; 

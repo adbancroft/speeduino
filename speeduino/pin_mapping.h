@@ -97,8 +97,8 @@ struct input_pins_t {
 };
 
 struct pin_mapping_t {
-    output_pins_t outputs;
-    input_pins_t inputs;
+  output_pins_t outputs;
+  input_pins_t inputs;
 };
 
 extern pin_mapping_t pinMapping;
@@ -114,3 +114,13 @@ bool pinIsUsed(uint8_t pin, const pin_mapping_t &pins);
 #else
 #define SENSOR_PIN_MODE INPUT
 #endif
+
+/** @brief If a feature is enabled but the necessary pin is not available, turn the*/
+#define MATCH_PIN_TO_FEATURE(featureTest, pin, mode, disableFeature) \
+  if((featureTest)()) { \
+    if (isValidPin((pin))) { \
+      pinMode((pin), (mode)); \
+    } else { \
+      (disableFeature) = 0U; \
+    } \
+  }

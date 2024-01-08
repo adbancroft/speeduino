@@ -220,9 +220,7 @@ void initialiseMapBaroSensors(const pin_mapping_t &pins) {
     writeConfig(ignSetPage); 
   }
 
-  if (isExtBaroEnabled() && isValidPin(pins.inputs.sensors.pinBaro)) {
-    pinMode(pins.inputs.sensors.pinBaro, SENSOR_PIN_MODE);
-  }
+  MATCH_PIN_TO_FEATURE(isExtBaroEnabled, pins.inputs.sensors.pinBaro, SENSOR_PIN_MODE, configPage6.useExtBaro)
   if(configPage4.ADCFILTER_BARO > 240U) { 
     configPage4.ADCFILTER_BARO = ADCFILTER_BARO_DEFAULT;
     writeConfig(ignSetPage);
@@ -488,9 +486,7 @@ void initialiseTPS(const pin_mapping_t &pins) {
     writeConfig(ignSetPage);
   }
   
-  if (isCTPSEnabled() && isValidPin(pins.inputs.pinCTPS)) {
-    pinMode(pins.inputs.pinCTPS, (configPage2.CTPSPolarity == 0U) ? INPUT_PULLUP : INPUT);
-  }
+  MATCH_PIN_TO_FEATURE(isCTPSEnabled, pins.inputs.pinCTPS, (configPage2.CTPSPolarity == 0U) ? INPUT_PULLUP : INPUT, configPage2.CTPSEnabled)
 }
 
 void readTPS(bool useFilter)
@@ -530,8 +526,8 @@ void readTPS(bool useFilter)
   }
 
   //Check whether the closed throttle position sensor is active
-  configPage2.CTPSPolarity = isCTPSEnabled() 
-                          && readPin(pinMapping.inputs.pinCTPS)==configPage2.CTPSPolarity;
+  static_assert(LOW==0 && HIGH==1, "Must match possible configPage2.CTPSPolarity values");
+  currentStatus.CTPSActive = isCTPSEnabled() && configPage2.CTPSPolarity==readPin(pinMapping.inputs.pinCTPS);
 }
 
 
@@ -573,13 +569,9 @@ void initialiseNonCoreSensors(const pin_mapping_t &pins) {
     configPage4.ADCFILTER_BAT = ADCFILTER_BAT_DEFAULT;
     writeConfig(ignSetPage); 
   }
-  if (isFuelPressureEnabled() && isValidPin(pins.inputs.sensors.pinFuelPressure)) {
-    pinMode(pins.inputs.sensors.pinFuelPressure, SENSOR_PIN_MODE);
-  }
-  if (isOilPressureEnabled() && isValidPin(pins.inputs.sensors.pinOilPressure)) {
-    pinMode(pins.inputs.sensors.pinOilPressure, SENSOR_PIN_MODE);
-  }
 
+  MATCH_PIN_TO_FEATURE(isFuelPressureEnabled, pins.inputs.sensors.pinFuelPressure, SENSOR_PIN_MODE, configPage10.fuelPressureEnable)
+  MATCH_PIN_TO_FEATURE(isOilPressureEnabled, pins.inputs.sensors.pinOilPressure, SENSOR_PIN_MODE, configPage10.oilPressureEnable)
 }
 
 void readCLT(bool useFilter)
@@ -873,9 +865,9 @@ byte getOilPressure(void)
 }
 
 void initialiseFlexFuel(const pin_mapping_t &pins) {
-  if(isFlexEnabled() && isValidPin(pins.inputs.pinFlex))
+  MATCH_PIN_TO_FEATURE(isFlexEnabled, pins.inputs.pinFlex, INPUT, configPage2.flexEnabled)
+  if(isFlexEnabled())
   {
-    pinMode(pins.inputs.pinFlex, INPUT); // Standard GM / Continental flex sensor requires pullup, but this should be onboard. The internal pullup will not work (Requires ~3.3k)!
     attachInterrupt(digitalPinToInterrupt(pins.inputs.pinFlex), flexPulse, CHANGE);
   }
   if(configPage4.FILTER_FLEX > 240U) { 
@@ -921,8 +913,8 @@ void knockPulse(void)
 }
 
 void initialiseVss(const pin_mapping_t &pins) {
-  if (isVssModeInterrupt() && isValidPin(pins.inputs.pinVSS)) {
-    pinMode(pins.inputs.pinVSS, INPUT);
+  MATCH_PIN_TO_FEATURE(isVssModeInterrupt, pins.inputs.pinVSS, INPUT, configPage2.vssMode)
+  if (isVssModeInterrupt()) {
     attachInterrupt(digitalPinToInterrupt(pins.inputs.pinVSS), vssPulse, RISING);
   }
   vssIndex = 0;

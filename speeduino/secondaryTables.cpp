@@ -4,14 +4,8 @@
 #include "port_pin.h"
 
 void initialiseSecondaryTables(const pin_mapping_t &pins) {
-  if(configPage10.fuel2Mode > 0 && isValidPin(pins.inputs.pinFuel2Input) )
-  {
-    pinMode(pins.inputs.pinFuel2Input, (configPage10.fuel2InputPullup ? INPUT_PULLUP : INPUT));
-  }
-  if(configPage10.spark2Mode > 0 && isValidPin(pins.inputs.pinSpark2Input) )
-  {
-    pinMode(pins.inputs.pinSpark2Input, (configPage10.spark2InputPullup ? INPUT_PULLUP : INPUT));
-  } 
+  MATCH_PIN_TO_FEATURE(isPinFuel2InputEnabled, pins.inputs.pinFuel2Input, (configPage10.fuel2InputPullup ? INPUT_PULLUP : INPUT), configPage10.fuel2Mode)
+  MATCH_PIN_TO_FEATURE(isPinSpark2InputEnabled, pins.inputs.pinSpark2Input, (configPage10.spark2InputPullup ? INPUT_PULLUP : INPUT), configPage10.spark2Mode)
 }
 
 static byte getVE2(void);

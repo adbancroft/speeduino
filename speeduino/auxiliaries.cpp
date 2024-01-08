@@ -66,9 +66,9 @@ Air Conditioning Control
 */
 void initialiseAirCon(const pin_mapping_t &pins)
 {
-  if( isAirConEnabled() &&
-      isValidPin(pins.inputs.pinAirConRequest) &&
-      isValidPin(pins.outputs.pinAirConComp) )
+  MATCH_PIN_TO_FEATURE(isAirConEnabled, pins.inputs.pinAirConRequest, (configPage15.airConReqPol == 1 ? INPUT : INPUT_PULLUP), configPage15.airConEnable)
+  MATCH_PIN_TO_FEATURE(isAirConEnabled, pins.outputs.pinAirConComp, OUTPUT, configPage15.airConEnable)
+  if( isAirConEnabled())
   {
     // Hold the A/C off until a few seconds after cranking
     acAfterEngineStartDelay = 0;
@@ -85,18 +85,12 @@ void initialiseAirCon(const pin_mapping_t &pins)
     BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_TURNING_ON);  // Bit 4
     BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_CLT_LOCKOUT); // Bit 5
     BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_FAN);         // Bit 6
-    // Inverted: +5V is ON, Use external pull-down resistor for OFF
-    // Normal: Pin pulled to Ground is ON. Floating (internally pulled up to +5V) is OFF.
-    pinMode(pins.inputs.pinAirConRequest, (configPage15.airConReqPol == 1 ? INPUT : INPUT_PULLUP));
-    pinMode(pins.outputs.pinAirConComp, OUTPUT);
 
     AIRCON_OFF();
-
-    if(isAirConFanEnabled() && isValidPin(pins.outputs.pinAirConFan))
-    {
-      pinMode(pins.outputs.pinAirConFan, OUTPUT);
-      AIRCON_FAN_OFF();
-    }
+  }
+  MATCH_PIN_TO_FEATURE(isAirConFanEnabled, pins.outputs.pinAirConFan, OUTPUT, configPage15.airConFanEnabled)
+  if (isAirConFanEnabled()) {
+    AIRCON_FAN_OFF();
   }
 }
 
@@ -280,7 +274,7 @@ Fan control
 */
 void initialiseFan(const pin_mapping_t &pins)
 {
-  pinMode(pins.outputs.pinFan, OUTPUT);
+  MATCH_PIN_TO_FEATURE(isFanEnabled, pins.outputs.pinFan, OUTPUT, configPage2.fanEnable)
   FAN_OFF();  //Initialise program with the fan in the off state
   BIT_CLEAR(currentStatus.status4, BIT_STATUS4_FAN);
   currentStatus.fanDuty = 0;
@@ -413,34 +407,36 @@ void fanControl(void)
 
 void initialiseAuxPWM(const pin_mapping_t &pins)
 {
+  MATCH_PIN_TO_FEATURE(isBoostEnabled, pins.outputs.pinBoost, OUTPUT, configPage6.boostEnabled)
   if (isBoostEnabled()) {
     boost_pwm_max_count = frequencyToTimerTicks(configPage6.boostFreq*2U); // Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
-    pinMode(pins.outputs.pinBoost, OUTPUT);
   }
 
-  if (isVVT_1Enabled()) {
-    pinMode(pins.outputs.pinVVT_1, OUTPUT);
-  }
-
-  if (isVVT_2Enabled()) {
-    pinMode(pins.outputs.pinVVT_2, OUTPUT);
-  }
+  MATCH_PIN_TO_FEATURE(isVVT_1Enabled, pins.outputs.pinVVT_1, OUTPUT, configPage6.vvtEnabled)
+  MATCH_PIN_TO_FEATURE(isVVT_2Enabled, pins.outputs.pinVVT_2, OUTPUT, configPage10.vvt2Enabled)
 
   //This is a safety check that will be true if the board is uninitialised. This prevents hangs on a new board that could otherwise try to write to an invalid pin port/mask (Without this a new Teensy 4.x hangs on startup)
   //The n2o_minTPS variable is capped at 100 by TS, so 255 indicates a new board.
   if(configPage10.n2o_minTPS == 255) { configPage10.n2o_enable = 0; }
 
-  if(configPage10.n2o_enable > 0)
-  {
-    //The pin modes are only set if the if n2o is enabled to prevent them conflicting with other outputs.   
-    if (!pinIsUsed(configPage10.n2o_stage1_pin, pins)) {
-      pinMode(configPage10.n2o_stage1_pin, OUTPUT);
+  // The pin modes are only set if the if n2o is enabled to prevent them conflicting with other outputs.   
+  if (isNitrousEnabled()) {
+    if (!pinIsUsed(configPage10.n2o_stage1_pin, pins)
+     && !pinIsUsed(configPage10.n2o_arming_pin, pins)) {
+      MATCH_PIN_TO_FEATURE(isNitrousEnabled, configPage10.n2o_arming_pin, OUTPUT, configPage10.n2o_enable)
+      MATCH_PIN_TO_FEATURE(isNitrousEnabled, configPage10.n2o_stage1_pin, OUTPUT, configPage10.n2o_enable)
+    } else {
+      // No valid stage 1 & arming pin - turn nitrous off.
+      configPage10.n2o_enable = NITROUS_OFF;
     }
-    if (!pinIsUsed(configPage10.n2o_stage2_pin, pins)) {
+  }
+  if (configPage10.n2o_enable == NITROUS_STAGE2) {
+    if (isValidPin(configPage10.n2o_stage2_pin)
+      && !pinIsUsed(configPage10.n2o_stage2_pin, pins)) {
       pinMode(configPage10.n2o_stage2_pin, OUTPUT);
-    }
-    if (!pinIsUsed(configPage10.n2o_arming_pin, pins)) {
-      pinMode(configPage10.n2o_arming_pin, (configPage10.n2o_pin_polarity == 1 ? INPUT_PULLUP : INPUT));
+    } else {
+      // No valid stage 2 pin - revert to single stage.
+      configPage10.n2o_enable = NITROUS_OFF;
     }
   }
 
@@ -933,7 +929,7 @@ void vvtControl(void)
 void nitrousControl(void)
 {
   bool nitrousOn = false; //This tracks whether the control gets turned on at any point. 
-  if(configPage10.n2o_enable > 0)
+  if(isNitrousEnabled())
   {
     bool isArmed = READ_N2O_ARM_PIN();
     if (configPage10.n2o_pin_polarity == 1) { isArmed = !isArmed; } //If nitrous is active when pin is low, flip the reading (n2o_pin_polarity = 0 = active when High)
@@ -978,7 +974,7 @@ void nitrousControl(void)
     currentStatus.nitrous_status = NITROUS_OFF;
     BIT_CLEAR(currentStatus.status3, BIT_STATUS3_NITROUS);
 
-    if(configPage10.n2o_enable > 0)
+    if(isNitrousEnabled())
     {
       N2O_STAGE1_PIN_LOW();
       N2O_STAGE2_PIN_LOW();
@@ -987,19 +983,12 @@ void nitrousControl(void)
 }
 
 void initialiseWmi(const pin_mapping_t &pins) {
-  if (isWMIEnabled()) {
-    if (isValidPin(pins.outputs.pinWMIEnabled)) {
-      pinMode(pins.outputs.pinWMIEnabled, OUTPUT);
-    }
-    if (isWMIIndicatorEnabled() && isValidPin(pins.outputs.pinWMIIndicator))
-    {
-      pinMode(pins.outputs.pinWMIIndicator, OUTPUT);
-      if (configPage10.wmiIndicatorPolarity > 0) { setPin_Low(pins.outputs.pinWMIIndicator); }
-    }
-    if(isWMIEmptyEnabled() && isValidPin(pins.inputs.pinWMIEmpty) )
-    {
-      pinMode(pins.inputs.pinWMIEmpty, (configPage10.wmiEmptyPolarity ? INPUT_PULLUP : INPUT));
-    }
+  MATCH_PIN_TO_FEATURE(isWMIEnabled, pins.outputs.pinWMIEnabled, OUTPUT, configPage10.wmiEnabled)
+  MATCH_PIN_TO_FEATURE(isWMIIndicatorEnabled, pins.outputs.pinWMIIndicator, OUTPUT, configPage10.wmiIndicatorEnabled)
+  MATCH_PIN_TO_FEATURE(isWMIEmptyEnabled, pins.inputs.pinWMIEmpty, (configPage10.wmiEmptyPolarity ? INPUT_PULLUP : INPUT), configPage10.wmiEmptyEnabled)
+
+  if (isWMIIndicatorEnabled() && (configPage10.wmiIndicatorPolarity > 0)) {
+    setPin_High(pins.outputs.pinWMIIndicator); 
   }
 }
 
