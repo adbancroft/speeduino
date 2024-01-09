@@ -1617,21 +1617,19 @@ static pin_mapping_t disableInputOutputOverlapPins(pin_mapping_t pins) {
   return pins;
 }
 
-pin_mapping_t pinMapping;
-
 /** Set board / microcontroller specific pin mappings / assignments.
  * The boardID is switch-case compared against raw boardID integers (not enum or defined label, and probably no need for that either)
  * which are originated from tuning SW (e.g. TS) set values and are available in reference/speeduino.ini (See pinLayout, note also that
  * numbering is not contiguous here).
  */
-void setPinMapping(byte boardID)
+pin_mapping_t getPinMapping(byte boardID)
 {
-  pinMapping = disableInputOutputOverlapPins(
-                  disableUnusedInputPins(
-                    applyInputPinUserOverrides(
-                      disableUnusedOutputPins(
-                          applyOutputPinUserOverrides(
-                              getDefaultPinMapping(boardID))))));
+  return disableInputOutputOverlapPins(
+            disableUnusedInputPins(
+              applyInputPinUserOverrides(
+                disableUnusedOutputPins(
+                    applyOutputPinUserOverrides(
+                        getDefaultPinMapping(boardID))))));
 }
 
 bool pinIsUsed(uint8_t pin, const pin_mapping_t &pins)

@@ -20,23 +20,29 @@ static uint8_t currentRuleStatus = 0;
 
 // ===================== Ignition Bypass =====================
 
+static uint8_t pinIgnBypass;
+
 void initialiseIgnitionByPass(const pin_mapping_t &pins) {
   MATCH_PIN_TO_FEATURE(isIgnBypassEnabled, pins.outputs.pinIgnBypass, OUTPUT, configPage4.ignBypassEnabled)
+  pinIgnBypass = pins.outputs.pinIgnBypass;
 }
 
 void ignitionByPassOn(void) {
-  setPin_High(pinMapping.outputs.pinIgnBypass);
+  setPin_High(pinIgnBypass);
 }
 void ignitionByPassOff(void) {
-  setPin_Low(pinMapping.outputs.pinIgnBypass);
+  setPin_Low(pinIgnBypass);
 }
 
 
 // ===================== Reset Prevention =====================
  
+static uint8_t pinResetControl;
 void initialiseResetControl(const pin_mapping_t &pins) {
+  pinResetControl = NOT_A_PIN;
   if (configPage4.resetControlConfig==RESET_CONTROL_SERIAL_COMMAND) {
     if (isValidPin(pins.outputs.pinResetControl)) {
+      pinResetControl = pins.outputs.pinResetControl;
       /* Reset control is a special case. If reset control is enabled, it needs its initial state set BEFORE its pinMode.
          If that doesn't happen and reset control is in "Serial Command" mode, the Arduino will end up in a reset loop
          because the control pin will go low as soon as the pinMode is set to OUTPUT. */
@@ -51,11 +57,11 @@ void initialiseResetControl(const pin_mapping_t &pins) {
 }
 
 void resetPrevent(void) {
-  setPin_High(pinMapping.outputs.pinResetControl);
+  setPin_High(pinResetControl);
 }
 
 void resetAllow(void) {
-  setPin_Low(pinMapping.outputs.pinResetControl);
+  setPin_Low(pinResetControl);
 }
 
 void setResetControlPinState(void)
@@ -90,15 +96,18 @@ void setResetControlPinState(void)
 
 // ===================== Launch Control =====================
 
+static uint8_t pinLaunch;
+
 void initialiseLaunchControl(const pin_mapping_t &pins) {
   MATCH_PIN_TO_FEATURE(isClutchTriggerEnabled, pins.inputs.pinLaunch, (configPage6.lnchPullRes ? INPUT_PULLUP : INPUT), configPage6.launchEnabled)
+  pinLaunch = pins.inputs.pinLaunch;
 }
 
 bool isClutchTriggerOn(void) {
   static_assert(LOW==0 && HIGH==1, "Equality check below will fail");
   return isClutchTriggerEnabled()
-      && isValidPin(pinMapping.inputs.pinLaunch)
-      && readPin(pinMapping.inputs.pinLaunch)==configPage6.launchHiLo;
+      && isValidPin(pinLaunch)
+      && readPin(pinLaunch)==configPage6.launchHiLo;
 }
 
 //*********************************************************************************************************************************************************************************

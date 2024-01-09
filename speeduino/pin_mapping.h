@@ -101,9 +101,7 @@ struct pin_mapping_t {
   input_pins_t inputs;
 };
 
-extern pin_mapping_t pinMapping;
-
-void setPinMapping(uint8_t boardId);
+pin_mapping_t getPinMapping(uint8_t boardId);
 bool pinIsUsed(uint8_t pin, const pin_mapping_t &pins);
 
 #if defined(CORE_STM32) && defined(INPUT_ANALOG)

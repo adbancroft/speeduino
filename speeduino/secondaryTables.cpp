@@ -3,9 +3,14 @@
 #include "corrections.h"
 #include "port_pin.h"
 
+static uint8_t pinFuel2Input;
+static uint8_t pinSpark2Input;
+
 void initialiseSecondaryTables(const pin_mapping_t &pins) {
   MATCH_PIN_TO_FEATURE(isPinFuel2InputEnabled, pins.inputs.pinFuel2Input, (configPage10.fuel2InputPullup ? INPUT_PULLUP : INPUT), configPage10.fuel2Mode)
+  pinFuel2Input = pins.inputs.pinFuel2Input;
   MATCH_PIN_TO_FEATURE(isPinSpark2InputEnabled, pins.inputs.pinSpark2Input, (configPage10.spark2InputPullup ? INPUT_PULLUP : INPUT), configPage10.spark2Mode)
+  pinSpark2Input = pins.inputs.pinSpark2Input;
 }
 
 static byte getVE2(void);
@@ -74,7 +79,7 @@ void calculateSecondaryFuel(void)
     }
     else if(configPage10.fuel2Mode == FUEL2_MODE_INPUT_SWITCH)
     {
-      if(readPin(pinMapping.inputs.pinFuel2Input) == configPage10.fuel2InputPolarity)
+      if(readPin(pinFuel2Input) == configPage10.fuel2InputPolarity)
       {
         BIT_SET(currentStatus.status3, BIT_STATUS3_FUEL2_ACTIVE); //Set the bit indicating that the 2nd fuel table is in use. 
         currentStatus.VE2 = getVE2();
@@ -154,7 +159,7 @@ void calculateSecondarySpark(void)
     }
     else if(configPage10.spark2Mode == SPARK2_MODE_INPUT_SWITCH)
     {
-      if(readPin(pinMapping.inputs.pinSpark2Input) == configPage10.spark2InputPolarity)
+      if(readPin(pinSpark2Input) == configPage10.spark2InputPolarity)
       {
         BIT_SET(currentStatus.spark2, BIT_SPARK2_SPARK2_ACTIVE); //Set the bit indicating that the 2nd spark table is in use. 
         currentStatus.advance2 = getAdvance2();

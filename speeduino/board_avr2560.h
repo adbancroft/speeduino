@@ -40,7 +40,7 @@
   #else
     #define micros_safe() micros() //If the timer5 method is not used, the micros_safe() macro is simply an alias for the normal micros()
   #endif
-  #define pinIsReserved(pin)  ( ((pin) == 0) ) //Forbidden pins like USB on other boards
+  #define pinIsReserved(pin)  ( ((pin) == 0U) ) //Forbidden pins like USB on other boards
 
   //Mega 2561 MCU does not have a serial3 available. 
   #if not defined(__AVR_ATmega2561__)

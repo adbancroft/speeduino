@@ -314,7 +314,7 @@ void __attribute__((always_inline)) loop(void)
       //It can possibly be run much less frequently.
       //This should only be run if the high speed logger are off because it will change the trigger interrupts back to defaults rather than the logger versions
       if( !isToothLogEnabled() && !isCompositeLogEnabled() ) { 
-        initialiseDecoder(); 
+        reInitialiseDecoder(); 
       } else {
         engineStoppedDecoder();
       }

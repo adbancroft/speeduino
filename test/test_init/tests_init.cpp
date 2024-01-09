@@ -69,7 +69,7 @@ void test_initialisation_outputs_V03(void)
 {
   prepareForInitialiseAll(2);
   configPage2.fanEnable = 1U;
-  initialiseAll(); //Run the main initialise function
+  pin_mapping_t pinMapping = initialiseAll(); //Run the main initialise function
 
   char msg[32];
   strcpy_P(msg, PSTR("Coil1"));
@@ -101,7 +101,7 @@ void test_initialisation_outputs_V04(void)
 {
   prepareForInitialiseAll(3);
   configPage2.fanEnable = 1;
-  initialiseAll(); //Run the main initialise function
+  pin_mapping_t pinMapping = initialiseAll(); //Run the main initialise function
 
   char msg[32];
   strcpy_P(msg, PSTR("Coil1"));
@@ -152,7 +152,7 @@ void test_initialisation_outputs_MX5_8995(void)
 {
   prepareForInitialiseAll(9);
   configPage2.fanEnable = 1;
-  initialiseAll(); //Run the main initialise function
+  pin_mapping_t pinMapping = initialiseAll(); //Run the main initialise function
 
   char msg[32];
   strcpy_P(msg, PSTR("Coil1"));
@@ -187,7 +187,7 @@ void test_initialisation_outputs_PWM_idle(void)
   configPage6.iacChannels = 1;
   configPage6.iacAlgorithm = 2;
 
-  initialiseAll(); //Run the main initialise function
+  pin_mapping_t pinMapping = initialiseAll(); //Run the main initialise function
 
   bool isIdlePWM = (configPage6.iacAlgorithm > 0) && ((configPage6.iacAlgorithm <= 3) || (configPage6.iacAlgorithm == 6));
 
@@ -203,7 +203,7 @@ void test_initialisation_outputs_PWM_idle(void)
 void test_initialisation_outputs_stepper_idle(void)
 {
   prepareForInitialiseAll(9);
-  initialiseAll(); //Run the main initialise function
+  pin_mapping_t pinMapping = initialiseAll(); //Run the main initialise function
 
   char msg[32];
   strcpy_P(msg, PSTR("Is Stepper Idle"));
@@ -220,7 +220,7 @@ void test_initialisation_outputs_boost(void)
 {
   prepareForInitialiseAll(9);
   configPage6.boostEnabled = 1;
-  initialiseAll(); //Run the main initialise function
+  pin_mapping_t pinMapping = initialiseAll(); //Run the main initialise function
 
   char msg[32];
   strcpy_P(msg, PSTR("Boost"));
@@ -232,7 +232,7 @@ void test_initialisation_outputs_VVT(void)
   prepareForInitialiseAll(3);
   configPage6.vvtEnabled = 1;
   configPage10.vvt2Enabled = 1;
-  initialiseAll(); //Run the main initialise function
+  pin_mapping_t pinMapping = initialiseAll(); //Run the main initialise function
 
   char msg[32];
   strcpy_P(msg, PSTR("VVT1"));
@@ -244,12 +244,12 @@ void test_initialisation_outputs_VVT(void)
 void test_initialisation_outputs_reset_control_use_board_default(void)
 {
   prepareForInitialiseAll(9);
-  configPage4.resetControlConfig = RESET_CONTROL_PREVENT_WHEN_RUNNING;
+  configPage4.resetControlConfig = RESET_CONTROL_SERIAL_COMMAND;
   configPage4.resetControlPin = 0; // Flags to use board default
-  initialiseAll(); //Run the main initialise function
+  pin_mapping_t pinMapping = initialiseAll(); //Run the main initialise function
 
   TEST_ASSERT_NOT_EQUAL(0, pinMapping.outputs.pinResetControl); 
-  TEST_ASSERT_EQUAL(resetControl, RESET_CONTROL_PREVENT_WHEN_RUNNING);
+  TEST_ASSERT_EQUAL(resetControl, RESET_CONTROL_SERIAL_COMMAND);
   TEST_ASSERT_EQUAL(OUTPUT, getPinMode(pinMapping.outputs.pinResetControl));  
 }
 
@@ -258,7 +258,7 @@ void test_initialisation_outputs_reset_control_override_board_default(void)
   prepareForInitialiseAll(9);
   configPage4.resetControlConfig = RESET_CONTROL_PREVENT_WHEN_RUNNING;
   configPage4.resetControlPin = 45; // Use a different pin
-  initialiseAll(); //Run the main initialise function
+  pin_mapping_t pinMapping = initialiseAll(); //Run the main initialise function
 
   TEST_ASSERT_EQUAL(45, pinMapping.outputs.pinResetControl);  
   TEST_ASSERT_EQUAL(resetControl, RESET_CONTROL_PREVENT_WHEN_RUNNING);
@@ -271,7 +271,7 @@ void test_initialisation_user_pin_override_board_default(void)
   // We do not test all pins, too many & too fragile. So fingers crossed the 
   // same pattern is used for all.
   configPage2.tachoPin = 15;
-  initialiseAll(); //Run the main initialise function
+  pin_mapping_t pinMapping = initialiseAll(); //Run the main initialise function
 
   TEST_ASSERT_EQUAL(15, pinMapping.outputs.pinTachOut);  
   TEST_ASSERT_EQUAL(OUTPUT, getPinMode(pinMapping.outputs.pinTachOut));
@@ -286,7 +286,7 @@ void test_initialisation_user_pin_not_valid_no_override(void)
   prepareForInitialiseAll(3);
   configPage2.tachoPin = (uint8_t)BOARD_MAX_IO_PINS;// + (uint8_t)1U;
   ++configPage2.tachoPin;
-  initialiseAll(); //Run the main initialise function
+  pin_mapping_t pinMapping = initialiseAll(); //Run the main initialise function
 
   TEST_ASSERT_EQUAL(49, pinMapping.outputs.pinTachOut);  
   TEST_ASSERT_EQUAL(OUTPUT, getPinMode(pinMapping.outputs.pinTachOut));
@@ -298,7 +298,7 @@ void test_initialisation_input_user_pin_does_not_override_outputpin(void)
   // A user defineable input pin should not overwrite any output pins.
   prepareForInitialiseAll(3);
   configPage6.launchPin = 49; // 49 is the default tacho output
-  initialiseAll(); //Run the main initialise function
+  pin_mapping_t pinMapping = initialiseAll(); //Run the main initialise function
 
   TEST_ASSERT_EQUAL(49, pinMapping.outputs.pinTachOut);  
   TEST_ASSERT_EQUAL(OUTPUT, getPinMode(pinMapping.outputs.pinTachOut));

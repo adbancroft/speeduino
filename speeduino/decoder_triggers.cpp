@@ -150,14 +150,26 @@ static decoder_t getDecoder(uint8_t pattern) {
 // ========================== I/O ========================== 
 
 #if defined(CORE_AVR)
-using trigger_ioport_t = ioPort; // Use direct port read on AVR (faster)
+struct trigger_ioport_t {
+  uint8_t pin;
+  ioPort port;
+};
 static inline trigger_ioport_t createIoPort(uint8_t pin) {
-  return pinToInputPort(pin);
+  return trigger_ioport_t { pin, pinToInputPort(pin) };
+}
+static inline uint8_t getPinNumber(const trigger_ioport_t &port) {
+  return port.pin;
+}
+static inline uint8_t readPin(trigger_ioport_t &port) {
+  return readPin(port.port);
 }
 #else
 using trigger_ioport_t = uint8_t; // "Normal" digital pin read on non-AVR cores, which are generally a lot faster
 static inline trigger_ioport_t createIoPort(uint8_t pin) {
   return pin;
+}
+static inline uint8_t getPinNumber(const trigger_ioport_t &port) {
+  return port;
 }
 #endif
 
@@ -208,31 +220,36 @@ static void initialiseDecoder(uint8_t pattern, uint8_t pinPrimary, uint8_t pinSe
 
 decoder_t decoder = NULL_DECODER;
 
-void initialiseDecoder(void) {
-  initialiseDecoder(configPage4.TrigPattern, pinMapping.inputs.pinTrigger, pinMapping.inputs.pinTrigger2, pinMapping.inputs.pinTrigger3);
+pin_mapping_t initialiseDecoder(uint8_t pattern, pin_mapping_t pins) {
+  initialiseDecoder(pattern, pins.inputs.pinTrigger, pins.inputs.pinTrigger2, pins.inputs.pinTrigger3);
 
   if (!isValid(decoder.secondaryTrigger)) {
-    pinMapping.inputs.pinTrigger2 = NOT_A_PIN;
+    pins.inputs.pinTrigger2 = NOT_A_PIN;
   }
   if (!isValid(decoder.tertiaryTrigger)) {
-    pinMapping.inputs.pinTrigger3 = NOT_A_PIN;
+    pins.inputs.pinTrigger3 = NOT_A_PIN;
   }
   if (decoder.triggerSetEndTeeth==nullptr) {
     configPage2.perToothIgn = 0U;
   }
+
+  return pins;
 }
 
+void reInitialiseDecoder(void) {
+  initialiseDecoder(configPage4.TrigPattern, getPinNumber(primaryIoPort), getPinNumber(secondaryIoPort), getPinNumber(tertiaryIoPort));
+}
 
 void attachPrimaryInterrupt(const trigger_t &trigger) {
-  attachInterrupt(pinMapping.inputs.pinTrigger, trigger);
+  attachInterrupt(getPinNumber(primaryIoPort), trigger);
 }
 
 void attachSecondaryInterrupt(const trigger_t &trigger) {
-  attachInterrupt(pinMapping.inputs.pinTrigger2, trigger);
+  attachInterrupt(getPinNumber(secondaryIoPort), trigger);
 }
 
 void attachTertiaryInterrupt(const trigger_t &trigger) {
-  attachInterrupt(pinMapping.inputs.pinTrigger3, trigger);
+  attachInterrupt(getPinNumber(tertiaryIoPort), trigger);
 }
 
 uint8_t getTriggerPinState(const trigger_t &trigger) {
