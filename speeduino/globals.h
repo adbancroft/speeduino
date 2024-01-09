@@ -473,7 +473,6 @@ struct statuses {
   uint8_t current_caninchannel = 0; /**< Current CAN channel, defaults to 0 */
   uint16_t crankRPM = 400; /**< The actual cranking RPM limit. This is derived from the value in the config page, but saves us multiplying it every time it's used (Config page value is stored divided by 10) */
   volatile byte status3; ///< Status bits (See BIT_STATUS3_* defines on top of this file)
-  int16_t flexBoostCorrection; /**< Amount of boost added based on flex */
   byte nitrous_status;
   byte nSquirts;  ///< Number of injector squirts per cycle (per injector)
   byte nChannels; /**< Number of fuel and ignition channels.  */

@@ -728,10 +728,6 @@ void boostControl(void)
         {
           currentStatus.boostTarget += table2D_getValue(&flexBoostTable, currentStatus.ethanolPct);;
         }
-        else
-        {
-          currentStatus.flexBoostCorrection = 0;
-        }
 
         if(currentStatus.boostTarget > 0)
         {
@@ -785,7 +781,6 @@ void boostControl(void)
   }
   else { // Disable timer channel and zero the flex boost correction status
     DISABLE_BOOST_TIMER();
-    currentStatus.flexBoostCorrection = 0;
   }
 
   boostCounter++;

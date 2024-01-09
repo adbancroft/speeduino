@@ -147,8 +147,8 @@ byte getTSLogEntry(uint16_t byteNum)
     case 96: statusValue = highByte(currentStatus.vvt1Angle); break;
     case 97: statusValue = currentStatus.vvt1TargetAngle; break;
     case 98: statusValue = lowByte(currentStatus.vvt1Duty); break;
-    case 99: statusValue = lowByte(currentStatus.flexBoostCorrection); break;
-    case 100: statusValue = highByte(currentStatus.flexBoostCorrection); break;
+    case 99: break; //statusValue = lowByte(currentStatus.flexBoostCorrection); break; // Removed, was always zero
+    case 100: break; //statusValue = highByte(currentStatus.flexBoostCorrection); break; // Removed, was always zero
     case 101: statusValue = currentStatus.baroCorrection; break;
     case 102: statusValue = currentStatus.VE; break; //Current VE (%). Can be equal to VE1 or VE2 or a calculated value from both of them
     case 103: statusValue = currentStatus.ASEValue; break; //Current ASE (%)
@@ -276,7 +276,7 @@ int16_t getReadableLogEntry(uint16_t logIndex)
     case 65: statusValue = currentStatus.vvt1Angle; break;
     case 66: statusValue = currentStatus.vvt1TargetAngle; break;
     case 67: statusValue = currentStatus.vvt1Duty; break;
-    case 68: statusValue = currentStatus.flexBoostCorrection; break;
+    case 68: break; // statusValue = currentStatus.flexBoostCorrection; break;  // Removed, was always zero
     case 69: statusValue = currentStatus.baroCorrection; break;
     case 70: statusValue = currentStatus.VE; break; //Current VE (%). Can be equal to VE1 or VE2 or a calculated value from both of them
     case 71: statusValue = currentStatus.ASEValue; break; //Current ASE (%)
@@ -444,8 +444,8 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 93: statusValue = (int8_t)currentStatus.vvt1Angle; break;
     case 94: statusValue = currentStatus.vvt1TargetAngle; break;
     case 95: statusValue = currentStatus.vvt1Duty; break;
-    case 96: statusValue = lowByte(currentStatus.flexBoostCorrection); break;
-    case 97: statusValue = highByte(currentStatus.flexBoostCorrection); break;
+    case 96: break; // statusValue = lowByte(currentStatus.flexBoostCorrection); break;  // Removed, was always zero
+    case 97: break; // statusValue = highByte(currentStatus.flexBoostCorrection); break;  // Removed, was always zero
     case 98: statusValue = currentStatus.baroCorrection; break;
     case 99: statusValue = currentStatus.ASEValue; break; //Current ASE (%)
     case 100: statusValue = lowByte(currentStatus.vss); break; //speed reading from the speed sensor
