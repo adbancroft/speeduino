@@ -305,7 +305,7 @@ time_t getTeensy3Time()
 void doSystemReset() { return; }
 void jumpToBootloader() { return; }
 
-void setTriggerHysteresis()
+void setTriggerHysteresis(uint8_t pinPrimary, uint8_t pinSecondary)
 {
   //Refer to digital.c in the Teensyduino core for the following code
   //Refer also to Pgs 382 and 950 of the iMXRT1060 Reference Manual
@@ -313,13 +313,13 @@ void setTriggerHysteresis()
   const uint32_t padConfig = IOMUXC_PAD_DSE(1) | IOMUXC_PAD_PKE | IOMUXC_PAD_PUE | IOMUXC_PAD_SPEED(0) | IOMUXC_PAD_HYS;
 
   //Primary trigger
-  p = digital_pin_to_info_PGM + pinTrigger;
+  p = digital_pin_to_info_PGM + pinPrimary;
   *(p->reg + 1) &= ~(p->mask); // TODO: atomic
   *(p->pad) = padConfig;
   *(p->mux) = 5 | 0x10;
 
   //Secondary trigger
-  p = digital_pin_to_info_PGM + pinTrigger2;
+  p = digital_pin_to_info_PGM + pinSecondary;
   *(p->reg + 1) &= ~(p->mask); // TODO: atomic
   *(p->pad) = padConfig;
   *(p->mux) = 5 | 0x10;

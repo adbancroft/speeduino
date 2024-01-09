@@ -7,15 +7,16 @@
 #include "timers.h"
 #include "comms_secondary.h"
 
-/*
-  //These are declared locally in comms_CAN now due to this issue: https://github.com/tonton81/FlexCAN_T4/issues/67
+
+// These are declared locally in comms_CAN now due to this issue: https://github.com/tonton81/FlexCAN_T4/issues/67
+#if false
 #if defined(__MK64FX512__)         // use for Teensy 3.5 only 
   FlexCAN_T4<CAN0, RX_SIZE_256, TX_SIZE_16> Can0;
 #elif defined(__MK66FX1M0__)         // use for Teensy 3.6 only
   FlexCAN_T4<CAN0, RX_SIZE_256, TX_SIZE_16> Can0;
   FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can1; 
 #endif
-*/
+#endif
 
 void initBoard()
 {

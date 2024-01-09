@@ -55,10 +55,6 @@ ioPort tach_pin_port;
 ioPort pump_pin_port;
 ioPort flex_pin_port;
 
-ioPort triggerPri_pin_port;
-ioPort triggerSec_pin_port;
-ioPort triggerThird_pin_port;
-
 //These are variables used across multiple files
 byte fpPrimeTime = 0; ///< The time (in seconds, based on @ref statuses.secl) that the fuel pump started priming
 uint8_t softLimitTime = 0; //The time (in 0.1 seconds, based on seclx10) that the soft limiter started
@@ -71,15 +67,6 @@ volatile bool injPrimed = false; ///< Tracks whether or not the injectors primin
 volatile uint8_t toothHistoryIndex = 0; ///< Current index to @ref toothHistory array
 unsigned long currentLoopTime; /**< The time (in uS) that the current mainloop started */
 volatile uint16_t ignitionCount; /**< The count of ignition events that have taken place since the engine started */
-#if defined(CORE_SAMD21)
-  PinStatus primaryTriggerEdge;
-  PinStatus secondaryTriggerEdge;
-  PinStatus tertiaryTriggerEdge;
-#else
-  byte primaryTriggerEdge;
-  byte secondaryTriggerEdge;
-  byte tertiaryTriggerEdge;
-#endif
 int16_t CRANK_ANGLE_MAX_IGN = 360;
 int16_t CRANK_ANGLE_MAX_INJ = 360; ///< The number of crank degrees that the system track over. 360 for wasted / timed batch and 720 for sequential
 volatile uint32_t runSecsX10;

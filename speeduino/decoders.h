@@ -3,16 +3,6 @@
 
 #include "globals.h"
 
-#if defined(CORE_AVR)
-  #define READ_PRI_TRIGGER() readPin(triggerPri_pin_port)
-  #define READ_SEC_TRIGGER() readPin(triggerSec_pin_port)
-  #define READ_THIRD_TRIGGER() readPin(triggerThird_pin_port)
-#else
-  #define READ_PRI_TRIGGER() digitalRead(pinTrigger)
-  #define READ_SEC_TRIGGER() digitalRead(pinTrigger2)
-  #define READ_THIRD_TRIGGER() digitalRead(pinTrigger3)  
-#endif
-
 #define DECODER_MISSING_TOOTH     0
 #define DECODER_BASIC_DISTRIBUTOR 1
 #define DECODER_DUAL_WHEEL        2
@@ -260,16 +250,6 @@ void triggerSec_SuzukiK6A(void);
 uint16_t getRPM_SuzukiK6A(void);
 int getCrankAngle_SuzukiK6A(void);
 void triggerSetEndTeeth_SuzukiK6A(void);
-
-
-
-extern void (*triggerHandler)(void); //Pointer for the trigger function (Gets pointed to the relevant decoder)
-extern void (*triggerSecondaryHandler)(void); //Pointer for the secondary trigger function (Gets pointed to the relevant decoder)
-extern void (*triggerTertiaryHandler)(void); //Pointer for the tertiary trigger function (Gets pointed to the relevant decoder)
-
-extern uint16_t (*getRPM)(void); //Pointer to the getRPM function (Gets pointed to the relevant decoder)
-extern int (*getCrankAngle)(void); //Pointer to the getCrank Angle function (Gets pointed to the relevant decoder)
-extern void (*triggerSetEndTeeth)(void); //Pointer to the triggerSetEndTeeth function of each decoder
 
 extern volatile unsigned long curTime;
 extern volatile unsigned long curGap;

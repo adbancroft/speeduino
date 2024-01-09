@@ -46,6 +46,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "auxiliaries.h"
 #include "board_definition.h"
 #include "unit_testing.h"
+#include "decoder_triggers.h"
 #include RTC_LIB_H //Defined in each boards .h file
 
 TESTABLE_INLINE_STATIC uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen);
@@ -313,7 +314,7 @@ void __attribute__((always_inline)) loop(void)
       //This is a safety check. If for some reason the interrupts have got screwed up (Leading to 0rpm), this resets them.
       //It can possibly be run much less frequently.
       //This should only be run if the high speed logger are off because it will change the trigger interrupts back to defaults rather than the logger versions
-      if( (currentStatus.toothLogEnabled == false) && (currentStatus.compositeTriggerUsed == 0U) ) { initialiseTriggers(); }
+      if( (currentStatus.toothLogEnabled == false) && (currentStatus.compositeTriggerUsed == 0U) ) { initialiseDecoder(); }
 
       VVT1_OFF();
       VVT2_OFF();
