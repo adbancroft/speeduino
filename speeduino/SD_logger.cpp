@@ -276,10 +276,12 @@ uint8_t SD_status = SD_STATUS_OFF;
 uint16_t currentLogFileNumber;
 bool manualLogActive = false;
 uint32_t logStartTime = 0; //In ms
+static uint8_t pinSDEnable;
 
 void initSD(const pin_mapping_t &pins)
 {
   MATCH_PIN_TO_FEATURE(isSDLoggingEnabled, pins.inputs.pinSDEnable, INPUT, configPage13.onboard_log_trigger_Epin)
+  pinSDEnable = pins.inputs.pinSDEnable;
   
   //Set default state to ready. If any stage of the init fails, this will be changed
   SD_status = SD_STATUS_READY; 
@@ -642,7 +644,7 @@ void checkForSDStart()
 
     if(isSDLoggingEnabled() && (SD_status == SD_STATUS_READY) )
     {
-      if(readPin(pinMapping.inputs.pinSDEnable) == LOW)
+      if(readPin(pinSDEnable) == LOW)
       {
         beginSDLogging(); //Setup the log file, preallocation, header row
       }
@@ -696,7 +698,7 @@ void checkForSDStop()
     //External Pin
     if(isSDLoggingEnabled())
     {
-      if(readPin(pinMapping.inputs.pinSDEnable) == LOW)
+      if(readPin(pinSDEnable) == LOW)
       {
         log_Epin = true;
       }

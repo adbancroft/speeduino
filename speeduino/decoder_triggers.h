@@ -1,11 +1,12 @@
 #pragma once
 
 #include "decoder_trigger_types.h"
+#include "pin_mapping.h"
 
 extern decoder_t decoder;
 
-/** @brief Initialize the decoder as used by the tune. */
-void initialiseDecoder(void);
+pin_mapping_t initialiseDecoder(uint8_t pattern, pin_mapping_t pins);
+void reInitialiseDecoder(void);
 
 void attachPrimaryInterrupt(const trigger_t &trigger);
 void attachSecondaryInterrupt(const trigger_t &trigger);

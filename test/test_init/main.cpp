@@ -18,7 +18,7 @@ void prepareForInitialiseAll(uint8_t boardId) {
   // This is required to prevent initialiseAll() also
   // calling resetConfigPages & thus blatting any
   // configuration made in step 2.
-  configPage2.pinMapping = boardId;
+  configPage2.boardId = boardId;
   currentStatus.initialisationComplete = false;
 }
 

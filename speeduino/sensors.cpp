@@ -202,6 +202,10 @@ static inline void validateMAP(void)
   }
 }
 
+static uint8_t pinMAP;
+static uint8_t pinEMAP;
+static uint8_t pinBaro;
+
 void initialiseMapBaroSensors(const pin_mapping_t &pins) {
   MAPcurRev = 0;
   MAPcount = 0;
@@ -219,12 +223,17 @@ void initialiseMapBaroSensors(const pin_mapping_t &pins) {
     configPage4.ADCFILTER_MAP = ADCFILTER_MAP_DEFAULT;
     writeConfig(ignSetPage); 
   }
+  pinMAP = pins.inputs.sensors.pinMAP;
 
   MATCH_PIN_TO_FEATURE(isExtBaroEnabled, pins.inputs.sensors.pinBaro, SENSOR_PIN_MODE, configPage6.useExtBaro)
+  pinBaro = pins.inputs.sensors.pinBaro;
   if(configPage4.ADCFILTER_BARO > 240U) { 
     configPage4.ADCFILTER_BARO = ADCFILTER_BARO_DEFAULT;
     writeConfig(ignSetPage);
   }
+
+  MATCH_PIN_TO_FEATURE(isExhMAPEnabled, pins.inputs.sensors.pinEMAP, SENSOR_PIN_MODE, configPage6.useEMAP)
+  pinEMAP = pins.inputs.sensors.pinEMAP;
 
   //Lookup the current MAP reading for barometric pressure
   instanteneousMAPReading();
@@ -241,10 +250,10 @@ void instanteneousMAPReading(void)
   unsigned int tempReading;
   //Instantaneous MAP readings
   #if defined(ANALOG_ISR_MAP)
-    tempReading = AnChannel[pinMapping.inputs.sensors.pinMAP-A0];
+    tempReading = AnChannel[pinMAP-A0];
   #else
-    tempReading = analogRead(pinMapping.inputs.sensors.pinMAP);
-    tempReading = analogRead(pinMapping.inputs.sensors.pinMAP);
+    tempReading = analogRead(pinMAP);
+    tempReading = analogRead(pinMAP);
   #endif
   //Error checking
   if( (tempReading >= VALID_MAP_MAX) || (tempReading <= VALID_MAP_MIN) ) { mapErrorCount += 1; }
@@ -261,10 +270,10 @@ void instanteneousMAPReading(void)
   if(isExhMAPEnabled())
   {
     #if defined(ANALOG_ISR_MAP)
-      tempReading = AnChannel[pinMapping.inputs.sensors.pinEMAP-A0];
+      tempReading = AnChannel[pinEMAP-A0];
     #else
-      tempReading = analogRead(pinMapping.inputs.sensors.pinEMAP);
-      tempReading = analogRead(pinMapping.inputs.sensors.pinEMAP);
+      tempReading = analogRead(pinEMAP);
+      tempReading = analogRead(pinEMAP);
     #endif
 
     //Error check
@@ -298,10 +307,10 @@ void readMAP(void)
         if( (MAPcurRev == currentStatus.startRevolutions) || ( (MAPcurRev+1) == currentStatus.startRevolutions) ) //2 revolutions are looked at for 4 stroke. 2 stroke not currently catered for.
         {
           #if defined(ANALOG_ISR_MAP)
-            tempReading = AnChannel[pinMapping.inputs.sensors.pinMAP-A0];
+            tempReading = AnChannel[pinMAP-A0];
           #else
-            tempReading = analogRead(pinMapping.inputs.sensors.pinMAP);
-            tempReading = analogRead(pinMapping.inputs.sensors.pinMAP);
+            tempReading = analogRead(pinMAP);
+            tempReading = analogRead(pinMAP);
           #endif
 
           //Error check
@@ -317,10 +326,10 @@ void readMAP(void)
           if(isExhMAPEnabled())
           {
             #if defined(ANALOG_ISR_MAP)
-              tempReading = AnChannel[pinMapping.inputs.sensors.pinEMAP-A0];
+              tempReading = AnChannel[pinEMAP-A0];
             #else
-              tempReading = analogRead(pinMapping.inputs.sensors.pinEMAP);
-              tempReading = analogRead(pinMapping.inputs.sensors.pinEMAP);
+              tempReading = analogRead(pinEMAP);
+              tempReading = analogRead(pinEMAP);
             #endif
 
             //Error check
@@ -382,10 +391,10 @@ void readMAP(void)
         if( (MAPcurRev == currentStatus.startRevolutions) || ((MAPcurRev+1) == currentStatus.startRevolutions) ) //2 revolutions are looked at for 4 stroke. 2 stroke not currently catered for.
         {
           #if defined(ANALOG_ISR_MAP)
-            tempReading = AnChannel[pinMapping.inputs.sensors.pinMAP-A0];
+            tempReading = AnChannel[pinMAP-A0];
           #else
-            tempReading = analogRead(pinMapping.inputs.sensors.pinMAP);
-            tempReading = analogRead(pinMapping.inputs.sensors.pinMAP);
+            tempReading = analogRead(pinMAP);
+            tempReading = analogRead(pinMAP);
           #endif
           //Error check
           if( (tempReading < VALID_MAP_MAX) && (tempReading > VALID_MAP_MIN) )
@@ -425,10 +434,10 @@ void readMAP(void)
         if( (MAPcurRev == ignitionCount) ) //Watch for a change in the ignition counter to determine whether we're still on the same event
         {
           #if defined(ANALOG_ISR_MAP)
-            tempReading = AnChannel[pinMapping.inputs.sensors.pinMAP-A0];
+            tempReading = AnChannel[pinMAP-A0];
           #else
-            tempReading = analogRead(pinMapping.inputs.sensors.pinMAP);
-            tempReading = analogRead(pinMapping.inputs.sensors.pinMAP);
+            tempReading = analogRead(pinMAP);
+            tempReading = analogRead(pinMAP);
           #endif
 
           //Error check
@@ -477,26 +486,31 @@ void readMAP(void)
   }
 }
 
+static uint8_t pinTPS;
+static uint8_t pinCTPS;
+
 void initialiseTPS(const pin_mapping_t &pins) {
   if (isValidPin(pins.inputs.sensors.pinTPS)) {
     pinMode(pins.inputs.sensors.pinTPS, SENSOR_PIN_MODE);
   }
+  pinTPS = pins.inputs.sensors.pinTPS;
   if(configPage4.ADCFILTER_TPS > 240U) { 
     configPage4.ADCFILTER_TPS = ADCFILTER_TPS_DEFAULT;
     writeConfig(ignSetPage);
   }
-  
+
   MATCH_PIN_TO_FEATURE(isCTPSEnabled, pins.inputs.pinCTPS, (configPage2.CTPSPolarity == 0U) ? INPUT_PULLUP : INPUT, configPage2.CTPSEnabled)
+  pinCTPS = pins.inputs.pinCTPS;
 }
 
 void readTPS(bool useFilter)
 {
   currentStatus.TPSlast = currentStatus.TPS;
   #if defined(ANALOG_ISR)
-    uint16_t tempTPS = fastMap1023toX(AnChannel[pinMapping.inputs.sensors.pinTPS-A0], 255); //Get the current raw TPS ADC value and map it into a byte
+    uint16_t tempTPS = fastMap1023toX(AnChannel[pinTPS-A0], 255); //Get the current raw TPS ADC value and map it into a byte
   #else
-    analogRead(pinMapping.inputs.sensors.pinTPS);
-    uint16_t tempTPS = fastMap1023toX(analogRead(pinMapping.inputs.sensors.pinTPS), 255); //Get the current raw TPS ADC value and map it into a byte
+    analogRead(pinTPS);
+    uint16_t tempTPS = fastMap1023toX(analogRead(pinTPS), 255); //Get the current raw TPS ADC value and map it into a byte
   #endif
   //The use of the filter can be overridden if required. This is used on startup to disable priming pulse if flood clear is wanted
   if(useFilter == true) { currentStatus.tpsADC = (uint8_t)LOW_PASS_FILTER(tempTPS, configPage4.ADCFILTER_TPS, (uint16_t)currentStatus.tpsADC); }
@@ -527,14 +541,22 @@ void readTPS(bool useFilter)
 
   //Check whether the closed throttle position sensor is active
   static_assert(LOW==0 && HIGH==1, "Must match possible configPage2.CTPSPolarity values");
-  currentStatus.CTPSActive = isCTPSEnabled() && configPage2.CTPSPolarity==readPin(pinMapping.inputs.pinCTPS);
+  currentStatus.CTPSActive = isCTPSEnabled() && configPage2.CTPSPolarity==readPin(pinCTPS);
 }
 
+static uint8_t pinCLT;
+static uint8_t pinIAT;
+static uint8_t pinO2;
+static uint8_t pinO2_2;
+static uint8_t pinBat;
+static uint8_t pinFuelPressure;
+static uint8_t pinOilPressure;
 
 void initialiseCoreSensors(const pin_mapping_t &pins) {
   if (isValidPin(pins.inputs.sensors.pinCLT)) {
     pinMode(pins.inputs.sensors.pinCLT, SENSOR_PIN_MODE);
   }
+  pinCLT = pins.inputs.sensors.pinCLT;
   if(configPage4.ADCFILTER_CLT > 240U) { 
     configPage4.ADCFILTER_CLT = ADCFILTER_CLT_DEFAULT;
     writeConfig(ignSetPage); 
@@ -543,6 +565,7 @@ void initialiseCoreSensors(const pin_mapping_t &pins) {
   if (isValidPin(pins.inputs.sensors.pinIAT)) {
     pinMode(pins.inputs.sensors.pinIAT, SENSOR_PIN_MODE);
   }
+  pinIAT = pins.inputs.sensors.pinIAT;
   if(configPage4.ADCFILTER_IAT > 240U) { 
     configPage4.ADCFILTER_IAT = ADCFILTER_IAT_DEFAULT;
     writeConfig(ignSetPage);
@@ -551,6 +574,7 @@ void initialiseCoreSensors(const pin_mapping_t &pins) {
   if (isValidPin(pins.inputs.sensors.pinO2)) {
     pinMode(pins.inputs.sensors.pinO2, SENSOR_PIN_MODE);
   }
+  pinO2  = pins.inputs.sensors.pinO2;
   if(configPage4.ADCFILTER_O2 > 240U) { 
     configPage4.ADCFILTER_O2 = ADCFILTER_O2_DEFAULT;
     writeConfig(ignSetPage);
@@ -559,30 +583,34 @@ void initialiseCoreSensors(const pin_mapping_t &pins) {
   if (isValidPin(pins.inputs.sensors.pinO2_2)) {
     pinMode(pins.inputs.sensors.pinO2_2, SENSOR_PIN_MODE);
   }
+  pinO2_2 = pins.inputs.sensors.pinO2_2;
 }
 
 void initialiseNonCoreSensors(const pin_mapping_t &pins) {
   if (isValidPin(pins.inputs.sensors.pinBat)) {
     pinMode(pins.inputs.sensors.pinBat, SENSOR_PIN_MODE);
   }
+  pinBat = pins.inputs.sensors.pinBat;
   if(configPage4.ADCFILTER_BAT > 240U) { 
     configPage4.ADCFILTER_BAT = ADCFILTER_BAT_DEFAULT;
     writeConfig(ignSetPage); 
   }
 
   MATCH_PIN_TO_FEATURE(isFuelPressureEnabled, pins.inputs.sensors.pinFuelPressure, SENSOR_PIN_MODE, configPage10.fuelPressureEnable)
+  pinFuelPressure = pins.inputs.sensors.pinFuelPressure;
   MATCH_PIN_TO_FEATURE(isOilPressureEnabled, pins.inputs.sensors.pinOilPressure, SENSOR_PIN_MODE, configPage10.oilPressureEnable)
+  pinOilPressure = pins.inputs.sensors.pinOilPressure;
 }
 
 void readCLT(bool useFilter)
 {
   unsigned int tempReading;
   #if defined(ANALOG_ISR)
-    tempReading = AnChannel[pinMapping.inputs.sensors.pinCLT-A0]; //Get the current raw CLT value
+    tempReading = AnChannel[pinCLT-A0]; //Get the current raw CLT value
   #else
-    tempReading = analogRead(pinMapping.inputs.sensors.pinCLT);
-    tempReading = analogRead(pinMapping.inputs.sensors.pinCLT);
-    //tempReading = fastMap1023toX(analogRead(pinMapping.inputs.sensors.pinCLT), 511); //Get the current raw CLT value
+    tempReading = analogRead(pinCLT);
+    tempReading = analogRead(pinCLT);
+    //tempReading = fastMap1023toX(analogRead(pinCLT), 511); //Get the current raw CLT value
   #endif
   //The use of the filter can be overridden if required. This is used on startup so there can be an immediately accurate coolant value for priming
   if(useFilter == true) { currentStatus.cltADC = LOW_PASS_FILTER(tempReading, configPage4.ADCFILTER_CLT, (uint16_t)currentStatus.cltADC); }
@@ -595,10 +623,10 @@ void readIAT(void)
 {
   unsigned int tempReading;
   #if defined(ANALOG_ISR)
-    tempReading = AnChannel[pinMapping.inputs.sensors.pinIAT-A0]; //Get the current raw IAT value
+    tempReading = AnChannel[pinIAT-A0]; //Get the current raw IAT value
   #else
-    tempReading = analogRead(pinMapping.inputs.sensors.pinIAT);
-    tempReading = analogRead(pinMapping.inputs.sensors.pinIAT);
+    tempReading = analogRead(pinIAT);
+    tempReading = analogRead(pinIAT);
   #endif
   currentStatus.iatADC = LOW_PASS_FILTER(tempReading, configPage4.ADCFILTER_IAT, (uint16_t)currentStatus.iatADC);
   currentStatus.IAT = table2D_getValue(&iatCalibrationTable, currentStatus.iatADC) - CALIBRATION_TEMPERATURE_OFFSET;
@@ -611,10 +639,10 @@ void readBaro(void)
     uint16_t tempReading;
     // readings
     #if defined(ANALOG_ISR_MAP)
-      tempReading = AnChannel[pinMapping.inputs.sensors.pinBaro-A0];
+      tempReading = AnChannel[pinBaro-A0];
     #else
-      tempReading = analogRead(pinMapping.inputs.sensors.pinBaro);
-      tempReading = analogRead(pinMapping.inputs.sensors.pinBaro);
+      tempReading = analogRead(pinBaro);
+      tempReading = analogRead(pinBaro);
     #endif
 
     if(currentStatus.initialisationComplete == true) { currentStatus.baroADC = LOW_PASS_FILTER(tempReading, configPage4.ADCFILTER_BARO, (uint16_t)currentStatus.baroADC); }//Very weak filter
@@ -661,11 +689,11 @@ void readO2(void)
   {
     unsigned int tempReading;
     #if defined(ANALOG_ISR)
-      tempReading = AnChannel[pinMapping.inputs.sensors.pinO2-A0]; //Get the current O2 value.
+      tempReading = AnChannel[pinO2-A0]; //Get the current O2 value.
     #else
-      tempReading = analogRead(pinMapping.inputs.sensors.pinO2);
-      tempReading = analogRead(pinMapping.inputs.sensors.pinO2);
-      //tempReading = fastMap1023toX(analogRead(pinMapping.inputs.sensors.pinO2), 511); //Get the current O2 value.
+      tempReading = analogRead(pinO2);
+      tempReading = analogRead(pinO2);
+      //tempReading = fastMap1023toX(analogRead(pinO2), 511); //Get the current O2 value.
     #endif
     currentStatus.O2ADC = LOW_PASS_FILTER(tempReading, configPage4.ADCFILTER_O2, (uint16_t)currentStatus.O2ADC);
     //currentStatus.O2 = o2CalibrationTable[currentStatus.O2ADC];
@@ -685,11 +713,11 @@ void readO2_2(void)
   //Get the current O2 value.
   unsigned int tempReading;
   #if defined(ANALOG_ISR)
-    tempReading = AnChannel[pinMapping.inputs.sensors.pinO2_2-A0]; //Get the current O2 value.
+    tempReading = AnChannel[pinO2_2-A0]; //Get the current O2 value.
   #else
-    tempReading = analogRead(pinMapping.inputs.sensors.pinO2_2);
-    tempReading = analogRead(pinMapping.inputs.sensors.pinO2_2);
-    //tempReading = fastMap1023toX(analogRead(pinMapping.inputs.sensors.pinO2_2), 511); //Get the current O2 value.
+    tempReading = analogRead(pinO2_2);
+    tempReading = analogRead(pinO2_2);
+    //tempReading = fastMap1023toX(analogRead(pinO2_2), 511); //Get the current O2 value.
   #endif
   currentStatus.O2_2ADC = LOW_PASS_FILTER(tempReading, configPage4.ADCFILTER_O2, (uint16_t)currentStatus.O2_2ADC);
   currentStatus.O2_2 = table2D_getValue(&o2CalibrationTable, currentStatus.O2_2ADC);
@@ -699,10 +727,10 @@ void readBat(void)
 {
   uint16_t tempReading;
   #if defined(ANALOG_ISR)
-    tempReading = fastMap1023toX(AnChannel[pinMapping.inputs.sensors.pinBat-A0], 245); //Get the current raw Battery value. Permissible values are from 0v to 24.5v (245)
+    tempReading = fastMap1023toX(AnChannel[pinBat-A0], 245); //Get the current raw Battery value. Permissible values are from 0v to 24.5v (245)
   #else
-    tempReading = analogRead(pinMapping.inputs.sensors.pinBat);
-    tempReading = fastMap1023toX(analogRead(pinMapping.inputs.sensors.pinBat), 245); //Get the current raw Battery value. Permissible values are from 0v to 24.5v (245)
+    tempReading = analogRead(pinBat);
+    tempReading = fastMap1023toX(analogRead(pinBat), 245); //Get the current raw Battery value. Permissible values are from 0v to 24.5v (245)
   #endif
 
   //Apply the offset calibration value to the reading
@@ -821,10 +849,10 @@ byte getFuelPressure(void)
   {
     //Perform ADC read
     #if defined(ANALOG_ISR)
-      tempReading = AnChannel[pinMapping.inputs.sensors.pinFuelPressure-A0];
+      tempReading = AnChannel[pinFuelPressure-A0];
     #else
-      tempReading = analogRead(pinMapping.inputs.sensors.pinFuelPressure);
-      tempReading = analogRead(pinMapping.inputs.sensors.pinFuelPressure);
+      tempReading = analogRead(pinFuelPressure);
+      tempReading = analogRead(pinFuelPressure);
     #endif
 
     tempFuelPressure = fastMap10Bit(tempReading, configPage10.fuelPressureMin, configPage10.fuelPressureMax);
@@ -846,10 +874,10 @@ byte getOilPressure(void)
   {
     //Perform ADC read
     #if defined(ANALOG_ISR)
-      tempReading = AnChannel[pinMapping.inputs.sensors.pinOilPressure-A0];
+      tempReading = AnChannel[pinOilPressure-A0];
     #else
-      tempReading = analogRead(pinMapping.inputs.sensors.pinOilPressure);
-      tempReading = analogRead(pinMapping.inputs.sensors.pinOilPressure);
+      tempReading = analogRead(pinOilPressure);
+      tempReading = analogRead(pinOilPressure);
     #endif
 
 
@@ -864,8 +892,11 @@ byte getOilPressure(void)
   return (byte)tempOilPressure;
 }
 
+static uint8_t pinFlex;
+
 void initialiseFlexFuel(const pin_mapping_t &pins) {
   MATCH_PIN_TO_FEATURE(isFlexEnabled, pins.inputs.pinFlex, INPUT, configPage2.flexEnabled)
+  pinFlex = pins.inputs.pinFlex;
   if(isFlexEnabled())
   {
     attachInterrupt(digitalPinToInterrupt(pins.inputs.pinFlex), flexPulse, CHANGE);
@@ -884,7 +915,7 @@ void initialiseFlexFuel(const pin_mapping_t &pins) {
  */
 void flexPulse(void)
 {
-  if(readPin(pinMapping.inputs.pinFlex)==HIGH)
+  if(readPin(pinFlex)==HIGH)
   {
     uint16_t tempPW = clamp(micros() - flexStartTime, 0UL, (unsigned long)UINT16_MAX); //Calculate the pulse width
     flexPulseWidth = LOW_PASS_FILTER(tempPW, configPage4.FILTER_FLEX, flexPulseWidth);

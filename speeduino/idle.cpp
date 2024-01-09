@@ -57,14 +57,30 @@ static inline void enableIdle(void)
   }
 }
 
+static uint8_t pinIdle1;
+static uint8_t pinIdle2;
+static uint8_t pinIdleUp;
+static uint8_t pinIdleUpOutput;
+static uint8_t pinStepperStep;
+static uint8_t pinStepperDir;
+static uint8_t pinStepperEnable;
+
 void initialiseIdle(bool forcehoming, const pin_mapping_t &pins) {
   //Pin masks must always be initialised, regardless of whether PWM idle is used. This is required for STM32 to prevent issues if the IRQ function fires on restart/overflow
   MATCH_PIN_TO_FEATURE(isIdlePwm, pins.outputs.pinIdle1, OUTPUT, configPage6.iacAlgorithm)
+  pinIdle1 = pins.outputs.pinIdle1;
   MATCH_PIN_TO_FEATURE(isIdle2PwmEnabled, pins.outputs.pinIdle2, OUTPUT, configPage6.iacAlgorithm)
+  pinIdle2 = pins.outputs.pinIdle2;
   MATCH_PIN_TO_FEATURE(isIdleUpOutputEnabled, pins.outputs.pinIdleUpOutput, OUTPUT, configPage2.idleUpOutputEnabled)
+  pinIdleUpOutput = pins.outputs.pinIdleUpOutput;
   MATCH_PIN_TO_FEATURE(isIdleStepper, pins.outputs.pinStepperDir, OUTPUT, configPage6.iacAlgorithm)
+  pinStepperDir = pins.outputs.pinStepperDir;
   MATCH_PIN_TO_FEATURE(isIdleStepper, pins.outputs.pinStepperStep, OUTPUT, configPage6.iacAlgorithm)
+  pinStepperStep = pins.outputs.pinStepperStep;
   MATCH_PIN_TO_FEATURE(isIdleStepper, pins.outputs.pinStepperEnable, OUTPUT, configPage6.iacAlgorithm)
+  pinStepperEnable = pins.outputs.pinStepperEnable;
+  MATCH_PIN_TO_FEATURE(isIdleUpEnabled, pins.inputs.pinIdleUp, INPUT, configPage2.idleUpEnabled)
+  pinIdleUp = pins.inputs.pinIdleUp;
 
   initialiseIdle(forcehoming);
 }
@@ -85,7 +101,7 @@ void initialiseIdle(bool forcehoming)
       //Case 1 is on/off idle control
       if ((currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET) < configPage6.iacFastTemp)
       {
-        setPin_High(pinMapping.outputs.pinIdle1);
+        setPin_High(pinIdle1);
         idleOn = true;
       }
       break;
@@ -259,9 +275,8 @@ static inline uint8_t getIdleUpOutputLOW(void) {
 
 void initialiseIdleUpOutput(void)
 {
-  MATCH_PIN_TO_FEATURE(isIdleUpOutputEnabled, pinMapping.outputs.pinIdleUpOutput, (configPage2.idleUpPolarity == 0 ? INPUT_PULLUP : INPUT), configPage2.idleUpOutputEnabled)
   if (isIdleUpOutputEnabled()) {
-    setPinState(pinMapping.outputs.pinIdleUpOutput, getIdleUpOutputLOW()); //Initialise program with the idle up output in the off state if it is enabled. 
+    setPinState(pinIdleUpOutput, getIdleUpOutputLOW()); //Initialise program with the idle up output in the off state if it is enabled. 
   }
   currentStatus.idleUpOutputActive = false;
 }
@@ -293,7 +308,7 @@ static inline byte checkForStepping(void)
       if(idleStepper.stepperStatus == STEPPING)
       {
         //Means we're currently in a step, but it needs to be turned off
-        setPin_Low(pinMapping.outputs.pinStepperStep); //Turn off the step
+        setPin_Low(pinStepperStep); //Turn off the step
         idleStepper.stepStartTime = micros_safe();
         
         // if there is no cool time we can miss that step out completely.
@@ -315,7 +330,7 @@ static inline byte checkForStepping(void)
         if(configPage9.iacStepperPower == STEPPER_POWER_WHEN_ACTIVE) 
         { 
           //Disable the DRV8825, but only if we're at the final step in this cycle. 
-          if(idleStepper.targetIdleStep == idleStepper.curIdleStep) { setPin_High(pinMapping.outputs.pinStepperEnable); } 
+          if(idleStepper.targetIdleStep == idleStepper.curIdleStep) { setPin_High(pinStepperEnable); } 
         }
       }
     }
@@ -340,18 +355,18 @@ static inline void doStep(void)
     if (error < 0)
     {
       // we are moving toward the home position (reducing air)
-      setPinState(pinMapping.outputs.pinStepperDir, STEPPER_LESS_AIR_DIRECTION() );
+      setPinState(pinStepperDir, STEPPER_LESS_AIR_DIRECTION());
       idleStepper.curIdleStep--;
     }
     else
     {
       // we are moving away from the home position (adding air).
-      setPinState(pinMapping.outputs.pinStepperDir, STEPPER_MORE_AIR_DIRECTION() );
+      setPinState(pinStepperDir, STEPPER_MORE_AIR_DIRECTION());
       idleStepper.curIdleStep++;
     }
 
-    setPin_Low(pinMapping.outputs.pinStepperEnable); //Enable the DRV8825
-    setPin_High(pinMapping.outputs.pinStepperStep);
+    setPin_Low(pinStepperEnable); //Enable the DRV8825
+    setPin_High(pinStepperStep);
     idleStepper.stepStartTime = micros_safe();
     idleStepper.stepperStatus = STEPPING;
     idleOn = true;
@@ -373,9 +388,9 @@ static inline byte isStepperHomed(void)
   bool isHomed = true; //As it's the most common scenario, default value is true
   if( completedHomeSteps < (configPage6.iacStepHome * 3) ) //Home steps are divided by 3 from TS
   {
-    setPinState(pinMapping.outputs.pinStepperDir, STEPPER_LESS_AIR_DIRECTION() ); //homing the stepper closes off the air bleed
-    setPin_Low(pinMapping.outputs.pinStepperEnable); //Enable the DRV8825
-    setPin_High(pinMapping.outputs.pinStepperStep);
+    setPinState(pinStepperDir, STEPPER_LESS_AIR_DIRECTION()); //homing the stepper closes off the air bleed
+    setPin_Low(pinStepperEnable); //Enable the DRV8825
+    setPin_High(pinStepperStep);
     idleStepper.stepStartTime = micros_safe();
     idleStepper.stepperStatus = STEPPING;
     completedHomeSteps++;
@@ -393,9 +408,9 @@ enum IdlePwmSignal {
 static inline void setIdlePwmPinsState(IdlePwmSignal signal) {
   static_assert(HIGH==1 && LOW==0, "This only works when HIGH==1 && LOW==0");
   uint8_t pinSignal = signal==Positive ? !configPage6.iacPWMdir : configPage6.iacPWMdir;
-  setPinState(pinMapping.outputs.pinIdle1, pinSignal);
+  setPinState(pinIdle1, pinSignal);
   if(isIdle2PwmEnabled()) {
-    setPinState(pinMapping.outputs.pinIdle2, !pinSignal); //If 2 idle channels are in use, flip idle2 to be the opposite of idle1
+    setPinState(pinIdle2, !pinSignal); //If 2 idle channels are in use, flip idle2 to be the opposite of idle1
   }
 }
 
@@ -407,11 +422,11 @@ void idleControl(void)
   //Check whether the idleUp is active
   if (isIdleUpEnabled())
   {
-    currentStatus.idleUpActive = readPin(pinMapping.inputs.pinIdleUp)==configPage2.idleUpPolarity;
+    currentStatus.idleUpActive = readPin(pinIdleUp)==configPage2.idleUpPolarity;
     if (isIdleUpOutputEnabled())
     {
       currentStatus.idleUpOutputActive = currentStatus.idleUpActive;
-      setPinState( pinMapping.outputs.pinIdleUpOutput, 
+      setPinState( pinIdleUpOutput, 
                     currentStatus.idleUpOutputActive ? getIdleUpOutputHIGH() : getIdleUpOutputLOW());
     }
   }
@@ -426,14 +441,14 @@ void idleControl(void)
     case IAC_ALGORITHM_ONOFF:      //Case 1 is on/off idle control
       if ( (currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET) < configPage6.iacFastTemp) //All temps are offset by 40 degrees
       {
-        setPin_High(pinMapping.outputs.pinIdle1);
+        setPin_High(pinIdle1);
         idleOn = true;
         BIT_SET(currentStatus.spark, BIT_SPARK_IDLE); //Turn the idle control flag on
 		    currentStatus.idleLoad = 100;
       }
       else if (idleOn)
       {
-        setPin_Low(pinMapping.outputs.pinIdle1);
+        setPin_Low(pinIdle1);
         idleOn = false; 
         BIT_CLEAR(currentStatus.spark, BIT_SPARK_IDLE); //Turn the idle control flag on
 		    currentStatus.idleLoad = 0;

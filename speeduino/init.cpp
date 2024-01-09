@@ -297,19 +297,23 @@ static void initialiseCurrentStatus(void) {
  * - Initialise timers (See timers.ino)
  * - Perform optional SD card and RTC battery inits
  * - Load calibration tables from EEPROM
- * - Perform pin mapping (calling @ref setPinMapping() based on @ref config2.pinMapping)
+ * - Perform pin mapping
  * - Stop any coil charging and close injectors
  * - Initialise schedulers, Idle, Fan, auxPWM, Corrections, AD-conversions, Programmable I/O
  * - Initialise baro (ambient pressure) by reading MAP (before engine runs)
  * - Initialise triggers
- * - Perform cyl. count based initialisations (@ref config2.nCylinders)
+ * - Perform cyl. count based initialisations
  * - Perform injection and spark mode based setup
  *   - Assign injector open/close and coil charge begin/end functions to their dedicated global vars
  * - Perform fuel pressure priming by turning fuel pump on
  * - Read CLT and TPS sensors to have cranking pulsewidths computed correctly
  * - Mark Initialisation completed (this flag-marking is used in code to prevent after-init changes)
  */
+#if defined(UNIT_TEST)
+pin_mapping_t initialiseAll(void)
+#else
 void initialiseAll(void)
+#endif
 {   
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, LOW);
@@ -339,11 +343,10 @@ void initialiseAll(void)
     if((configPage2.boardId == 255) || (configPage2.boardId == 0)) //255 = EEPROM value in a blank AVR; 0 = EEPROM value in new FRAM
     {
       //First time running on this board
-      resetConfigPages();
+      resetConfigPages(); 
       configPage4.triggerTeeth = 4; //Avoiddiv by 0 when start decoders
-      setPinMapping(3); //Force board to v0.4
+      configPage2.boardId = 3; //Force board to v0.4
     }
-    else { setPinMapping(configPage2.boardId); }
 
     // initialiseAll can be repeatedly called by unit tests. The CAN 
     // library will hang semi-randomly if re-initialized.
@@ -351,34 +354,37 @@ void initialiseAll(void)
       initCAN();
     #endif
 
-    //Must come after setPinMapping() as secondary serial can be changed on a per board basis
+    //Must come after setpins() as secondary serial can be changed on a per board basis
     #if defined(secondarySerial_AVAILABLE)
       if (configPage9.enable_secondarySerial == 1) { secondarySerial.begin(115200); }
     #endif
 
     //Perform all initialisations
+    pin_mapping_t pins = getPinMapping(configPage2.boardId);
     //initialiseDisplay();
-  #ifdef SD_LOGGING
+#if defined(RTC_ENABLED)
     initRTC();
-    initSD(pinMapping);
-  #endif
-    initialiseIdle(true, pinMapping);
-    initialiseFan(pinMapping);
-    initialiseAirCon(pinMapping);
-    initialiseAuxPWM(pinMapping);
+#endif
+#ifdef SD_LOGGING
+    initSD(pins);
+#endif
+    initialiseIdle(true, pins);
+    initialiseFan(pins);
+    initialiseAirCon(pins);
+    initialiseAuxPWM(pins);
     initialiseCorrections();
-    initialiseADC(pinMapping);
-    initialiseProgrammableIO(pinMapping);
-    initialiseResetControl(pinMapping);
-    initialiseIgnitionByPass(pinMapping);
-    initialiseLaunchControl(pinMapping);
-    initialiseMapBaroSensors(pinMapping);
-    initialiseTPS(pinMapping);
-    initialiseCoreSensors(pinMapping);
-    initialiseNonCoreSensors(pinMapping);
-    initialiseFuelPump(pinMapping);
-    initialiseSecondaryTables(pinMapping);
-    initialiseWmi(pinMapping);
+    initialiseADC(pins);
+    initialiseProgrammableIO(pins);
+    initialiseResetControl(pins);
+    initialiseIgnitionByPass(pins);
+    initialiseLaunchControl(pins);
+    initialiseMapBaroSensors(pins);
+    initialiseTPS(pins);
+    initialiseCoreSensors(pins);
+    initialiseNonCoreSensors(pins);
+    initialiseFuelPump(pins);
+    initialiseSecondaryTables(pins);
+    initialiseWmi(pins);
 
     //Once the configs have been loaded, a number of one time calculations can be completed
     calculateRequiredFuel();
@@ -391,20 +397,20 @@ void initialiseAll(void)
     toothHistoryIndex = 0;
 
     noInterrupts();
-    initialiseDecoder();
+    pins = initialiseDecoder(configPage4.TrigPattern, pins);
 
     // Post trigger initialization we can check if the trigger secondary
     // trigger pins are available for use.
-    if ((pinMapping.inputs.pinVSS == pinMapping.inputs.pinTrigger2)
+    if ((pins.inputs.pinVSS == pins.inputs.pinTrigger2)
       && BIT_CHECK(decoderState, BIT_DECODER_HAS_SECONDARY)) {
-      pinMapping.inputs.pinVSS = NOT_A_PIN;
+      pins.inputs.pinVSS = NOT_A_PIN;
     }
-    initialiseVss(pinMapping);
-    if ((pinMapping.inputs.pinFlex == pinMapping.inputs.pinTrigger2)
+    initialiseVss(pins);
+    if ((pins.inputs.pinFlex == pins.inputs.pinTrigger2)
       && BIT_CHECK(decoderState, BIT_DECODER_HAS_SECONDARY)) {
-        pinMapping.inputs.pinFlex = NOT_A_PIN;
+        pins.inputs.pinFlex = NOT_A_PIN;
     }
-    initialiseFlexFuel(pinMapping);
+    initialiseFlexFuel(pins);
 
     //End crank trigger interrupt attachment
 
@@ -412,15 +418,19 @@ void initialiseAll(void)
     currentLoopTime = micros_safe();
     mainLoopCount = 0;
     
-    initialiseFuelSchedulers(pinMapping);
-    initialiseIgnitionSchedulers(pinMapping);
+    initialiseFuelSchedulers(pins);
+    initialiseIgnitionSchedulers(pins);
 
     interrupts();
     readCLT(false); // Need to read coolant temp to make priming pulsewidth work correctly. The false here disables use of the filter
     readTPS(false); // Need to read tps to detect flood clear state
 
-    initialiseTimers(pinMapping);
+    initialiseTimers(pins);
 
     currentStatus.initialisationComplete = true;
     digitalWrite(LED_BUILTIN, HIGH);
+
+#if defined(UNIT_TEST)
+  return pins;
+#endif    
 }

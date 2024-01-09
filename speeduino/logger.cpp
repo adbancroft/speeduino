@@ -675,15 +675,11 @@ static inline void detachPrimaryLogger(void) {
 }
 
 static inline void attachSecondaryLogger(void) {
-  if( (VSS_USES_RPM2() != true) && (FLEX_USES_RPM2() != true) ) {
-    attachSecondaryInterrupt( { compositeLoggerSecondaryISR, CHANGE } );
-  }
+  attachSecondaryInterrupt( { compositeLoggerSecondaryISR, CHANGE } );
 }
 
 static inline void detachSecondaryLogger(void) {
-  if( (VSS_USES_RPM2() != true) && (FLEX_USES_RPM2() != true) ) {
-    attachSecondaryInterrupt(decoder.secondaryTrigger);
-  }
+  attachSecondaryInterrupt(decoder.secondaryTrigger);
 }
 
 static inline void attachTertiaryLogger(void) {

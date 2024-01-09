@@ -64,10 +64,23 @@ static inline void checkAirConRPMLockout(void);
 /*
 Air Conditioning Control
 */
+
+static uint8_t pinAirConRequest;
+static uint8_t pinAirConComp;
+static uint8_t pinAirConFan;
+
+#define AIRCON_ON()             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(pinAirConComp, !(configPage15.airConCompPol)); BIT_SET(currentStatus.airConStatus, BIT_AIRCON_COMPRESSOR); }
+#define AIRCON_OFF()            ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(pinAirConComp,  (configPage15.airConCompPol)); BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_COMPRESSOR); }
+#define AIRCON_FAN_ON()         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(pinAirConFan, !(configPage15.airConFanPol)); BIT_SET(currentStatus.airConStatus, BIT_AIRCON_FAN); }
+#define AIRCON_FAN_OFF()        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPinState(pinAirConFan,  (configPage15.airConFanPol)); BIT_CLEAR(currentStatus.airConStatus, BIT_AIRCON_FAN); }
+
 void initialiseAirCon(const pin_mapping_t &pins)
 {
   MATCH_PIN_TO_FEATURE(isAirConEnabled, pins.inputs.pinAirConRequest, (configPage15.airConReqPol == 1 ? INPUT : INPUT_PULLUP), configPage15.airConEnable)
+  pinAirConRequest = pins.inputs.pinAirConRequest;
   MATCH_PIN_TO_FEATURE(isAirConEnabled, pins.outputs.pinAirConComp, OUTPUT, configPage15.airConEnable)
+  pinAirConComp = pins.outputs.pinAirConComp;
+
   if( isAirConEnabled())
   {
     // Hold the A/C off until a few seconds after cranking
@@ -89,6 +102,7 @@ void initialiseAirCon(const pin_mapping_t &pins)
     AIRCON_OFF();
   }
   MATCH_PIN_TO_FEATURE(isAirConFanEnabled, pins.outputs.pinAirConFan, OUTPUT, configPage15.airConFanEnabled)
+  pinAirConFan = pins.outputs.pinAirConFan;
   if (isAirConFanEnabled()) {
     AIRCON_FAN_OFF();
   }
@@ -179,7 +193,7 @@ bool READ_AIRCON_REQUEST(void)
     return false;
   }
   // Read the status of the A/C request pin (A/C button), taking into account the pin's polarity
-  bool acReqPinStatus = readPin(pinMapping.inputs.pinAirConRequest)==configPage15.airConReqPol;
+  bool acReqPinStatus = readPin(pinAirConRequest)==configPage15.airConReqPol;
   BIT_WRITE(currentStatus.airConStatus, BIT_AIRCON_REQUEST, acReqPinStatus);
   return acReqPinStatus;
 }
@@ -268,6 +282,19 @@ static inline void checkAirConRPMLockout(void)
   }
 }
 
+static uint8_t pinFan;
+
+void FAN_ON(void) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { 
+    setPinState(pinFan, !(configPage6.fanInv)); 
+  }
+}
+void FAN_OFF(void) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { 
+    setPinState(pinFan,  (configPage6.fanInv)); 
+  }
+}
+
 
 /*
 Fan control
@@ -275,6 +302,7 @@ Fan control
 void initialiseFan(const pin_mapping_t &pins)
 {
   MATCH_PIN_TO_FEATURE(isFanEnabled, pins.outputs.pinFan, OUTPUT, configPage2.fanEnable)
+  pinFan = pins.outputs.pinFan;
   FAN_OFF();  //Initialise program with the fan in the off state
   BIT_CLEAR(currentStatus.status4, BIT_STATUS4_FAN);
   currentStatus.fanDuty = 0;
@@ -405,15 +433,49 @@ void fanControl(void)
 #define SIMPLE_BOOST_I  1
 #define SIMPLE_BOOST_D  1
 
+static uint8_t pinBoost;
+
+#define BOOST_PIN_LOW()         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(pinBoost); }
+#define BOOST_PIN_HIGH()        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(pinBoost);  }
+
+static uint8_t pinVVT_1;
+
+void VVT1_ON(void) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { 
+    setPin_High(pinVVT_1); 
+  }
+}
+void VVT1_OFF(void) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { 
+    setPin_Low(pinVVT_1);
+  }
+}
+
+static uint8_t pinVVT_2;
+
+void VVT2_ON(void) { 
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { 
+    setPin_High(pinVVT_2); 
+  }
+}
+void VVT2_OFF(void) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { 
+    setPin_Low(pinVVT_2);
+  }
+}
+
 void initialiseAuxPWM(const pin_mapping_t &pins)
 {
   MATCH_PIN_TO_FEATURE(isBoostEnabled, pins.outputs.pinBoost, OUTPUT, configPage6.boostEnabled)
+  pinBoost = pins.outputs.pinBoost;
   if (isBoostEnabled()) {
     boost_pwm_max_count = frequencyToTimerTicks(configPage6.boostFreq*2U); // Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
   }
 
   MATCH_PIN_TO_FEATURE(isVVT_1Enabled, pins.outputs.pinVVT_1, OUTPUT, configPage6.vvtEnabled)
+  pinVVT_1 = pins.outputs.pinVVT_1;
   MATCH_PIN_TO_FEATURE(isVVT_2Enabled, pins.outputs.pinVVT_2, OUTPUT, configPage10.vvt2Enabled)
+  pinVVT_2 = pins.outputs.pinVVT_2;
 
   //This is a safety check that will be true if the board is uninitialised. This prevents hangs on a new board that could otherwise try to write to an invalid pin port/mask (Without this a new Teensy 4.x hangs on startup)
   //The n2o_minTPS variable is capped at 100 by TS, so 255 indicates a new board.
@@ -733,6 +795,8 @@ void boostControl(void)
   boostCounter++;
 }
 
+#define VVT_TIME_DELAY_MULTIPLIER  50
+
 void vvtControl(void)
 {
   if( isVVT_1Enabled() && (currentStatus.coolant >= (int)(configPage4.vvtMinClt - CALIBRATION_TEMPERATURE_OFFSET)) && (BIT_CHECK(currentStatus.engine, BIT_ENGINE_RUN)))
@@ -926,6 +990,12 @@ void vvtControl(void)
   } 
 }
 
+#define READ_N2O_ARM_PIN()    (readPin(configPage10.n2o_arming_pin)==HIGH)
+#define N2O_STAGE1_PIN_LOW()    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(configPage10.n2o_stage1_pin);  }
+#define N2O_STAGE1_PIN_HIGH()   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(configPage10.n2o_stage1_pin);   }
+#define N2O_STAGE2_PIN_LOW()    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_Low(configPage10.n2o_stage2_pin);  }
+#define N2O_STAGE2_PIN_HIGH()   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { setPin_High(configPage10.n2o_stage2_pin);   }
+
 void nitrousControl(void)
 {
   bool nitrousOn = false; //This tracks whether the control gets turned on at any point. 
@@ -982,10 +1052,19 @@ void nitrousControl(void)
   }
 }
 
+static uint8_t pinWMIEnabled;
+static uint8_t pinWMIIndicator;
+static uint8_t pinWMIEmpty;
+
+#define WMI_TANK_IS_EMPTY() (isWMIEmptyEnabled() ? readPin(pinWMIEmpty)==configPage10.wmiEmptyPolarity : true)
+
 void initialiseWmi(const pin_mapping_t &pins) {
   MATCH_PIN_TO_FEATURE(isWMIEnabled, pins.outputs.pinWMIEnabled, OUTPUT, configPage10.wmiEnabled)
+  pinWMIEnabled = pins.outputs.pinWMIEnabled;
   MATCH_PIN_TO_FEATURE(isWMIIndicatorEnabled, pins.outputs.pinWMIIndicator, OUTPUT, configPage10.wmiIndicatorEnabled)
+  pinWMIIndicator = pins.outputs.pinWMIIndicator;
   MATCH_PIN_TO_FEATURE(isWMIEmptyEnabled, pins.inputs.pinWMIEmpty, (configPage10.wmiEmptyPolarity ? INPUT_PULLUP : INPUT), configPage10.wmiEmptyEnabled)
+  pinWMIEmpty = pins.inputs.pinWMIEmpty;
 
   if (isWMIIndicatorEnabled() && (configPage10.wmiIndicatorPolarity > 0)) {
     setPin_High(pins.outputs.pinWMIIndicator); 
@@ -1043,11 +1122,11 @@ void wmiControl(void)
       vvt2_pwm_state = false;
       vvt2_max_pwm = false;
       if( !isVVT_1Enabled() ) { DISABLE_VVT_TIMER(); }
-      setPin_Low(pinMapping.outputs.pinWMIEnabled);
+      setPin_Low(pinWMIEnabled);
     }
     else
     {
-      setPin_High(pinMapping.outputs.pinWMIEnabled);
+      setPin_High(pinWMIEnabled);
       if (wmiPW >= 200)
       {
         // Make sure water pump is on (100% duty)
@@ -1066,11 +1145,11 @@ void wmiControl(void)
 }
 
 void toggleWmiIndicator(void) {
-  togglePin(pinMapping.outputs.pinWMIIndicator);
+  togglePin(pinWMIIndicator);
 }
 
 void setWmiIndicator(void) {
-  setPinState(pinMapping.outputs.pinWMIIndicator, configPage10.wmiIndicatorPolarity ? HIGH : LOW);
+  setPinState(pinWMIIndicator, configPage10.wmiIndicatorPolarity ? HIGH : LOW);
 }
 
 void boostDisable(void)
@@ -1250,8 +1329,11 @@ void boostDisable(void)
 }
 #endif
 
+static uint8_t pinFuelPump;
+
 void initialiseFuelPump(const pin_mapping_t &pins) {
   pinMode(pins.outputs.pinFuelPump, OUTPUT);
+  pinFuelPump = pins.outputs.pinFuelPump;
 
   currentStatus.injPrimed = false;
 
@@ -1269,4 +1351,15 @@ void beginPrimeFuelPump(void) {
   fpPrimeTime = currentStatus.secl;
   currentStatus.fpPrimed = false;
   FUEL_PUMP_ON();
+}
+
+void FUEL_PUMP_ON(void) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { 
+    setPin_High(pinFuelPump); 
+  }
+}
+void FUEL_PUMP_OFF(void) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { 
+    setPin_Low(pinFuelPump); 
+  }
 }
