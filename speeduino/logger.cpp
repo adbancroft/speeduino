@@ -505,6 +505,151 @@ bool is2ByteEntry(uint8_t key)
   return key == pgm_read_byte(&fsIntIndex[bot]);
 }
 
+/** Add tooth log entry to toothHistory (array).
+ * Enabled by (either) currentStatus.toothLogEnabled and currentStatus.compositeTriggerUsed.
+ * @param toothTime - Tooth Time
+ * @param whichTooth - 0 for Primary (Crank), 2 for Secondary (Cam) 3 for Tertiary (Cam)
+ */
+static inline void addToothLogEntry(unsigned long toothTime, byte whichTooth)
+{
+  if(BIT_CHECK(currentStatus.status1, BIT_STATUS1_TOOTHLOG1READY)) { return; }
+  //High speed tooth logging history
+  if( (currentStatus.toothLogEnabled == true) || (currentStatus.compositeTriggerUsed > 0) ) 
+  {
+    bool valueLogged = false;
+    if(currentStatus.toothLogEnabled == true)
+    {
+      //Tooth log only works on the Crank tooth
+      if(whichTooth == TOOTH_CRANK)
+      { 
+        toothHistory[toothHistoryIndex] = toothTime; //Set the value in the log. 
+        valueLogged = true;
+      } 
+    }
+    else if(currentStatus.compositeTriggerUsed > 0)
+    {
+      compositeLogHistory[toothHistoryIndex] = 0;
+      if(currentStatus.compositeTriggerUsed == 4)
+      {
+        // we want to display both cams so swap the values round to display primary as cam1 and secondary as cam2, include the crank in the data as the third output
+        if(READ_SEC_TRIGGER() == HIGH) { BIT_SET(compositeLogHistory[toothHistoryIndex], COMPOSITE_LOG_PRI); }
+        if(READ_THIRD_TRIGGER() == HIGH) { BIT_SET(compositeLogHistory[toothHistoryIndex], COMPOSITE_LOG_SEC); }
+        if(READ_PRI_TRIGGER() == HIGH) { BIT_SET(compositeLogHistory[toothHistoryIndex], COMPOSITE_LOG_THIRD); }
+        if(whichTooth > TOOTH_CAM_SECONDARY) { BIT_SET(compositeLogHistory[toothHistoryIndex], COMPOSITE_LOG_TRIG); }
+      }
+      else
+      {
+        // we want to display crank and one of the cams
+        if(READ_PRI_TRIGGER() == HIGH) { BIT_SET(compositeLogHistory[toothHistoryIndex], COMPOSITE_LOG_PRI); }
+        if(currentStatus.compositeTriggerUsed == 3)
+        { 
+          // display cam2 and also log data for cam 1
+          if(READ_THIRD_TRIGGER() == HIGH) { BIT_SET(compositeLogHistory[toothHistoryIndex], COMPOSITE_LOG_SEC); } // only the COMPOSITE_LOG_SEC value is visualised hence the swapping of the data
+          if(READ_SEC_TRIGGER() == HIGH) { BIT_SET(compositeLogHistory[toothHistoryIndex], COMPOSITE_LOG_THIRD); } 
+        } 
+        else
+        { 
+          // display cam1 and also log data for cam 2 - this is the historic composite view
+          if(READ_SEC_TRIGGER() == HIGH) { BIT_SET(compositeLogHistory[toothHistoryIndex], COMPOSITE_LOG_SEC); } 
+          if(READ_THIRD_TRIGGER() == HIGH) { BIT_SET(compositeLogHistory[toothHistoryIndex], COMPOSITE_LOG_THIRD); }
+        }
+        if(whichTooth > TOOTH_CRANK) { BIT_SET(compositeLogHistory[toothHistoryIndex], COMPOSITE_LOG_TRIG); }
+      }  
+      if(currentStatus.hasSync == true) { BIT_SET(compositeLogHistory[toothHistoryIndex], COMPOSITE_LOG_SYNC); }
+
+      if(revolutionOne == 1)
+      { BIT_SET(compositeLogHistory[toothHistoryIndex], COMPOSITE_ENGINE_CYCLE);}
+      else
+      { BIT_CLEAR(compositeLogHistory[toothHistoryIndex], COMPOSITE_ENGINE_CYCLE);}
+
+      toothHistory[toothHistoryIndex] = micros();
+      valueLogged = true;
+    }
+
+    //If there has been a value logged above, update the indexes
+    if(valueLogged == true)
+    {
+     if(toothHistoryIndex < (TOOTH_LOG_SIZE-1)) { toothHistoryIndex++; BIT_CLEAR(currentStatus.status1, BIT_STATUS1_TOOTHLOG1READY); }
+     else { BIT_SET(currentStatus.status1, BIT_STATUS1_TOOTHLOG1READY); }
+    }
+
+
+  } //Tooth/Composite log enabled
+}
+
+/* 3 checks here:
+1) If the trigger is RISING, then check whether the pin is currently HIGH
+2) If the trigger is FALLING, then check whether the pin is currently LOW
+3) The trigger is CHANGING
+If any of these are true, the "real" decoder function is called
+*/
+static inline bool isTriggerEdge(const trigger_t &trigger) {
+  uint8_t pinState = getTriggerPinState(trigger);
+  return (trigger.edge == RISING && pinState==HIGH)
+      || (trigger.edge == FALLING && pinState==LOW)
+      || (trigger.edge == CHANGE);
+}
+
+/** Interrupt handler for primary trigger.
+* This function is called on both the rising and falling edges of the primary trigger, when either the 
+* composite or tooth loggers are turned on. 
+*/
+static void loggerPrimaryISR(void)
+{
+  BIT_CLEAR(decoderState, BIT_DECODER_VALID_TRIGGER); //This value will be set to the return value of the decoder function, indicating whether or not this pulse passed the filters
+  bool validEdge = isTriggerEdge(decoder.primaryTrigger); 
+  if(validEdge)
+  {
+    decoder.primaryTrigger.handler();
+  }
+
+  bool validLogEntry = (currentStatus.compositeTriggerUsed > 0)     // Composite logger adds an entry regardless of which edge it was
+                      || ((currentStatus.toothLogEnabled == true)   // Tooth log needs a valid edge from the last interrupt
+                          && (BIT_CHECK(decoderState, BIT_DECODER_VALID_TRIGGER))
+                          && validEdge);
+  if(validLogEntry)
+  {
+    addToothLogEntry(curGap, TOOTH_CRANK);
+  }
+}
+
+/** Interrupt handler for secondary trigger.
+* As loggerPrimaryISR, but for the secondary trigger.
+*/
+static void loggerSecondaryISR(void)
+{
+  BIT_SET(decoderState, BIT_DECODER_VALID_TRIGGER); //This value will be set to the return value of the decoder function, indicating whether or not this pulse passed the filters
+  if(isTriggerEdge(decoder.secondaryTrigger))
+  {
+    decoder.secondaryTrigger.handler();
+  }
+  //No tooth logger for the secondary input
+  if( (currentStatus.compositeTriggerUsed > 0) && (BIT_CHECK(decoderState, BIT_DECODER_VALID_TRIGGER)) )
+  {
+    //Composite logger adds an entry regardless of which edge it was
+    addToothLogEntry(curGap2, TOOTH_CAM_SECONDARY);
+  }
+}
+
+/** Interrupt handler for third trigger.
+* As loggerPrimaryISR, but for the third trigger.
+*/
+static void loggerTertiaryISR(void)
+{
+  BIT_SET(decoderState, BIT_DECODER_VALID_TRIGGER); //This value will be set to the return value of the decoder function, indicating whether or not this pulse passed the filters
+  if( isTriggerEdge(decoder.tertiaryTrigger) )
+  {
+    decoder.tertiaryTrigger.handler();
+  }
+
+  //No tooth logger for the secondary input
+  if( (currentStatus.compositeTriggerUsed > 0) && (BIT_CHECK(decoderState, BIT_DECODER_VALID_TRIGGER)) )
+  {
+    //Composite logger adds an entry regardless of which edge it was
+    addToothLogEntry(curGap3, TOOTH_CAM_TERTIARY);
+  }  
+}
+
 static inline void resetToothLogFlags(void) {
   BIT_CLEAR(currentStatus.status1, BIT_STATUS1_TOOTHLOG1READY);
   toothHistoryIndex = 0;

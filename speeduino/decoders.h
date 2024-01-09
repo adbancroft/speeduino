@@ -58,10 +58,6 @@ static inline bool isFixedCrankLock(void) {
   return configPage4.ignCranklock && BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) && (BIT_CHECK(decoderState, BIT_DECODER_HAS_FIXED_CRANKING));
 }
 
-void loggerPrimaryISR(void);
-void loggerSecondaryISR(void);
-void loggerTertiaryISR(void);
-
 //All of the below are the 6 required functions for each decoder / pattern
 void triggerSetup_missingTooth(void);
 void triggerPri_missingTooth(void);
@@ -247,6 +243,7 @@ extern volatile unsigned long curTime;
 extern volatile unsigned long curGap;
 extern volatile unsigned long curTime2;
 extern volatile unsigned long curGap2;
+extern volatile unsigned long curGap3;
 extern volatile unsigned long lastGap;
 extern volatile unsigned long targetGap;
 
