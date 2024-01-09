@@ -1,6 +1,6 @@
-#include "globals.h"
+#include "board_selector.h"
 #if defined(CORE_AVR)
-#include "board_avr2560.h"
+#include "globals.h"
 #include "auxiliaries.h"
 #include "comms_secondary.h"
 

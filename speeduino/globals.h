@@ -28,7 +28,6 @@
 #include <assert.h>
 #include "table2d.h"
 #include "table3d.h"
-#include "board_selector.h"
 #include "port_pin.h"
 
 //Handy bitsetting macros
@@ -377,14 +376,6 @@ extern ioPort tach_pin_port;
 extern ioPort pump_pin_port;
 extern ioPort flex_pin_port;
 
-extern ioPort triggerPri_pin_port;
-extern ioPort triggerSec_pin_port;
-extern ioPort triggerThird_pin_port;
-
-extern byte triggerInterrupt;
-extern byte triggerInterrupt2;
-extern byte triggerInterrupt3;
-
 extern byte fpPrimeTime; //The time (in seconds, based on currentStatus.secl) that the fuel pump started priming
 extern uint8_t softLimitTime; //The time (in 0.1 seconds, based on seclx10) that the soft limiter started
 extern volatile uint16_t mainLoopCount;
@@ -399,15 +390,6 @@ static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check type of toothHistoryIndex");
 extern unsigned long currentLoopTime; /**< The time (in uS) that the current mainloop started */
 extern volatile uint16_t ignitionCount; /**< The count of ignition events that have taken place since the engine started */
 //The below shouldn't be needed and probably should be cleaned up, but the Atmel SAM (ARM) boards use a specific type for the trigger edge values rather than a simple byte/int
-#if defined(CORE_SAMD21)
-  extern PinStatus primaryTriggerEdge;
-  extern PinStatus secondaryTriggerEdge;
-  extern PinStatus tertiaryTriggerEdge;
-#else
-  extern byte primaryTriggerEdge;
-  extern byte secondaryTriggerEdge;
-  extern byte tertiaryTriggerEdge;
-#endif
 extern int16_t CRANK_ANGLE_MAX_IGN;
 extern int16_t CRANK_ANGLE_MAX_INJ;       ///< The number of crank degrees that the system track over. 360 for wasted / timed batch and 720 for sequential
 extern volatile uint32_t runSecsX10;  /**< Counter of seconds since cranking commenced (similar to runSecs) but in increments of 0.1 seconds */

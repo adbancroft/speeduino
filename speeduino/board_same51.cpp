@@ -1,6 +1,6 @@
+
+#include "board_selector.h"
 #if defined(CORE_SAME51)
-#include "globals.h"
-#include "auxiliaries.h"
 
 void initBoard()
 {

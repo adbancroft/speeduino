@@ -11,7 +11,7 @@
   uint16_t freeRam();
   void doSystemReset();
   void jumpToBootloader();
-  void setTriggerHysteresis();
+  void setTriggerHysteresis(uint8_t pinPrimary, uint8_t pinSecondary);
   time_t getTeensy3Time();
   #define PORT_TYPE uint32_t //Size of the port variables
   #define PINMASK_TYPE uint32_t

@@ -1,7 +1,7 @@
-#include "board_stm32_official.h"
-#include "globals.h"
+#include "board_selector.h"
 
 #if defined(STM32_CORE_VERSION_MAJOR)
+#include "board_stm32_official.h"
 #include "auxiliaries.h"
 #include "idle.h"
 #include "scheduler.h"

@@ -2,13 +2,22 @@
 #define AUX_H
 
 #include "atomic.h"
+#include "globals.h"
 #include "port_pin.h"
 
 void initialiseAuxPWM(void);
 void boostControl(void);
 void boostDisable(void);
 void boostByGear(void);
+
 void vvtControl(void);
+static inline bool isVVT_1Enabled(void) {
+  return configPage6.vvtEnabled != 0U;
+}
+static inline bool isVVT_2Enabled(void) {
+  return isVVT_1Enabled() && configPage10.vvt2Enabled != 0U;
+}
+
 void initialiseFan(void);
 void initialiseAirCon(void);
 void nitrousControl(void);
