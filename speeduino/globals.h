@@ -499,8 +499,7 @@ struct statuses {
   volatile byte syncLossCounter;
   byte knockRetard;
   bool knockActive;
-  bool toothLogEnabled;
-  byte compositeTriggerUsed; // 0 means composite logger disabled, 2 means use secondary input (1st cam), 3 means use tertiary input (2nd cam), 4 means log both cams together
+  byte loggerSelection; // 0 means logger disabled, 1==tooth log, 2 means use secondary input (1st cam), 3 means use tertiary input (2nd cam), 4 means log both cams together
   int16_t vvt1Angle; //Has to be a long for PID calcs (CL VVT control)
   byte vvt1TargetAngle;
   long vvt1Duty; //Has to be a long for PID calcs (CL VVT control)
