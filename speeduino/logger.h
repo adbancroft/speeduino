@@ -27,6 +27,12 @@ bool is2ByteEntry(uint8_t key);
 
 void startToothLogger(void);
 void stopToothLogger(void);
+static inline bool isToothLogEnabled(void) {
+  return (currentStatus.toothLogEnabled == true) && (currentStatus.compositeTriggerUsed==0);
+}
+static inline bool isCompositeLogEnabled(void) {
+  return (currentStatus.toothLogEnabled == false) && (currentStatus.compositeTriggerUsed>0);
+}
 
 void startCompositeLogger(void);
 void stopCompositeLogger(void);

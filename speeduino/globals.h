@@ -137,14 +137,6 @@
 #define IAT_CALIBRATION_PAGE  1U
 #define CLT_CALIBRATION_PAGE  0U
 
-// note the sequence of these defines which reference the bits used in a byte has moved when the third trigger & engine cycle was incorporated
-#define COMPOSITE_LOG_PRI   0
-#define COMPOSITE_LOG_SEC   1
-#define COMPOSITE_LOG_THIRD 2 
-#define COMPOSITE_LOG_TRIG 3
-#define COMPOSITE_LOG_SYNC 4
-#define COMPOSITE_ENGINE_CYCLE 5
-
 #define EGO_TYPE_OFF      0
 #define EGO_TYPE_NARROW   1
 #define EGO_TYPE_WIDE     2

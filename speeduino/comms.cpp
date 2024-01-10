@@ -866,8 +866,8 @@ void processSerialCommand(void)
 
     case 'T': //Send 256 tooth log entries to Tuner Studios tooth logger
       logItemsTransmitted = 0;
-      if(currentStatus.toothLogEnabled == true) { sendToothLog(); } //Sends tooth log values as ints
-      else if (currentStatus.compositeTriggerUsed > 0) { sendCompositeLog(); }
+      if(isToothLogEnabled()) { sendToothLog(); } //Sends tooth log values as ints
+      else if (isCompositeLogEnabled()) { sendCompositeLog(); }
       else { /* MISRA no-op */ }
       break;
 
