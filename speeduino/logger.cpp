@@ -306,13 +306,13 @@ int16_t getReadableLogEntry(uint16_t logIndex)
   return statusValue;
 }
 
+#if defined(FPU_MAX_SIZE) && FPU_MAX_SIZE >= 32 //cppcheck-suppress misra-c2012-20.9
 /** 
  * An expansion to the @ref getReadableLogEntry function for systems that have an FPU. It will provide a floating point value for any parameter that this is appropriate for, otherwise will return the result of @ref getReadableLogEntry.
  * See logger.h for the field names and order
  * @param logIndex - The log index required. Note that this is NOT the byte number, but the index in the log
  * @return float value of the requested log entry. 
  */
-#if defined(FPU_MAX_SIZE) && FPU_MAX_SIZE >= 32 //cppcheck-suppress misra-c2012-20.9
 float getReadableFloatLogEntry(uint16_t logIndex)
 {
   float statusValue = 0.0;
@@ -520,7 +520,6 @@ static inline void incrementToothLogIndex(void) {
 /** Add tooth log entry to toothHistory (array).
  * Enabled by (either) currentStatus.toothLogEnabled and currentStatus.compositeTriggerUsed.
  * @param toothTime - Tooth Time
- * @param whichTooth - 0 for Primary (Crank), 2 for Secondary (Cam) 3 for Tertiary (Cam)
  */
 static void addToothLogEntry(unsigned long toothTime) {
   if (!BIT_CHECK(currentStatus.status1, BIT_STATUS1_TOOTHLOG1READY)) {
@@ -543,46 +542,41 @@ enum TriggerTooth {
 #define COMPOSITE_LOG_SYNC      4U
 #define COMPOSITE_ENGINE_CYCLE  5U
 
-static inline byte getCompositeLogValue(TriggerTooth whichTooth) {
+static inline byte getCompositeLogValue(TriggerTooth triggeredTooth) {
   byte value = 0U;
 
-  if(currentStatus.compositeTriggerUsed == 4U)
-      {
-        // we want to display both cams so swap the values round to display primary as cam1 and secondary as cam2, include the crank in the data as the third output
+  if(currentStatus.loggerSelection == 4U)
+  {
+    // we want to display both cams so swap the values round to display primary as cam1 and secondary as cam2, include the crank in the data as the third output
     if(READ_SEC_TRIGGER() == HIGH) { BIT_SET(value, COMPOSITE_LOG_PRI); }
     if(READ_THIRD_TRIGGER() == HIGH) { BIT_SET(value, COMPOSITE_LOG_SEC); }
     if(READ_PRI_TRIGGER() == HIGH) { BIT_SET(value, COMPOSITE_LOG_THIRD); }
-    if(whichTooth==TOOTH_CAM_TERTIARY) { BIT_SET(value, COMPOSITE_LOG_TRIG); }
-      }
-      else
-      {
-        // we want to display crank and one of the cams
+    if(triggeredTooth==TOOTH_CAM_TERTIARY) { BIT_SET(value, COMPOSITE_LOG_TRIG); }
+  } else {
+    // we want to display crank and one of the cams
     if(READ_PRI_TRIGGER() == HIGH) { BIT_SET(value, COMPOSITE_LOG_PRI); }
-    if(currentStatus.compositeTriggerUsed == 3U)
-        { 
-          // display cam2 and also log data for cam 1
+    if(currentStatus.loggerSelection == 3U) { 
+      // display cam2 and also log data for cam 1
       if(READ_THIRD_TRIGGER() == HIGH) { BIT_SET(value, COMPOSITE_LOG_SEC); } // only the COMPOSITE_LOG_SEC value is visualised hence the swapping of the data
       if(READ_SEC_TRIGGER() == HIGH) { BIT_SET(value, COMPOSITE_LOG_THIRD); } 
-        } 
-        else
-        { 
-          // display cam1 and also log data for cam 2 - this is the historic composite view
+    } else { 
+      // display cam1 and also log data for cam 2 - this is the historic composite view
       if(READ_SEC_TRIGGER() == HIGH) { BIT_SET(value, COMPOSITE_LOG_SEC); } 
       if(READ_THIRD_TRIGGER() == HIGH) { BIT_SET(value, COMPOSITE_LOG_THIRD); }
-        }
-    if(whichTooth!=TOOTH_CRANK) { BIT_SET(value, COMPOSITE_LOG_TRIG); }
-      }  
+    }
+    if(triggeredTooth!=TOOTH_CRANK) { BIT_SET(value, COMPOSITE_LOG_TRIG); }
+  }  
   BIT_WRITE(value, COMPOSITE_ENGINE_CYCLE, revolutionOne == 1);
   BIT_WRITE(value, COMPOSITE_LOG_SYNC, currentStatus.hasSync == true);
 
   return value;
 }
 
-static inline void addCompositeLogEntry(TriggerTooth whichTooth)
+static inline void addCompositeLogEntry(TriggerTooth triggeredTooth)
 {
   if(!BIT_CHECK(currentStatus.status1, BIT_STATUS1_TOOTHLOG1READY))
   {
-    compositeLogHistory[toothHistoryIndex] = getCompositeLogValue(whichTooth);
+    compositeLogHistory[toothHistoryIndex] = getCompositeLogValue(triggeredTooth);
     toothHistory[toothHistoryIndex] = micros();
     incrementToothLogIndex();
   }
@@ -701,22 +695,20 @@ static inline void detachTertiaryLogger(void) {
 
 void startToothLogger(void)
 {
-  currentStatus.toothLogEnabled = true;
-  currentStatus.compositeTriggerUsed = 0U; //Safety first (Should never be required)
+  currentStatus.loggerSelection = 1U; //Safety first (Should never be required)
   resetToothLogFlags();
   attachPrimaryLogger(toothLoggerPrimaryISR);
 }
 
 void stopToothLogger(void)
 {
-  currentStatus.toothLogEnabled = false;
+  currentStatus.loggerSelection = 0U;
   detachPrimaryLogger();
 }
 
 void startCompositeLogger(void)
 {
-  currentStatus.compositeTriggerUsed = 2U;
-  currentStatus.toothLogEnabled = false; //Safety first (Should never be required)
+  currentStatus.loggerSelection = 2U;
   resetToothLogFlags();
   attachPrimaryLogger(compositeLoggerPrimaryISR);
   attachSecondaryLogger();
@@ -724,15 +716,14 @@ void startCompositeLogger(void)
 
 void stopCompositeLogger(void)
 {
-  currentStatus.compositeTriggerUsed = 0U;
+  currentStatus.loggerSelection = 0U;
   detachPrimaryLogger();
   detachSecondaryLogger();
 }
 
 void startCompositeLoggerTertiary(void)
 {
-  currentStatus.compositeTriggerUsed = 3U;
-  currentStatus.toothLogEnabled = false; //Safety first (Should never be required)
+  currentStatus.loggerSelection = 3U;
   resetToothLogFlags();
   attachPrimaryLogger(compositeLoggerPrimaryISR);
   attachTertiaryLogger();
@@ -740,7 +731,7 @@ void startCompositeLoggerTertiary(void)
 
 void stopCompositeLoggerTertiary(void)
 {
-  currentStatus.compositeTriggerUsed = 0;
+  currentStatus.loggerSelection = 0U;
   detachPrimaryLogger();
   detachTertiaryLogger();
 }
@@ -748,8 +739,7 @@ void stopCompositeLoggerTertiary(void)
 
 void startCompositeLoggerCams(void)
 {
-  currentStatus.compositeTriggerUsed = 4;
-  currentStatus.toothLogEnabled = false; //Safety first (Should never be required)
+  currentStatus.loggerSelection = 4U;
   resetToothLogFlags();
   attachSecondaryLogger();
   attachTertiaryLogger();
@@ -757,7 +747,7 @@ void startCompositeLoggerCams(void)
 
 void stopCompositeLoggerCams(void)
 {
-  currentStatus.compositeTriggerUsed = false;
+  currentStatus.loggerSelection = 0U;
   detachSecondaryLogger();
   detachTertiaryLogger();
 }
