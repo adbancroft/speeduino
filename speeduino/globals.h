@@ -158,11 +158,11 @@
 #define IGN_MODE_SEQUENTIAL 3U
 #define IGN_MODE_ROTARY     4U
 
-#define SEC_TRIGGER_SINGLE  0
-#define SEC_TRIGGER_4_1     1
-#define SEC_TRIGGER_POLL    2
-#define SEC_TRIGGER_5_3_2   3
-#define SEC_TRIGGER_TOYOTA_3  4
+#define SEC_TRIGGER_SINGLE  0U
+#define SEC_TRIGGER_4_1     1U
+#define SEC_TRIGGER_POLL    2U
+#define SEC_TRIGGER_5_3_2   3U
+#define SEC_TRIGGER_TOYOTA_3  4U
 
 #define ROTARY_IGN_FC       0U
 #define ROTARY_IGN_FD       1U

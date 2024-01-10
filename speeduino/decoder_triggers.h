@@ -1,33 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "board_definition.h"
-
-using trigger_handler_t = void (*)(void);
-#if defined(CORE_SAMD21)
-using trigger_edge_t = PinStatus;
-#else
-using trigger_edge_t = uint8_t;
-#endif
-
-struct trigger_t {
-  trigger_handler_t handler;
-  trigger_edge_t edge; // CHANGE, RISING, FALLING
-};
-
-static inline bool isValid(const trigger_t &trigger) {
-  return trigger.handler!=nullptr;
-}
-
-struct decoder_t {
-    uint16_t (*getRPM)(void); //Pointer to the getRPM function (Gets pointed to the relevant decoder)
-    int (*getCrankAngle)(void); //Pointer to the getCrank Angle function (Gets pointed to the relevant decoder)
-    void (*triggerSetEndTeeth)(void); //Pointer to the triggerSetEndTeeth function of each decoder
-
-    trigger_t primaryTrigger;
-    trigger_t secondaryTrigger;
-    trigger_t tertiaryTrigger;
-};
+#include "decoders.h"
 
 extern decoder_t decoder;
 
