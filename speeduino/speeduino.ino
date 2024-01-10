@@ -46,6 +46,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "auxiliaries.h"
 #include "static_for.hpp"
 #include "decoder_triggers.h"
+#include "logger.h"
 #include RTC_LIB_H //Defined in each boards .h file
 #include BOARD_H //Note that this is not a real file, it is defined in globals.h. 
 
@@ -313,7 +314,7 @@ void __attribute__((always_inline)) loop(void)
       //This is a safety check. If for some reason the interrupts have got screwed up (Leading to 0rpm), this resets them.
       //It can possibly be run much less frequently.
       //This should only be run if the high speed logger are off because it will change the trigger interrupts back to defaults rather than the logger versions
-      if( (currentStatus.toothLogEnabled == false) && (currentStatus.compositeTriggerUsed == 0U) ) { initialiseDecoder(); }
+      if( !isToothLogEnabled() && !isCompositeLogEnabled() ) { initialiseDecoder(); }
 
       VVT1_OFF();
       VVT2_OFF();
