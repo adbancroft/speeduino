@@ -20,7 +20,7 @@
  */
 byte getTSLogEntry(uint16_t byteNum)
 {
-  byte statusValue = 0;
+  byte statusValue = 0U;
 
   switch(byteNum)
   {
@@ -175,7 +175,7 @@ byte getTSLogEntry(uint16_t byteNum)
     case 124: statusValue = currentStatus.airConStatus; break;
     case 125: statusValue = lowByte(currentStatus.actualDwell); break;
     case 126: statusValue = highByte(currentStatus.actualDwell); break;
-    default: statusValue = 0; // MISRA check
+    default: statusValue = 0U; break; // MISRA check
   }
 
   return statusValue;
@@ -349,8 +349,8 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 3: statusValue = (byte)div100(currentStatus.dwell); break; //Dwell in ms * 10
     case 4: statusValue = lowByte(currentStatus.MAP); break; //2 bytes for MAP
     case 5: statusValue = highByte(currentStatus.MAP); break;
-    case 6: statusValue = (byte)(currentStatus.IAT + CALIBRATION_TEMPERATURE_OFFSET); break; //mat
-    case 7: statusValue = (byte)(currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET); break; //Coolant ADC
+    case 6: statusValue = lowByte(currentStatus.IAT + CALIBRATION_TEMPERATURE_OFFSET); break; //mat
+    case 7: statusValue = lowByte(currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET); break; //Coolant ADC
     case 8: statusValue = currentStatus.batCorrection; break; //Battery voltage correction (%)
     case 9: statusValue = currentStatus.battery10; break; //battery voltage
     case 10: statusValue = currentStatus.O2; break; //O2
@@ -365,7 +365,7 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 19: statusValue = currentStatus.afrTarget; break;
     case 20: statusValue = lowByte(fuelSchedules[0].pw); break; //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
     case 21: statusValue = highByte(fuelSchedules[0].pw); break; //Pulsewidth 1 multiplied by 10 in ms. Have to convert from uS to mS.
-    case 22: statusValue = (uint8_t)(currentStatus.tpsDOT / 10); break; //TPS DOT
+    case 22: statusValue = lowByte(currentStatus.tpsDOT / 10); break; //TPS DOT
     case 23: statusValue = currentStatus.advance; break;
     case 24: statusValue = currentStatus.TPS; break; // TPS (0% to 100%)
     case 25: statusValue = lowByte(currentStatus.loopsPerSecond); break;
@@ -374,8 +374,8 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 27: currentStatus.freeRAM = freeRam(); statusValue = lowByte(currentStatus.freeRAM); break; //(byte)((currentStatus.loopsPerSecond >> 8) & 0xFF); break;
     case 28: currentStatus.freeRAM = freeRam(); statusValue = highByte(currentStatus.freeRAM); break;
 
-    case 29: statusValue = (byte)(currentStatus.boostTarget >> 1); break; //Divide boost target by 2 to fit in a byte
-    case 30: statusValue = (byte)(currentStatus.boostDuty / 100); break;
+    case 29: statusValue = (byte)(currentStatus.boostTarget >> 1U); break; //Divide boost target by 2 to fit in a byte
+    case 30: statusValue = (byte)(currentStatus.boostDuty / 100U); break;
     case 31: statusValue = currentStatus.spark; break; //Spark related bitfield, launchHard(0), launchSoft(1), hardLimitOn(2), softLimitOn(3), boostCutSpark(4), error(5), idleControlOn(6), sync(7)
     case 32: statusValue = lowByte(currentStatus.rpmDOT); break;
     case 33: statusValue = highByte(currentStatus.rpmDOT); break;
@@ -440,7 +440,7 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 89: statusValue = highByte(currentStatus.injAngle); break; 
     case 90: statusValue = currentStatus.idleLoad; break;
     case 91: statusValue = currentStatus.CLIdleTarget; break; //closed loop idle target
-    case 92: statusValue = (uint8_t)(currentStatus.mapDOT / 10); break; //rate of change of the map 
+    case 92: statusValue = lowByte(currentStatus.mapDOT / 10); break; //rate of change of the map 
     case 93: statusValue = (int8_t)currentStatus.vvt1Angle; break;
     case 94: statusValue = currentStatus.vvt1TargetAngle; break;
     case 95: statusValue = currentStatus.vvt1Duty; break;
@@ -459,7 +459,7 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 108: statusValue = currentStatus.vvt2TargetAngle; break;
     case 109: statusValue = currentStatus.vvt2Duty; break;
     case 110: statusValue = currentStatus.outputsStatus; break;
-    case 111: statusValue = (byte)(currentStatus.fuelTemp + CALIBRATION_TEMPERATURE_OFFSET); break; //Fuel temperature from flex sensor
+    case 111: statusValue = lowByte(currentStatus.fuelTemp + CALIBRATION_TEMPERATURE_OFFSET); break; //Fuel temperature from flex sensor
     case 112: statusValue = currentStatus.fuelTempCorrection; break; //Fuel temperature Correction (%)
     case 113: statusValue = currentStatus.VE1; break; //VE 1 (%)
     case 114: statusValue = currentStatus.VE2; break; //VE 2 (%)
@@ -471,6 +471,7 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 120: statusValue = highByte(currentStatus.EMAP); break;
     case 121: statusValue = currentStatus.fanDuty; break;
     case 122: statusValue = currentStatus.airConStatus; break;
+    default: statusValue = 0; break; // MISRA
   }
 
   return statusValue;
@@ -507,7 +508,7 @@ bool is2ByteEntry(uint8_t key)
 
 static inline void incrementToothLogIndex(void) {
   //If there has been a value logged, update the indexes
-  if(toothHistoryIndex < (TOOTH_LOG_SIZE-1)) { 
+  if(toothHistoryIndex < (TOOTH_LOG_SIZE-1U)) { 
     toothHistoryIndex++;
     BIT_CLEAR(currentStatus.status1, BIT_STATUS1_TOOTHLOG1READY); 
   }
@@ -565,7 +566,7 @@ static inline byte getCompositeLogValue(TriggerTooth triggeredTooth) {
     }
     if(triggeredTooth!=TOOTH_CRANK) { BIT_SET(value, COMPOSITE_LOG_TRIG); }
   }  
-  BIT_WRITE(value, COMPOSITE_ENGINE_CYCLE, revolutionOne == 1);
+  BIT_WRITE(value, COMPOSITE_ENGINE_CYCLE, revolutionOne == true);
   BIT_WRITE(value, COMPOSITE_LOG_SYNC, currentStatus.hasSync == true);
 
   return value;
