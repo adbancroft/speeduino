@@ -15,24 +15,6 @@ void test_crankmaths_angletotime_revolution_execute() {
   TEST_ASSERT_INT32_WITHIN(1, testdata->expected, angleToTimeMicroSecPerDegree(testdata->angle));
 }
 
-#if false
-struct crankmaths_tooth_testdata {
-  uint16_t rpm;
-  uint16_t triggerToothAngle;
-  unsigned long toothTime;
-  uint16_t angle;
-  unsigned long expected;
-} *crankmaths_tooth_testdata_current;
-
-extern uint32_t angleToTimeIntervalTooth(uint16_t angle);
-
-void test_crankmaths_angletotime_tooth_execute() {
-  crankmaths_tooth_testdata *testdata = crankmaths_tooth_testdata_current;
-  triggerToothAngle = testdata->triggerToothAngle;
-  toothLastToothTime = toothLastMinusOneToothTime + testdata->toothTime;
-  TEST_ASSERT_EQUAL(testdata->expected, angleToTimeIntervalTooth(testdata->angle));
-}
-#endif
 
 void testCrankMaths()
 {
