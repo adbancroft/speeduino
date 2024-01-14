@@ -55,7 +55,7 @@ static volatile unsigned long targetGap;
 
 static unsigned long MAX_STALL_TIME = MICROS_PER_SEC/2UL; //The maximum time (in uS) that the system will continue to function before the engine is considered stalled/stopped. This is unique to each decoder, depending on the number of teeth etc. 500000 (half a second) is used as the default value, most decoders will be much less.
 static volatile uint16_t toothCurrentCount = 0; //The current number of teeth (Once sync has been achieved, this can never actually be 0
-static volatile byte toothSystemCount = 0; //Used for decoders such as Audi 135 where not every tooth is used for calculating crank angle. This variable stores the actual number of teeth, not the number being used to calculate crank anglevolatile unsigned long toothSystemLastToothTime = 0; //As below, but used for decoders where not every tooth count is used for calculation
+static volatile byte toothSystemCount = 0; //Used for decoders such as Audi 135 where not every tooth is used for calculating crank angle. This variable stores the actual number of teeth, not the number being used to calculate crank angle
 static volatile unsigned long toothSystemLastToothTime = 0; //As below, but used for decoders where not every tooth count is used for calculation
 static volatile unsigned long toothLastToothTime = 0; //The time (micros()) that the last tooth was registered
 static volatile unsigned long toothLastSecToothTime = 0; //The time (micros()) that the last tooth was registered on the secondary input
@@ -65,20 +65,11 @@ static volatile unsigned long toothLastMinusOneSecToothTime = 0; //The time (mic
 static volatile unsigned long toothLastToothRisingTime = 0; //The time (micros()) that the last tooth rose (used by special decoders to determine missing teeth polarity)
 static volatile unsigned long toothLastSecToothRisingTime = 0; //The time (micros()) that the last tooth rose on the secondary input (used by special decoders to determine missing teeth polarity)
 static volatile unsigned long targetGap2;
-static volatile unsigned long targetGap3;
 static volatile unsigned long toothOneTime = 0; //The time (micros()) that tooth 1 last triggered
 static volatile unsigned long toothOneMinusOneTime = 0; //The 2nd to last time (micros()) that tooth 1 last triggered
 static volatile bool revolutionOne = 0; // For sequential operation, this tracks whether the current revolution is 1 or 2 (not 1)
-static volatile bool revolutionLastOne = 0; // used to identify in the rover pattern which has a non unique primary trigger something unique - has the secondary tooth changed.
 
 static volatile unsigned int secondaryToothCount; //Used for identifying the current secondary (Usually cam) tooth for patterns with multiple secondary teeth
-static volatile unsigned int secondaryLastToothCount = 0; // used to identify in the rover pattern which has a non unique primary trigger something unique - has the secondary tooth changed.
-static volatile unsigned long secondaryLastToothTime = 0; //The time (micros()) that the last tooth was registered (Cam input)
-static volatile unsigned long secondaryLastToothTime1 = 0; //The time (micros()) that the last tooth was registered (Cam input)
-
-static volatile unsigned int thirdToothCount; //Used for identifying the current third (Usually exhaust cam - used for VVT2) tooth for patterns with multiple secondary teeth
-static volatile unsigned long thirdLastToothTime = 0; //The time (micros()) that the last tooth was registered (Cam input)
-static volatile unsigned long thirdLastToothTime1 = 0; //The time (micros()) that the last tooth was registered (Cam input)
 
 static uint16_t triggerActualTeeth;
 static volatile unsigned long triggerFilterTime; // The shortest time (in uS) that pulses will be accepted (Used for debounce filtering)
@@ -87,7 +78,6 @@ static volatile unsigned long triggerThirdFilterTime; // The shortest time (in u
 
 volatile uint8_t decoderState = 0;
 
-static unsigned int triggerSecFilterTime_duration; // The shortest valid time (in uS) pulse DURATION
 static volatile uint16_t triggerToothAngle; //The number of crank degrees that elapse per tooth
 static byte checkSyncToothCount; //How many teeth must've been seen on this revolution before we try to confirm sync (Useful for missing tooth type decoders)
 static unsigned long lastCrankAngleCalc;
@@ -288,7 +278,6 @@ static void triggerPri_missingTooth(void)
      toothCurrentCount++; //Increment the tooth counter
      BIT_SET(decoderState, BIT_DECODER_VALID_TRIGGER); //Flag this pulse as being a valid trigger (ie that it passed filters)
 
-     //if(toothCurrentCount > checkSyncToothCount || currentStatus.hasSync == false)
       if( (toothLastToothTime > 0) && (toothLastMinusOneToothTime > 0) )
       {
         bool isMissingTooth = false;
@@ -321,7 +310,6 @@ static void triggerPri_missingTooth(void)
                 currentStatus.syncLossCounter++;
             }
             //This is to handle a special case on startup where sync can be obtained and the system immediately thinks the revs have jumped:
-            //else if (currentStatus.hasSync == false && toothCurrentCount < checkSyncToothCount ) { triggerFilterTime = 0; }
             else
             {
                 if((currentStatus.hasSync == true) || BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC))
@@ -496,7 +484,6 @@ static void triggerThird_missingTooth(void)
 
   if ( curGap3 >= triggerThirdFilterTime )
   {
-    thirdToothCount++;
     triggerThirdFilterTime = curGap3 >> 2; //Next third filter is 25% the current gap
     
     curAngle = getCrankAngle();
@@ -622,7 +609,6 @@ decoder_t triggerSetup_missingTooth(void)
   toothLastMinusOneToothTime = 0;
   toothCurrentCount = 0;
   secondaryToothCount = 0; 
-  thirdToothCount = 0;
   toothOneTime = 0;
   toothOneMinusOneTime = 0;
   MAX_STALL_TIME = ((MICROS_PER_DEG_1_RPM/50U) * triggerToothAngle * (configPage4.triggerMissingTeeth + 1U)); //Minimum 50rpm. (3333uS is the time per degree at 50rpm)
@@ -1381,17 +1367,6 @@ static void triggerPri_4G63(void)
 
 static void triggerSec_4G63(void)
 {
-  //byte crankState = READ_PRI_TRIGGER();
-  //First filter is a duration based one to ensure the pulse was of sufficient length (time)
-  //if(READ_SEC_TRIGGER()) { secondaryLastToothTime1 = micros(); return; }
-  if(currentStatus.hasSync == true)
-  {
-  //1166 is the time taken to cross 70 degrees at 10k rpm
-  //if ( (micros() - secondaryLastToothTime1) < triggerSecFilterTime_duration ) { return; }
-  //triggerSecFilterTime_duration = (micros() - secondaryLastToothTime1) >> 1;
-  }
-
-
   curTime2 = micros();
   curGap2 = curTime2 - toothLastSecToothTime;
   if ( (curGap2 >= triggerSecFilterTime) )//|| (currentStatus.startRevolutions == 0) )
@@ -1435,12 +1410,10 @@ static void triggerSec_4G63(void)
       }
     }
 
-    //if ( (micros() - secondaryLastToothTime1) < triggerSecFilterTime_duration && configPage2.useResync )
     if ( (currentStatus.RPM < currentStatus.crankRPM) || (configPage4.useResync == 1) )
     {
       if( (currentStatus.hasSync == true) && (configPage2.nCylinders == 4) )
       {
-        triggerSecFilterTime_duration = (micros() - secondaryLastToothTime1) >> 1;
         if(READ_PRI_TRIGGER() == HIGH)
         {
           //Whilst we're cranking and have sync, we need to watch for noise pulses.
@@ -1608,8 +1581,6 @@ decoder_t triggerSetup_4G63(void)
 
   triggerFilterTime = 1500; //10000 rpm, assuming we're triggering on both edges off the crank tooth.
   triggerSecFilterTime = MIN_REVOLUTION_TIME / 4UL; //Same as above, but fixed at 2 teeth on the secondary input and divided by 2 (for cam speed)
-  triggerSecFilterTime_duration = 4000;
-  secondaryLastToothTime = 0;
 
   return {
     getRPM_4G63,
@@ -5434,7 +5405,6 @@ decoder_t triggerSetup_RoverMEMS(void)
   toothLastMinusOneToothTime = 0;
   toothCurrentCount = 0; // current tooth
   secondaryToothCount = 0;
-  secondaryLastToothCount = 0; 
   toothOneTime = 0;
   toothOneMinusOneTime = 0;
   revolutionOne=0;
