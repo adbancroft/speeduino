@@ -114,8 +114,6 @@ bool isRevolutionOne(void);
 
 uint32_t getToothLogValue(void);
 
-extern volatile unsigned long toothLastToothTime; //The time (micros()) that the last tooth was registered
-
 #define CRANK_SPEED 0U
 #define CAM_SPEED   1U
 
