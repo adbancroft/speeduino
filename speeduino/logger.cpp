@@ -566,7 +566,7 @@ static inline byte getCompositeLogValue(TriggerTooth triggeredTooth) {
     }
     if(triggeredTooth!=TOOTH_CRANK) { BIT_SET(value, COMPOSITE_LOG_TRIG); }
   }  
-  BIT_WRITE(value, COMPOSITE_ENGINE_CYCLE, revolutionOne == true);
+  BIT_WRITE(value, COMPOSITE_ENGINE_CYCLE, isRevolutionOne());
   BIT_WRITE(value, COMPOSITE_LOG_SYNC, currentStatus.hasSync == true);
 
   return value;
@@ -618,7 +618,7 @@ static void toothLoggerPrimaryISR(void) {
     BIT_CLEAR(decoderState, BIT_DECODER_VALID_TRIGGER); //This value will be set to the return value of the decoder function, indicating whether or not this pulse passed the filters
     decoder.primaryTrigger.handler();
     if (BIT_CHECK(decoderState, BIT_DECODER_VALID_TRIGGER)) {
-      addToothLogEntry(curGap);
+      addToothLogEntry(getToothLogValue());
     }
   }
 }

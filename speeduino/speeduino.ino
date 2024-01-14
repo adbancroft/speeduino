@@ -271,8 +271,7 @@ void __attribute__((always_inline)) loop(void)
     }
 
     currentLoopTime = micros_safe();
-    uint32_t timeToLastTooth = (currentLoopTime - toothLastToothTime);
-    if ( (timeToLastTooth < MAX_STALL_TIME) || (toothLastToothTime > currentLoopTime) ) //Check how long ago the last tooth was seen compared to now. If it was more than half a second ago then the engine is probably stopped. toothLastToothTime can be greater than currentLoopTime if a pulse occurs between getting the latest time and doing the comparison
+    if (!hasEngineStopped(currentLoopTime)) //Check how long ago the last tooth was seen compared to now. If it was more than half a second ago then the engine is probably stopped. toothLastToothTime can be greater than currentLoopTime if a pulse occurs between getting the latest time and doing the comparison
     {
       currentStatus.longRPM = getRPM(); //Long RPM is included here
       currentStatus.RPM = currentStatus.longRPM;
@@ -282,39 +281,43 @@ void __attribute__((always_inline)) loop(void)
     else
     {
       //We reach here if the time between teeth is too great. This VERY likely means the engine has stopped
+      fuelSchedules[0].pw = 0;
+
       currentStatus.RPM = 0;
       currentStatus.RPMdiv100 = 0;
-      fuelSchedules[0].pw = 0;
       currentStatus.VE = 0;
       currentStatus.VE2 = 0;
-      toothLastToothTime = 0;
-      toothLastSecToothTime = 0;
-      //toothLastMinusOneToothTime = 0;
       currentStatus.hasSync = false;
-      BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC);
       currentStatus.runSecs = 0; //Reset the counter for number of seconds running.
       currentStatus.startRevolutions = 0;
-      toothSystemCount = 0;
-      secondaryToothCount = 0;
+      currentStatus.rpmDOT = 0;
+      BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC);
+
       MAPcurRev = 0;
       MAPcount = 0;
-      currentStatus.rpmDOT = 0;
       AFRnextCycle = 0;
       ignitionCount = 0;
       ignitionChannelsOn = 0;
       fuelChannelsOn = 0;
+
       if (currentStatus.fpPrimed == true) { FUEL_PUMP_OFF(); } //Turn off the fuel pump, but only if the priming is complete
       if (configPage6.iacPWMrun == false) { disableIdle(); } //Turn off the idle PWM
+      
       BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK); //Clear cranking bit (Can otherwise get stuck 'on' even with 0 rpm)
       BIT_CLEAR(currentStatus.engine, BIT_ENGINE_WARMUP); //Same as above except for WUE
       BIT_CLEAR(currentStatus.engine, BIT_ENGINE_RUN); //Same as above except for RUNNING status
       BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ASE); //Same as above except for ASE status
       BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ACC); //Same as above but the accel enrich (If using MAP accel enrich a stall will cause this to trigger)
       BIT_CLEAR(currentStatus.engine, BIT_ENGINE_DCC); //Same as above but the decel enleanment
+
       //This is a safety check. If for some reason the interrupts have got screwed up (Leading to 0rpm), this resets them.
       //It can possibly be run much less frequently.
       //This should only be run if the high speed logger are off because it will change the trigger interrupts back to defaults rather than the logger versions
-      if( !isToothLogEnabled() && !isCompositeLogEnabled() ) { initialiseDecoder(); }
+      if( !isToothLogEnabled() && !isCompositeLogEnabled() ) { 
+        initialiseDecoder(); 
+      } else {
+        engineStoppedDecoder();
+      }
 
       VVT1_OFF();
       VVT2_OFF();

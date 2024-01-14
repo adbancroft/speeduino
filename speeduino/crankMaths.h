@@ -46,7 +46,13 @@ static inline int16_t injectorLimits(int16_t angle)
 #define MIN_RPM ((MICROS_PER_DEG_1_RPM/(UINT16_MAX/16UL))+1UL)
 
 /**
- * @name Converts angular degrees to the time interval that amount of rotation
+ * @brief Set the revolution time, from which some of the degree<-->angle conversions are derived
+ * 
+ * @param revolutionTime The crank revolution time.
+ */
+void setAngleConverterRevolutionTime(uint32_t revolutionTime);
+
+/** @brief Converts angular degrees to the time interval that amount of rotation
  * will take at current RPM.
  * 
  * Based on angle of [0,720] and min/max RPM, result ranges from
