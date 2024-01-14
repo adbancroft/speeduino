@@ -45,8 +45,6 @@ extern volatile uint8_t decoderState;
 //This isn't to to filter out wrong pulses on triggers, but just to smooth out the cam angle reading for better closed loop VVT control.
 #define ANGLE_FILTER(input, alpha, prior) (((long)(input) * (256 - (alpha)) + ((long)(prior) * (alpha)))) >> 8
 
-bool isFixedCrankLock(void);
-
 //All of the below are the 6 required functions for each decoder / pattern
 decoder_t triggerSetup_missingTooth(void);
 
@@ -69,8 +67,6 @@ decoder_t triggerSetup_HondaD17(void);
 decoder_t triggerSetup_HondaJ32(void);
 
 decoder_t triggerSetup_Miata9905(void);
-
-int getCamAngle_Miata9905(void);
 
 decoder_t triggerSetup_MazdaAU(void);
 
@@ -106,29 +102,24 @@ decoder_t triggerSetup_Vmax(void);
 
 decoder_t triggerSetup_SuzukiK6A(void);
 
-extern volatile unsigned long curGap;
+int getCamAngle_Miata9905(void);
 
-extern unsigned long MAX_STALL_TIME; //The maximum time (in uS) that the system will continue to function before the engine is considered stalled/stopped. This is unique to each decoder, depending on the number of teeth etc. 500000 (half a second) is used as the default value, most decoders will be much less.
-extern volatile byte toothSystemCount; //Used for decoders such as Audi 135 where not every tooth is used for calculating crank angle. This variable stores the actual number of teeth, not the number being used to calculate crank angle
+bool isFixedCrankLock(void);
+
+bool hasEngineStopped(uint32_t curTime);
+
+void engineStoppedDecoder(void);
+
+bool isRevolutionOne(void);
+
+uint32_t getToothLogValue(void);
+
 extern volatile unsigned long toothLastToothTime; //The time (micros()) that the last tooth was registered
-extern volatile unsigned long toothLastSecToothTime; //The time (micros()) that the last tooth was registered on the secondary input
 extern volatile unsigned long toothLastMinusOneToothTime; //The time (micros()) that the tooth before the last tooth was registered
 
-extern volatile bool revolutionOne; // For sequential operation, this tracks whether the current revolution is 1 or 2 (not 1)
-
-extern volatile unsigned int secondaryToothCount; //Used for identifying the current secondary (Usually cam) tooth for patterns with multiple secondary teeth
-
-extern volatile unsigned long triggerFilterTime; // The shortest time (in uS) that pulses will be accepted (Used for debounce filtering)
 extern volatile uint16_t triggerToothAngle; //The number of crank degrees that elapse per tooth
 
 #define CRANK_SPEED 0U
 #define CAM_SPEED   1U
-
-// used by the ROVER MEMS pattern
-#define ID_TOOTH_PATTERN 0 // have we identified teeth to skip for calculating RPM?
-#define SKIP_TOOTH1 1
-#define SKIP_TOOTH2 2
-#define SKIP_TOOTH3 3
-#define SKIP_TOOTH4 4
 
 #endif
