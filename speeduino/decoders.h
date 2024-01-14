@@ -112,9 +112,6 @@ bool isRevolutionOne(void);
 uint32_t getToothLogValue(void);
 
 extern volatile unsigned long toothLastToothTime; //The time (micros()) that the last tooth was registered
-extern volatile unsigned long toothLastMinusOneToothTime; //The time (micros()) that the tooth before the last tooth was registered
-
-extern volatile uint16_t triggerToothAngle; //The number of crank degrees that elapse per tooth
 
 #define CRANK_SPEED 0U
 #define CAM_SPEED   1U
