@@ -575,8 +575,7 @@ void readBaro(void)
     else { currentStatus.baro = 100; } //Fall back position.
 
     //Verify the engine isn't running by confirming RPM is 0 and it has been at least 1 second since the last tooth was detected
-    unsigned long timeToLastTooth = (micros() - toothLastToothTime);
-    if((currentStatus.RPM == 0) && (timeToLastTooth > MICROS_PER_SEC))
+    if((currentStatus.RPM == 0) && hasEngineStopped(micros()-MICROS_PER_SEC))
     {
       instanteneousMAPReading(); //Get the current MAP value
       /* 
