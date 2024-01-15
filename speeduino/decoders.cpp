@@ -63,7 +63,7 @@ static volatile unsigned long toothLastSecToothRisingTime = 0; //The time (micro
 static volatile unsigned long targetGap2;
 static volatile unsigned long toothOneTime = 0; //The time (micros()) that tooth 1 last triggered
 static volatile unsigned long toothOneMinusOneTime = 0; //The 2nd to last time (micros()) that tooth 1 last triggered
-static volatile bool revolutionOne = 0; // For sequential operation, this tracks whether the current revolution is 1 or 2 (not 1)
+static volatile bool revolutionOne = false; // For sequential operation, this tracks whether the current revolution is 1 or 2 (not 1)
 
 static volatile unsigned int secondaryToothCount; //Used for identifying the current secondary (Usually cam) tooth for patterns with multiple secondary teeth
 
@@ -97,6 +97,11 @@ static libdivide::libdivide_s16_t divTriggerToothAngle;
 
 static inline bool IsCranking(const statuses &status) {
   return (status.RPM < status.crankRPM) && (status.startRevolutions == 0U);
+}
+
+static inline int16_t crankAngleFromToothCount(uint16_t toothCount) {
+  int16_t angle = toothCount * triggerToothAngle;
+  return angle + configPage4.triggerAngle;
 }
 
 #if defined(UNIT_TEST)
@@ -327,8 +332,7 @@ static void triggerPri_missingTooth(void)
                 toothCurrentCount = 1;
                 if (configPage4.trigPatternSec == SEC_TRIGGER_POLL) // at tooth one check if the cam sensor is high or low in poll level mode
                 {
-                  if (configPage4.PollLevelPolarity == READ_SEC_TRIGGER()) { revolutionOne = 1; }
-                  else { revolutionOne = 0; }
+                  revolutionOne = configPage4.PollLevelPolarity == READ_SEC_TRIGGER();
                 }
                 else {revolutionOne = !revolutionOne;} //Flip sequential revolution tracker if poll level is not used
                 toothOneMinusOneTime = toothOneTime;
@@ -379,7 +383,7 @@ static void triggerPri_missingTooth(void)
       //NEW IGNITION MODE
       if( (configPage2.perToothIgn == true) && (!BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) ) 
       {
-        int16_t crankAngle = ( (toothCurrentCount-1) * triggerToothAngle ) + configPage4.triggerAngle;
+        int16_t crankAngle = crankAngleFromToothCount(toothCurrentCount-1);
         if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && (revolutionOne == true) && (isConfigToothSourceCrank()) && (configPage2.strokes == FOUR_STROKE) )
         {
           crankAngle += 360;
@@ -403,8 +407,8 @@ static int getCrankAngle_missingTooth(void)
     unsigned long lastCrankAngleCalc = micros();
     interrupts();
 
-    int crankAngle = ((tempToothCurrentCount - 1) * triggerToothAngle) + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
-    
+    int crankAngle = crankAngleFromToothCount(tempToothCurrentCount-1); //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
+
     //Sequential check (simply sets whether we're on the first or 2nd revolution of the cycle)
     if ( (tempRevolutionOne == true) && (isConfigToothSourceCrank()) ) { crankAngle += 360; }
 
@@ -453,7 +457,7 @@ static void triggerSec_missingTooth(void)
         if ( (curGap2 >= targetGap2) || (secondaryToothCount > 3) )
         {
           secondaryToothCount = 1;
-          revolutionOne = 1; //Sequential revolution reset
+          revolutionOne = true; //Sequential revolution reset
           triggerSecFilterTime = 0; //This is used to prevent a condition where serious intermitent signals (Eg someone furiously plugging the sensor wire in and out) can leave the filter in an unrecoverable state
           currentStatus.vvt1Angle = calculateVVTAngle_MissingTooth(currentStatus.vvt1Angle);
         }
@@ -466,7 +470,7 @@ static void triggerSec_missingTooth(void)
 
       case SEC_TRIGGER_SINGLE:
         //Standard single tooth cam trigger
-        revolutionOne = 1; //Sequential revolution reset
+        revolutionOne = true; //Sequential revolution reset
         triggerSecFilterTime = curGap2 >> 1; //Next secondary filter is half the current gap
         secondaryToothCount++;
         currentStatus.vvt1Angle = calculateVVTAngle_MissingTooth(currentStatus.vvt1Angle);
@@ -478,7 +482,7 @@ static void triggerSec_missingTooth(void)
         secondaryToothCount++;
         if(secondaryToothCount == 2)
         { 
-          revolutionOne = 1; // sequential revolution reset
+          revolutionOne = true; // sequential revolution reset
           currentStatus.vvt1Angle = calculateVVTAngle_MissingTooth(currentStatus.vvt1Angle);
         }        
         //Next secondary filter is 25% the current gap, done here so we don't get a great big gap for the 1st tooth
@@ -606,7 +610,7 @@ decoder_t triggerSetup_missingTooth(void)
       getRPM_missingTooth,
       getCrankAngle_missingTooth,
       triggerSetEndTeeth_missingTooth,
-      { triggerPri_missingTooth, getConfigPrimaryTriggerMode() },
+      trigger_t { triggerPri_missingTooth, getConfigPrimaryTriggerMode() },
       missingToothHasSecondary() ? trigger_t { triggerSec_missingTooth, getConfigSecondaryTriggerMode() } : NULL_TRIGGER,
       // we only need this for vvt2, so not really needed if it's not used
       isVVT_2Enabled() ? trigger_t { triggerThird_missingTooth, getConfigTertiaryTriggerMode() } : NULL_TRIGGER,
@@ -652,7 +656,7 @@ static void triggerPri_DualWheel(void)
       //NEW IGNITION MODE
       if( (configPage2.perToothIgn == true) && (!BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) ) 
       {
-        int16_t crankAngle = ( (toothCurrentCount-1) * triggerToothAngle ) + configPage4.triggerAngle;
+        int16_t crankAngle = crankAngleFromToothCount(toothCurrentCount-1);
         if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && (revolutionOne == true) && (isConfigToothSourceCrank()) )
         {
           crankAngle += 360;
@@ -690,7 +694,7 @@ static void triggerSec_DualWheel(void)
       if (configPage4.useResync == 1) { toothCurrentCount = configPage4.triggerTeeth; }
     }
 
-    revolutionOne = 1; //Sequential revolution reset
+    revolutionOne = true; //Sequential revolution reset
   }
   else 
   {
@@ -736,7 +740,7 @@ static int getCrankAngle_DualWheel(void)
     //Handle case where the secondary tooth was the last one seen
     if(tempToothCurrentCount == 0) { tempToothCurrentCount = configPage4.triggerTeeth; }
 
-    int crankAngle = ((tempToothCurrentCount - 1) * triggerToothAngle) + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
+    int crankAngle = crankAngleFromToothCount(tempToothCurrentCount -1); //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
     crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);
 
     //Sequential check (simply sets whether we're on the first or 2nd revolution of the cycle)
@@ -792,8 +796,8 @@ decoder_t triggerSetup_DualWheel(void)
     getRPM_DualWheel,
     getCrankAngle_DualWheel,
     triggerSetEndTeeth_DualWheel,
-    { triggerPri_DualWheel, getConfigPrimaryTriggerMode() },
-    { triggerSec_DualWheel, getConfigSecondaryTriggerMode() },
+    trigger_t { triggerPri_DualWheel, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerSec_DualWheel, getConfigSecondaryTriggerMode() },
     NULL_TRIGGER,
   };
 }
@@ -856,7 +860,7 @@ static void triggerPri_BasicDistributor(void)
 
     if(configPage2.perToothIgn == true)
     {
-      int16_t crankAngle = ( (toothCurrentCount-1) * triggerToothAngle ) + configPage4.triggerAngle;
+      int16_t crankAngle = crankAngleFromToothCount(toothCurrentCount-1);
       crankAngle = ignitionLimits((crankAngle));
       if(toothCurrentCount > (getActualTeeth_Distributor()/2) ) { checkPerToothTiming(crankAngle, (toothCurrentCount - (getActualTeeth_Distributor()/2)), 2U); }
       else { checkPerToothTiming(crankAngle, toothCurrentCount, 2U); }
@@ -895,7 +899,7 @@ static int getCrankAngle_BasicDistributor(void)
     unsigned long lastCrankAngleCalc = micros(); //micros() is no longer interrupt safe
     interrupts();
 
-    int crankAngle = ((tempToothCurrentCount - 1) * triggerToothAngle) + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
+    int crankAngle = crankAngleFromToothCount(tempToothCurrentCount -1); //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
     
     //Estimate the number of degrees travelled since the last tooth}
     crankAngle += timeToAngleIntervalTooth(lastCrankAngleCalc - tempToothLastToothTime, tempToothLastToothTime, tempToothLastMinusOneToothTime, tempToothCurrentCount);
@@ -997,7 +1001,7 @@ decoder_t triggerSetup_BasicDistributor(void)
     getRPM_BasicDistributor,
     getCrankAngle_BasicDistributor,
     triggerSetEndTeeth_BasicDistributor,
-    { triggerPri_BasicDistributor, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerPri_BasicDistributor, getConfigPrimaryTriggerMode() },
     NULL_TRIGGER,
     NULL_TRIGGER,
     };
@@ -1054,11 +1058,11 @@ static void triggerPri_GM7X(void)
         int16_t crankAngle;
         if( toothCurrentCount < 3 )
         {
-          crankAngle = ((toothCurrentCount - 1) * triggerToothAngle) + 42 + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
+          crankAngle = crankAngleFromToothCount(toothCurrentCount - 1) + 42; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
         }
         else
         {
-          crankAngle = ((toothCurrentCount - 2) * triggerToothAngle) + 42 + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
+          crankAngle = crankAngleFromToothCount(toothCurrentCount - 2) + 42; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
         }
         checkPerToothTiming(crankAngle, toothCurrentCount, 3U);
       } 
@@ -1089,7 +1093,7 @@ static int getCrankAngle_GM7X(void)
     int crankAngle;
     if( tempToothCurrentCount < 3 )
     {
-      crankAngle = ((tempToothCurrentCount - 1) * triggerToothAngle) + 42 + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
+      crankAngle = crankAngleFromToothCount(tempToothCurrentCount - 1) + 42; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
     }
     else if( tempToothCurrentCount == 3 )
     {
@@ -1097,7 +1101,7 @@ static int getCrankAngle_GM7X(void)
     }
     else
     {
-      crankAngle = ((tempToothCurrentCount - 2) * triggerToothAngle) + 42 + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
+      crankAngle = crankAngleFromToothCount(tempToothCurrentCount - 2) + 42; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
     }
 
     //Estimate the number of degrees travelled since the last tooth}
@@ -1138,7 +1142,7 @@ decoder_t triggerSetup_GM7X(void)
     getRPM_GM7X,
     getCrankAngle_GM7X,
     triggerSetEndTeeth_GM7X,
-    { triggerPri_GM7X, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerPri_GM7X, getConfigPrimaryTriggerMode() },
     NULL_TRIGGER,
     NULL_TRIGGER,
   };
@@ -1431,7 +1435,7 @@ static uint16_t getRPM_4G63(void)
         interrupts();
         toothTime = toothTime * 36;
         tempRPM = ((unsigned long)tempToothAngle * (MICROS_PER_MIN/10U)) / toothTime;
-        SetRevolutionTime((10UL * toothTime) / tempToothAngle);
+        (void)SetRevolutionTime((10UL * toothTime) / tempToothAngle);
         MAX_STALL_TIME = 366667UL; // 50RPM
       }
     }
@@ -1558,14 +1562,14 @@ decoder_t triggerSetup_4G63(void)
   }
 
   triggerFilterTime = 1500; //10000 rpm, assuming we're triggering on both edges off the crank tooth.
-  triggerSecFilterTime = (int)(MICROS_PER_SEC / (MAX_RPM / 60U * 2U)) / 2U; //Same as above, but fixed at 2 teeth on the secondary input and divided by 2 (for cam speed)
+  triggerSecFilterTime = (MICROS_PER_SEC / (MAX_RPM / 60U * 2U)) / 2U; //Same as above, but fixed at 2 teeth on the secondary input and divided by 2 (for cam speed)
 
   return {
     getRPM_4G63,
     getCrankAngle_4G63,
     triggerSetEndTeeth_4G63,
-    { triggerPri_4G63, CHANGE },
-    { triggerSec_4G63, FALLING },
+    trigger_t { triggerPri_4G63, CHANGE },
+    trigger_t { triggerSec_4G63, FALLING },
     NULL_TRIGGER,
   };
 }
@@ -1615,7 +1619,7 @@ static void triggerPri_24X(void)
 static void triggerSec_24X(void)
 {
   toothCurrentCount = 0; //All we need to do is reset the tooth count back to zero, indicating that we're at the beginning of a new revolution
-  revolutionOne = 1; //Sequential revolution reset
+  revolutionOne = true; //Sequential revolution reset
 }
 
 static uint16_t getRPM_24X(void)
@@ -1643,7 +1647,7 @@ static int getCrankAngle_24X(void)
     crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
 
     //Sequential check (simply sets whether we're on the first or 2nd revolution of the cycle)
-    if (tempRevolutionOne == 1) { crankAngle += 360; }
+    if (tempRevolutionOne == true) { crankAngle += 360; }
 
     if (crankAngle >= 720) { crankAngle -= 720; }
     if (crankAngle < 0) { crankAngle += 360; }
@@ -1691,8 +1695,8 @@ decoder_t triggerSetup_24X(void)
     getRPM_24X,
     getCrankAngle_24X,
     nullptr,
-    { triggerPri_24X, getConfigPrimaryTriggerMode() },
-    { triggerSec_24X, CHANGE }, //Secondary is always on every change
+    trigger_t { triggerPri_24X, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerSec_24X, CHANGE }, //Secondary is always on every change
     NULL_TRIGGER,
   };
 }
@@ -1803,8 +1807,8 @@ decoder_t triggerSetup_Jeep2000(void)
     getRPM_Jeep2000,
     getCrankAngle_Jeep2000,
     nullptr,
-    { triggerPri_Jeep2000, getConfigPrimaryTriggerMode() },
-    { triggerSec_Jeep2000, CHANGE },
+    trigger_t { triggerPri_Jeep2000, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerSec_Jeep2000, CHANGE },
     NULL_TRIGGER,
   };
 }
@@ -1871,7 +1875,7 @@ static void triggerSec_Audi135(void)
   }
   else if (configPage4.useResync == 1) { toothCurrentCount = 0; toothSystemCount = 3; }
   else if ( (currentStatus.startRevolutions < 100) && (toothCurrentCount != 45) ) { toothCurrentCount = 0; }
-  revolutionOne = 1; //Sequential revolution reset
+  revolutionOne = true; //Sequential revolution reset
 }
 
 static uint16_t getRPM_Audi135(void)
@@ -1894,7 +1898,7 @@ static int getCrankAngle_Audi135(void)
     //Handle case where the secondary tooth was the last one seen
     if(tempToothCurrentCount == 0) { tempToothCurrentCount = 45; }
 
-    int crankAngle = ((tempToothCurrentCount - 1) * triggerToothAngle) + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
+    int crankAngle = crankAngleFromToothCount(tempToothCurrentCount -1); //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
     
     //Estimate the number of degrees travelled since the last tooth}
     crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);;
@@ -1913,8 +1917,8 @@ decoder_t triggerSetup_Audi135(void)
   triggerToothAngle = 8; //135/3 = 45, 360/45 = 8 degrees every 3 teeth
   toothCurrentCount = 255; //Default value
   toothSystemCount = 0;
-  triggerFilterTime = (unsigned long)(MICROS_PER_SEC / (MAX_RPM / 60U * 135UL)); //Trigger filter time is the shortest possible time (in uS) that there can be between crank teeth (ie at max RPM). Any pulses that occur faster than this time will be discarded as noise
-  triggerSecFilterTime = (int)(MICROS_PER_SEC / (MAX_RPM / 60U * 2U)) / 2U; //Same as above, but fixed at 2 teeth on the secondary input and divided by 2 (for cam speed)
+  triggerFilterTime = (MICROS_PER_SEC / (MAX_RPM / 60U * 135UL)); //Trigger filter time is the shortest possible time (in uS) that there can be between crank teeth (ie at max RPM). Any pulses that occur faster than this time will be discarded as noise
+  triggerSecFilterTime = (MICROS_PER_SEC / (MAX_RPM / 60U * 2U)) / 2U; //Same as above, but fixed at 2 teeth on the secondary input and divided by 2 (for cam speed)
   MAX_STALL_TIME = ((MICROS_PER_DEG_1_RPM/50U) * triggerToothAngle); //Minimum 50rpm. (3333uS is the time per degree at 50rpm)
   BIT_CLEAR(decoderState, BIT_DECODER_2ND_DERIV);
   BIT_SET(decoderState, BIT_DECODER_IS_SEQUENTIAL);
@@ -1925,8 +1929,8 @@ decoder_t triggerSetup_Audi135(void)
     getRPM_Audi135,
     getCrankAngle_Audi135,
     nullptr,
-    { triggerPri_Audi135, getConfigPrimaryTriggerMode() },
-    { triggerSec_Audi135, RISING }, //always rising for this trigger
+    trigger_t { triggerPri_Audi135, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerSec_Audi135, RISING }, //always rising for this trigger
     NULL_TRIGGER,
   };  
 }
@@ -2003,7 +2007,7 @@ static int getCrankAngle_HondaD17(void)
     }
     else
     {
-      crankAngle = ((tempToothCurrentCount - 1) * triggerToothAngle) + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
+      crankAngle = crankAngleFromToothCount(tempToothCurrentCount -1); //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
     }
 
     //Estimate the number of degrees travelled since the last tooth}
@@ -2028,7 +2032,7 @@ decoder_t triggerSetup_HondaD17(void)
     getRPM_HondaD17,
     getCrankAngle_HondaD17,
     nullptr,
-    { triggerPri_HondaD17, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerPri_HondaD17, getConfigPrimaryTriggerMode() },
     NULL_TRIGGER,
     NULL_TRIGGER,
   };
@@ -2184,7 +2188,7 @@ static uint16_t getRPM_Miata9905(void)
       interrupts();
       toothTime = toothTime * 36;
       tempRPM = ((unsigned long)tempToothAngle * (MICROS_PER_MIN/10U)) / toothTime;
-      SetRevolutionTime((10UL * toothTime) / tempToothAngle);
+      (void)SetRevolutionTime((10UL * toothTime) / tempToothAngle);
       MAX_STALL_TIME = 366667UL; // 50RPM
     }
   }
@@ -2304,8 +2308,8 @@ decoder_t triggerSetup_Miata9905(void)
     getRPM_Miata9905,
     getCrankAngle_Miata9905,
     triggerSetEndTeeth_Miata9905,
-    { triggerPri_Miata9905, getConfigPrimaryTriggerMode() },
-    { triggerSec_Miata9905, getConfigSecondaryTriggerMode() }, 
+    trigger_t { triggerPri_Miata9905, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerSec_Miata9905, getConfigSecondaryTriggerMode() }, 
     NULL_TRIGGER,
   };
 }
@@ -2398,7 +2402,7 @@ static uint16_t getRPM_MazdaAU(void)
       int tempToothAngle;
       noInterrupts();
       tempToothAngle = triggerToothAngle;
-      SetRevolutionTime(36*(toothLastToothTime - toothLastMinusOneToothTime)); //Note that trigger tooth angle changes between 72 and 108 depending on the last tooth that was seen
+      (void)SetRevolutionTime(36*(toothLastToothTime - toothLastMinusOneToothTime)); //Note that trigger tooth angle changes between 72 and 108 depending on the last tooth that was seen
       interrupts();
       tempRPM = (tempToothAngle * MICROS_PER_MIN) / revolutionTime;
     }
@@ -2448,7 +2452,7 @@ decoder_t triggerSetup_MazdaAU(void)
 
   MAX_STALL_TIME = ((MICROS_PER_DEG_1_RPM/50U) * triggerToothAngle); //Minimum 50rpm. (3333uS is the time per degree at 50rpm)
   triggerFilterTime = 1500; //10000 rpm, assuming we're triggering on both edges off the crank tooth.
-  triggerSecFilterTime = (int)(MICROS_PER_SEC / (MAX_RPM / 60U * 2U)) / 2U; //Same as above, but fixed at 2 teeth on the secondary input and divided by 2 (for cam speed)
+  triggerSecFilterTime = (MICROS_PER_SEC / (MAX_RPM / 60U * 2U)) / 2U; //Same as above, but fixed at 2 teeth on the secondary input and divided by 2 (for cam speed)
   BIT_SET(decoderState, BIT_DECODER_HAS_FIXED_CRANKING);
   BIT_SET(decoderState, BIT_DECODER_HAS_SECONDARY);
 
@@ -2456,8 +2460,8 @@ decoder_t triggerSetup_MazdaAU(void)
     getRPM_MazdaAU,
     getCrankAngle_MazdaAU,
     nullptr,
-    { triggerPri_MazdaAU, getConfigPrimaryTriggerMode() },
-    { triggerSec_MazdaAU, FALLING },
+    trigger_t { triggerPri_MazdaAU, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerSec_MazdaAU, FALLING },
     NULL_TRIGGER,
   };
 }
@@ -2521,8 +2525,8 @@ decoder_t triggerSetup_non360(void)
     getRPM_non360,
     getCrankAngle_non360,
     nullptr,
-    { triggerPri_DualWheel, getConfigPrimaryTriggerMode() }, //Is identical to the dual wheel decoder, so that is used. Same goes for the secondary below
-    { triggerSec_DualWheel, FALLING }, //Note the use of the Dual Wheel trigger function here. No point in having the same code in twice.
+    trigger_t { triggerPri_DualWheel, getConfigPrimaryTriggerMode() }, //Is identical to the dual wheel decoder, so that is used. Same goes for the secondary below
+    trigger_t { triggerSec_DualWheel, FALLING }, //Note the use of the Dual Wheel trigger function here. No point in having the same code in twice.
     NULL_TRIGGER,
   };
 }
@@ -2677,13 +2681,13 @@ static uint16_t getRPM_Nissan360(void)
     if(currentStatus.startRevolutions < 2)
     {
       noInterrupts();
-      SetRevolutionTime((toothLastToothTime - toothLastMinusOneToothTime) * 180); //Each tooth covers 2 crank degrees, so multiply by 180 to get a full revolution time. 
+      (void)SetRevolutionTime((toothLastToothTime - toothLastMinusOneToothTime) * 180); //Each tooth covers 2 crank degrees, so multiply by 180 to get a full revolution time. 
       interrupts();
     }
     else
     {
       noInterrupts();
-      SetRevolutionTime((toothOneTime - toothOneMinusOneTime) >> 1); //The time in uS that one revolution would take at current speed (The time tooth 1 was last seen, minus the time it was seen prior to that)
+      (void)SetRevolutionTime((toothOneTime - toothOneMinusOneTime) >> 1); //The time in uS that one revolution would take at current speed (The time tooth 1 was last seen, minus the time it was seen prior to that)
       interrupts();
     }
     tempRPM = RpmFromRevolutionTimeUs(revolutionTime); //Calc RPM based on last full revolution time (Faster as /)
@@ -2740,7 +2744,7 @@ static void triggerSetEndTeeth_Nissan360(void)
 decoder_t triggerSetup_Nissan360(void)
 {
   triggerFilterTime = (MICROS_PER_SEC / (MAX_RPM / 60U * 360UL)); //Trigger filter time is the shortest possible time (in uS) that there can be between crank teeth (ie at max RPM). Any pulses that occur faster than this time will be discarded as noise
-  triggerSecFilterTime = (int)(MICROS_PER_SEC / (MAX_RPM / 60U * 2U)) / 2U; //Same as above, but fixed at 2 teeth on the secondary input and divided by 2 (for cam speed)
+  triggerSecFilterTime = (MICROS_PER_SEC / (MAX_RPM / 60U * 2U)) / 2U; //Same as above, but fixed at 2 teeth on the secondary input and divided by 2 (for cam speed)
   secondaryToothCount = 0; //Initially set to 0 prior to calculating the secondary window duration
   BIT_CLEAR(decoderState, BIT_DECODER_2ND_DERIV);
   BIT_SET(decoderState, BIT_DECODER_IS_SEQUENTIAL);
@@ -2753,8 +2757,8 @@ decoder_t triggerSetup_Nissan360(void)
     getRPM_Nissan360,
     getCrankAngle_Nissan360,
     triggerSetEndTeeth_Nissan360,       
-    { triggerPri_Nissan360, getConfigPrimaryTriggerMode() },
-    { triggerSec_Nissan360, CHANGE },
+    trigger_t { triggerPri_Nissan360, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerSec_Nissan360, CHANGE },
     NULL_TRIGGER,
   };
 }
@@ -3031,8 +3035,8 @@ decoder_t triggerSetup_Subaru67(void)
     getRPM_Subaru67,
     getCrankAngle_Subaru67,
     triggerSetEndTeeth_Subaru67,
-    { triggerPri_Subaru67, getConfigPrimaryTriggerMode() },
-    { triggerSec_Subaru67, FALLING },
+    trigger_t { triggerPri_Subaru67, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerSec_Subaru67, FALLING },
     NULL_TRIGGER,
   };
 }
@@ -3132,7 +3136,7 @@ static uint16_t getRPM_Daihatsu(void)
       else
       {
         noInterrupts();
-        SetRevolutionTime((toothLastToothTime - toothLastMinusOneToothTime) * (getActualTeeth_Daihatsu()-1));
+        (void)SetRevolutionTime((toothLastToothTime - toothLastMinusOneToothTime) * (getActualTeeth_Daihatsu()-1));
         interrupts();
         tempRPM = RpmFromRevolutionTimeUs(revolutionTime);
       } //is tooth #2
@@ -3200,7 +3204,7 @@ decoder_t triggerSetup_Daihatsu(void)
     getRPM_Daihatsu,
     getCrankAngle_Daihatsu,
     nullptr,
-    { triggerPri_Daihatsu, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerPri_Daihatsu, getConfigPrimaryTriggerMode() },
     NULL_TRIGGER,
     NULL_TRIGGER,
   };
@@ -3273,7 +3277,7 @@ static uint16_t getRPM_Harley(void)
           if(toothCurrentCount == 1) { tempToothAngle = 129; }
           else { tempToothAngle = toothAngles[toothCurrentCount-1] - toothAngles[toothCurrentCount-2]; }
         */
-        SetRevolutionTime(toothOneTime - toothOneMinusOneTime); //The time in uS that one revolution would take at current speed (The time tooth 1 was last seen, minus the time it was seen prior to that)
+        (void)SetRevolutionTime(toothOneTime - toothOneMinusOneTime); //The time in uS that one revolution would take at current speed (The time tooth 1 was last seen, minus the time it was seen prior to that)
         toothTime = (toothLastToothTime - toothLastMinusOneToothTime); //Note that trigger tooth angle changes between 129 and 332 depending on the last tooth that was seen
         interrupts();
         toothTime = toothTime * 36;
@@ -3331,7 +3335,7 @@ decoder_t triggerSetup_Harley(void)
     getRPM_Harley,
     getCrankAngle_Harley,
     nullptr,
-    { triggerPri_Harley, RISING }, //Always rising
+    trigger_t { triggerPri_Harley, RISING }, //Always rising
     NULL_TRIGGER,
     NULL_TRIGGER,
   };
@@ -3430,7 +3434,7 @@ static void triggerPri_ThirtySixMinus222(void)
      //EXPERIMENTAL!
      if(configPage2.perToothIgn == true)
      {
-       int16_t crankAngle = ( (toothCurrentCount-1) * triggerToothAngle ) + configPage4.triggerAngle;
+       int16_t crankAngle = crankAngleFromToothCount(toothCurrentCount-1);
        crankAngle = ignitionLimits(crankAngle);
        checkPerToothTiming(crankAngle, toothCurrentCount, configPage2.nCylinders/2);
      }
@@ -3495,7 +3499,7 @@ static void triggerSetEndTeeth_ThirtySixMinus222(void)
 decoder_t triggerSetup_ThirtySixMinus222(void)
 {
   triggerToothAngle = 10; //The number of degrees that passes from tooth to tooth
-  triggerFilterTime = (int)(MICROS_PER_SEC / (MAX_RPM / 60U * 36)); //Trigger filter time is the shortest possible time (in uS) that there can be between crank teeth (ie at max RPM). Any pulses that occur faster than this time will be discarded as noise
+  triggerFilterTime = (MICROS_PER_SEC / (MAX_RPM / 60U * 36U)); //Trigger filter time is the shortest possible time (in uS) that there can be between crank teeth (ie at max RPM). Any pulses that occur faster than this time will be discarded as noise
   BIT_CLEAR(decoderState, BIT_DECODER_2ND_DERIV);
   BIT_CLEAR(decoderState, BIT_DECODER_IS_SEQUENTIAL);
   BIT_CLEAR(decoderState, BIT_DECODER_HAS_SECONDARY);
@@ -3510,7 +3514,7 @@ decoder_t triggerSetup_ThirtySixMinus222(void)
     getRPM_ThirtySixMinus222,
     getCrankAngle_missingTooth, //This uses the same function as the missing tooth decoder, so no need to duplicate cod,
     triggerSetEndTeeth_ThirtySixMinus222,
-    { triggerPri_ThirtySixMinus222, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerPri_ThirtySixMinus222, getConfigPrimaryTriggerMode() },
     NULL_TRIGGER,
     NULL_TRIGGER,
   };  
@@ -3585,7 +3589,7 @@ static void triggerPri_ThirtySixMinus21(void)
      //EXPERIMENTAL!
      if(configPage2.perToothIgn == true)
      {
-       int16_t crankAngle = ( (toothCurrentCount-1) * triggerToothAngle ) + configPage4.triggerAngle;
+       int16_t crankAngle = crankAngleFromToothCount(toothCurrentCount-1);
        crankAngle = ignitionLimits(crankAngle);
        checkPerToothTiming(crankAngle, toothCurrentCount, 2U);
      }
@@ -3620,7 +3624,7 @@ static void triggerSetEndTeeth_ThirtySixMinus21(void)
 decoder_t triggerSetup_ThirtySixMinus21(void)
 {
   triggerToothAngle = 10; //The number of degrees that passes from tooth to tooth
-  triggerFilterTime = (MICROS_PER_SEC / (MAX_RPM / 60U * 36)); //Trigger filter time is the shortest possible time (in uS) that there can be between crank teeth (ie at max RPM). Any pulses that occur faster than this time will be discarded as noise
+  triggerFilterTime = (MICROS_PER_SEC / (MAX_RPM / 60U * 36U)); //Trigger filter time is the shortest possible time (in uS) that there can be between crank teeth (ie at max RPM). Any pulses that occur faster than this time will be discarded as noise
   BIT_CLEAR(decoderState, BIT_DECODER_2ND_DERIV);
   BIT_CLEAR(decoderState, BIT_DECODER_IS_SEQUENTIAL);
   BIT_SET(decoderState, BIT_DECODER_HAS_SECONDARY);
@@ -3635,8 +3639,8 @@ decoder_t triggerSetup_ThirtySixMinus21(void)
     getRPM_ThirtySixMinus21,
     getCrankAngle_missingTooth, //This uses the same function as the missing tooth decoder, so no need to duplicate cod,
     triggerSetEndTeeth_ThirtySixMinus21,
-    { triggerPri_ThirtySixMinus21, getConfigPrimaryTriggerMode() },
-    { triggerSec_missingTooth, getConfigSecondaryTriggerMode() }, 
+    trigger_t { triggerPri_ThirtySixMinus21, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerSec_missingTooth, getConfigSecondaryTriggerMode() }, 
     NULL_TRIGGER,
   };
 }
@@ -3826,8 +3830,8 @@ decoder_t triggerSetup_420a(void)
     getRPM_420a,
     getCrankAngle_420a,
     triggerSetEndTeeth_420a,
-    { triggerPri_420a, getConfigPrimaryTriggerMode() },
-    { triggerSec_420a, FALLING }, //Always falling edge
+    trigger_t { triggerPri_420a, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerSec_420a, FALLING }, //Always falling edge
     NULL_TRIGGER,
   };
 }
@@ -3871,14 +3875,14 @@ static void triggerPri_Webber(void)
       {
         toothCurrentCount = 2;
         currentStatus.hasSync = true;
-        revolutionOne = 0; //Sequential revolution reset
+        revolutionOne = false; //Sequential revolution reset
       }
     }
 
     //NEW IGNITION MODE
     if( (configPage2.perToothIgn == true) && (!BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) ) 
     {
-      int16_t crankAngle = ( (toothCurrentCount-1) * triggerToothAngle ) + configPage4.triggerAngle;
+      int16_t crankAngle = crankAngleFromToothCount(toothCurrentCount-1);
       if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && (revolutionOne == true) && (isConfigToothSourceCrank()) )
       {
         crankAngle += 360;
@@ -3913,7 +3917,7 @@ static void triggerSec_Webber(void)
         if ( (toothCurrentCount != (configPage4.triggerTeeth-1U)) && (currentStatus.startRevolutions > 2U)) { currentStatus.syncLossCounter++; } //Indicates likely sync loss.
         if (configPage4.useResync == 1) { toothCurrentCount = configPage4.triggerTeeth-1; }
       }
-      revolutionOne = 1; //Sequential revolution reset
+      revolutionOne = true; //Sequential revolution reset
       triggerSecFilterTime = curGap << 2; //4 crank teeth
       secondaryToothCount = 1; //Next tooth should be first
     } //Running, on first CAM pulse restart crank teeth count, on second the counter should be 3
@@ -3922,7 +3926,7 @@ static void triggerSec_Webber(void)
       toothLastToothTime = micros();
       toothLastMinusOneToothTime = micros() - 1500000; //Fixes RPM at 10rpm until a full revolution has taken place
       toothCurrentCount = 1;
-      revolutionOne = 1; //Sequential revolution reset
+      revolutionOne = true; //Sequential revolution reset
 
       currentStatus.hasSync = true;
     } //First start, between gaps on CAM pulses have 2 teeth, sync on first CAM pulse if seen 3 teeth or more
@@ -3946,8 +3950,8 @@ decoder_t triggerSetup_Webber(void) {
     getRPM_DualWheel,
     getCrankAngle_DualWheel,
     triggerSetEndTeeth_DualWheel,
-    { triggerPri_Webber, getConfigPrimaryTriggerMode() },
-    { triggerSec_Webber, getConfigSecondaryTriggerMode() }, 
+    trigger_t { triggerPri_Webber, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerSec_Webber, getConfigSecondaryTriggerMode() }, 
     NULL_TRIGGER,
   };
 }
@@ -3982,7 +3986,7 @@ void triggerSec_FordST170(void)
       if ( (curGap2 >= targetGap2) || (secondaryToothCount == 5) )
       {
         secondaryToothCount = 1;
-        revolutionOne = 1; //Sequential revolution reset
+        revolutionOne = true; //Sequential revolution reset
         triggerSecFilterTime = 0; //This is used to prevent a condition where serious intermittent signals (Eg someone furiously plugging the sensor wire in and out) can leave the filter in an unrecoverable state
       }
       else
@@ -3996,7 +4000,7 @@ void triggerSec_FordST170(void)
     //Record the VVT Angle
     //We use the first tooth after the long gap as our reference, this remains in the same engine
     //cycle even when the VVT is at either end of its full swing.
-    if( (configPage6.vvtEnabled > 0) && (revolutionOne == 1) && (secondaryToothCount == 1) )
+    if( (configPage6.vvtEnabled > 0) && (revolutionOne == true) && (secondaryToothCount == 1) )
     {
       int16_t curAngle;
       curAngle = getCrankAngle();
@@ -4040,7 +4044,7 @@ int getCrankAngle_FordST170(void)
     unsigned long lastCrankAngleCalc = micros();
     interrupts();
 
-    int crankAngle = ((tempToothCurrentCount - 1) * triggerToothAngle) + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
+    int crankAngle = crankAngleFromToothCount(tempToothCurrentCount -1); //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
     
     //Sequential check (simply sets whether we're on the first or 2nd revolution of the cycle)
     if ( (tempRevolutionOne == true) && (isConfigToothSourceCrank()) ) { crankAngle += 360; }
@@ -4106,8 +4110,8 @@ decoder_t triggerSetup_FordST170(void)
     getRPM_FordST170,
     getCrankAngle_FordST170,
     triggerSetEndTeeth_FordST170,
-    { triggerPri_missingTooth, getConfigPrimaryTriggerMode() },
-    { triggerSec_FordST170, getConfigSecondaryTriggerMode() }, 
+    trigger_t { triggerPri_missingTooth, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerSec_FordST170, getConfigSecondaryTriggerMode() }, 
     NULL_TRIGGER,
   };
 }
@@ -4160,8 +4164,8 @@ decoder_t triggerSetup_DRZ400(void)
     getRPM_DualWheel,
     getCrankAngle_DualWheel,
     triggerSetEndTeeth_DualWheel,
-    { triggerPri_DualWheel, getConfigPrimaryTriggerMode() },
-    { triggerSec_DRZ400, getConfigSecondaryTriggerMode() }, 
+    trigger_t { triggerPri_DualWheel, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerSec_DRZ400, getConfigSecondaryTriggerMode() }, 
     NULL_TRIGGER,
   };
 }
@@ -4279,7 +4283,7 @@ static void triggerPri_NGC(void)
     //NEW IGNITION MODE
     if( (configPage2.perToothIgn == true) && (BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) == false) ) 
     {
-      int16_t crankAngle = ( (toothCurrentCount-1) * triggerToothAngle ) + configPage4.triggerAngle;
+      int16_t crankAngle = crankAngleFromToothCount(toothCurrentCount-1);
       crankAngle = ignitionLimits(crankAngle);
       if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && (revolutionOne == true) && (isConfigToothSourceCrank()) )
       {
@@ -4501,7 +4505,7 @@ decoder_t triggerSetup_NGC(void)
     getRPM_NGC,
     getCrankAngle_missingTooth,
     triggerSetEndTeeth_NGC,
-    { triggerPri_NGC, CHANGE },
+    trigger_t { triggerPri_NGC, CHANGE },
     (configPage2.nCylinders == 4U ? trigger_t { triggerSec_NGC4, CHANGE } : trigger_t { triggerSec_NGC68, FALLING }),
     NULL_TRIGGER
   };
@@ -4635,7 +4639,7 @@ static uint16_t getRPM_Vmax(void)
       {
         noInterrupts();
         tempToothAngle = triggerToothAngle;
-        SetRevolutionTime(toothOneTime - toothOneMinusOneTime); //The time in uS that one revolution would take at current speed (The time tooth 1 was last seen, minus the time it was seen prior to that)
+        (void)SetRevolutionTime(toothOneTime - toothOneMinusOneTime); //The time in uS that one revolution would take at current speed (The time tooth 1 was last seen, minus the time it was seen prior to that)
         toothTime = (toothLastToothTime - toothLastMinusOneToothTime); 
         interrupts();
         toothTime = toothTime * 36;
@@ -4694,7 +4698,7 @@ decoder_t triggerSetup_Vmax(void)
     getRPM_Vmax,
     getCrankAngle_Vmax,
     nullptr,
-    { triggerPri_Vmax, CHANGE }, 
+    trigger_t { triggerPri_Vmax, CHANGE }, 
     NULL_TRIGGER,
     NULL_TRIGGER,
   };
@@ -4783,7 +4787,7 @@ static void triggerPri_Renix(void)
       //NEW IGNITION MODE
       if( (configPage2.perToothIgn == true) && (!BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) ) 
       {
-        int16_t crankAngle = ( (toothCurrentCount - 1) * triggerToothAngle ) + configPage4.triggerAngle;
+        int16_t crankAngle = crankAngleFromToothCount(toothCurrentCount - 1);
         crankAngle = ignitionLimits(crankAngle);
         if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && (revolutionOne == true) && (isConfigToothSourceCrank()) )
         {
@@ -4850,7 +4854,7 @@ decoder_t triggerSetup_Renix(void)
     getRPM_missingTooth,
     getCrankAngle_missingTooth,
     triggerSetEndTeeth_Renix,
-    { triggerPri_Renix, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerPri_Renix, getConfigPrimaryTriggerMode() },
     NULL_TRIGGER,
     NULL_TRIGGER,
   };
@@ -5035,7 +5039,7 @@ static void triggerPri_RoverMEMS()
     //NEW IGNITION MODE
     if( (configPage2.perToothIgn == true) && (!BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) ) 
     {  
-      int16_t crankAngle = ( (toothCurrentCount-1) * triggerToothAngle ) + configPage4.triggerAngle;
+      int16_t crankAngle = crankAngleFromToothCount(toothCurrentCount-1);
       crankAngle = ignitionLimits(crankAngle);
       if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && (revolutionOne == true))
       { crankAngle += 360; checkPerToothTiming(crankAngle, (configPage4.triggerTeeth + toothCurrentCount), 4); }
@@ -5217,7 +5221,7 @@ decoder_t triggerSetup_RoverMEMS(void)
   secondaryToothCount = 0;
   toothOneTime = 0;
   toothOneMinusOneTime = 0;
-  revolutionOne=0;
+  revolutionOne=false;
 
   MAX_STALL_TIME = ((MICROS_PER_DEG_1_RPM/50U) * triggerToothAngle * 2U); //Minimum 50rpm. (3333uS is the time per degree at 50rpm)
   BIT_SET(decoderState, BIT_DECODER_HAS_SECONDARY);
@@ -5226,8 +5230,8 @@ decoder_t triggerSetup_RoverMEMS(void)
     getRPM_RoverMEMS,
     getCrankAngle_missingTooth,
     triggerSetEndTeeth_RoverMEMS,
-    { triggerPri_RoverMEMS, getConfigPrimaryTriggerMode() },
-    { triggerSec_RoverMEMS, getConfigSecondaryTriggerMode() }, 
+    trigger_t { triggerPri_RoverMEMS, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerSec_RoverMEMS, getConfigSecondaryTriggerMode() }, 
     NULL_TRIGGER,
   };
 }
@@ -5629,7 +5633,7 @@ decoder_t triggerSetup_SuzukiK6A(void)
     getRPM_SuzukiK6A,
     getCrankAngle_SuzukiK6A,
     triggerSetEndTeeth_SuzukiK6A,
-    { triggerPri_SuzukiK6A, getConfigPrimaryTriggerMode() },
+    trigger_t { triggerPri_SuzukiK6A, getConfigPrimaryTriggerMode() },
     NULL_TRIGGER,
     NULL_TRIGGER,
   };
