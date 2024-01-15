@@ -808,13 +808,14 @@ decoder_t triggerSetup_DualWheel(void)
 }
 /** @} */
 
-/** Basic Distributor where tooth count is equal to the number of cylinders and teeth are evenly spaced on the cam.
-* No position sensing (Distributor is retained) so crank angle is
-* a made up figure based purely on the first teeth to be seen.
-* Note: This is a very simple decoder. See http://www.megamanual.com/ms2/GM_7pinHEI.htm
-* @defgroup dec_dist Basic Distributor
-* @{
-*/
+/// @brief Basic Distributor where tooth count is equal to the number of cylinders and teeth are evenly spaced on the cam.
+/// 
+/// No position sensing (Distributor is retained) so crank angle is
+/// a made up figure based purely on the first teeth to be seen.
+// cppcheck-suppress misra-c2012-3.1
+/// Note: This is a very simple decoder. See http://www.megamanual.com/ms2/GM_7pinHEI.htm
+/// @defgroup dec_dist Basic Distributor
+/// @{
 
 static inline uint16_t getActualTeeth_Distributor(void) {
   return configPage2.nCylinders==0U ? 1U : configPage2.nCylinders;
@@ -1012,12 +1013,13 @@ decoder_t triggerSetup_BasicDistributor(void)
 }
 /** @} */
 
-/** Decode GM 7X trigger wheel with six equally spaced teeth and a seventh tooth for cylinder identification.
-* Note: Within the decoder code pf GM7X, the sync tooth is referred to as tooth #3 rather than tooth #7. This makes for simpler angle calculations
-* (See: http://www.speeduino.com/forum/download/file.php?id=4743 ).
-* @defgroup dec_gm7x GM7X
-* @{
-*/
+/// @brief Decode GM 7X trigger wheel with six equally spaced teeth and a seventh tooth for cylinder identification.
+/// 
+/// Note: Within the decoder code pf GM7X, the sync tooth is referred to as tooth #3 rather than tooth #7. This makes for simpler angle calculations
+// cppcheck-suppress misra-c2012-3.1
+/// (See: http://www.speeduino.com/forum/download/file.php?id=4743)
+/// @defgroup dec_gm7x GM7X
+/// @{
 static void triggerPri_GM7X(void)
 {
     lastGap = curGap;
@@ -2562,11 +2564,12 @@ decoder_t triggerSetup_non360(void)
 }
 /** @} */
 
-/** Nissan 360 tooth on cam (Optical trigger disc inside distributor housing).
-See http://wiki.r31skylineclub.com/index.php/Crank_Angle_Sensor .
-* @defgroup dec_nissan360 Nissan 360 tooth on cam
-* @{
-*/
+/// @brief Nissan 360 tooth on cam (Optical trigger disc inside distributor housing).
+/// 
+// cppcheck-suppress misra-c2012-3.1
+/// See http://wiki.r31skylineclub.com/index.php/Crank_Angle_Sensor
+/// @defgroup dec_nissan360 Nissan 360 tooth on cam
+/// @{
 static void triggerPri_Nissan360(void)
 {
    unsigned long curTime = micros();
@@ -2796,11 +2799,12 @@ decoder_t triggerSetup_Nissan360(void)
 }
 /** @} */
 
-/** Subaru 6/7 Trigger pattern decoder for 6 tooth (irregularly spaced) crank and 7 tooth (also fairly irregular) cam wheels (eg late 90's Impreza 2.2).
-This seems to be present in late 90's Subaru. In 2001 Subaru moved to 36-2-2-2 (See: http://www.vems.hu/wiki/index.php?page=InputTrigger%2FSubaruTrigger ).
-* @defgroup dec_subaru_6_7 Subaru 6/7
-* @{
-*/
+/// @brief Subaru 6/7 Trigger pattern decoder for 6 tooth (irregularly spaced) crank and 7 tooth (also fairly irregular) cam wheels (eg late 90's Impreza 2.2).
+/// 
+// cppcheck-suppress misra-c2012-3.1
+/// This seems to be present in late 90's Subaru. In 2001 Subaru moved to 36-2-2-2 (See: http://www.vems.hu/wiki/index.php?page=InputTrigger%2FSubaruTrigger).
+/// @defgroup dec_subaru_6_7 Subaru 6/7
+/// @{
 static void triggerPri_Subaru67(void)
 {
   unsigned long curTime = micros();
@@ -3076,13 +3080,14 @@ decoder_t triggerSetup_Subaru67(void)
 }
 /** @} */
 
-/** Daihatsu +1 trigger for 3 and 4 cylinder engines.
-* Tooth equal to the number of cylinders are evenly spaced on the cam. No position sensing (Distributor is retained),
-* so crank angle is a made up figure based purely on the first teeth to be seen.
-* Note: This is a very simple decoder. See http://www.megamanual.com/ms2/GM_7pinHEI.htm
-* @defgroup dec_daihatsu Daihatsu (3  and 4 cyl.)
-* @{
-*/
+/// @brief Daihatsu +1 trigger for 3 and 4 cylinder engines.
+/// 
+/// Tooth equal to the number of cylinders are evenly spaced on the cam. No position sensing (Distributor is retained),
+/// so crank angle is a made up figure based purely on the first teeth to be seen.
+// cppcheck-suppress misra-c2012-3.1
+/// Note: This is a very simple decoder. See http://www.megamanual.com/ms2/GM_7pinHEI.htm
+/// @defgroup dec_daihatsu Daihatsu (3  and 4 cyl.)
+/// @{
 
 static inline uint16_t getActualTeeth_Daihatsu(void) {
   return configPage2.nCylinders + 1U;
@@ -3691,13 +3696,14 @@ decoder_t triggerSetup_ThirtySixMinus21(void)
 
 //************************************************************************************************************************
 
-/** DSM 420a, For the DSM Eclipse with 16 teeth total on the crank.
-* Tracks the falling side of the signal.
-* Sync is determined by watching for a falling edge on the secondary signal and checking if the primary signal is high then.
-* https://github.com/noisymime/speeduino/issues/133
-* @defgroup dec_dsm_420a DSM 420a, For the DSM Eclipse
-* @{
-*/
+/// @brief DSM 420a, For the DSM Eclipse with 16 teeth total on the crank.
+///
+/// Tracks the falling side of the signal.
+/// Sync is determined by watching for a falling edge on the secondary signal and checking if the primary signal is high then.
+// cppcheck-suppress misra-c2012-3.1
+/// https://github.com/noisymime/speeduino/issues/133
+/// @defgroup dec_dsm_420a DSM 420a, For the DSM Eclipse
+/// @{
 static void triggerPri_420a(void)
 {
   unsigned long curTime = micros();
@@ -4049,7 +4055,7 @@ void triggerSec_FordST170(void)
       while(curAngle > 360) { curAngle -= 360; }
       if( configPage6.vvtMode == VVT_MODE_CLOSED_LOOP )
       {
-        curAngle = LOW_PASS_FILTER( (curAngle << 1), configPage4.ANGLEFILTER_VVT, curAngle);
+        curAngle = LOW_PASS_FILTER( (curAngle << 1U), configPage4.ANGLEFILTER_VVT, curAngle);
         currentStatus.vvt1Angle = 360 - curAngle - configPage10.vvtCL0DutyAng;
       }
     }
@@ -5304,12 +5310,12 @@ decoder_t triggerSetup_RoverMEMS(void)
 }
 /** @} */
 
-/** Suzuki K6A 3 cylinder engine
-
-* (See: https://www.msextra.com/forums/viewtopic.php?t=74614)
-* @defgroup Suzuki_K6A Suzuki K6A 
-* @{
-*/
+/// @brief Suzuki K6A 3 cylinder engine
+/// 
+// cppcheck-suppress misra-c2012-3.1
+/// Note: This is a very simple decoder. See https://www.msextra.com/forums/viewtopic.php?t=74614
+/// @defgroup Suzuki_K6A Suzuki K6A 
+/// @{
 
 static constexpr uint8_t ACTUAL_TEETH_SuzukiK6A = 7U;
 
