@@ -1,7 +1,6 @@
 #pragma once
 
-#include <stdint.h>
-#include "decoders.h"
+#include "decoder_trigger_types.h"
 
 extern decoder_t decoder;
 
