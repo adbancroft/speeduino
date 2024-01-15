@@ -45,8 +45,8 @@
 #define MICROS_PER_MIN INT32_C(MICROS_PER_SEC*60U)
 #define MICROS_PER_HOUR INT32_C(MICROS_PER_MIN*60U)
 
-#define SERIAL_PORT_PRIMARY   0
-#define SERIAL_PORT_SECONDARY 3
+#define SERIAL_PORT_PRIMARY   0U
+#define SERIAL_PORT_SECONDARY 3U
 
 //Define the load algorithm
 #define LOAD_SOURCE_MAP         0U
@@ -140,9 +140,9 @@
 #define IAT_CALIBRATION_PAGE  1U
 #define CLT_CALIBRATION_PAGE  0U
 
-#define EGO_TYPE_OFF      0
-#define EGO_TYPE_NARROW   1
-#define EGO_TYPE_WIDE     2
+#define EGO_TYPE_OFF      0U
+#define EGO_TYPE_NARROW   1U
+#define EGO_TYPE_WIDE     2U
 
 #define INJ_TYPE_PORT 0U
 #define INJ_TYPE_TBODY 1U
@@ -171,16 +171,16 @@
 #define ROTARY_IGN_FD       1U
 #define ROTARY_IGN_RX8      2U
 
-#define BOOST_MODE_SIMPLE   0
-#define BOOST_MODE_FULL     1
+#define BOOST_MODE_SIMPLE   0U
+#define BOOST_MODE_FULL     1U
 
-#define EN_BOOST_CONTROL_BARO   0
-#define EN_BOOST_CONTROL_FIXED  1
+#define EN_BOOST_CONTROL_BARO   0U
+#define EN_BOOST_CONTROL_FIXED  1U
 
-#define WMI_MODE_SIMPLE       0
-#define WMI_MODE_PROPORTIONAL 1
-#define WMI_MODE_OPENLOOP     2
-#define WMI_MODE_CLOSEDLOOP   3
+#define WMI_MODE_SIMPLE       0U
+#define WMI_MODE_PROPORTIONAL 1U
+#define WMI_MODE_OPENLOOP     2U
+#define WMI_MODE_CLOSEDLOOP   3U
 
 #define HARD_CUT_FULL       0U
 #define HARD_CUT_ROLLING    1U
@@ -188,11 +188,11 @@
 #define EVEN_FIRE           0U
 #define ODD_FIRE            1U
 
-#define EGO_ALGORITHM_SIMPLE  0
-#define EGO_ALGORITHM_PID     2
+#define EGO_ALGORITHM_SIMPLE  0U
+#define EGO_ALGORITHM_PID     2U
 
-#define STAGING_MODE_TABLE  0
-#define STAGING_MODE_AUTO   1
+#define STAGING_MODE_TABLE  0U
+#define STAGING_MODE_AUTO   1U
 
 #define NITROUS_OFF         0U
 #define NITROUS_STAGE1      1U
@@ -205,58 +205,54 @@
 #define PROTECT_CUT_BOTH    3U
 #define PROTECT_IO_ERROR    7U
 
-#define AE_MODE_TPS         0
-#define AE_MODE_MAP         1
+#define AE_MODE_TPS         0U
+#define AE_MODE_MAP         1U
 
-#define AE_MODE_MULTIPLIER  0
-#define AE_MODE_ADDER       1
+#define AE_MODE_MULTIPLIER  0U
+#define AE_MODE_ADDER       1U
 
-#define KNOCK_MODE_OFF      0
-#define KNOCK_MODE_DIGITAL  1
-#define KNOCK_MODE_ANALOG   2
+#define FUEL2_MODE_OFF      0U
+#define FUEL2_MODE_MULTIPLY 1U
+#define FUEL2_MODE_ADD      2U
+#define FUEL2_MODE_CONDITIONAL_SWITCH   3U
+#define FUEL2_MODE_INPUT_SWITCH 4U
 
-#define FUEL2_MODE_OFF      0
-#define FUEL2_MODE_MULTIPLY 1
-#define FUEL2_MODE_ADD      2
-#define FUEL2_MODE_CONDITIONAL_SWITCH   3
-#define FUEL2_MODE_INPUT_SWITCH 4
+#define SPARK2_MODE_OFF      0U
+#define SPARK2_MODE_MULTIPLY 1U
+#define SPARK2_MODE_ADD      2U
+#define SPARK2_MODE_CONDITIONAL_SWITCH   3U
+#define SPARK2_MODE_INPUT_SWITCH 4U
 
-#define SPARK2_MODE_OFF      0
-#define SPARK2_MODE_MULTIPLY 1
-#define SPARK2_MODE_ADD      2
-#define SPARK2_MODE_CONDITIONAL_SWITCH   3
-#define SPARK2_MODE_INPUT_SWITCH 4
+#define FUEL2_CONDITION_RPM 0U
+#define FUEL2_CONDITION_MAP 1U
+#define FUEL2_CONDITION_TPS 2U
+#define FUEL2_CONDITION_ETH 3U
 
-#define FUEL2_CONDITION_RPM 0
-#define FUEL2_CONDITION_MAP 1
-#define FUEL2_CONDITION_TPS 2
-#define FUEL2_CONDITION_ETH 3
-
-#define SPARK2_CONDITION_RPM 0
-#define SPARK2_CONDITION_MAP 1
-#define SPARK2_CONDITION_TPS 2
-#define SPARK2_CONDITION_ETH 3
+#define SPARK2_CONDITION_RPM 0U
+#define SPARK2_CONDITION_MAP 1U
+#define SPARK2_CONDITION_TPS 2U
+#define SPARK2_CONDITION_ETH 3U
 
 #define RESET_CONTROL_DISABLED             0U
 #define RESET_CONTROL_PREVENT_WHEN_RUNNING 1U
 #define RESET_CONTROL_PREVENT_ALWAYS       2U
 #define RESET_CONTROL_SERIAL_COMMAND       3U
 
-#define OPEN_LOOP_BOOST     0
-#define CLOSED_LOOP_BOOST   1
+#define OPEN_LOOP_BOOST     0U
+#define CLOSED_LOOP_BOOST   1U
 
-#define SOFT_LIMIT_FIXED        0
-#define SOFT_LIMIT_RELATIVE     1
+#define SOFT_LIMIT_FIXED        0U
+#define SOFT_LIMIT_RELATIVE     1U
 
-#define VVT_MODE_ONOFF      0
-#define VVT_MODE_OPEN_LOOP  1
-#define VVT_MODE_CLOSED_LOOP 2
-#define VVT_LOAD_MAP      0
-#define VVT_LOAD_TPS      1
+#define VVT_MODE_ONOFF      0U
+#define VVT_MODE_OPEN_LOOP  1U
+#define VVT_MODE_CLOSED_LOOP 2U
+#define VVT_LOAD_MAP      0U
+#define VVT_LOAD_TPS      1U
 
-#define MULTIPLY_MAP_MODE_OFF   0
-#define MULTIPLY_MAP_MODE_BARO  1
-#define MULTIPLY_MAP_MODE_100   2
+#define MULTIPLY_MAP_MODE_OFF   0U
+#define MULTIPLY_MAP_MODE_BARO  1U
+#define MULTIPLY_MAP_MODE_100   2U
 
 #define FOUR_STROKE         0U
 #define TWO_STROKE          1U
@@ -264,8 +260,8 @@
 #define GOING_LOW         0U
 #define GOING_HIGH        1U
 
-#define BATTV_COR_MODE_WHOLE 0
-#define BATTV_COR_MODE_OPENTIME 1
+#define BATTV_COR_MODE_WHOLE 0U
+#define BATTV_COR_MODE_OPENTIME 1U
 
 #define INJ1_CMD_BIT      0U
 #define INJ2_CMD_BIT      1U
@@ -285,14 +281,14 @@
 #define IGN7_CMD_BIT      6U
 #define IGN8_CMD_BIT      7U
 
-#define ENGINE_PROTECT_BIT_RPM  0
-#define ENGINE_PROTECT_BIT_MAP  1
-#define ENGINE_PROTECT_BIT_OIL  2
-#define ENGINE_PROTECT_BIT_AFR  3
-#define ENGINE_PROTECT_BIT_COOLANT 4
+#define ENGINE_PROTECT_BIT_RPM  0U
+#define ENGINE_PROTECT_BIT_MAP  1U
+#define ENGINE_PROTECT_BIT_OIL  2U
+#define ENGINE_PROTECT_BIT_AFR  3U
+#define ENGINE_PROTECT_BIT_COOLANT 4U
 
 
-#define CALIBRATION_TABLE_SIZE 512 ///< Calibration table size for CLT, IAT, O2
+#define CALIBRATION_TABLE_SIZE 512U ///< Calibration table size for CLT, IAT, O2
 #define CALIBRATION_TEMPERATURE_OFFSET 40 /**< All temperature measurements are stored offset by 40 degrees.
 This is so we can use an unsigned byte (0-255) to represent temperature ranges from -40 to 215 */
 #define OFFSET_FUELTRIM 127U ///< The fuel trim tables are offset by 128 to allow for -128 to +128 values
@@ -300,23 +296,23 @@ This is so we can use an unsigned byte (0-255) to represent temperature ranges f
 
 #define SERIAL_BUFFER_THRESHOLD 32 ///< When the serial buffer is filled to greater than this threshold value, the serial processing operations will be performed more urgently in order to avoid it overflowing. Serial buffer is 64 bytes long, so the threshold is set at half this as a reasonable figure
 
-#define LOGGER_CSV_SEPARATOR_SEMICOLON  0
-#define LOGGER_CSV_SEPARATOR_COMMA      1
-#define LOGGER_CSV_SEPARATOR_TAB        2
-#define LOGGER_CSV_SEPARATOR_SPACE      3
+#define LOGGER_CSV_SEPARATOR_SEMICOLON  0U
+#define LOGGER_CSV_SEPARATOR_COMMA      1U
+#define LOGGER_CSV_SEPARATOR_TAB        2U
+#define LOGGER_CSV_SEPARATOR_SPACE      3U
 
-#define LOGGER_DISABLED                 0
-#define LOGGER_CSV                      1
-#define LOGGER_BINARY                   2
+#define LOGGER_DISABLED                 0U
+#define LOGGER_CSV                      1U
+#define LOGGER_BINARY                   2U
 
-#define LOGGER_RATE_1HZ                 0
-#define LOGGER_RATE_4HZ                 1
-#define LOGGER_RATE_10HZ                2
-#define LOGGER_RATE_30HZ                3
+#define LOGGER_RATE_1HZ                 0U
+#define LOGGER_RATE_4HZ                 1U
+#define LOGGER_RATE_10HZ                2U
+#define LOGGER_RATE_30HZ                3U
 
-#define LOGGER_FILENAMING_OVERWRITE     0
-#define LOGGER_FILENAMING_DATETIME      1
-#define LOGGER_FILENAMING_SEQENTIAL     2
+#define LOGGER_FILENAMING_OVERWRITE     0U
+#define LOGGER_FILENAMING_DATETIME      1U
+#define LOGGER_FILENAMING_SEQENTIAL     2U
 
 extern const char TSfirmwareVersion[] PROGMEM;
 

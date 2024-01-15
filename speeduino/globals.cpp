@@ -170,10 +170,6 @@ struct config10 configPage10;
 struct config13 configPage13;
 struct config15 configPage15;
 
-//byte cltCalibrationTable[CALIBRATION_TABLE_SIZE]; /**< An array containing the coolant sensor calibration values */
-//byte iatCalibrationTable[CALIBRATION_TABLE_SIZE]; /**< An array containing the inlet air temperature sensor calibration values */
-//byte o2CalibrationTable[CALIBRATION_TABLE_SIZE]; /**< An array containing the O2 sensor calibration values */
-
 uint16_t cltCalibration_bins[32];
 uint16_t cltCalibration_values[32];
 struct table2D cltCalibrationTable;

@@ -386,7 +386,7 @@ void doUpdates(void)
 
     //MAJOR update to move the coolant, IAT and O2 calibrations to 2D tables
     int y;
-    for(int x=0; x<(CALIBRATION_TABLE_SIZE/16); x++) //Each calibration table is 512 bytes long
+    for(uint16_t x=0U; x<(CALIBRATION_TABLE_SIZE/16U); x++) //Each calibration table is 512 bytes long
     {
       y = EEPROM_CALIBRATION_CLT_OLD + (x * 16);
       cltCalibration_values[x] = EEPROM.read(y);
