@@ -835,7 +835,6 @@ void knockPulse(void)
   //Check if this the start of a knock. 
   if(knockCounter == 0)
   {
-    //knockAngle = crankAngle + timeToAngleDegPerMicroSec( (micros() - lastCrankAngleCalc) ); 
     knockStartTime = micros();
     knockCounter = 1;
   }
