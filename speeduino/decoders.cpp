@@ -75,7 +75,6 @@ volatile uint8_t decoderState = 0;
 
 static volatile uint16_t triggerToothAngle; //The number of crank degrees that elapse per tooth
 static byte checkSyncToothCount; //How many teeth must've been seen on this revolution before we try to confirm sync (Useful for missing tooth type decoders)
-static unsigned long lastVVTtime; //The time between the vvt reference pulse and the last crank pulse
 
 #if !defined(UNIT_TEST)
 static
@@ -2155,10 +2154,14 @@ static void triggerSec_Miata9905(void)
 
     //TODO Add some secondary filtering here
 
-    //Record the VVT tooth time
-    if( (toothCurrentCount == 1) && (curTime2 > toothLastToothTime) )
+    //Record the VVT angle
+    if( (toothCurrentCount == 1) && (curTime2 > toothLastToothTime) && (configPage6.vvtEnabled > 0))
     {
-      lastVVTtime = curTime2 - toothLastToothTime;
+      unsigned long lastVVTtime = curTime2 - toothLastToothTime;
+      //lastVVTtime is the time between tooth #1 (10* BTDC) and the single cam tooth. 
+      //All cam angles in in BTDC, so the actual advance angle is 370 - timeToAngleDegPerMicroSec(lastVVTtime) - <the angle of the cam at 0 advance>
+      int16_t curAngle = 370 - timeToAngleDegPerMicroSec(lastVVTtime) - configPage10.vvtCL0DutyAng;
+      currentStatus.vvt1Angle = ANGLE_FILTER( (curAngle << 1), configPage4.ANGLEFILTER_VVT, currentStatus.vvt1Angle);
     }
   }
 }
@@ -2219,17 +2222,6 @@ static int getCrankAngle_Miata9905(void)
     }
 
     return crankAngle;
-}
-
-int getCamAngle_Miata9905(void)
-{
-  int16_t curAngle;
-  //lastVVTtime is the time between tooth #1 (10* BTDC) and the single cam tooth. 
-  //All cam angles in in BTDC, so the actual advance angle is 370 - timeToAngleDegPerMicroSec(lastVVTtime) - <the angle of the cam at 0 advance>
-  curAngle = 370 - timeToAngleDegPerMicroSec(lastVVTtime) - configPage10.vvtCL0DutyAng;
-  currentStatus.vvt1Angle = ANGLE_FILTER( (curAngle << 1), configPage4.ANGLEFILTER_VVT, currentStatus.vvt1Angle);
-
-  return currentStatus.vvt1Angle;
 }
 
 static void triggerSetEndTeeth_Miata9905(void)

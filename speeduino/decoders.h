@@ -98,9 +98,7 @@ decoder_t triggerSetup_RoverMEMS(void);
 decoder_t triggerSetup_Vmax(void);
 
 decoder_t triggerSetup_SuzukiK6A(void);
-
-int getCamAngle_Miata9905(void);
-
+ 
 bool isFixedCrankLock(void);
 
 bool hasEngineStopped(uint32_t curTime);
