@@ -933,7 +933,7 @@ void calculateIgnitionAngles()
 
   // If ignition timing is being tracked per tooth, perform the calcs to get the end teeth
   // This relies on the ignition angles, so can only be called after those are calculated.
-  if( (configPage2.perToothIgn == true) ) { triggerSetEndTeeth(); }
+  if( (configPage2.perToothIgn == true) && (decoder.triggerSetEndTeeth!=nullptr)) { decoder.triggerSetEndTeeth(); }
 }
 
 uint16_t calculatePWLimit(void)

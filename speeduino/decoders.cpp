@@ -1680,11 +1680,6 @@ static int getCrankAngle_24X(void)
     return crankAngle;
 }
 
-
-static void triggerSetEndTeeth_24X(void)
-{
-}
-
 decoder_t triggerSetup_24X(void)
 {
   triggerToothAngle = 15; //The number of degrees that passes from tooth to tooth (primary)
@@ -1723,7 +1718,7 @@ decoder_t triggerSetup_24X(void)
   return {
     getRPM_24X,
     getCrankAngle_24X,
-    triggerSetEndTeeth_24X,
+    nullptr,
     { triggerPri_24X, getConfigPrimaryTriggerMode() },
     { triggerSec_24X, CHANGE }, //Secondary is always on every change
     NULL_TRIGGER,
@@ -1809,10 +1804,6 @@ static int getCrankAngle_Jeep2000(void)
     return crankAngle;
 }
 
-static void triggerSetEndTeeth_Jeep2000(void)
-{
-}
-
 decoder_t triggerSetup_Jeep2000(void)
 {
   triggerToothAngle = 0; //The number of degrees that passes from tooth to tooth (primary)
@@ -1839,7 +1830,7 @@ decoder_t triggerSetup_Jeep2000(void)
   return {
     getRPM_Jeep2000,
     getCrankAngle_Jeep2000,
-    triggerSetEndTeeth_Jeep2000,
+    nullptr,
     { triggerPri_Jeep2000, getConfigPrimaryTriggerMode() },
     { triggerSec_Jeep2000, CHANGE },
     NULL_TRIGGER,
@@ -1947,10 +1938,6 @@ static int getCrankAngle_Audi135(void)
     return crankAngle;
 }
 
-static void triggerSetEndTeeth_Audi135(void)
-{
-}
-
 decoder_t triggerSetup_Audi135(void)
 {
   triggerToothAngle = 8; //135/3 = 45, 360/45 = 8 degrees every 3 teeth
@@ -1967,7 +1954,7 @@ decoder_t triggerSetup_Audi135(void)
   return {
     getRPM_Audi135,
     getCrankAngle_Audi135,
-    triggerSetEndTeeth_Audi135,
+    nullptr,
     { triggerPri_Audi135, getConfigPrimaryTriggerMode() },
     { triggerSec_Audi135, RISING }, //always rising for this trigger
     NULL_TRIGGER,
@@ -2059,10 +2046,6 @@ static int getCrankAngle_HondaD17(void)
     return crankAngle;
 }
 
-static void triggerSetEndTeeth_HondaD17(void)
-{
-}
-
 decoder_t triggerSetup_HondaD17(void)
 {
   triggerToothAngle = 360 / 12; //The number of degrees that passes from tooth to tooth
@@ -2074,7 +2057,7 @@ decoder_t triggerSetup_HondaD17(void)
   return {
     getRPM_HondaD17,
     getCrankAngle_HondaD17,
-    triggerSetEndTeeth_HondaD17,
+    nullptr,
     { triggerPri_HondaD17, getConfigPrimaryTriggerMode() },
     NULL_TRIGGER,
     NULL_TRIGGER,
@@ -2485,10 +2468,6 @@ static int getCrankAngle_MazdaAU(void)
     return crankAngle;
 }
 
-static void triggerSetEndTeeth_MazdaAU(void)
-{
-}
-
 decoder_t triggerSetup_MazdaAU(void)
 {
   triggerToothAngle = 108; //The number of degrees that passes from tooth to tooth (primary). This is the maximum gap
@@ -2511,7 +2490,7 @@ decoder_t triggerSetup_MazdaAU(void)
   return {
     getRPM_MazdaAU,
     getCrankAngle_MazdaAU,
-    triggerSetEndTeeth_MazdaAU,
+    nullptr,
     { triggerPri_MazdaAU, getConfigPrimaryTriggerMode() },
     { triggerSec_MazdaAU, FALLING },
     NULL_TRIGGER,
@@ -2563,10 +2542,6 @@ static int getCrankAngle_non360(void)
     return crankAngle;
 }
 
-static void triggerSetEndTeeth_non360(void)
-{
-}
-
 decoder_t triggerSetup_non360(void)
 {
   triggerToothAngle = (360U * configPage4.TrigAngMul) / configPage4.triggerTeeth; //The number of degrees that passes from tooth to tooth multiplied by the additional multiplier
@@ -2581,7 +2556,7 @@ decoder_t triggerSetup_non360(void)
   return {
     getRPM_non360,
     getCrankAngle_non360,
-    triggerSetEndTeeth_non360,
+    nullptr,
     { triggerPri_DualWheel, getConfigPrimaryTriggerMode() }, //Is identical to the dual wheel decoder, so that is used. Same goes for the secondary below
     { triggerSec_DualWheel, FALLING }, //Note the use of the Dual Wheel trigger function here. No point in having the same code in twice.
     NULL_TRIGGER,
@@ -3232,10 +3207,6 @@ static int getCrankAngle_Daihatsu(void)
     return crankAngle;
 }
 
-static void triggerSetEndTeeth_Daihatsu(void)
-{
-}
-
 decoder_t triggerSetup_Daihatsu(void)
 {
   triggerActualTeeth = configPage2.nCylinders + 1;
@@ -3268,7 +3239,7 @@ decoder_t triggerSetup_Daihatsu(void)
   return {
     getRPM_Daihatsu,
     getCrankAngle_Daihatsu,
-    triggerSetEndTeeth_Daihatsu,
+    nullptr,
     { triggerPri_Daihatsu, getConfigPrimaryTriggerMode() },
     NULL_TRIGGER,
     NULL_TRIGGER,
@@ -3387,10 +3358,6 @@ static int getCrankAngle_Harley(void)
   return crankAngle;
 }
 
-static void triggerSetEndTeeth_Harley(void)
-{
-}
-
 decoder_t triggerSetup_Harley(void)
 {
   triggerToothAngle = 0; // The number of degrees that passes from tooth to tooth, ev. 0. It alternates uneven
@@ -3404,7 +3371,7 @@ decoder_t triggerSetup_Harley(void)
   return {
     getRPM_Harley,
     getCrankAngle_Harley,
-    triggerSetEndTeeth_Harley,
+    nullptr,
     { triggerPri_Harley, RISING }, //Always rising
     NULL_TRIGGER,
     NULL_TRIGGER,
@@ -4750,10 +4717,6 @@ static int getCrankAngle_Vmax(void)
   return crankAngle;
 }
 
-static void triggerSetEndTeeth_Vmax(void)
-{
-}
-
 decoder_t triggerSetup_Vmax(void)
 {
   triggerToothAngle = 0; // The number of degrees that passes from tooth to tooth, ev. 0. It alternates uneven
@@ -4774,7 +4737,7 @@ decoder_t triggerSetup_Vmax(void)
   return {
     getRPM_Vmax,
     getCrankAngle_Vmax,
-    triggerSetEndTeeth_Vmax,
+    nullptr,
     { triggerPri_Vmax, CHANGE }, 
     NULL_TRIGGER,
     NULL_TRIGGER,
@@ -5523,7 +5486,7 @@ static uint16_t getRPM_SuzukiK6A(void)
 
   uint16_t tempRPM;
 
-  tempRPM = stdGetRPM(720);
+  tempRPM = stdGetRPM(TOOTH_SOURCE_CAM);
   MAX_STALL_TIME = revolutionTime << 1; //Set the stall time to be twice the current RPM. This is a safe figure as there should be no single revolution where this changes more than this
   if(MAX_STALL_TIME < 366667UL) { MAX_STALL_TIME = 366667UL; } //Check for 50rpm minimum
 

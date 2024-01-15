@@ -7,11 +7,11 @@
 
 static uint16_t nullGetRPM(void){return 0U;} //initialisation function for getRpm, returns safe value of 0
 static int nullGetCrankAngle(void){return 0;} //initialisation function for getCrankAngle, returns safe value of 0
-static void nullSetEndTeeth(void) { return; }
+
 static constexpr decoder_t NULL_DECODER = { 
   nullGetRPM, 
   nullGetCrankAngle,
-  nullSetEndTeeth,
+  nullptr,
   NULL_TRIGGER, 
   NULL_TRIGGER, 
   NULL_TRIGGER
@@ -215,6 +215,9 @@ void initialiseDecoder(void) {
   }
   if (!isValid(decoder.tertiaryTrigger)) {
     pinTrigger3 = NOT_A_PIN;
+  }
+  if (decoder.triggerSetEndTeeth==nullptr) {
+    configPage2.perToothIgn = false;
   }
 }
 
