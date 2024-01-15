@@ -433,7 +433,7 @@ static inline int16_t calculateVVTAngle_MissingTooth (int16_t lastAngle)
     curAngle -= configPage4.triggerAngle; //Value at TDC
     if( configPage6.vvtMode == VVT_MODE_CLOSED_LOOP ) { curAngle -= configPage10.vvtCL0DutyAng; }
 
-    return LOW_PASS_FILTER( (curAngle << 1), configPage4.ANGLEFILTER_VVT, lastAngle);
+    return LOW_PASS_FILTER(curAngle * 2, configPage4.ANGLEFILTER_VVT, lastAngle);
   }
   return 0;
 }
@@ -1137,7 +1137,7 @@ static void triggerSetEndTeeth_GM7X(void)
 
 decoder_t triggerSetup_GM7X(void)
 {
-  triggerToothAngle = 360U / 6U; //The number of degrees that passes from tooth to tooth
+  triggerToothAngle = (uint16_t)360U / (uint16_t)6U; //The number of degrees that passes from tooth to tooth
   BIT_CLEAR(decoderState, BIT_DECODER_2ND_DERIV);
   BIT_CLEAR(decoderState, BIT_DECODER_IS_SEQUENTIAL);
   BIT_CLEAR(decoderState, BIT_DECODER_HAS_SECONDARY);
@@ -1449,14 +1449,12 @@ static uint16_t getRPM_4G63(void)
   {
     if( (currentStatus.RPM < currentStatus.crankRPM)  )
     {
-      uint16_t tempToothAngle;
-      unsigned long toothTime;
       if( (toothLastToothTime == 0U) || (toothLastMinusOneToothTime == 0U) ) { tempRPM = 0; }
       else
       {
         noInterrupts();
-        tempToothAngle = triggerToothAngle;
-        toothTime = (toothLastToothTime - toothLastMinusOneToothTime); //Note that trigger tooth angle changes between 70 and 110 depending on the last tooth that was seen (or 70/50 for 6 cylinders)
+        uint16_t tempToothAngle = triggerToothAngle;
+        unsigned long toothTime = (toothLastToothTime - toothLastMinusOneToothTime); //Note that trigger tooth angle changes between 70 and 110 depending on the last tooth that was seen (or 70/50 for 6 cylinders)
         interrupts();
         toothTime = toothTime * 36U;
         tempRPM = ((unsigned long)tempToothAngle * (MICROS_PER_MIN/10U)) / toothTime;
@@ -1663,7 +1661,7 @@ static int getCrankAngle_24X(void)
     interrupts();
 
     int crankAngle;
-    if (tempToothCurrentCount == 0U) { crankAngle = 0 + configPage4.triggerAngle; } //This is the special case to handle when the 'last tooth' seen was the cam tooth. 0 is the angle at which the crank tooth goes high (Within 360 degrees).
+    if (tempToothCurrentCount == 0U) { crankAngle = configPage4.triggerAngle; } //This is the special case to handle when the 'last tooth' seen was the cam tooth. 0 is the angle at which the crank tooth goes high (Within 360 degrees).
     else { crankAngle = toothAngles[(tempToothCurrentCount - 1U)] + configPage4.triggerAngle;} //Perform a lookup of the fixed toothAngles array to find what the angle of the last tooth passed was.
 
     //Estimate the number of degrees travelled since the last tooth}
@@ -2046,7 +2044,7 @@ static int getCrankAngle_HondaD17(void)
 
 decoder_t triggerSetup_HondaD17(void)
 {
-  triggerToothAngle = 360U / 12U; //The number of degrees that passes from tooth to tooth
+  triggerToothAngle = (uint16_t)360U / (uint16_t)12U; //The number of degrees that passes from tooth to tooth
   MAX_STALL_TIME = ((MICROS_PER_DEG_1_RPM/50U) * triggerToothAngle); //Minimum 50rpm. (3333uS is the time per degree at 50rpm)
   BIT_CLEAR(decoderState, BIT_DECODER_2ND_DERIV);
   BIT_CLEAR(decoderState, BIT_DECODER_IS_SEQUENTIAL);
@@ -2195,7 +2193,7 @@ static void triggerSec_Miata9905(void)
       //lastVVTtime is the time between tooth #1 (10* BTDC) and the single cam tooth. 
       //All cam angles in in BTDC, so the actual advance angle is 370 - timeToAngleDegPerMicroSec(lastVVTtime) - <the angle of the cam at 0 advance>
       int16_t curAngle = 370 - (int16_t)timeToAngleDegPerMicroSec(lastVVTtime) - configPage10.vvtCL0DutyAng;
-      currentStatus.vvt1Angle = LOW_PASS_FILTER( (curAngle << 1), configPage4.ANGLEFILTER_VVT, currentStatus.vvt1Angle);
+      currentStatus.vvt1Angle = LOW_PASS_FILTER(curAngle * 2, configPage4.ANGLEFILTER_VVT, currentStatus.vvt1Angle);
     }
   }
 }
@@ -3307,19 +3305,17 @@ static uint16_t getRPM_Harley(void)
     if ( currentStatus.RPM < (configPage4.crankRPM * 100U) )
     {
       // No difference with this option?
-      uint16_t tempToothAngle;
-      unsigned long toothTime;
       if ( (toothLastToothTime == 0U) || (toothLastMinusOneToothTime == 0U) ) { tempRPM = 0; }
       else
       {
         noInterrupts();
-        tempToothAngle = triggerToothAngle;
+        uint16_t tempToothAngle = triggerToothAngle;
         /* High-res mode
           if(toothCurrentCount == 1U) { tempToothAngle = 129; }
           else { tempToothAngle = toothAngles[toothCurrentCount-1] - toothAngles[toothCurrentCount-2]; }
         */
         (void)SetRevolutionTime(toothOneTime - toothOneMinusOneTime); //The time in uS that one revolution would take at current speed (The time tooth 1 was last seen, minus the time it was seen prior to that)
-        toothTime = (toothLastToothTime - toothLastMinusOneToothTime); //Note that trigger tooth angle changes between 129 and 332 depending on the last tooth that was seen
+        unsigned long toothTime = (toothLastToothTime - toothLastMinusOneToothTime); //Note that trigger tooth angle changes between 129 and 332 depending on the last tooth that was seen
         interrupts();
         toothTime = toothTime * 36U;
         tempRPM = ((unsigned long)tempToothAngle * (MICROS_PER_MIN/10U)) / toothTime;
@@ -3346,7 +3342,7 @@ static int getCrankAngle_Harley(void)
   int crankAngle;
   if ( (tempToothCurrentCount == 1U) || (tempToothCurrentCount == 3U) )
   {
-    crankAngle = 0 + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
+    crankAngle = configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
   }
   else {
     crankAngle = 157 + configPage4.triggerAngle;
@@ -4055,7 +4051,7 @@ void triggerSec_FordST170(void)
       while(curAngle > 360) { curAngle -= 360; }
       if( configPage6.vvtMode == VVT_MODE_CLOSED_LOOP )
       {
-        curAngle = LOW_PASS_FILTER( (curAngle << 1U), configPage4.ANGLEFILTER_VVT, curAngle);
+        curAngle = LOW_PASS_FILTER(curAngle * 2, configPage4.ANGLEFILTER_VVT, curAngle);
         currentStatus.vvt1Angle = 360 - curAngle - configPage10.vvtCL0DutyAng;
       }
     }
@@ -4694,15 +4690,13 @@ static uint16_t getRPM_Vmax(void)
   {
     if ( currentStatus.RPM < (unsigned int)(configPage4.crankRPM * 100U) )
     {
-      uint16_t tempToothAngle;
-      unsigned long toothTime;
       if ( (toothLastToothTime == 0U) || (toothLastMinusOneToothTime == 0U) ) { tempRPM = 0; }
       else
       {
         noInterrupts();
-        tempToothAngle = triggerToothAngle;
+        uint16_t tempToothAngle = triggerToothAngle;
         (void)SetRevolutionTime(toothOneTime - toothOneMinusOneTime); //The time in uS that one revolution would take at current speed (The time tooth 1 was last seen, minus the time it was seen prior to that)
-        toothTime = (toothLastToothTime - toothLastMinusOneToothTime); 
+        unsigned long toothTime = (toothLastToothTime - toothLastMinusOneToothTime); 
         interrupts();
         toothTime = toothTime * 36U;
         tempRPM = ((unsigned long)tempToothAngle * (MICROS_PER_MIN/10U)) / toothTime;
@@ -5580,9 +5574,9 @@ static int getCrankAngle_SuzukiK6A(void)
       triggerToothAngle = 135;
       break;
 
-    default:
     case 1:
     case 3:
+    default:
       // 70 degree tooth, next tooth is 170
       triggerToothAngle = 70;
       break;
