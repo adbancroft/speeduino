@@ -50,13 +50,6 @@ extern uint16_t MAPlast; /**< The previous MAP reading */
 extern unsigned long MAP_time; //The time the MAP sample was taken
 extern unsigned long MAPlast_time; //The time the previous MAP sample was taken
 
-/**
- * @brief Simple low pass IIR filter macro for the analog inputs
- * This is effectively implementing the smooth filter from playground.arduino.cc/Main/Smooth
- * But removes the use of floats and uses 8 bits of fixed precision.
- */
-#define ADC_FILTER(input, alpha, prior) (((long)input * (256 - alpha) + ((long)prior * alpha))) >> 8
-
 void initialiseADC(void);
 void readTPS(bool useFilter=true); //Allows the option to override the use of the filter
 void readO2_2(void);
