@@ -347,7 +347,11 @@ static void triggerPri_missingTooth(void)
                     currentStatus.hasSync = true;
                     BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC); //the engine is fully synced so clear the Half Sync bit                    
                   }
-                  else if(currentStatus.hasSync != true) { BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC); } //If there is primary trigger but no secondary we only have half sync.
+                  else if(currentStatus.hasSync != true) { 
+                    BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC); //If there is primary trigger but no secondary we only have half sync.
+                  } else {
+                    // Full sync - keep MISRA checker happy
+                  }
                 }
                 else { currentStatus.hasSync = true;  BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC); } //If nothing is using sequential, we have sync and also clear half sync bit
                 if(configPage4.trigPatternSec == SEC_TRIGGER_SINGLE || configPage4.trigPatternSec == SEC_TRIGGER_TOYOTA_3) //Reset the secondary tooth counter to prevent it overflowing, done outside of sequental as v6 & v8 engines could be batch firing with VVT that needs the cam resetting
@@ -488,6 +492,8 @@ static void triggerSec_missingTooth(void)
         //Next secondary filter is 25% the current gap, done here so we don't get a great big gap for the 1st tooth
         triggerSecFilterTime = curGap2 >> 2; 
         break;
+
+      default: break;
     }
     toothLastSecToothTime = curTime2;
   } //Trigger filter
@@ -916,6 +922,7 @@ static void triggerSetEndTeeth_BasicDistributor(void)
 
   switch(configPage2.nCylinders)
   {
+    default:
     case 4:
       if( (tempEndAngle > 180) || (tempEndAngle <= 0) )
       {
@@ -1191,13 +1198,21 @@ static void triggerPri_4G63(void)
         {
           //This operates in forced wasted spark mode during cranking to align with crank teeth
           if( (toothCurrentCount == 1) || (toothCurrentCount == 5) ) { endCoilCharge(1); endCoilCharge(3); }
-          else if( (toothCurrentCount == 3) || (toothCurrentCount == 7) ) { endCoilCharge(2); endCoilCharge(4); }
+          else if( (toothCurrentCount == 3) || (toothCurrentCount == 7) ) { endCoilCharge(2); endCoilCharge(4);
+          } else {
+            // Keep MISRA checker happy
+          }        
         }
         else if(configPage2.nCylinders == 6)
         {
           if( (toothCurrentCount == 1) || (toothCurrentCount == 7) ) { endCoilCharge(1); }
           else if( (toothCurrentCount == 3) || (toothCurrentCount == 9) ) { endCoilCharge(2); }
-          else if( (toothCurrentCount == 5) || (toothCurrentCount == 11) ) { endCoilCharge(3); }
+          else if( (toothCurrentCount == 5) || (toothCurrentCount == 11) ) { endCoilCharge(3);
+          } else {
+            // Keep MISRA checker happy
+          }        
+        } else {
+          // Unknown number of cylinders
         }
       }
 
@@ -1216,7 +1231,9 @@ static void triggerPri_4G63(void)
           {
             triggerToothAngle = 70;
             triggerFilterTime = (curGap >> 2); //Trigger filter is set to (70/4)=17.5=17 degrees (Next trigger is 50 degrees away).
-          }
+          } else {
+            // Unknown number of cylinders
+          } 
         }
         else
         {
@@ -1229,6 +1246,8 @@ static void triggerPri_4G63(void)
           {
             triggerToothAngle = 50;
             triggerFilterTime = curGap >> 1; //Trigger filter is set to 25 degrees (Next trigger is 70 degrees away).
+          } else {
+            // Unknown number of cylinders
           }
         }
       }
@@ -1342,8 +1361,14 @@ static void triggerPri_4G63(void)
         { 
           //Crank is low, cam is high and the crank pulse STARTED when the cam was high. 
           if(configPage2.nCylinders == 4) { toothCurrentCount = 5; } //Means we're at 5* BTDC on a 4G63 4 cylinder
-          else if(configPage2.nCylinders == 6) { toothCurrentCount = 2; currentStatus.hasSync = true; } //Means we're at 45* ATDC on 6G72 6 cylinder
-        } 
+          else if(configPage2.nCylinders == 6) { toothCurrentCount = 2; currentStatus.hasSync = true;  //Means we're at 45* ATDC on 6G72 6 cylinder
+          } else {
+            // Keep MISRA checker happy
+          }        
+
+        } else {
+          // Keep MISRA checker happy
+        }        
       }
     }
   } //Filter time
@@ -1382,8 +1407,9 @@ static void triggerSec_4G63(void)
         else if(configPage2.nCylinders == 6) 
         { 
           if(toothCurrentCount == 7) { currentStatus.hasSync = true; }
-        }
-
+        } else {
+          // Keep MISRA checker happy
+        }        
       }
       else
       {
@@ -1874,7 +1900,11 @@ static void triggerSec_Audi135(void)
     toothSystemCount = 3; //Need to set this to 3 so that the next primary tooth is counted
   }
   else if (configPage4.useResync == 1) { toothCurrentCount = 0; toothSystemCount = 3; }
-  else if ( (currentStatus.startRevolutions < 100) && (toothCurrentCount != 45) ) { toothCurrentCount = 0; }
+  else if ( (currentStatus.startRevolutions < 100) && (toothCurrentCount != 45) ) {
+    toothCurrentCount = 0;
+  } else {
+    // Keep MISRA checker happy
+  }        
   revolutionOne = true; //Sequential revolution reset
 }
 
@@ -2110,7 +2140,9 @@ static void triggerPri_Miata9905(void)
         triggerSecFilterTime = 0;
         if( (toothCurrentCount == 1) || (toothCurrentCount == 3) || (toothCurrentCount == 5) || (toothCurrentCount == 7) ) { triggerToothAngle = 70; } //96.26 degrees with a target of 110
         else { triggerToothAngle = 110; }
-      }
+      } else {
+        // Keep MISRA checker happy
+      }        
 
       //EXPERIMENTAL!
       //New ignition mode is ONLY available on 9905 when the trigger angle is set to the stock value of 0.
@@ -2133,7 +2165,10 @@ static void triggerPri_Miata9905(void)
     if ( (currentStatus.RPM < (currentStatus.crankRPM + 30)) && (configPage4.ignCranklock) ) //The +30 here is a safety margin. When switching from fixed timing to normal, there can be a situation where a pulse started when fixed and ending when in normal mode causes problems. This prevents that.
     {
       if( (toothCurrentCount == 1) || (toothCurrentCount == 5) ) { endCoilCharge(1); endCoilCharge(3); }
-      else if( (toothCurrentCount == 3) || (toothCurrentCount == 7) ) { endCoilCharge(2); endCoilCharge(4); }
+      else if( (toothCurrentCount == 3) || (toothCurrentCount == 7) ) { endCoilCharge(2); endCoilCharge(4);
+      } else {
+        // Keep MISRA checker happy
+      }        
     }
     secondaryToothCount = 0;
   } //Trigger filter
@@ -2246,8 +2281,9 @@ static void triggerSetEndTeeth_Miata9905(void)
       ignitionEndTeeth[1] = 3;
       ignitionEndTeeth[2] = 5;
       ignitionEndTeeth[3] = 7;
-    }
-    
+    } else {
+      // Keep MISRA checker happy
+    }            
   }
   else
   {
@@ -2264,7 +2300,9 @@ static void triggerSetEndTeeth_Miata9905(void)
       ignitionEndTeeth[1] = 3;
       ignitionEndTeeth[2] = 1; //Not used
       ignitionEndTeeth[3] = 3; //Not used
-    }
+    } else {
+      // Keep MISRA checker happy
+    }        
   }
 }
 
@@ -2345,7 +2383,10 @@ static void triggerPri_MazdaAU(void)
       if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) && configPage4.ignCranklock )
       {
         if( toothCurrentCount == 1 ) { endCoilCharge(1); }
-        else if( toothCurrentCount == 3 ) { endCoilCharge(2); }
+        else if( toothCurrentCount == 3 ) { endCoilCharge(2);
+        } else {
+          // Keep MISRA checker happy
+        }        
       }
 
       //Whilst this is an uneven tooth pattern, if the specific angle between the last 2 teeth is specified, 1st deriv prediction can be used
@@ -2666,7 +2707,9 @@ static void triggerSec_Nissan360(void)
           {
             //toothCurrentCount = 304;
           }
-        } //Cylinder count
+        } else {
+          // Keep MISRA checker happy
+        }        
       } //use resync
     } //Has sync
   } //First getting sync or not
@@ -2851,7 +2894,10 @@ static void triggerPri_Subaru67(void)
     if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) && configPage4.ignCranklock)
     {
       if( (toothCurrentCount == 1) || (toothCurrentCount == 7) ) { endCoilCharge(1); endCoilCharge(3); }
-      else if( (toothCurrentCount == 4) || (toothCurrentCount == 10) ) { endCoilCharge(2); endCoilCharge(4); }
+      else if( (toothCurrentCount == 4) || (toothCurrentCount == 10) ) { endCoilCharge(2); endCoilCharge(4);
+      } else {
+        // Keep MISRA checker happy
+      }        
     }
 
     if ( toothCurrentCount > 12 ) // done 720 degrees so increment rotation
@@ -2867,7 +2913,6 @@ static void triggerPri_Subaru67(void)
     else if(toothCurrentCount == 2) { triggerToothAngle = 93; } //Special case for tooth 2
     else { triggerToothAngle = toothAngles[(toothCurrentCount-1)] - toothAngles[(toothCurrentCount-2)]; }
     BIT_SET(decoderState, BIT_DECODER_TOOTH_ANG_CORRECT);
-
 
     //NEW IGNITION MODE
     if( (configPage2.perToothIgn == true) && (!BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) ) 
@@ -3089,7 +3134,10 @@ static void triggerPri_Daihatsu(void)
         if(toothCurrentCount == 1)      { endCoilCharge(1); }
         else if(toothCurrentCount == 2) { endCoilCharge(2); }
         else if(toothCurrentCount == 3) { endCoilCharge(3); }
-        else if(toothCurrentCount == 4) { endCoilCharge(4); }
+        else if(toothCurrentCount == 4) { endCoilCharge(4);
+        } else {
+          // Keep MISRA checker happy
+        }        
       }
     }
     else //NO SYNC
@@ -3375,7 +3423,10 @@ static void triggerPri_ThirtySixMinus222(void)
          {
            //This occurs when we're at the first tooth after the 2 lots of 2x missing tooth.
            if(configPage2.nCylinders == 4 ) { toothCurrentCount = 19; } //H4
-           else if(configPage2.nCylinders == 6) { toothCurrentCount = 12; } //H6 - NOT TESTED!
+           else if(configPage2.nCylinders == 6) { toothCurrentCount = 12; //H6 - NOT TESTED!
+            } else {
+              // Keep MISRA checker happy
+            }        
            
            toothSystemCount = 0;
            currentStatus.hasSync = true;
@@ -3417,9 +3468,12 @@ static void triggerPri_ThirtySixMinus222(void)
             //H6 - THIS NEEDS TESTING
             toothCurrentCount = 34; 
             currentStatus.hasSync = true;
-          } 
-          
-       }
+          } else {
+            // Keep MISRA checker happy
+          }        
+        } else {
+          // Keep MISRA checker happy
+        }        
 
        //Filter can only be recalculated for the regular teeth, not the missing one.
        setFilter(curGap);
@@ -3493,7 +3547,9 @@ static void triggerSetEndTeeth_ThirtySixMinus222(void)
     else if(currentStatus.advance < 30) { ignitionEndTeeth[2] = 21; }
     else if(currentStatus.advance < 40) { ignitionEndTeeth[2] = 20; }
     else { ignitionEndTeeth[2] = 19; }
-  } 
+  } else {
+    // Keep MISRA checker happy
+  }        
 }
 
 decoder_t triggerSetup_ThirtySixMinus222(void)
@@ -4324,20 +4380,27 @@ static void triggerSec_NGC4(void)
         if ((toothLastSecToothRisingTime - toothLastSecToothTime) < (curTime2 - toothLastSecToothRisingTime)) {
           //Just passed the HIGH missing tooth
           if ( secondaryToothCount == 0 || secondaryToothCount == 8 ) { secondaryToothCount = 1; } // synced
-          else if (secondaryToothCount > 0) { secondaryToothCount = 0; } //Any other number of teeth seen means we missed something or something extra was seen so attempt resync.
+          else if (secondaryToothCount > 0) { secondaryToothCount = 0; //Any other number of teeth seen means we missed something or something extra was seen so attempt resync.
+          } else {
+            // Keep MISRA checker happy
+          }        
         }
         else {
           //Just passed the first tooth after the LOW missing tooth
           if ( secondaryToothCount == 0 || secondaryToothCount == 5 ) { secondaryToothCount = 5; }
-          else if (secondaryToothCount > 0) { secondaryToothCount = 0; }
+          else if (secondaryToothCount > 0) { secondaryToothCount = 0;
+          } else {
+            // Keep MISRA checker happy
+          }        
         }
 
         triggerSecFilterTime = 0; //This is used to prevent a condition where serious intermitent signals (Eg someone furiously plugging the sensor wire in and out) can leave the filter in an unrecoverable state
       }
       else if (secondaryToothCount > 0) {
         triggerSecFilterTime = curGap2 >> 2; //Set filter at 25% of the current speed. Filter can only be recalc'd for the regular teeth, not the missing one.
-      }
-
+      } else {
+        // Keep MISRA checker happy
+      }        
     }
     
     toothLastMinusOneSecToothTime = toothLastSecToothTime;
@@ -4395,7 +4458,9 @@ static void triggerSec_NGC68(void)
         //Normal tooth
         secondaryToothCount++;
         triggerSecFilterTime = curGap2 >> 2; //Set filter at 25% of the current speed
-      }
+      } else {
+        // Keep MISRA checker happy
+      }        
     }
 
     toothLastSecToothTime = curTime2;
@@ -4496,7 +4561,9 @@ decoder_t triggerSetup_NGC(void)
     toothAngles[7] = 1;
     toothAngles[8] = 3;
     toothAngles[9] = 1; // Pos 9 is required to be the same as group 1 for easier math
-  }
+  } else {
+    // Keep MISRA checker happy
+  }        
 #ifdef USE_LIBDIVIDE
   divTriggerToothAngle = libdivide::libdivide_s16_gen(triggerToothAngle);
 #endif  
@@ -4581,7 +4648,9 @@ static void triggerPri_Vmax(void)
             secondaryToothCount = 6;
             triggerToothAngle = 70;
             setFilter(curGap);//Angle to this tooth is 70, next is in 70. No need to compensate.
-          }
+          } else {
+            // Keep MISRA checker happy
+          }        
           toothLastMinusOneToothTime = toothLastToothTime;
           toothLastToothTime = curTime;
           if (triggerFilterTime > 50000){//The first pulse seen 
@@ -4622,7 +4691,9 @@ static void triggerPri_Vmax(void)
   else if( BIT_CHECK(decoderState, BIT_DECODER_VALID_TRIGGER) == false)
   {
     BIT_SET(decoderState, BIT_DECODER_VALID_TRIGGER); //We reset this every time to ensure we only filter when needed.
-  }
+  } else {
+    // Keep MISRA checker happy
+  }        
 }
 
 static uint16_t getRPM_Vmax(void)
@@ -4838,7 +4909,9 @@ decoder_t triggerSetup_Renix(void)
     configPage4.triggerTeeth = 6; // wheel has 44 teeth but we use these to work out which tooth angle to use, therefore speeduino thinks we only have 6 teeth.
     configPage4.triggerMissingTeeth = 0;
     triggerFilterTime = (MICROS_PER_SEC / (MAX_RPM / 60U * 66U)); //Trigger filter time is the shortest possible time (in uS) that there can be between crank teeth (ie at max RPM). Any pulses that occur faster than this time will be disgarded as noise
-  }
+  } else {
+    // Keep MISRA checker happy
+  }        
 
   MAX_STALL_TIME = ((MICROS_PER_DEG_1_RPM/50U) * triggerToothAngle); //Minimum 50rpm. (3333uS is the time per degree at 50rpm). Largest gap between teeth is 90 or 60 degrees depending on decoder.
   BIT_CLEAR(decoderState, BIT_DECODER_HAS_SECONDARY);
@@ -4875,7 +4948,7 @@ decoder_t triggerSetup_Renix(void)
  * @defgroup dec_rover_mems Rover MEMS all versions including T Series, O Series, Mini and K Series
  * @{
  */
-volatile unsigned long roverMEMSTeethSeen = 0; // used for flywheel gap pattern matching
+static volatile unsigned long roverMEMSTeethSeen = 0; // used for flywheel gap pattern matching
 
 // used by the ROVER MEMS pattern
 #define ID_TOOTH_PATTERN 0 // have we identified teeth to skip for calculating RPM?
@@ -4907,8 +4980,10 @@ static void triggerRoverMEMSCommon(uint32_t curTime)
       if(configPage4.trigPatternSec == SEC_TRIGGER_SINGLE) { secondaryToothCount = 0; } //Reset the secondary tooth counter to prevent it overflowing
     }
     else if(currentStatus.hasSync != true) 
-    { BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC); } //If there is primary trigger but no secondary we only have half sync.
-  }
+    { BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC); //If there is primary trigger but no secondary we only have half sync.
+    } else {
+    // Keep MISRA checker happy
+    }    }
   else { currentStatus.hasSync = true;  BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC); } //If nothing is using sequential, we have sync and also clear half sync bit
           
   if(currentStatus.hasSync == true)
@@ -4921,7 +4996,7 @@ static inline uint16_t getActualTeeth_RoverMEMS(void) {
   return 36U;
 }
 
-static void triggerPri_RoverMEMS()
+static void triggerPri_RoverMEMS(void)
 {
   unsigned long curTime = micros();
   curGap = curTime - toothLastToothTime;      
@@ -5024,12 +5099,15 @@ static void triggerPri_RoverMEMS()
         else if(toothCurrentCount > getActualTeeth_RoverMEMS()+1) // no patterns match after a rotation when we only need 32 teeth to match, we've lost sync
         {
           currentStatus.hasSync = false;
-          if(secondaryToothCount > 0)
+          if(secondaryToothCount > 0) {
             BIT_SET(currentStatus.status3, BIT_STATUS3_HALFSYNC);
-          else
+          } else {
             BIT_CLEAR(currentStatus.status3, BIT_STATUS3_HALFSYNC);
+          }
           currentStatus.syncLossCounter++;              
-        }
+        } else {
+          // Keep MISRA checker happy
+        }        
       }
     }
     
@@ -5050,8 +5128,7 @@ static void triggerPri_RoverMEMS()
 
 }
 
-
-static void triggerSec_RoverMEMS() 
+static void triggerSec_RoverMEMS(void) 
 {
   unsigned long curTime2 = micros();
   curGap2 = curTime2 - toothLastSecToothTime;
@@ -5126,14 +5203,18 @@ static void triggerSec_RoverMEMS()
           {
             toothCurrentCount += 18;
           }
-        }
+        } else {
+          // Keep MISRA checker happy
+        }        
         secondaryToothCount = 1; // as we've had a gap we need to reset to this being the first tooth after the gap
       }
-    }
+    } else {
+      // Keep MISRA checker happy
+    }        
   } //Trigger filter
 }
 
-static uint16_t getRPM_RoverMEMS() 
+static uint16_t getRPM_RoverMEMS(void) 
 {
   uint16_t tempRPM = 0;
 
@@ -5160,7 +5241,7 @@ static int16_t __attribute__((noinline)) calcEndTooth_RoverMEMS(const IgnitionSc
  return tempIgnitionEndTooth;
 }
 
-static void triggerSetEndTeeth_RoverMEMS()
+static void triggerSetEndTeeth_RoverMEMS(void)
 {
   //Temp variables are used here to avoid potential issues if a trigger interrupt occurs part way through this function
   int16_t tempIgnitionEndTooth[5]; // cheating with the array - location 1 is spark 1, location 0 not used.   
@@ -5290,6 +5371,8 @@ static void triggerPri_SuzukiK6A(void)
       currentStatus.syncLossCounter++;
       triggerFilterTime = 0;
       toothCurrentCount=0;
+    } else {
+      // Nothing to do - keep MISRA happy.
     }
 
     // check gaps match with tooth to check we have sync 
@@ -5297,6 +5380,7 @@ static void triggerPri_SuzukiK6A(void)
     // then we've lost sync
     switch (toothCurrentCount)
     {
+      default:
       case 1:
       case 3:      
       case 5:      
@@ -5432,6 +5516,8 @@ static void triggerPri_SuzukiK6A(void)
           }
           break;
 
+        default: // Do nothing;
+        break;
       }
       
       //NEW IGNITION MODE
@@ -5502,6 +5588,7 @@ static int getCrankAngle_SuzukiK6A(void)
       triggerToothAngle = 135;
       break;
 
+    default:
     case 1:
     case 3:
       // 70 degree tooth, next tooth is 170
@@ -5510,7 +5597,6 @@ static int getCrankAngle_SuzukiK6A(void)
   }
   crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
   if (crankAngle >= 720) { crankAngle -= 720; }
-//  if (crankAngle > CRANK_ANGLE_MAX) { crankAngle -= CRANK_ANGLE_MAX; } not needed, crank angle max gets max from injection or ignition, we have to be over 720 degrees so can ignore
   if (crankAngle < 0) { crankAngle += 720; }   
 
   return crankAngle;
