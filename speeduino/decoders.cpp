@@ -386,19 +386,44 @@ static void triggerPri_missingTooth(void)
    }
 }
 
-static inline void triggerRecordVVT1Angle (void)
+static int getCrankAngle_missingTooth(void)
+{
+    //This is the current angle ATDC the engine is at. This is the last known position based on what tooth was last 'seen'. It is only accurate to the resolution of the trigger wheel (Eg 36-1 is 10 degrees)
+
+    //Grab some variables that are used in the trigger code and assign them to temp variables.
+    noInterrupts();
+    int tempToothCurrentCount = toothCurrentCount;
+    bool tempRevolutionOne = revolutionOne;
+    unsigned long tempToothLastToothTime = toothLastToothTime;
+    unsigned long lastCrankAngleCalc = micros();
+    interrupts();
+
+    int crankAngle = ((tempToothCurrentCount - 1) * triggerToothAngle) + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
+    
+    //Sequential check (simply sets whether we're on the first or 2nd revolution of the cycle)
+    if ( (tempRevolutionOne == true) && (isConfigToothSourceCrank()) ) { crankAngle += 360; }
+
+    crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);
+
+    if (crankAngle >= 720) { crankAngle -= 720; }
+    if (crankAngle < 0) { crankAngle += CRANK_ANGLE_MAX; }
+
+    return crankAngle;
+}
+
+static inline int16_t calculateVVTAngle_MissingTooth (int16_t lastAngle)
 {
   //Record the VVT Angle
-  if( (configPage6.vvtEnabled > 0) && (revolutionOne == 1) )
+  if(configPage6.vvtEnabled > 0)
   {
-    int16_t curAngle;
-    curAngle = getCrankAngle();
+    int16_t curAngle = getCrankAngle_missingTooth();
     while(curAngle > 360) { curAngle -= 360; }
     curAngle -= configPage4.triggerAngle; //Value at TDC
     if( configPage6.vvtMode == VVT_MODE_CLOSED_LOOP ) { curAngle -= configPage10.vvtCL0DutyAng; }
 
-    currentStatus.vvt1Angle = ANGLE_FILTER( (curAngle << 1), configPage4.ANGLEFILTER_VVT, currentStatus.vvt1Angle);
+    return ANGLE_FILTER( (curAngle << 1), configPage4.ANGLEFILTER_VVT, lastAngle);
   }
+  return 0;
 }
 
 static void triggerSec_missingTooth(void)
@@ -424,8 +449,8 @@ static void triggerSec_missingTooth(void)
         {
           secondaryToothCount = 1;
           revolutionOne = 1; //Sequential revolution reset
-          triggerSecFilterTime = 0; //This is used to prevent a condition where serious intermittent signals (Eg someone furiously plugging the sensor wire in and out) can leave the filter in an unrecoverable state
-          triggerRecordVVT1Angle();
+          triggerSecFilterTime = 0; //This is used to prevent a condition where serious intermitent signals (Eg someone furiously plugging the sensor wire in and out) can leave the filter in an unrecoverable state
+          currentStatus.vvt1Angle = calculateVVTAngle_MissingTooth(currentStatus.vvt1Angle);
         }
         else
         {
@@ -438,7 +463,7 @@ static void triggerSec_missingTooth(void)
         //Poll is effectively the same as SEC_TRIGGER_SINGLE, however we do not reset revolutionOne
         //We do still need to record the angle for VVT though
         triggerSecFilterTime = curGap2 >> 1; //Next secondary filter is half the current gap
-        triggerRecordVVT1Angle();
+        currentStatus.vvt1Angle = calculateVVTAngle_MissingTooth(currentStatus.vvt1Angle);
         break;
 
       case SEC_TRIGGER_SINGLE:
@@ -446,7 +471,7 @@ static void triggerSec_missingTooth(void)
         revolutionOne = 1; //Sequential revolution reset
         triggerSecFilterTime = curGap2 >> 1; //Next secondary filter is half the current gap
         secondaryToothCount++;
-        triggerRecordVVT1Angle();
+        currentStatus.vvt1Angle = calculateVVTAngle_MissingTooth(currentStatus.vvt1Angle);
         break;
 
       case SEC_TRIGGER_TOYOTA_3:
@@ -456,7 +481,7 @@ static void triggerSec_missingTooth(void)
         if(secondaryToothCount == 2)
         { 
           revolutionOne = 1; // sequential revolution reset
-          triggerRecordVVT1Angle();         
+          currentStatus.vvt1Angle = calculateVVTAngle_MissingTooth(currentStatus.vvt1Angle);
         }        
         //Next secondary filter is 25% the current gap, done here so we don't get a great big gap for the 1st tooth
         triggerSecFilterTime = curGap2 >> 2; 
@@ -470,30 +495,22 @@ static void triggerThird_missingTooth(void)
 {
 //Record the VVT2 Angle (the only purpose of the third trigger)
 //NB no filtering of this signal with current implementation unlike Cam (VVT1)
-
-  int16_t curAngle;
   unsigned long curTime3 = micros();
-  curGap3 = curTime3 - toothLastThirdToothTime;
 
   //Safety check for initial startup
   if( (toothLastThirdToothTime == 0) )
   { 
-    curGap3 = 0; 
     toothLastThirdToothTime = curTime3;
+    return;
   }
+
+  unsigned long curGap3 = curTime3 - toothLastThirdToothTime;
 
   if ( curGap3 >= triggerThirdFilterTime )
   {
     triggerThirdFilterTime = curGap3 >> 2; //Next third filter is 25% the current gap
-    
-    curAngle = getCrankAngle();
-    while(curAngle > 360) { curAngle -= 360; }
-    curAngle -= configPage4.triggerAngle; //Value at TDC
-    if( configPage6.vvtMode == VVT_MODE_CLOSED_LOOP ) { curAngle -= configPage4.vvt2CL0DutyAng; }
-    //currentStatus.vvt2Angle = int8_t (curAngle); //vvt1Angle is only int8, but +/-127 degrees is enough for VVT control
-    currentStatus.vvt2Angle = ANGLE_FILTER( (curAngle << 1), configPage4.ANGLEFILTER_VVT, currentStatus.vvt2Angle);    
-
     toothLastThirdToothTime = curTime3;
+    currentStatus.vvt2Angle = calculateVVTAngle_MissingTooth(currentStatus.vvt2Angle);
   } //Trigger filter
 }
 
@@ -513,31 +530,6 @@ static uint16_t getRPM_missingTooth(void)
     tempRPM = stdGetRPM(getConfigToothSource()); //Account for cam speed
   }
   return tempRPM;
-}
-
-static int getCrankAngle_missingTooth(void)
-{
-    //This is the current angle ATDC the engine is at. This is the last known position based on what tooth was last 'seen'. It is only accurate to the resolution of the trigger wheel (Eg 36-1 is 10 degrees)
-
-    //Grab some variables that are used in the trigger code and assign them to temp variables.
-    noInterrupts();
-    int tempToothCurrentCount = toothCurrentCount;
-    bool tempRevolutionOne = revolutionOne;
-    unsigned long tempToothLastToothTime = toothLastToothTime;
-    unsigned long lastCrankAngleCalc = micros();
-    interrupts();
-
-    int crankAngle = ((tempToothCurrentCount - 1) * triggerToothAngle) + configPage4.triggerAngle; //Number of teeth that have passed since tooth 1, multiplied by the angle each tooth represents, plus the angle that tooth 1 is ATDC. This gives accuracy only to the nearest tooth.
-    
-    //Sequential check (simply sets whether we're on the first or 2nd revolution of the cycle)
-    if ( (tempRevolutionOne == true) && (isConfigToothSourceCrank()) ) { crankAngle += 360; }
-
-    crankAngle += timeToAngleDegPerMicroSec(lastCrankAngleCalc - tempToothLastToothTime);
-
-    if (crankAngle >= 720) { crankAngle -= 720; }
-    if (crankAngle < 0) { crankAngle += CRANK_ANGLE_MAX; }
-
-    return crankAngle;
 }
 
 static inline uint16_t clampToToothCount(int16_t toothNum, uint8_t toothAdder) {
@@ -5735,6 +5727,7 @@ static void triggerSetEndTeeth_SuzukiK6A(void)
   { tempIgnitionEndTooth = 7; } // didn't find a match, use tooth 7 as it must be greater than 7 but less than 1.  
   ignitionEndTeeth[2] = tempIgnitionEndTooth;
 }
+
 
 decoder_t triggerSetup_SuzukiK6A(void)
 {
