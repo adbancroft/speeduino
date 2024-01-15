@@ -592,9 +592,9 @@ If any of these are true, the "real" decoder function is called
 */
 static inline bool isTriggerEdge(const trigger_t &trigger) {
   uint8_t pinState = getTriggerPinState(trigger);
-  return (trigger.edge == RISING && pinState==HIGH)
-      || (trigger.edge == FALLING && pinState==LOW)
-      || (trigger.edge == CHANGE);
+  return (trigger.mode == RISING && pinState==HIGH)
+      || (trigger.mode == FALLING && pinState==LOW)
+      || (trigger.mode == CHANGE);
 }
 
 /** Interrupt handler for primary trigger.

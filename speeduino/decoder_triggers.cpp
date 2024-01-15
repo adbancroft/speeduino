@@ -174,7 +174,7 @@ static void attachInterrupt(uint8_t pin, const trigger_t &trigger) {
   if (isValidPin(pin)) {
     detachInterrupt( digitalPinToInterrupt(pin) );
     if (isValid(trigger)) {
-      attachInterrupt( digitalPinToInterrupt(pin), trigger.handler, trigger.edge );
+      attachInterrupt( digitalPinToInterrupt(pin), trigger.handler, trigger.mode );
     }
   }
 }
