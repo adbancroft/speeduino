@@ -17,16 +17,17 @@
 
 #define FILTER_FLEX_DEFAULT     75
 
-#define BARO_MIN      65
-#define BARO_MAX      108
+#define BARO_MIN      65U
+#define BARO_MAX      108U
 
-#define KNOCK_MODE_DIGITAL  1
-#define KNOCK_MODE_ANALOG   2
+#define KNOCK_MODE_OFF      0U
+#define KNOCK_MODE_DIGITAL  1U
+#define KNOCK_MODE_ANALOG   2U
 
-#define VSS_GEAR_HYSTERESIS 10
-#define VSS_SAMPLES         4 //Must be a power of 2 and smaller than 255
+#define VSS_GEAR_HYSTERESIS 10U
+#define VSS_SAMPLES         4U //Must be a power of 2 and smaller than 255
 
-#define TPS_READ_FREQUENCY  30 //ONLY VALID VALUES ARE 15 or 30!!!
+#define TPS_READ_FREQUENCY  30U //ONLY VALID VALUES ARE 15 or 30!!!
 
 extern volatile byte flexCounter;
 extern volatile unsigned long flexStartTime;

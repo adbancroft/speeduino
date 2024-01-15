@@ -221,7 +221,7 @@ void initialiseDecoder(void) {
     pinTrigger3 = NOT_A_PIN;
   }
   if (decoder.triggerSetEndTeeth==nullptr) {
-    configPage2.perToothIgn = false;
+    configPage2.perToothIgn = 0U;
   }
 }
 
