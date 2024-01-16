@@ -178,6 +178,10 @@ static inline bool udiv_is16bit_result(uint32_t dividend, uint16_t divisor) {
   return divisor>(uint16_t)(dividend>>16U);
 }
 
+static inline bool udiv_is8bit_result(uint16_t dividend, uint8_t divisor) {
+  return divisor>(uint8_t)(dividend>>8U);
+}
+
 #endif
 /**
  * @brief Optimised division: uint32_t/uint16_t => uint16_t
@@ -234,6 +238,41 @@ static inline uint16_t udiv_32_16 (uint32_t dividend, uint16_t divisor)
 #endif
 }
 
+static inline uint8_t udiv_16_8 (uint16_t dividend, uint8_t divisor)
+{
+#if defined(CORE_AVR) || defined(ARDUINO_ARCH_AVR)
+
+    if (divisor==0U || !udiv_is8bit_result(dividend, divisor)) { return UINT8_MAX; }
+
+    #define INDEX_REG "r16"
+
+    asm(
+        "    ldi " INDEX_REG ", 8 ; bits = 8\n\t"
+        "0:\n\t"
+        "    lsl  %A0      ; shift rem:quot\n\t"
+        "    rol  %B0      ;  left by 1\n\t"
+        "    brcs 1f       ; if carry out, rem > divisor\n\t"
+        "    cpc  %B0, %A1 ; is rem less than divisor?\n\t"
+        "    brcs 2f       ; yes, when carry out\n\t"
+        "1:\n\t"
+        "    sub  %B0, %A1 ; compute rem -= divisor\n\t"
+        "    ori  %A0, 1   ; record quotient bit as 1\n\t"
+        "2:\n\t"
+        "    dec  " INDEX_REG "     ; bits--\n\t"
+        "    brne 0b        ; until bits == 0"
+        : "=d" (dividend) 
+        : "d" (divisor) , "0" (dividend) 
+        : INDEX_REG
+    );
+
+    // Lower word contains the quotient, upper word contains the remainder.
+    return dividend & 0xFFFFU;
+#else
+    // The non-AVR platforms are all fast enough (or have built in hardware dividers)
+    // so just fall back to regular 16-bit division.
+    return dividend / divisor;
+#endif
+}
 
 /**
  * @brief Same as udiv_32_16(), except this will round to nearest integer 

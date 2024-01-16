@@ -55,10 +55,7 @@ static inline int8_t muldiv(int8_t a, int8_t b, int8_t div)
 
 static inline uint8_t muldiv(uint8_t a, uint8_t b, uint8_t div)
 {
-    // By the time we condtionally check for potential overflow,
-    // we are just as quick promoting to int16_t & applying the 
-    // multiply + divide.
-    return muldiv_detail::muldiv_simple<uint8_t, uint16_t>(a, b, div);
+    return udiv_16_8((uint16_t)a * (uint16_t)b, div);
 }
 
 static inline int16_t muldiv(const int16_t a, const int16_t b, const int16_t div)
