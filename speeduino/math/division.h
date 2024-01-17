@@ -1,5 +1,13 @@
 #pragma once
 
+/** \file
+ * @brief Optimised division routines.
+ * 
+ * In additon to divison being the slowest integer operation, AVR cores have no hardware divider
+ * So avoiding and optimizing division is a critical performance factor
+ * for AVR.
+ */
+
 #include <stdint.h>
 
 #ifdef USE_LIBDIVIDE

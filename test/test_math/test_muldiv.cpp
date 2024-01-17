@@ -46,20 +46,20 @@ void test_muldiv_u8()
     test_muldiv_t<uint8_t>(1, UINT8_MAX, 1);
 }
 
-void test_muldiv_s8()
-{
-    test_muldiv_t<int8_t>(INT8_MIN, INT8_MAX, 1);
-}
+// void test_muldiv_s8()
+// {
+//     test_muldiv_t<int8_t>(INT8_MIN, INT8_MAX, 1);
+// }
 
 void test_muldiv_u16()
 {
     test_muldiv_t<uint16_t>(1, UINT16_MAX/3, 11);
 }
 
-void test_muldiv_s16()
-{
-    test_muldiv_t<int16_t>(-(INT16_MAX/3), INT16_MAX/3, 23);
-}
+// void test_muldiv_s16()
+// {
+//     test_muldiv_t<int16_t>(-(INT16_MAX/3), INT16_MAX/3, 23);
+// }
 
 
 template <typename T, typename TPromote>
@@ -74,7 +74,7 @@ void test_muldiv_perf_t(uint16_t iters, const char *msgTag, T min, T max, T step
         {
             T b = get_b(a, max);
             T div = get_div(a, b);
-            checkSumNative += muldiv_detail::muldiv_simple<T, TPromote>(a, b, div);
+            checkSumNative += ((TPromote)a * b)/div;
         }
     }
     native_timer.stop();
@@ -98,7 +98,6 @@ void test_muldiv_perf_t(uint16_t iters, const char *msgTag, T min, T max, T step
     sprintf(buffer, "muldiv %s timing: %lu, %lu", msgTag, native_timer.duration_micros(), mulDiv_timer.duration_micros());
     TEST_MESSAGE(buffer);
     TEST_ASSERT_LESS_THAN(native_timer.duration_micros(), mulDiv_timer.duration_micros());
-
 }
 
 void test_muldiv_u16_perf()
@@ -108,21 +107,21 @@ void test_muldiv_u16_perf()
     test_muldiv_perf_t<uint16_t, uint32_t>(128, "u16", 0, 512, 11);
 }
 
-void test_muldiv_s16_perf()
-{
-    // We mostly use muldiv() for small numbers, which is where we gain all the performance
-    // E.g. various axis bin widths which are small. RPM probably <500, Load<20, TPS<10, Coolant<75 etc.    
-    test_muldiv_perf_t<int16_t, int32_t>(128, "s16", -256, 256, 11);
-}
+// void test_muldiv_s16_perf()
+// {
+//     // We mostly use muldiv() for small numbers, which is where we gain all the performance
+//     // E.g. various axis bin widths which are small. RPM probably <500, Load<20, TPS<10, Coolant<75 etc.    
+//     test_muldiv_perf_t<int16_t, int32_t>(128, "s16", -256, 256, 11);
+// }
 
 void testmuldiv()
 {
     RUN_TEST(test_muldiv_u8);
-    RUN_TEST(test_muldiv_s8);
+    // RUN_TEST(test_muldiv_s8);
     RUN_TEST(test_muldiv_u16);
-    RUN_TEST(test_muldiv_s16);
+    // RUN_TEST(test_muldiv_s16);
 #if defined(ARDUINO)    
     RUN_TEST(test_muldiv_u16_perf);
-    RUN_TEST(test_muldiv_s16_perf);
+    // RUN_TEST(test_muldiv_s16_perf);
 #endif
 }

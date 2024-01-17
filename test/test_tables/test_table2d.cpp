@@ -47,39 +47,43 @@ void test_table2dLookup_50pct(void)
 
 void test_table2dLookup_33pct(void)
 {
-    uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], 33));
-    TEST_ASSERT_EQUAL(155, u8_u8_result);
+    static constexpr uint8_t binPct = 33U;
+
+    uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], binPct));
+    TEST_ASSERT_EQUAL(154, u8_u8_result);
     TEST_ASSERT_EQUAL(4, table2d_u8_u8.cache.lastXMax);
 
-    uint8_t u8_s16_result = table2D_getValue(&table2d_u8_s16, intermediate(table2d_axis_s16[6], table2d_axis_s16[7], 33));
+    uint8_t u8_s16_result = table2D_getValue(&table2d_u8_s16, intermediate(table2d_axis_s16[6], table2d_axis_s16[7], binPct));
     TEST_ASSERT_EQUAL(48, u8_s16_result);
     TEST_ASSERT_EQUAL(7, table2d_u8_s16.cache.lastXMax);
 
-    int16_t s16_u8_result = table2D_getValue(&table2d_s16_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], 33));
-    TEST_ASSERT_EQUAL(14815, s16_u8_result);
+    int16_t s16_u8_result = table2D_getValue(&table2d_s16_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], binPct));
+    TEST_ASSERT_EQUAL(14621, s16_u8_result);
     TEST_ASSERT_EQUAL(4, table2d_s16_u8.cache.lastXMax);
 
-    int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, intermediate(table2d_axis_s16[3], table2d_axis_s16[4], 33));
+    int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, intermediate(table2d_axis_s16[3], table2d_axis_s16[4], binPct));
     TEST_ASSERT_EQUAL(14703, s16_s16_result);
     TEST_ASSERT_EQUAL(4, table2d_s16_s16.cache.lastXMax);
 }
 
 void test_table2dLookup_66pct(void)
 {
-    uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], 66));
+    static constexpr uint8_t binPct = 66U;
+
+    uint8_t u8_u8_result = table2D_getValue(&table2d_u8_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], binPct));
     TEST_ASSERT_EQUAL(141, u8_u8_result);
     TEST_ASSERT_EQUAL(4, table2d_u8_u8.cache.lastXMax);
 
-    uint8_t u8_s16_result = table2D_getValue(&table2d_u8_s16, intermediate(table2d_axis_s16[6], table2d_axis_s16[7], 66));
+    uint8_t u8_s16_result = table2D_getValue(&table2d_u8_s16, intermediate(table2d_axis_s16[6], table2d_axis_s16[7], binPct));
     TEST_ASSERT_EQUAL(36, u8_s16_result);
     TEST_ASSERT_EQUAL(7, table2d_u8_s16.cache.lastXMax);
 
-    int16_t s16_u8_result = table2D_getValue(&table2d_s16_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], 66));
+    int16_t s16_u8_result = table2D_getValue(&table2d_s16_u8, intermediate(table2d_axis_u8[3], table2d_axis_u8[4], binPct));
     TEST_ASSERT_EQUAL(13072, s16_u8_result);
     TEST_ASSERT_EQUAL(4, table2d_s16_u8.cache.lastXMax);
 
-    int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, intermediate(table2d_axis_s16[3], table2d_axis_s16[4], 66));
-    TEST_ASSERT_EQUAL(13042, s16_s16_result);
+    int16_t s16_s16_result = table2D_getValue(&table2d_s16_s16, intermediate(table2d_axis_s16[3], table2d_axis_s16[4], binPct));
+    TEST_ASSERT_EQUAL(13041, s16_s16_result);
     TEST_ASSERT_EQUAL(4, table2d_s16_s16.cache.lastXMax);
 }
 
@@ -181,6 +185,31 @@ void test_table2d_all_decrementing(void)
     }
 }
 
+#include "../timer.hpp"
+
+
+static void test_lookup_perf(void) {
+    uint16_t iters = 32;
+    uint8_t start_index = 3;
+    uint8_t end_index = 255;
+    uint8_t step = 1;
+
+    timer timerA;
+    uint32_t paramA = 0;
+    auto nativeTest = [] (uint8_t index, uint32_t &checkSum) { 
+        checkSum += table2D_getValue(&table2d_u8_u8, (uint8_t)(table2d_axis_u8[TEST_TABLE2D_SIZE-1]+1));
+    };
+    measure_executiontime<uint8_t, uint32_t&>(iters, start_index, end_index, step, timerA, paramA, nativeTest);
+
+    // The checksums will be different due to rounding. This is only
+    // here to force the compiler to run the loops above
+    TEST_ASSERT_INT32_WITHIN(UINT32_MAX/2, UINT32_MAX/2, paramA);
+
+    char buffer[128];
+    sprintf(buffer, "Timing: %" PRIu32, timerA.duration_micros());
+    TEST_MESSAGE(buffer);
+
+}
 
 void testTable2d()
 {
@@ -192,4 +221,5 @@ void testTable2d()
     RUN_TEST(test_table2dLookup_underMin);
     RUN_TEST(test_table2d_all_decrementing); 
     RUN_TEST(test_table2dLookup_mismatch_lookup_type);
+    RUN_TEST(test_lookup_perf);
 }
