@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <unity.h>
-#include "math/muldiv.h"
+#include "maths.h"
 
 // Unity macro to reduce memory usage (RAM, .bss)
 //
@@ -39,9 +39,8 @@ static __inline__ void ufname_szrestore(char** __s)
 for ( UNITY_FILENAME_RESTORE, _ufname_done = ufname_set(__FILE__);                  \
     _ufname_done; _ufname_done = 0 )
 
-
 template <typename T>
 T constexpr intermediate(T const& min, T const& max, uint8_t const& frac)
 {
-  return min + muldiv((T)(max - min), (T)frac, (T)100U);
+  return min + percentage(frac, (max - min));
 }
