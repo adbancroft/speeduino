@@ -19,7 +19,8 @@
   #define FPU_MAX_SIZE 32 //Size of the FPU buffer. 0 means no FPU.
   #define SD_LOGGING //SD logging enabled by default for Teensy 3.5 as it has the slot built in
   #define BOARD_MAX_DIGITAL_PINS 34U
-  #define BOARD_MAX_IO_PINS 34U //digital pins + analog channels + 1
+  #define BOARD_MAX_ADC_PINS  22U //Number of analog pins
+
   #ifdef USE_SPI_EEPROM
     #define EEPROM_LIB_H "src/SPIAsEEPROM/SPIAsEEPROM.h"
     typedef uint16_t eeprom_address_t;

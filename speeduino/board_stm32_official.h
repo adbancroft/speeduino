@@ -71,7 +71,6 @@
 #endif
 
 #define BOARD_MAX_DIGITAL_PINS NUM_DIGITAL_PINS
-#define BOARD_MAX_IO_PINS NUM_DIGITAL_PINS
 #if __GNUC__ < 7 //Already included on GCC 7
 extern "C" char* sbrk(int incr); //Used to freeRam
 #endif
@@ -356,4 +355,7 @@ extern STM32_CAN Can0;
 #endif
 
 #endif //CORE_STM32
+
+#define BOARD_MAX_ADC_PINS  NUM_ANALOG_INPUTS-1 //Number of analog pins from core.
+
 #endif //STM32_H

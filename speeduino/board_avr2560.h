@@ -11,6 +11,8 @@
 * General
 */
   #define PORT_TYPE uint8_t //Size of the port variables (Eg inj1_pin_port).
+  #define BOARD_MAX_DIGITAL_PINS 54U //digital pins +1
+  #define BOARD_MAX_ADC_PINS  15U //Number of analog pins
   #define PINMASK_TYPE uint8_t
   #define COMPARE_TYPE uint16_t
   #define COUNTER_TYPE uint16_t

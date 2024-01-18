@@ -20,7 +20,6 @@ A full copy of the license may be found in the projects root directory
 #include "logger.h"
 #include "table3d_axis_io.h"
 #include "scheduler.h"
-#include BOARD_H
 #ifdef RTC_ENABLED
   #include "rtc_common.h"
 #endif
