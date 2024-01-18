@@ -53,6 +53,11 @@
   #error Incorrect board selected. Please select the correct board (Usually Mega 2560) and upload again
 #endif
 
+#if !defined(BOARD_MAX_DIGITAL_PINS) || ! defined(BOARD_MAX_ADC_PINS)
+#error Board header *must* define max pin counts
+#endif
+#define BOARD_MAX_IO_PINS (BOARD_MAX_DIGITAL_PINS+BOARD_MAX_ADC_PINS+1U) //digital pins + analog channels + 1
+
 /**
  * @brief Get the timer tick interval for the target CPU
  * 

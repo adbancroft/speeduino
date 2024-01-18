@@ -10,7 +10,6 @@
 * General
 */
   #define BOARD_MAX_DIGITAL_PINS 54 //digital pins +1
-  #define BOARD_MAX_IO_PINS 70 //digital pins + analog channels + 1
   #define BOARD_MAX_ADC_PINS  15 //Number of analog pins
   #ifndef LED_BUILTIN
     #define LED_BUILTIN 13
