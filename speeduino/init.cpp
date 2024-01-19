@@ -393,7 +393,6 @@ void initialiseAll(void)
     //The interrupt numbering is a bit odd - See here for reference: arduino.cc/en/Reference/AttachInterrupt
     //These assignments are based on the Arduino Mega AND VARY BETWEEN BOARDS. Please confirm the board you are using and update accordingly.
     initialiseCurrentStatus();
-    ms_counter = 0;
     toothHistoryIndex = 0;
 
     noInterrupts();

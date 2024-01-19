@@ -26,21 +26,22 @@ Timers are typically low resolution (Compared to Schedulers), with maximum frequ
 #endif
 
 static volatile uint16_t lastRPM_100ms; //Need to record this for rpmDOT calculation
-static volatile byte loop5ms;
-static volatile byte loop33ms;
-static volatile byte loop66ms;
-static volatile byte loop100ms;
-static volatile byte loop250ms;
-static volatile int loopSec;
-static volatile uint8_t tachoEndTime; //The time (in ms) that the tacho pulse needs to end at
+static volatile uint8_t loop5ms;
+static volatile uint8_t loop33ms;
+static volatile uint8_t loop66ms;
+static volatile uint8_t loop100ms;
+static volatile uint8_t loop250ms;
+static volatile uint8_t loop1000div100ms; // 10 x 100 ms = 1000ms = 1sec
 
 volatile TachoOutputStatus tachoOutputFlag;
-
+static volatile uint8_t tachoEndTime; //The time (in ms) that the tacho pulse needs to end at
 static volatile uint16_t tachoSweepIncr;
 static volatile uint16_t tachoSweepAccum;
+static volatile uint16_t tachoLoopCount;
+ioPort tach_pin_port;
+
 static volatile uint8_t testInjectorPulseCount = 0;
 static volatile uint8_t testIgnitionPulseCount = 0;
-ioPort tach_pin_port;
 
 #define TACHO_SWEEP_TIME_MS 1500
 #define TACHO_SWEEP_RAMP_MS (TACHO_SWEEP_TIME_MS * 2 / 3)
@@ -58,8 +59,9 @@ void initialiseTimers(const pin_mapping_t &pin)
   loop66ms = 0;
   loop100ms = 0;
   loop250ms = 0;
-  loopSec = 0;
+  loop1000div100ms = 0;
   tachoOutputFlag = TACHO_INACTIVE;
+  tachoLoopCount = 0U;
 
   //Set the tacho output default state
   setPin_Low(pin.outputs.pinTachOut);
@@ -81,7 +83,7 @@ void oneMSInterval(void) //Most ARM chips can simply call a function
 #endif
 {
   BIT_SET(TIMER_mask, BIT_TIMER_1KHZ);
-  ms_counter++;
+  tachoLoopCount++;
 
   //Increment Loop Counters
   loop5ms++;
@@ -89,7 +91,6 @@ void oneMSInterval(void) //Most ARM chips can simply call a function
   loop66ms++;
   loop100ms++;
   loop250ms++;
-  loopSec++;
 
   applyOverDwellProtection();
 
@@ -98,11 +99,11 @@ void oneMSInterval(void) //Most ARM chips can simply call a function
   // See if we're in power-on sweep mode
   if( currentStatus.tachoSweepEnabled )
   {
-    if( (currentStatus.engine != 0) || (ms_counter >= TACHO_SWEEP_TIME_MS) )  { currentStatus.tachoSweepEnabled = false; }  // Stop the sweep after SWEEP_TIME, or if real tach signals have started
+    if( (currentStatus.engine != 0) || (tachoLoopCount >= TACHO_SWEEP_TIME_MS) )  { currentStatus.tachoSweepEnabled = false; }  // Stop the sweep after SWEEP_TIME, or if real tach signals have started
     else 
     {
       // Ramp the needle smoothly to the max over the SWEEP_RAMP time
-      if( ms_counter < TACHO_SWEEP_RAMP_MS ) { tachoSweepAccum += map(ms_counter, 0, TACHO_SWEEP_RAMP_MS, 0, tachoSweepIncr); }
+      if( tachoLoopCount < TACHO_SWEEP_RAMP_MS ) { tachoSweepAccum += map(tachoLoopCount, 0, TACHO_SWEEP_RAMP_MS, 0, tachoSweepIncr); }
       else                                   { tachoSweepAccum += tachoSweepIncr;                                             }
              
       // Each time it rolls over, it's time to pulse the Tach
@@ -121,8 +122,8 @@ void oneMSInterval(void) //Most ARM chips can simply call a function
     if( (configPage2.tachoDiv == 0) || (currentStatus.tachoAlt == true) ) 
     { 
       TACHO_PULSE_LOW();
-      //ms_counter is cast down to a byte as the tacho duration can only be in the range of 1-6, so no extra resolution above that is required
-      tachoEndTime = (uint8_t)ms_counter + configPage2.tachoDuration;
+      //tachoLoopCount is cast down to a byte as the tacho duration can only be in the range of 1-6, so no extra resolution above that is required
+      tachoEndTime = (uint8_t)tachoLoopCount + configPage2.tachoDuration;
       tachoOutputFlag = ACTIVE;
     }
     else
@@ -135,7 +136,7 @@ void oneMSInterval(void) //Most ARM chips can simply call a function
   else if(tachoOutputFlag == ACTIVE)
   {
     //If the tacho output is already active, check whether it's reached it's end time
-    if((uint8_t)ms_counter == tachoEndTime)
+    if((uint8_t)tachoLoopCount == tachoEndTime)
     {
       TACHO_PULSE_HIGH();
       tachoOutputFlag = TACHO_INACTIVE;
@@ -143,14 +144,14 @@ void oneMSInterval(void) //Most ARM chips can simply call a function
   }
 
   //200Hz loop
-  if (loop5ms == 5)
+  if (loop5ms == 5U)
   {
     loop5ms = 0; //Reset counter
     BIT_SET(TIMER_mask, BIT_TIMER_200HZ);
   }  
 
   //30Hz loop
-  if (loop33ms == 33)
+  if (loop33ms == 33U)
   {
     loop33ms = 0;
 
@@ -178,30 +179,31 @@ void oneMSInterval(void) //Most ARM chips can simply call a function
   }
 
   //15Hz loop
-  if (loop66ms == 66)
+  if (loop66ms == 66U)
   {
     loop66ms = 0;
     BIT_SET(TIMER_mask, BIT_TIMER_15HZ);
   }
 
   //10Hz loop
-  if (loop100ms == 100)
+  if (loop100ms == 100U)
   {
+    loop1000div100ms++;
     loop100ms = 0; //Reset counter
     BIT_SET(TIMER_mask, BIT_TIMER_10HZ);
 
-    currentStatus.rpmDOT = (currentStatus.RPM - lastRPM_100ms) * 10; //This is the RPM per second that the engine has accelerated/decelerated in the last loop
+    currentStatus.rpmDOT = (currentStatus.RPM - lastRPM_100ms) * 10U; //This is the RPM per second that the engine has accelerated/decelerated in the last loop
     lastRPM_100ms = currentStatus.RPM; //Record the current RPM for next calc
 
     if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_RUN) ) { runSecsX10++; }
     else { runSecsX10 = 0; }
 
-    if ( (currentStatus.injPrimed == false) && (seclx10 == configPage2.primingDelay) && (currentStatus.RPM == 0) ) { beginInjectorPriming(); currentStatus.injPrimed = true; }
+    if ( (currentStatus.injPrimed == false) && (seclx10 == configPage2.primingDelay) && (currentStatus.RPM == 0U) ) { beginInjectorPriming(); currentStatus.injPrimed = true; }
     seclx10++;
   }
 
   //4Hz loop
-  if (loop250ms == 250)
+  if (loop250ms == 250U)
   {
     loop250ms = 0; //Reset Counter
     BIT_SET(TIMER_mask, BIT_TIMER_4HZ);
@@ -211,9 +213,9 @@ void oneMSInterval(void) //Most ARM chips can simply call a function
   }
 
   //1Hz loop
-  if (loopSec == 1000)
+  if (loop1000div100ms == 10U)
   {
-    loopSec = 0; //Reset counter.
+    loop1000div100ms = 0; //Reset counter.
     BIT_SET(TIMER_mask, BIT_TIMER_1HZ);
 
     currentStatus.crankRPM = ((unsigned int)configPage4.crankRPM * 10);
