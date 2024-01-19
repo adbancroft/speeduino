@@ -55,7 +55,6 @@ struct table2D rollingCutTable;
 byte fpPrimeTime = 0; ///< The time (in seconds, based on @ref statuses.secl) that the fuel pump started priming
 uint8_t softLimitTime = 0; //The time (in 0.1 seconds, based on seclx10) that the soft limiter started
 volatile uint16_t mainLoopCount; //Main loop counter (incremented at each main loop rev., used for maintaining currentStatus.loopsPerSecond)
-volatile unsigned long ms_counter = 0; //A counter that increments once per ms
 volatile uint32_t toothHistory[TOOTH_LOG_SIZE]; ///< Tooth trigger history - delta time (in uS) from last tooth (Indexed by @ref toothHistoryIndex)
 volatile uint8_t compositeLogHistory[TOOTH_LOG_SIZE]; 
 volatile uint8_t toothHistoryIndex = 0; ///< Current index to @ref toothHistory array
