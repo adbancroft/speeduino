@@ -70,7 +70,6 @@ Schedule::Schedule(counter_t &counter, compare_t &compare)
   , pStartCallback(nullCallback)
   , pEndCallback(nullCallback)
   , nextStartCompare(0U)
-  , nextDuration(0U)
   , _counter(counter)
   , _compare(compare) 
 {
@@ -220,11 +219,12 @@ void startSchedulers(void)
 }
 
 static inline bool hasNextSchedule(const Schedule &schedule) {
-  return schedule.nextDuration!=0U;
+  return schedule.Status==RUNNING_WITHNEXT;
 }
 
 static inline void clearNextSchedule(Schedule &schedule) {
-  schedule.nextDuration = 0;
+  schedule.Status = RUNNING;
+  schedule.Duration = 0U;
 }
 
 void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback)
@@ -250,7 +250,9 @@ void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration)
    //If the schedule is already running, we can set the next schedule so it is ready to go
   //This is required in cases of high rpm and high DC where there otherwise would not be enough time to set the schedule
   schedule.nextStartCompare = schedule._counter + uS_TO_TIMER_COMPARE(timeout);
-  schedule.nextDuration = uS_TO_TIMER_COMPARE(duration);
+  // Schedule must already be running, so safe to reuse this.
+  schedule.Duration = uS_TO_TIMER_COMPARE(duration);
+  schedule.Status = RUNNING_WITHNEXT;
 }
 
 void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, unsigned long timeout, unsigned long duration)
@@ -264,7 +266,7 @@ void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, unsigned long timeo
 
 void refreshIgnitionSchedule1(unsigned long timeToEnd)
 {
-  if( (ignitionSchedule1.Status == RUNNING) && (uS_TO_TIMER_COMPARE(timeToEnd) < ignitionSchedule1.Duration) )
+  if( isRunning(ignitionSchedule1) && (uS_TO_TIMER_COMPARE(timeToEnd) < ignitionSchedule1.Duration) )
   //Must have the threshold check here otherwise it can cause a condition where the compare fires twice, once after the other, both for the end
   //if( (timeToEnd < ignitionSchedule1.duration) && (timeToEnd > IGNITION_REFRESH_THRESHOLD) )
   {
@@ -323,18 +325,16 @@ static inline __attribute__((always_inline)) void fuelScheduleISR(FuelSchedule &
     schedule.Status = RUNNING; //Set the status to be in progress (ie The start callback has been called, but not the end callback)
     SET_COMPARE(schedule._compare, schedule._counter + schedule.Duration); //Doing this here prevents a potential overflow on restarts
   }
-  else if (schedule.Status == RUNNING)
+  else if (isRunning(schedule))
   {
-    schedule.pEndCallback();
-    schedule.Status = OFF; //Turn off the schedule
-
+      schedule.pEndCallback();
       //If there is a next schedule queued up, activate it
       if(hasNextSchedule(schedule))
       {
         SET_COMPARE(schedule._compare, schedule.nextStartCompare);
-        schedule.Duration = schedule.nextDuration;
         schedule.Status = PENDING;
-        clearNextSchedule(schedule);
+      } else {
+        schedule.Status = OFF; //Turn off the schedule
       }
   } else {
     // Nothing to do but keep MISRA checker happy
@@ -449,10 +449,9 @@ static inline __attribute__((always_inline)) void ignitionScheduleISR(IgnitionSc
     schedule.startTime = micros();
     SET_COMPARE(schedule._compare, schedule._counter + schedule.Duration);
   }
-  else if (schedule.Status == RUNNING)
+  else if (isRunning(schedule))
   {
     schedule.pEndCallback();
-    schedule.Status = OFF; //Turn off the schedule
     ignitionCount = ignitionCount + 1U; //Increment the ignition counter
     int32_t elapsed = (int32_t)(micros() - schedule.startTime);
     currentStatus.actualDwell = DWELL_AVERAGE( elapsed );
@@ -461,9 +460,9 @@ static inline __attribute__((always_inline)) void ignitionScheduleISR(IgnitionSc
     if(hasNextSchedule(schedule))
     {
         SET_COMPARE(schedule._compare, schedule.nextStartCompare);
-        schedule.Duration = schedule.nextDuration;
         schedule.Status = PENDING;
-        clearNextSchedule(schedule);
+    } else {
+      schedule.Status = OFF; //Turn off the schedule
     }
   } else {
     // Nothing to do but keep MISRA checker happy

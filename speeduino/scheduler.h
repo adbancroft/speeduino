@@ -109,12 +109,16 @@ void refreshIgnitionSchedule1(unsigned long timeToEnd);
  * @brief The current state of a schedule
  * */
 enum ScheduleStatus {
+  // We use powers of 2 so we can check multiple states with a single bitwise AND
+
   /** Not running */
-  OFF, 
+  OFF = 1, 
   /** The delay phase of the schedule is active */
-  PENDING,
+  PENDING = 2,
   /** The schedule action is running */
-  RUNNING,
+  RUNNING = 4,
+  /** The schedule is running, with a next schedule queued up */
+  RUNNING_WITHNEXT = 8,
 }; 
 
 
@@ -155,18 +159,30 @@ struct Schedule {
    */
   Schedule(counter_t &counter, compare_t &compare);
 
-  volatile COMPARE_TYPE Duration;   ///< Scheduled duration (timer ticks)
-  volatile ScheduleStatus Status;   ///< Schedule status: OFF, PENDING, STAGED, RUNNING
+  /**
+   * @brief Scheduled duration (timer ticks) 
+   *
+   * This captures the duration of the *next* interval to be scheduled. I.e.
+   *  * Status==PENDING: this is the duration that will be used when the schedule moves to the RUNNING state 
+   *  * Status==RUNNING_WITHNEXT: this is the duration that will be used after the current schedule finishes and the queued up scheduled starts 
+   */
+  volatile COMPARE_TYPE Duration;   ///< 
+  volatile ScheduleStatus Status;   ///< Schedule status
   voidVoidCallback pStartCallback;  ///< Start Callback function for schedule
   voidVoidCallback pEndCallback;    ///< End Callback function for schedule
 
-  volatile COMPARE_TYPE nextStartCompare;    ///< Planned start of next schedule (when current schedule is RUNNING)
-  volatile COMPARE_TYPE nextDuration;        ///< Planned end of next schedule (when current schedule is RUNNING)
+  volatile COMPARE_TYPE nextStartCompare;    ///< Planned start of next schedule (when current schedule is RUNNING_WITHNEXT)
   
   counter_t &_counter;       ///< **Reference** to the counter register. E.g. TCNT3
   compare_t &_compare;       ///< **Reference**to the compare register. E.g. OCR3A
 };
 
+static inline bool isRunning(const Schedule &schedule) {
+  // Using flags and bitwise AND (&) to check multiple states is much quicker
+  // than a logical or (||) (one less branch & 30% less instructions)
+  static constexpr uint8_t flags = RUNNING | RUNNING_WITHNEXT;
+  return (bool)(schedule.Status & flags);
+}
 
 void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration);
 
@@ -184,7 +200,7 @@ struct IgnitionSchedule : public Schedule {
 
 void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, unsigned long timeout, unsigned long duration);
 
-inline __attribute__((always_inline)) void setIgnitionSchedule(IgnitionSchedule &schedule, unsigned long timeout, unsigned long duration) 
+static inline __attribute__((always_inline)) void setIgnitionSchedule(IgnitionSchedule &schedule, unsigned long timeout, unsigned long duration) 
 {
   if(likely(timeout < MAX_TIMER_PERIOD))
   {
@@ -194,7 +210,7 @@ inline __attribute__((always_inline)) void setIgnitionSchedule(IgnitionSchedule 
       {
         duration = MAX_TIMER_PERIOD - 1UL; //Safety check to ensure the duration is not longer than the maximum timer period
       }
-      if(schedule.Status != RUNNING) 
+      if(!isRunning(schedule)) 
       { //Check that we're not already part way through a schedule
         _setIgnitionScheduleRunning(schedule, timeout, duration);
       }
@@ -232,7 +248,7 @@ static inline __attribute__((always_inline)) void setFuelSchedule(FuelSchedule &
       {
         duration = MAX_TIMER_PERIOD - 1UL; //Safety check to ensure the duration is not longer than the maximum timer period
       }      
-      if(schedule.Status != RUNNING) 
+      if(!isRunning(schedule)) 
       { //Check that we're not already part way through a schedule
         _setFuelScheduleRunning(schedule, timeout, duration);
       }
