@@ -145,6 +145,20 @@ static inline bool isRunning(const Schedule &schedule) {
 /// @cond 
 // Private function - not for use external to the scheduler code
 void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration);
+void _setSchedulePending(Schedule &schedule, uint32_t timeout, uint32_t duration);
+
+static inline __attribute__((always_inline)) void _setSchedule(Schedule &schedule, uint32_t timeout, uint32_t duration) {
+  if(timeout<MAX_TIMER_PERIOD && duration<MAX_TIMER_PERIOD) {
+    ATOMIC() {
+      if(!isRunning(schedule)) { //Check that we're not already part way through a schedule
+        _setSchedulePending(schedule, timeout, duration);
+      }
+      else {
+        _setScheduleNext(schedule, timeout, duration);
+      }
+    }
+  }
+}
 /// @endcond
 
 /**
@@ -193,31 +207,6 @@ struct IgnitionSchedule : public Schedule {
   int16_t channelDegrees;    ///< The number of crank degrees until cylinder is at TDC  
 };
 
-/// @cond 
-// Private functions - not for use external to the scheduler code
-void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, uint32_t timeout, uint32_t duration);
-
-/** @brief Set the next schedule for the ignition channel.
- * 
- * @param schedule The ignition channel
- * @param delay The time to wait in µS until starting to charge the coil
- * @param dwellDuration The coil dwell time in µS
- */
-static inline __attribute__((always_inline)) void _setIgnitionScheduleDuration(IgnitionSchedule &schedule, uint32_t delay, uint32_t dwellDuration) {
-  ATOMIC() {
-    if(!isRunning(schedule)) { //Check that we're not already part way through a schedule
-      _setIgnitionScheduleRunning(schedule, delay, dwellDuration);
-    }
-    // Check whether timeout exceeds the maximum future time. This can potentially occur on sequential setups when below ~115rpm
-    else if(delay < MAX_TIMER_PERIOD){
-      _setScheduleNext(schedule, delay, dwellDuration);
-    } else {
-      // Keep MISRA checker happy
-    }
-  }
-}
-/// @endcond
-
 /**
  * @brief Check that no ignition channel has been charging the coil for too long
  * 
@@ -264,23 +253,8 @@ struct FuelSchedule : public Schedule {
 
 };
 
-/// @cond 
-// Private function - not for use external to the scheduler code
-void _setFuelScheduleRunning(FuelSchedule &schedule, uint32_t timeout, uint32_t duration);
-/// @endcond
-
-static inline __attribute__((always_inline)) void setFuelSchedule(FuelSchedule &schedule, uint32_t timeout, uint32_t duration) {
-    //Check whether timeout exceeds the maximum future time. This can potentially occur on sequential setups when below ~115rpm
-  if(timeout < MAX_TIMER_PERIOD) {
-    ATOMIC() {
-      if(!isRunning(schedule)) { //Check that we're not already part way through a schedule
-        _setFuelScheduleRunning(schedule, timeout, duration);
-      }
-      else {
-        _setScheduleNext(schedule, timeout, duration);
-      }
-    }
-  }
+static inline void setFuelSchedule(FuelSchedule &schedule, uint32_t timeout, uint32_t duration) {
+  _setSchedule(schedule, timeout, duration);
 }
 
 /**

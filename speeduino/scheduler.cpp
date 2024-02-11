@@ -189,7 +189,7 @@ void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidC
   schedule.pEndCallback = pEndCallback;
 }
 
-void _setFuelScheduleRunning(FuelSchedule &schedule, uint32_t timeout, uint32_t duration)
+void _setSchedulePending(Schedule &schedule, uint32_t timeout, uint32_t duration)
 {
   //The following must be enclosed in the noInterupts block to avoid contention caused if the relevant interrupt fires before the state is fully set
   schedule.Duration = uS_TO_TIMER_COMPARE(duration);
@@ -205,19 +205,6 @@ void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration)
   // Schedule must already be running, so safe to reuse this.
   schedule.Duration = uS_TO_TIMER_COMPARE(duration);
   schedule.Status = RUNNING_WITHNEXT;
-}
-
-void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, uint32_t timeout, uint32_t duration)
-{
-  schedule.Duration = uS_TO_TIMER_COMPARE(duration);
-  // If the schedule was PENDING, the comparator could have been set by the 
-  // by the per tooth timing in decoders.ino. The check here is so that it's not getting overridden. 
-  if(schedule.Status!=PENDING_WITH_OVERRIDE) { 
-    //Need to check that the timeout doesn't exceed the overflow
-    schedule._compare = schedule._counter + uS_TO_TIMER_COMPARE(min(timeout, MAX_TIMER_PERIOD - 1UL));
-    schedule.Status = PENDING; //Turn this schedule on
-  }
-  schedule.Status = PENDING; //Turn this schedule on
 }
 
 static inline void applyChannelOverDwellProtection(IgnitionSchedule &schedule, uint32_t targetOverdwellTime) {
