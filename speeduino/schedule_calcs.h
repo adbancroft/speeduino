@@ -32,10 +32,13 @@ static inline void calculateIgnitionTrailingRotary(IgnitionSchedule &leading, in
 static inline uint32_t calculateIgnitionTimeout(const IgnitionSchedule &schedule, int16_t crankAngle);
 
 static inline void setIgnitionSchedule(IgnitionSchedule &schedule, int16_t crankAngle, uint32_t dwellDuration) {
-  uint32_t delay = calculateIgnitionTimeout(schedule, crankAngle);
+  // Do not override the per-tooth timing
+  if (schedule.Status!=PENDING_WITH_OVERRIDE) {
+    uint32_t delay = calculateIgnitionTimeout(schedule, crankAngle);
 
-  if (delay > 0U) {
-    _setIgnitionScheduleDuration(schedule, delay, dwellDuration);
+    if (delay > 0U) {
+      _setSchedule(schedule, delay, dwellDuration);
+    }
   }
 }
 #include "schedule_calcs.hpp"
