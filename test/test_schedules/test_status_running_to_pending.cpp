@@ -10,9 +10,9 @@
 static void test_status_running_to_pending(FuelSchedule &schedule)
 {
     resetFuelSchedulers();
-    setFuelSchedule(schedule, TIMEOUT, DURATION);
+    _setFuelScheduleDuration(schedule, TIMEOUT, DURATION);
     while(schedule._status == PENDING) /*Wait*/ ;
-    setFuelSchedule(schedule, 2*TIMEOUT, DURATION);
+    _setFuelScheduleDuration(schedule, 2*TIMEOUT, DURATION);
     while(schedule._status == RUNNING) /*Wait*/ ;
     TEST_ASSERT_EQUAL(PENDING, schedule._status);
 }

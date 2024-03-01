@@ -10,7 +10,7 @@
 static void test_status_running_to_off(FuelSchedule &schedule)
 {
     resetFuelSchedulers();
-    setFuelSchedule(schedule, TIMEOUT, DURATION);
+    _setFuelScheduleDuration(schedule, TIMEOUT, DURATION);
     while( (schedule._status == PENDING) || (schedule._status == RUNNING) ) /*Wait*/ ;
     TEST_ASSERT_EQUAL(OFF, schedule._status);
 }

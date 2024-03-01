@@ -90,6 +90,7 @@ static inline void reset(FuelSchedule &schedule)
 {
     reset((Schedule&)schedule);
     schedule.channelDegrees = 0;
+    schedule.openAngle = 0U;
 }
 
 static inline void reset(IgnitionSchedule &schedule) 
@@ -1044,27 +1045,27 @@ void beginInjectorPriming(void)
   if( (primingValue > UINT32_C(0)) && (currentStatus.TPS <= configPage4.floodClear) )
   {
     primingValue = primingValue * 100U * 5U; //to achieve long enough priming pulses, the values in tuner studio are divided by 0.5 instead of 0.1, so multiplier of 5 is required.
-    if ( maxInjOutputs >= 1U ) { setFuelSchedule(fuelSchedule1, 100, primingValue); }
+    if ( maxInjOutputs >= 1U ) { _setFuelScheduleDuration(fuelSchedule1, 100, primingValue); }
 #if (INJ_CHANNELS >= 2)
-    if ( maxInjOutputs >= 2U ) { setFuelSchedule(fuelSchedule2, 100, primingValue); }
+    if ( maxInjOutputs >= 2U ) { _setFuelScheduleDuration(fuelSchedule2, 100, primingValue); }
 #endif
 #if (INJ_CHANNELS >= 3)
-    if ( maxInjOutputs >= 3U ) { setFuelSchedule(fuelSchedule3, 100, primingValue); }
+    if ( maxInjOutputs >= 3U ) { _setFuelScheduleDuration(fuelSchedule3, 100, primingValue); }
 #endif
 #if (INJ_CHANNELS >= 4)
-    if ( maxInjOutputs >= 4U ) { setFuelSchedule(fuelSchedule4, 100, primingValue); }
+    if ( maxInjOutputs >= 4U ) { _setFuelScheduleDuration(fuelSchedule4, 100, primingValue); }
 #endif
 #if (INJ_CHANNELS >= 5)
-    if ( maxInjOutputs >= 5U ) { setFuelSchedule(fuelSchedule5, 100, primingValue); }
+    if ( maxInjOutputs >= 5U ) { _setFuelScheduleDuration(fuelSchedule5, 100, primingValue); }
 #endif
 #if (INJ_CHANNELS >= 6)
-    if ( maxInjOutputs >= 6U ) { setFuelSchedule(fuelSchedule6, 100, primingValue); }
+    if ( maxInjOutputs >= 6U ) { _setFuelScheduleDuration(fuelSchedule6, 100, primingValue); }
 #endif
 #if (INJ_CHANNELS >= 7)
-    if ( maxInjOutputs >= 7U ) { setFuelSchedule(fuelSchedule7, 100, primingValue); }
+    if ( maxInjOutputs >= 7U ) { _setFuelScheduleDuration(fuelSchedule7, 100, primingValue); }
 #endif
 #if (INJ_CHANNELS >= 8)
-    if ( maxInjOutputs >= 8U ) { setFuelSchedule(fuelSchedule8, 100, primingValue); }
+    if ( maxInjOutputs >= 8U ) { _setFuelScheduleDuration(fuelSchedule8, 100, primingValue); }
 #endif
   }
 }
