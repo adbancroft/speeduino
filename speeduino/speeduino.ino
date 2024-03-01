@@ -126,6 +126,25 @@ static inline void setFuelSchedule(FuelSchedule &schedule, uint8_t index, uint16
   }
 }
 
+static inline __attribute__((flatten)) void setFuelSchedules(uint16_t crankAngle) {
+  setFuelSchedule(fuelSchedule1, 0, crankAngle);
+  setFuelSchedule(fuelSchedule2, 1, crankAngle);
+  setFuelSchedule(fuelSchedule3, 2, crankAngle);
+  setFuelSchedule(fuelSchedule4, 3, crankAngle);
+#if (INJ_CHANNELS >= 5)
+  setFuelSchedule(fuelSchedule5, 4, crankAngle);
+#endif
+#if (INJ_CHANNELS >= 6)
+  setFuelSchedule(fuelSchedule6, 5, crankAngle);
+#endif
+#if (INJ_CHANNELS >= 7)
+  setFuelSchedule(fuelSchedule7, 6, crankAngle);
+#endif
+#if (INJ_CHANNELS >= 8)
+  setFuelSchedule(fuelSchedule8, 7, crankAngle);
+#endif        
+}
+
 /** Speeduino main loop.
  * 
  * Main loop chores (roughly in the order that they are performed):
@@ -791,9 +810,6 @@ void __attribute__((always_inline)) loop(void)
       //We only need to set the shcedule if we're BEFORE the open angle
       //This may potentially be called a number of times as we get closer and closer to the opening time
 
-      //Determine the current crank angle
-      int crankAngle = injectorLimits(getCrankAngle());
-
       // if(Serial && false)
       // {
       //   if(ignitionSchedule1.chargeAngle > crankAngle)
@@ -934,22 +950,7 @@ void __attribute__((always_inline)) loop(void)
 
       if (!BIT_CHECK(currentStatus.status1, BIT_STATUS1_BOOSTCUT))
       {
-        setFuelSchedule(fuelSchedule1, 0, crankAngle);
-        setFuelSchedule(fuelSchedule2, 1, crankAngle);
-        setFuelSchedule(fuelSchedule3, 2, crankAngle);
-        setFuelSchedule(fuelSchedule4, 3, crankAngle);
-#if (INJ_CHANNELS >= 5)
-        setFuelSchedule(fuelSchedule5, 4, crankAngle);
-#endif
-#if (INJ_CHANNELS >= 6)
-        setFuelSchedule(fuelSchedule6, 5, crankAngle);
-#endif
-#if (INJ_CHANNELS >= 7)
-        setFuelSchedule(fuelSchedule7, 6, crankAngle);
-#endif
-#if (INJ_CHANNELS >= 8)
-        setFuelSchedule(fuelSchedule8, 7, crankAngle);
-#endif        
+        setFuelSchedules(injectorLimits(getCrankAngle()));
       }
       //***********************************************************************************************
       //| BEGIN IGNITION SCHEDULES
