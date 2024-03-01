@@ -84,6 +84,7 @@ static void reset(FuelSchedule &schedule)
 {
     reset((Schedule&)schedule);
     schedule.channelDegrees = 0;
+    schedule.openAngle = 0U;
 }
 
 static void reset(IgnitionSchedule &schedule) 

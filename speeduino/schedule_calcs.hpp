@@ -6,7 +6,7 @@
 #include "maths.h"
 #include "timers.h"
 
-static SCHEDULE_INLINE uint16_t calculateInjectorStartAngle(uint16_t pwDegrees, uint16_t tdcOffset, uint16_t injAngle)
+static SCHEDULE_INLINE void setOpenAngle(FuelSchedule &schedule, uint16_t pwDegrees, uint16_t injAngle)
 {
   // 0<=injAngle<=720°
   // 0<=injChannelDegrees<=720°
@@ -14,15 +14,13 @@ static SCHEDULE_INLINE uint16_t calculateInjectorStartAngle(uint16_t pwDegrees, 
   // 45<=CRANK_ANGLE_MAX_INJ<=720
   // (CRANK_ANGLE_MAX_INJ can be as small as 360/nCylinders. E.g. 45° for 8 cylinder)
 
-  uint16_t startAngle = (uint16_t)injAngle + (uint16_t)tdcOffset;
+  schedule.openAngle = (uint16_t)injAngle + (uint16_t)schedule.channelDegrees;
   // Avoid underflow
-  while (startAngle<pwDegrees) { startAngle = startAngle + (uint16_t)CRANK_ANGLE_MAX_INJ; }
+  while (schedule.openAngle<pwDegrees) { schedule.openAngle = schedule.openAngle + (uint16_t)CRANK_ANGLE_MAX_INJ; }
   // Guaranteed to be >=0.
-  startAngle = startAngle - pwDegrees;
-  // Clamp to 0<=startAngle<=CRANK_ANGLE_MAX_INJ
-  while (startAngle>(uint16_t)CRANK_ANGLE_MAX_INJ) { startAngle = startAngle - (uint16_t)CRANK_ANGLE_MAX_INJ; }
-
-  return startAngle;
+  schedule.openAngle = schedule.openAngle - pwDegrees;
+  // Clamp to 0<=schedule.openAngle<=CRANK_ANGLE_MAX_INJ
+  while (schedule.openAngle>(uint16_t)CRANK_ANGLE_MAX_INJ) { schedule.openAngle = schedule.openAngle - (uint16_t)CRANK_ANGLE_MAX_INJ; }
 }
 
 static SCHEDULE_INLINE uint32_t _calculateAngularTime(const Schedule &schedule, uint16_t eventAngle, uint16_t crankAngle, uint16_t maxAngle) {
@@ -55,9 +53,9 @@ static SCHEDULE_INLINE uint32_t _calculateAngularTime(const Schedule &schedule, 
             maxAngle);
 }
 
-static SCHEDULE_INLINE uint32_t _calculateInjectorTimeout(const FuelSchedule &schedule, int16_t injectorStartAngle, int16_t crankAngle)
+static SCHEDULE_INLINE uint32_t _calculateInjectorTimeout(const FuelSchedule &schedule, int16_t crankAngle)
 {
-  return _calculateAngularTime(schedule, schedule.channelDegrees, injectorStartAngle, crankAngle, CRANK_ANGLE_MAX_INJ);
+  return _calculateAngularTime(schedule, schedule.channelDegrees, schedule.openAngle, crankAngle, CRANK_ANGLE_MAX_INJ);
 }
 
 static SCHEDULE_INLINE int16_t _calculateSparkAngle(const IgnitionSchedule &schedule, int8_t advance) {

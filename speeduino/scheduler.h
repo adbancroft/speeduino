@@ -327,32 +327,25 @@ struct FuelSchedule : public Schedule {
 
   using Schedule::Schedule;
 
-  uint16_t channelDegrees;      ///< The number of crank degrees until cylinder is at TDC  
-  uint16_t pw;                 ///< Pulse width in uS
-  table3d6RpmLoad trimTable;   ///< 6x6 Fuel trim map
+  uint16_t channelDegrees;    ///< The number of crank degrees until cylinder is at TDC  
+  uint16_t pw;                ///< Pulse width in uS
+  table3d6RpmLoad trimTable;  ///< 6x6 Fuel trim map
+  uint16_t openAngle;         ///< Future crank angle at which this injector will be opened
 };
 
-/**
- * @brief Calculate the time in uS from now to when the injector should be opened.
- * 
- * @param schedule The ignition channel
- * @param openAngle The angle at which to open the injector
- * @param crankAngle The current crank angle
- * @return uint32_t 
- */
-static SCHEDULE_INLINE uint32_t _calculateInjectorTimeout(const FuelSchedule &schedule, int16_t openAngle, int16_t crankAngle);
-
+/// @cond
+// Private function - not for use external to the scheduler code
+static SCHEDULE_INLINE uint32_t _calculateInjectorTimeout(const FuelSchedule &schedule, int16_t crankAngle);
 /// @endcond
 
 /** @brief Set the next schedule for the fuel channel. 
  * Pulse width is determined by the pw field.
  * 
  * @param schedule The fuel channel
- * @param openAngle The angle to open the fuel injector
  * @param crankAngle The current crank angle
  */
-static SCHEDULE_INLINE void setFuelSchedule(FuelSchedule &schedule, uint16_t openAngle, int16_t crankAngle) {
-  uint32_t delay = _calculateInjectorTimeout(schedule, openAngle, crankAngle);  
+static SCHEDULE_INLINE void setFuelSchedule(FuelSchedule &schedule, int16_t crankAngle) {
+  uint32_t delay = _calculateInjectorTimeout(schedule, crankAngle);  
 
   ATOMIC() {
     if (delay > 0U) {
@@ -370,14 +363,13 @@ static SCHEDULE_INLINE void setFuelSchedule(FuelSchedule &schedule, uint16_t ope
 void moveToNextState(FuelSchedule &schedule);
 
 /**
- * @brief Compute the injector open angle for an injection channel
+ * @brief Compute the injector open angle (FuelSchedule::openAngle) for an injection channel
  * 
+ * @param schedule The fuel channel
  * @param pwDegrees How many crank degrees the calculated PW will take at the current speed
- * @param tdcOffset The number of crank degrees until cylinder is at TDC (at rest)
  * @param injAngle The requested injection angle
- * @return uint16_t 
- */
-static SCHEDULE_INLINE uint16_t calculateInjectorStartAngle(uint16_t pwDegrees, uint16_t tdcOffset, uint16_t injAngle);
+  */
+static SCHEDULE_INLINE void setOpenAngle(FuelSchedule &schedule, uint16_t pwDegrees, uint16_t injAngle);
 
 extern FuelSchedule fuelSchedule1;
 extern FuelSchedule fuelSchedule2;
