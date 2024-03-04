@@ -44,6 +44,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "comms_CAN.h"
 #include "SD_logger.h"
 #include "auxiliaries.h"
+#include "static_for.hpp"
 #include RTC_LIB_H //Defined in each boards .h file
 #include BOARD_H //Note that this is not a real file, it is defined in globals.h. 
 
@@ -70,75 +71,43 @@ void setup(void)
   initialiseAll();
 }
 
-static inline void setIgnitionSchedule(uint8_t index, uint16_t crankAngle, uint16_t totalDwell) {
+static inline __attribute__((flatten, always_inline)) void setIgnitionScheduleMaster(uint8_t index, uint16_t crankAngle, uint16_t totalDwell) {
   if ((maxIgnOutputs>index) && (BIT_CHECK(ignitionChannelsOn, (IGN1_CMD_BIT+index))) ) {
     setIgnitionSchedule(ignitionSchedules[index], crankAngle, totalDwell);
   }
 }
 
-static inline __attribute__((flatten)) void setIgnitionSchedules(uint16_t crankAngle, uint16_t totalDwell) {
-  setIgnitionSchedule(0, crankAngle, totalDwell);
 #if defined(USE_IGN_REFRESH)
-  if( isRunning(ignitionSchedules[0]) && (ignitionSchedules[0].dischargeAngle > (int16_t)crankAngle) && (configPage4.StgCycles == 0) && (configPage2.perToothIgn != true) )
+static inline __attribute__((flatten, always_inline))  uint16_t refreshIgnition1(uint16_t crankAngle) {
+  if( isRunning(ignitionSchedules[0]) && (ignitionSchedules[0].dischargeAngle > (int16_t)crankAngle) && (configPage4.StgCycles == 0U) && (configPage2.perToothIgn != true) )
   {
     crankAngle = ignitionLimits(getCrankAngle()); //Refresh the crank angle info
 
     adjustCrankAngle(ignitionSchedules[0], crankAngle);
   }
-#endif
   
-#if IGN_CHANNELS >= 2
-  setIgnitionSchedule(1, crankAngle, totalDwell);
+  return crankAngle;
+}
 #endif
 
-#if IGN_CHANNELS >= 3
-  setIgnitionSchedule(2, crankAngle, totalDwell);
+// This function is purely a performance optimization
+static inline __attribute__((flatten, always_inline)) void setIgnitionSchedules(uint16_t crankAngle, uint16_t totalDwell) {
+  setIgnitionScheduleMaster(0, crankAngle, totalDwell);
+#if defined(USE_IGN_REFRESH)
+  crankAngle = refreshIgnition1(crankAngle);
 #endif
+  static_for<1, _countof(ignitionSchedules)>::repeat_n(setIgnitionScheduleMaster, crankAngle, totalDwell);
+}
 
-#if IGN_CHANNELS >= 4
-  setIgnitionSchedule(3, crankAngle, totalDwell);
-#endif
-
-#if IGN_CHANNELS >= 5
-  setIgnitionSchedule(4, crankAngle, totalDwell);
-#endif
-
-#if IGN_CHANNELS >= 6
-  setIgnitionSchedule(5, crankAngle, totalDwell);
-#endif
-
-#if IGN_CHANNELS >= 7
-  setIgnitionSchedule(6, crankAngle, totalDwell);
-#endif
-
-#if IGN_CHANNELS >= 8
-  setIgnitionSchedule(7, crankAngle, totalDwell);
-#endif
-} 
-
-static inline void setFuelSchedule(uint8_t index, uint16_t crankAngle) {
+static inline __attribute__((flatten, always_inline)) void setFuelScheduleMaster(uint8_t index, uint16_t crankAngle) {
   if( (totalInjectorChannels(injectorChannels) > index) && (fuelSchedules[index].pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, (INJ1_CMD_BIT+index))) ) {
     setFuelSchedule(fuelSchedules[index], crankAngle);
   }
 }
 
-static inline __attribute__((flatten)) void setFuelSchedules(uint16_t crankAngle) {
-  setFuelSchedule(0, crankAngle);
-  setFuelSchedule(1, crankAngle);
-  setFuelSchedule(2, crankAngle);
-  setFuelSchedule(3, crankAngle);
-#if (INJ_CHANNELS >= 5)
-  setFuelSchedule(4, crankAngle);
-#endif
-#if (INJ_CHANNELS >= 6)
-  setFuelSchedule(5, crankAngle);
-#endif
-#if (INJ_CHANNELS >= 7)
-  setFuelSchedule(6, crankAngle);
-#endif
-#if (INJ_CHANNELS >= 8)
-  setFuelSchedule(7, crankAngle);
-#endif
+// This function is purely a performance optimization
+static inline __attribute__((flatten, always_inline)) void setFuelSchedules(uint16_t crankAngle) {
+  static_for<0, _countof(fuelSchedules)>::repeat_n(setFuelScheduleMaster, crankAngle);
 }
 
 
@@ -174,12 +143,23 @@ struct cacheCalculateInjectorStartAngle {
 };
 
 static inline void updatePwAngleCache(const FuelSchedule &schedule, cacheCalculateInjectorStartAngle *pCache) {
-  if (schedule.pw!=0U) {
     if (pCache->pw!=schedule.pw) {
       pCache->pwDegrees = timeToAngleDegPerMicroSec(schedule.pw);
       pCache->pw = schedule.pw;
     }
   }
+
+static inline __attribute__((flatten, always_inline)) void setOpenAngleMaster(uint8_t index, cacheCalculateInjectorStartAngle *pCache) {
+  if (fuelSchedules[index].pw!=0U) {
+    updatePwAngleCache(fuelSchedules[index], pCache);
+    setOpenAngle(fuelSchedules[index], pCache->pwDegrees, currentStatus.injAngle);
+  }    
+}
+
+// This function is purely a performance optimization
+static inline __attribute__((flatten, always_inline)) void setOpenAngles(void) {
+  cacheCalculateInjectorStartAngle calcCache = { 0, 0 };
+  static_for<0, _countof(fuelSchedules)>::repeat_n(setOpenAngleMaster, &calcCache);
 }
 
 static inline void calculateInjectionAngles(void) {
@@ -188,11 +168,7 @@ static inline void calculateInjectionAngles(void) {
   currentStatus.injAngle = table2D_getValue(&injectorAngleTable, currentStatus.RPMdiv100);
   if(currentStatus.injAngle > uint16_t(CRANK_ANGLE_MAX_INJ)) { currentStatus.injAngle = uint16_t(CRANK_ANGLE_MAX_INJ); }
 
-  cacheCalculateInjectorStartAngle calcCache = { 0, 0 };
-  for (uint8_t index=0U; index<_countof(fuelSchedules); ++index) {
-    updatePwAngleCache(fuelSchedules[index], &calcCache);
-    setOpenAngle(fuelSchedules[index], calcCache.pwDegrees, currentStatus.injAngle);
-  }
+  setOpenAngles();
 
   if (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) && configPage2.nCylinders==2U) {
     // Special case: 2 cylinder, 2nd staged injector is phased either 180 or 360 degrees out from 3rd staged injector
@@ -921,6 +897,12 @@ int8_t getAdvance1(void)
   return correctionsIgn(get3DTableValue(&ignitionTable, currentStatus.ignLoad, currentStatus.RPM) - OFFSET_IGNITION); //As above, but for ignition advance
 }
 
+static inline __attribute__((flatten, always_inline)) void calculateIgnitionAngleMaster(uint8_t index, uint16_t dwellAngle) {
+  if ((maxIgnOutputs>index) ) {
+    calculateIgnitionAngles(ignitionSchedules[index], dwellAngle, currentStatus.advance);
+  }
+}
+
 /** Calculate the Ignition angles for all cylinders (based on @ref config2.nCylinders).
  * both start and end angles are calculated for each channel.
  * Also the mode of ignition firing - wasted spark vs. dedicated spark per cyl. - is considered here.
@@ -944,9 +926,7 @@ void calculateIgnitionAngles()
   {
     matchIgnitionModeToSyncStatus();
 
-    for (uint8_t index=0U; index<maxIgnOutputs; ++index) {
-      calculateIgnitionAngles(ignitionSchedules[index], dwellAngle, currentStatus.advance);
-    }
+    static_for<0, _countof(ignitionSchedules)>::repeat_n(calculateIgnitionAngleMaster, dwellAngle);
   }
 
   // If ignition timing is being tracked per tooth, perform the calcs to get the end teeth
