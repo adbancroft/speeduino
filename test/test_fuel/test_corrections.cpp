@@ -691,9 +691,25 @@ static void test_corrections_bat_mode_wholePw(void) {
   TEST_ASSERT_EQUAL(configPage2.injOpen * 100U, inj_opentime_uS );
 }
 
+static void test_corrections_bat_mode_opentime(void) {
+  setup_battery_correction();
+
+  configPage2.battVCorMode = BATTV_COR_MODE_OPENTIME;
+  currentStatus.battery10 = 75;
+  configPage2.injOpen = 10;
+  inj_opentime_uS = configPage2.injOpen * 100U;
+
+  TEST_ASSERT_EQUAL(100U, correctionBatVoltage() );
+  TEST_ASSERT_EQUAL(configPage2.injOpen * 108U, inj_opentime_uS );
+  // Run again & confirm inj_opentime_uS is unchanged
+  TEST_ASSERT_EQUAL(100U, correctionBatVoltage() );
+  TEST_ASSERT_EQUAL(configPage2.injOpen * 108U, inj_opentime_uS );
+}
+
 static void test_corrections_bat(void)
 {
   RUN_TEST_P(test_corrections_bat_mode_wholePw);
+  RUN_TEST_P(test_corrections_bat_mode_opentime);
 }
 
 uint8_t correctionLaunch(void);

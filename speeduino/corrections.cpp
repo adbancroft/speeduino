@@ -393,7 +393,7 @@ static inline bool tpsShouldStartAe(void) {
 }
 
 static inline uint16_t tpsComputeAe(void) {
-  //Check if the TPS rate of change is negative or positive. Negative means decelarion.
+  //Check if the TPS rate of change is negative or positive. Negative means deceleration.
   if (currentStatus.tpsDOT < 0) {
     return calcDeccelEnrichment();
   } 
@@ -448,15 +448,23 @@ TESTABLE_INLINE_STATIC byte correctionFloodClear(void)
   return floodValue;
 }
 
+// ============================= Battery Voltage =============================
+
 /** Battery Voltage correction.
-Uses a 2D enrichment table (WUETable) where the X axis is engine temp and the Y axis is the amount of extra fuel to add.
+Uses a 2D enrichment table (injectorVCorrectionTable) where the X axis is battery voltage and the Y axis is the percent of extra fuel to add.
 */
-TESTABLE_INLINE_STATIC byte correctionBatVoltage(void)
+TESTABLE_INLINE_STATIC uint8_t correctionBatVoltage(void)
 {
-  byte batValue = 100;
-  batValue = table2D_getValue(&injectorVCorrectionTable, currentStatus.battery10);
-  return batValue;
+  uint8_t correction = (uint8_t)table2D_getValue(&injectorVCorrectionTable, currentStatus.battery10);
+  if (configPage2.battVCorMode == BATTV_COR_MODE_OPENTIME)
+  {
+    inj_opentime_uS = configPage2.injOpen * correction; // Apply voltage correction to injector open time.
+    return 100U; // This is to ensure that the correction is not applied twice. There is no battery correction fator as we have instead changed the open time
+  }
+  return correction;
 }
+
+// ============================= IAT correction =============================
 
 /** Simple temperature based corrections lookup based on the inlet air temperature (IAT).
 This corrects for changes in air density from movement of the temperature.
@@ -700,15 +708,7 @@ uint16_t correctionsFuel(void)
   if (currentStatus.egoCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.egoCorrection); }
 
   currentStatus.batCorrection = correctionBatVoltage();
-  if (configPage2.battVCorMode == BATTV_COR_MODE_OPENTIME)
-  {
-    inj_opentime_uS = configPage2.injOpen * currentStatus.batCorrection; // Apply voltage correction to injector open time.
-    currentStatus.batCorrection = 100; // This is to ensure that the correction is not applied twice. There is no battery correction fator as we have instead changed the open time
-  }
-  if (configPage2.battVCorMode == BATTV_COR_MODE_WHOLE)
-  {
-    if (currentStatus.batCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.batCorrection); }  
-  }
+  if (currentStatus.batCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.batCorrection); }  
 
   currentStatus.iatCorrection = correctionIATDensity();
   if (currentStatus.iatCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.iatCorrection); }
