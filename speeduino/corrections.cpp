@@ -495,15 +495,23 @@ TESTABLE_INLINE_STATIC byte correctionFloodClear(void)
   return floodValue;
 }
 
+// ============================= Battery Voltage =============================
+
 /** Battery Voltage correction.
-Uses a 2D enrichment table (WUETable) where the X axis is engine temp and the Y axis is the amount of extra fuel to add.
+Uses a 2D enrichment table (injectorVCorrectionTable) where the X axis is battery voltage and the Y axis is the percent of extra fuel to add.
 */
-TESTABLE_INLINE_STATIC byte correctionBatVoltage(void)
+TESTABLE_INLINE_STATIC uint8_t correctionBatVoltage(void)
 {
-  byte batValue = NO_FUEL_CORRECTION;
-  batValue = table2D_getValue(&injectorVCorrectionTable, currentStatus.battery10);
-  return batValue;
+  uint8_t correction = (uint8_t)table2D_getValue(&injectorVCorrectionTable, currentStatus.battery10);
+  if (configPage2.battVCorMode == BATTV_COR_MODE_OPENTIME)
+  {
+    inj_opentime_uS = configPage2.injOpen * correction; // Apply voltage correction to injector open time.
+    return NO_FUEL_CORRECTION; // This is to ensure that the correction is not applied twice. There is no battery correction fator as we have instead changed the open time
+  }
+  return correction;
 }
+
+// ============================= IAT correction =============================
 
 /** Simple temperature based corrections lookup based on the inlet air temperature (IAT).
 This corrects for changes in air density from movement of the temperature.
@@ -747,15 +755,7 @@ uint16_t correctionsFuel(void)
   if (currentStatus.egoCorrection != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * currentStatus.egoCorrection); }
 
   currentStatus.batCorrection = correctionBatVoltage();
-  if (configPage2.battVCorMode == BATTV_COR_MODE_OPENTIME)
-  {
-    inj_opentime_uS = configPage2.injOpen * currentStatus.batCorrection; // Apply voltage correction to injector open time.
-    currentStatus.batCorrection = NO_FUEL_CORRECTION; // This is to ensure that the correction is not applied twice. There is no battery correction fator as we have instead changed the open time
-  }
-  if (configPage2.battVCorMode == BATTV_COR_MODE_WHOLE)
-  {
-    if (currentStatus.batCorrection != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * currentStatus.batCorrection); }  
-  }
+  if (currentStatus.batCorrection != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * currentStatus.batCorrection); }  
 
   currentStatus.iatCorrection = correctionIATDensity();
   if (currentStatus.iatCorrection != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * currentStatus.iatCorrection); }
