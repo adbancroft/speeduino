@@ -39,12 +39,12 @@ static long PID_O2, PID_output, PID_AFRTarget;
 */
 static PID egoPID(&PID_O2, &PID_output, &PID_AFRTarget, configPage6.egoKP, configPage6.egoKI, configPage6.egoKD, REVERSE);
 
-static byte aeActivatedReading; //The mapDOT/tpsDOT value seen when the MAE/TAE was activated. 
+static uint8_t aeActivatedReading; //The mapDOT/tpsDOT value seen when the MAE/TAE was activated. 
 
 static bool idleAdvActive = false;
 TESTABLE_STATIC uint16_t AFRnextCycle;
 unsigned long knockStartTime;
-static byte lastKnockCount;
+static uint8_t lastKnockCount;
 static int16_t knockWindowMin; //The current minimum crank angle for a knock pulse to be valid
 static int16_t knockWindowMax;//The current maximum crank angle for a knock pulse to be valid
 static uint8_t aseTaper;
@@ -417,7 +417,7 @@ static inline uint16_t correctionAccelModeTps(void) {
  * @return uint16_t The Acceleration enrichment modifier as a %. 100% = No modification.
  * 
  * As the maximum enrichment amount is +255% and maximum cold adjustment for this is 255%, the overall return value
- * from this function can be 100+(255*255/100)=750. Hence this function returns a uint16_t rather than byte.
+ * from this function can be 100+(255*255/100)=750. Hence this function returns a uint16_t rather than uint8_t.
  */
 TESTABLE_INLINE_STATIC uint16_t correctionAccel(void)
 {
@@ -430,22 +430,19 @@ TESTABLE_INLINE_STATIC uint16_t correctionAccel(void)
   return 100U;
 }
 
+// ============================= Flood Clear =============================
+
+static inline bool isFloodClearActive(const statuses &current, const config4 &page4) {
+  return BIT_CHECK(current.engine, BIT_ENGINE_CRANK)
+      && current.TPS >= page4.floodClear;
+}
+
 /** Simple check to see whether we are cranking with the TPS above the flood clear threshold.
 @return 100 (not cranking and thus no need for flood-clear) or 0 (Engine cranking and TPS above @ref config4.floodClear limit).
 */
-TESTABLE_INLINE_STATIC byte correctionFloodClear(void)
+TESTABLE_INLINE_STATIC uint8_t correctionFloodClear(void)
 {
-  byte floodValue = 100;
-  if( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
-  {
-    //Engine is currently cranking, check what the TPS is
-    if(currentStatus.TPS >= configPage4.floodClear)
-    {
-      //Engine is cranking and TPS is above threshold. Cut all fuel
-      floodValue = 0;
-    }
-  }
-  return floodValue;
+  return isFloodClearActive(currentStatus, configPage4) ? 0U : 100U;
 }
 
 // ============================= Battery Voltage =============================
@@ -469,41 +466,36 @@ TESTABLE_INLINE_STATIC uint8_t correctionBatVoltage(void)
 /** Simple temperature based corrections lookup based on the inlet air temperature (IAT).
 This corrects for changes in air density from movement of the temperature.
 */
-TESTABLE_INLINE_STATIC byte correctionIATDensity(void)
+TESTABLE_INLINE_STATIC uint8_t correctionIATDensity(void)
 {
-  byte IATValue = 100;
-  IATValue = table2D_getValue(&IATDensityCorrectionTable, currentStatus.IAT + CALIBRATION_TEMPERATURE_OFFSET); //currentStatus.IAT is the actual temperature, values in IATDensityCorrectionTable.axisX are temp+offset
-
-  return IATValue;
+  return (uint8_t)table2D_getValue(&IATDensityCorrectionTable, currentStatus.IAT + CALIBRATION_TEMPERATURE_OFFSET); //currentStatus.IAT is the actual temperature, values in IATDensityCorrectionTable.axisX are temp+offset
 }
+
+// ============================= Baro pressure correction =============================
 
 /** Correction for current barometric / ambient pressure.
  * @returns A percentage value indicating the amount the fuelling should be changed based on the barometric reading. 100 = No change. 110 = 10% increase. 90 = 10% decrease
  */
-TESTABLE_INLINE_STATIC byte correctionBaro(void)
+TESTABLE_INLINE_STATIC uint8_t correctionBaro(void)
 {
-  byte baroValue = 100;
-  baroValue = table2D_getValue(&baroFuelTable, currentStatus.baro);
-
-  return baroValue;
+  return (uint8_t)table2D_getValue(&baroFuelTable, currentStatus.baro);
 }
+
+// ============================= Launch control correction =============================
 
 /** Launch control has a setting to increase the fuel load to assist in bringing up boost.
 This simple check applies the extra fuel if we're currently launching
 */
-TESTABLE_INLINE_STATIC byte correctionLaunch(void)
+TESTABLE_INLINE_STATIC uint8_t correctionLaunch(void)
 {
-  byte launchValue = 100;
-  if(currentStatus.launchingHard || currentStatus.launchingSoft) { launchValue = (100 + configPage6.lnchFuelAdd); }
-
-  return launchValue;
+  return 100U + ((currentStatus.launchingHard || currentStatus.launchingSoft) ? configPage6.lnchFuelAdd : 0U);
 }
 
-/**
-*/
-TESTABLE_INLINE_STATIC byte correctionDFCOfuel(void)
+// ============================= Deceleration Fuel Cut Off (DFCO) correction =============================
+
+TESTABLE_INLINE_STATIC uint8_t correctionDFCOfuel(void)
 {
-  byte scaleValue = 100;
+  uint8_t scaleValue = 100;
   if ( BIT_CHECK(currentStatus.status1, BIT_STATUS1_DFCO) )
   {
     if ( (configPage9.dfcoTaperEnable == 1) && (dfcoTaper != 0) )
@@ -549,32 +541,24 @@ TESTABLE_INLINE_STATIC bool correctionDFCO(void)
   return DFCOValue;
 }
 
+// ============================= Flex fuel correction =============================
+
 /** Flex fuel adjustment to vary fuel based on ethanol content.
  * The amount of extra fuel required is a linear relationship based on the % of ethanol.
 */
-TESTABLE_INLINE_STATIC byte correctionFlex(void)
+TESTABLE_INLINE_STATIC uint8_t correctionFlex(void)
 {
-  byte flexValue = 100;
-
-  if (configPage2.flexEnabled == 1)
-  {
-    flexValue = table2D_getValue(&flexFuelTable, currentStatus.ethanolPct);
-  }
-  return flexValue;
+  return configPage2.flexEnabled ? table2D_getValue(&flexFuelTable, currentStatus.ethanolPct) : 100U;
 }
+
+// ============================= Fuel temperature correction =============================
 
 /*
  * Fuel temperature adjustment to vary fuel based on fuel temperature reading
 */
-TESTABLE_INLINE_STATIC byte correctionFuelTemp(void)
+TESTABLE_INLINE_STATIC uint8_t correctionFuelTemp(void)
 {
-  byte fuelTempValue = 100;
-
-  if (configPage2.flexEnabled == 1)
-  {
-    fuelTempValue = table2D_getValue(&fuelTempTable, currentStatus.fuelTemp + CALIBRATION_TEMPERATURE_OFFSET);
-  }
-  return fuelTempValue;
+  return configPage2.flexEnabled ? table2D_getValue(&fuelTempTable, currentStatus.fuelTemp + CALIBRATION_TEMPERATURE_OFFSET) : 100U;
 }
 
 
