@@ -30,21 +30,35 @@ static inline int16_t injectorLimits(int16_t angle)
 }
 
 /** @brief At 1 RPM, each degree of angular rotation takes this many microseconds */
-#define MICROS_PER_DEG_1_RPM INT32_C(166667)
+static constexpr uint32_t MICROS_PER_DEG_1_RPM = MICROS_PER_MIN/360UL;
 
 /** @brief The maximum rpm that the ECU will attempt to run at. 
  * 
  * It is NOT related to the rev limiter, but is instead dictates how fast certain operations will be
  * allowed to run. Lower number gives better performance 
  **/
-#define MAX_RPM INT16_C(18000)
+static constexpr uint16_t MAX_RPM = 18000U;
 
 /** @brief Absolute minimum RPM that the crank math (& therefore all of Speeduino) can be used with 
  * 
  * This is dictated by the use of uint16_t as the base type for storing
  * angle<->time conversion factor (degreesPerMicro)
 */
-#define MIN_RPM ((MICROS_PER_DEG_1_RPM/(UINT16_MAX/16UL))+1UL)
+static constexpr uint16_t MIN_RPM = (MICROS_PER_DEG_1_RPM/(UINT16_MAX/16U))+1U;
+
+/**
+ * @brief Minumum time in µS that one crank revolution can take.
+ * 
+ * @note: many calculations are done over 2 revolutions (cycles), in which case this would be doubled 
+ */
+static constexpr uint16_t MIN_REVOLUTION_TIME = MICROS_PER_MIN/MAX_RPM;
+
+/**
+ * @brief Maximum time in µS that one crank revolution can take.
+ * 
+ * @note: many calculations are done over 2 revolutions (cycles), in which case this would be doubled 
+ */
+static constexpr uint32_t MAX_REVOLUTION_TIME = MICROS_PER_MIN/MIN_RPM;
 
 /**
  * @name Converts angular degrees to the time interval that amount of rotation

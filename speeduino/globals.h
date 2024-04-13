@@ -120,9 +120,9 @@
 
 #define interruptSafe(c) (noInterrupts(); {c} interrupts();) //Wraps any code between nointerrupt and interrupt calls
 
-#define MICROS_PER_SEC INT32_C(1000000)
-#define MICROS_PER_MIN INT32_C(MICROS_PER_SEC*60U)
-#define MICROS_PER_HOUR INT32_C(MICROS_PER_MIN*60U)
+#define MICROS_PER_SEC UINT32_C(1000000)
+#define MICROS_PER_MIN (MICROS_PER_SEC*60UL)
+#define MICROS_PER_HOUR (MICROS_PER_MIN*60UL)
 
 #define SERIAL_PORT_PRIMARY   0
 #define SERIAL_PORT_SECONDARY 3
