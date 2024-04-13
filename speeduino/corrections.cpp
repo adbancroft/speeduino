@@ -39,8 +39,7 @@ static long PID_O2, PID_output, PID_AFRTarget;
 */
 static PID egoPID(&PID_O2, &PID_output, &PID_AFRTarget, configPage6.egoKP, configPage6.egoKI, configPage6.egoKD, REVERSE);
 
-static byte activateMAPDOT; //The mapDOT value seen when the MAE was activated. 
-static byte activateTPSDOT; //The tpsDOT value seen when the MAE was activated.
+static byte aeActivatedReading; //The mapDOT/tpsDOT value seen when the MAE/TAE was activated. 
 
 static bool idleAdvActive = false;
 TESTABLE_STATIC uint16_t AFRnextCycle;
@@ -324,7 +323,7 @@ static inline void mapOnTimeoutExpired(void) {
 }
 
 static inline bool mapShouldResetCurrentAe(void) {
-  return abs(currentStatus.mapDOT) > activateMAPDOT;
+  return abs(currentStatus.mapDOT) > aeActivatedReading;
 } 
 
 static inline bool mapShouldStartAe(void) {
@@ -333,7 +332,7 @@ static inline bool mapShouldStartAe(void) {
     currentStatus.mapDOT = 0;
   } 
   if (abs(currentStatus.mapDOT) > configPage2.maeThresh) {
-    activateMAPDOT = abs(currentStatus.mapDOT);
+    aeActivatedReading = abs(currentStatus.mapDOT);
     return true;
   }
   return false;
@@ -376,7 +375,7 @@ static inline void tpsOnTimeoutExpired(void) {
 }
 
 static inline bool tpsShouldResetCurrentAe(void) {
-  return abs(currentStatus.tpsDOT) > activateTPSDOT;
+  return abs(currentStatus.tpsDOT) > aeActivatedReading;
 } 
 
 static inline bool tpsShouldStartAe(void) {
@@ -386,7 +385,7 @@ static inline bool tpsShouldStartAe(void) {
   } 
   
   if (abs(currentStatus.tpsDOT) > configPage2.taeThresh) {
-      activateTPSDOT = abs(currentStatus.tpsDOT);
+      aeActivatedReading = abs(currentStatus.tpsDOT);
       return true;
   }
 
