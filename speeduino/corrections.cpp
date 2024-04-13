@@ -30,28 +30,29 @@ There are 2 top level functions that call more detailed corrections for Fuel and
 #include "maths.h"
 #include "sensors.h"
 #include "src/PID_v1/PID_v1.h"
+#include "unit_testing.h"
 
-long PID_O2, PID_output, PID_AFRTarget;
+static long PID_O2, PID_output, PID_AFRTarget;
 /** Instance of the PID object in case that algorithm is used (Always instantiated).
 * Needs to be global as it maintains state outside of each function call.
 * Comes from Arduino (?) PID library.
 */
-PID egoPID(&PID_O2, &PID_output, &PID_AFRTarget, configPage6.egoKP, configPage6.egoKI, configPage6.egoKD, REVERSE);
+static PID egoPID(&PID_O2, &PID_output, &PID_AFRTarget, configPage6.egoKP, configPage6.egoKI, configPage6.egoKD, REVERSE);
 
-byte activateMAPDOT; //The mapDOT value seen when the MAE was activated. 
-byte activateTPSDOT; //The tpsDOT value seen when the MAE was activated.
+static byte activateMAPDOT; //The mapDOT value seen when the MAE was activated. 
+static byte activateTPSDOT; //The tpsDOT value seen when the MAE was activated.
 
-bool idleAdvActive = false;
-uint16_t AFRnextCycle;
-unsigned long knockStartTime;
-uint8_t knockLastRecoveryStep;
-//int16_t knockWindowMin; //The current minimum crank angle for a knock pulse to be valid
-//int16_t knockWindowMax;//The current maximum crank angle for a knock pulse to be valid
-uint8_t aseTaper;
-uint8_t dfcoDelay;
-uint8_t idleAdvTaper;
-uint8_t crankingEnrichTaper;
-uint8_t dfcoTaper;
+static bool idleAdvActive = false;
+TESTABLE_STATIC uint16_t AFRnextCycle;
+static unsigned long knockStartTime;
+static uint8_t knockLastRecoveryStep;
+//static int16_t knockWindowMin; //The current minimum crank angle for a knock pulse to be valid
+//static int16_t knockWindowMax;//The current maximum crank angle for a knock pulse to be valid
+static uint8_t aseTaper;
+TESTABLE_STATIC uint8_t dfcoDelay;
+static uint8_t idleAdvTaper;
+static uint8_t crankingEnrichTaper;
+static uint8_t dfcoTaper;
 
 /** Initialise instances and vars related to corrections (at ECU boot-up).
  */
@@ -78,76 +79,10 @@ void initialiseCorrections(void)
   currentStatus.battery10 = 125; //Set battery voltage to sensible value for dwell correction for "flying start" (else ignition gets spurious pulses after boot)  
 }
 
-/** Dispatch calculations for all fuel related corrections.
-Calls all the other corrections functions and combines their results.
-This is the only function that should be called from anywhere outside the file
-*/
-uint16_t correctionsFuel(void)
-{
-  uint32_t sumCorrections = 100;
-  uint16_t result; //temporary variable to store the result of each corrections function
-
-  //The values returned by each of the correction functions are multiplied together and then divided back to give a single 0-255 value.
-  currentStatus.wueCorrection = correctionWUE();
-  if (currentStatus.wueCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.wueCorrection); }
-
-  currentStatus.ASEValue = correctionASE();
-  if (currentStatus.ASEValue != 100) { sumCorrections = div100(sumCorrections * currentStatus.ASEValue); }
-
-  result = correctionCranking();
-  if (result != 100) { sumCorrections = div100(sumCorrections * result); }
-
-  currentStatus.AEamount = correctionAccel();
-  if ( (configPage2.aeApplyMode == AE_MODE_MULTIPLIER) || BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC) ) // multiply by the AE amount in case of multiplier AE mode or Decel
-  {
-    if (currentStatus.AEamount != 100) { sumCorrections = div100(sumCorrections * currentStatus.AEamount);}
-  }
-
-  result = correctionFloodClear();
-  if (result != 100) { sumCorrections = div100(sumCorrections * result); }
-
-  currentStatus.egoCorrection = correctionAFRClosedLoop();
-  if (currentStatus.egoCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.egoCorrection); }
-
-  currentStatus.batCorrection = correctionBatVoltage();
-  if (configPage2.battVCorMode == BATTV_COR_MODE_OPENTIME)
-  {
-    inj_opentime_uS = configPage2.injOpen * currentStatus.batCorrection; // Apply voltage correction to injector open time.
-    //currentStatus.batCorrection = 100; // This is to ensure that the correction is not applied twice. There is no battery correction fator as we have instead changed the open time
-  }
-  if (configPage2.battVCorMode == BATTV_COR_MODE_WHOLE)
-  {
-    if (currentStatus.batCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.batCorrection); }  
-  }
-
-  currentStatus.iatCorrection = correctionIATDensity();
-  if (currentStatus.iatCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.iatCorrection); }
-
-  currentStatus.baroCorrection = correctionBaro();
-  if (currentStatus.baroCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.baroCorrection); }
-
-  currentStatus.flexCorrection = correctionFlex();
-  if (currentStatus.flexCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.flexCorrection); }
-
-  currentStatus.fuelTempCorrection = correctionFuelTemp();
-  if (currentStatus.fuelTempCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.fuelTempCorrection); }
-
-  currentStatus.launchCorrection = correctionLaunch();
-  if (currentStatus.launchCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.launchCorrection); }
-
-  bitWrite(currentStatus.status1, BIT_STATUS1_DFCO, correctionDFCO());
-  byte dfcoTaperCorrection = correctionDFCOfuel();
-  if (dfcoTaperCorrection == 0) { sumCorrections = 0; }
-  else if (dfcoTaperCorrection != 100) { sumCorrections = div100(sumCorrections * dfcoTaperCorrection); }
-
-  if(sumCorrections > 1500) { sumCorrections = 1500; } //This is the maximum allowable increase during cranking
-  return (uint16_t)sumCorrections;
-}
-
 /** Warm Up Enrichment (WUE) corrections.
 Uses a 2D enrichment table (WUETable) where the X axis is engine temp and the Y axis is the amount of extra fuel to add
 */
-byte correctionWUE(void)
+TESTABLE_INLINE_STATIC byte correctionWUE(void)
 {
   byte WUEValue;
   //Possibly reduce the frequency this runs at (Costs about 50 loops per second)
@@ -170,7 +105,7 @@ byte correctionWUE(void)
 /** Cranking Enrichment corrections.
 Additional fuel % to be added when the engine is cranking
 */
-uint16_t correctionCranking(void)
+TESTABLE_INLINE_STATIC uint16_t correctionCranking(void)
 {
   uint16_t crankingValue = 100;
   //Check if we are actually cranking
@@ -201,7 +136,7 @@ uint16_t correctionCranking(void)
  * 
  * @return uint8_t The After Start Enrichment modifier as a %. 100% = No modification. 
  */   
-byte correctionASE(void)
+TESTABLE_INLINE_STATIC byte correctionASE(void)
 {
   int16_t ASEValue = currentStatus.ASEValue;
   //Two checks are required:
@@ -259,7 +194,7 @@ byte correctionASE(void)
  * As the maximum enrichment amount is +255% and maximum cold adjustment for this is 255%, the overall return value
  * from this function can be 100+(255*255/100)=750. Hence this function returns a uint16_t rather than byte.
  */
-uint16_t correctionAccel(void)
+TESTABLE_INLINE_STATIC uint16_t correctionAccel(void)
 {
   int16_t accelValue = 100;
   int16_t MAP_change = 0;
@@ -458,7 +393,7 @@ uint16_t correctionAccel(void)
 /** Simple check to see whether we are cranking with the TPS above the flood clear threshold.
 @return 100 (not cranking and thus no need for flood-clear) or 0 (Engine cranking and TPS above @ref config4.floodClear limit).
 */
-byte correctionFloodClear(void)
+TESTABLE_INLINE_STATIC byte correctionFloodClear(void)
 {
   byte floodValue = 100;
   if( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
@@ -476,7 +411,7 @@ byte correctionFloodClear(void)
 /** Battery Voltage correction.
 Uses a 2D enrichment table (WUETable) where the X axis is engine temp and the Y axis is the amount of extra fuel to add.
 */
-byte correctionBatVoltage(void)
+TESTABLE_INLINE_STATIC byte correctionBatVoltage(void)
 {
   byte batValue = 100;
   batValue = table2D_getValue(&injectorVCorrectionTable, currentStatus.battery10);
@@ -486,7 +421,7 @@ byte correctionBatVoltage(void)
 /** Simple temperature based corrections lookup based on the inlet air temperature (IAT).
 This corrects for changes in air density from movement of the temperature.
 */
-byte correctionIATDensity(void)
+TESTABLE_INLINE_STATIC byte correctionIATDensity(void)
 {
   byte IATValue = 100;
   IATValue = table2D_getValue(&IATDensityCorrectionTable, currentStatus.IAT + CALIBRATION_TEMPERATURE_OFFSET); //currentStatus.IAT is the actual temperature, values in IATDensityCorrectionTable.axisX are temp+offset
@@ -497,7 +432,7 @@ byte correctionIATDensity(void)
 /** Correction for current barometric / ambient pressure.
  * @returns A percentage value indicating the amount the fuelling should be changed based on the barometric reading. 100 = No change. 110 = 10% increase. 90 = 10% decrease
  */
-byte correctionBaro(void)
+TESTABLE_INLINE_STATIC byte correctionBaro(void)
 {
   byte baroValue = 100;
   baroValue = table2D_getValue(&baroFuelTable, currentStatus.baro);
@@ -508,7 +443,7 @@ byte correctionBaro(void)
 /** Launch control has a setting to increase the fuel load to assist in bringing up boost.
 This simple check applies the extra fuel if we're currently launching
 */
-byte correctionLaunch(void)
+TESTABLE_INLINE_STATIC byte correctionLaunch(void)
 {
   byte launchValue = 100;
   if(currentStatus.launchingHard || currentStatus.launchingSoft) { launchValue = (100 + configPage6.lnchFuelAdd); }
@@ -518,7 +453,7 @@ byte correctionLaunch(void)
 
 /**
 */
-byte correctionDFCOfuel(void)
+TESTABLE_INLINE_STATIC byte correctionDFCOfuel(void)
 {
   byte scaleValue = 100;
   if ( BIT_CHECK(currentStatus.status1, BIT_STATUS1_DFCO) )
@@ -540,7 +475,7 @@ byte correctionDFCOfuel(void)
 /*
  * Returns true if deceleration fuel cutoff should be on, false if its off
  */
-bool correctionDFCO(void)
+TESTABLE_INLINE_STATIC bool correctionDFCO(void)
 {
   bool DFCOValue = false;
   if ( configPage2.dfcoEnabled == 1 )
@@ -569,7 +504,7 @@ bool correctionDFCO(void)
 /** Flex fuel adjustment to vary fuel based on ethanol content.
  * The amount of extra fuel required is a linear relationship based on the % of ethanol.
 */
-byte correctionFlex(void)
+TESTABLE_INLINE_STATIC byte correctionFlex(void)
 {
   byte flexValue = 100;
 
@@ -583,7 +518,7 @@ byte correctionFlex(void)
 /*
  * Fuel temperature adjustment to vary fuel based on fuel temperature reading
 */
-byte correctionFuelTemp(void)
+TESTABLE_INLINE_STATIC byte correctionFuelTemp(void)
 {
   byte fuelTempValue = 100;
 
@@ -627,7 +562,7 @@ This continues until either:
 PID (Best suited to wideband sensors):
 
 */
-byte correctionAFRClosedLoop(void)
+TESTABLE_INLINE_STATIC byte correctionAFRClosedLoop(void)
 {
   byte AFRValue = 100U;
 
@@ -692,33 +627,75 @@ byte correctionAFRClosedLoop(void)
   return AFRValue; //Catch all (Includes when AFR target = current AFR
 }
 
-//******************************** IGNITION ADVANCE CORRECTIONS ********************************
-/** Dispatch calculations for all ignition related corrections.
- * @param base_advance - Base ignition advance (deg. ?)
- * @return Advance considering all (~12) individual corrections
- */
-int8_t correctionsIgn(int8_t base_advance)
+
+/** Dispatch calculations for all fuel related corrections.
+Calls all the other corrections functions and combines their results.
+This is the only function that should be called from anywhere outside the file
+*/
+uint16_t correctionsFuel(void)
 {
-  int8_t advance;
-  advance = correctionFlexTiming(base_advance);
-  advance = correctionWMITiming(advance);
-  advance = correctionIATretard(advance);
-  advance = correctionCLTadvance(advance);
-  advance = correctionIdleAdvance(advance);
-  advance = correctionSoftRevLimit(advance);
-  advance = correctionNitrous(advance);
-  advance = correctionSoftLaunch(advance);
-  advance = correctionSoftFlatShift(advance);
-  advance = correctionKnockTiming(advance);
+  uint32_t sumCorrections = 100;
+  uint16_t result; //temporary variable to store the result of each corrections function
 
-  advance = correctionDFCOignition(advance);
+  //The values returned by each of the correction functions are multiplied together and then divided back to give a single 0-255 value.
+  currentStatus.wueCorrection = correctionWUE();
+  if (currentStatus.wueCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.wueCorrection); }
 
-  //Fixed timing check must go last
-  advance = correctionFixedTiming(advance);
-  advance = correctionCrankingFixedTiming(advance); //This overrides the regular fixed timing, must come last
+  currentStatus.ASEValue = correctionASE();
+  if (currentStatus.ASEValue != 100) { sumCorrections = div100(sumCorrections * currentStatus.ASEValue); }
 
-  return advance;
+  result = correctionCranking();
+  if (result != 100) { sumCorrections = div100(sumCorrections * result); }
+
+  currentStatus.AEamount = correctionAccel();
+  if ( (configPage2.aeApplyMode == AE_MODE_MULTIPLIER) || BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC) ) // multiply by the AE amount in case of multiplier AE mode or Decel
+  {
+    if (currentStatus.AEamount != 100) { sumCorrections = div100(sumCorrections * currentStatus.AEamount);}
+  }
+
+  result = correctionFloodClear();
+  if (result != 100) { sumCorrections = div100(sumCorrections * result); }
+
+  currentStatus.egoCorrection = correctionAFRClosedLoop();
+  if (currentStatus.egoCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.egoCorrection); }
+
+  currentStatus.batCorrection = correctionBatVoltage();
+  if (configPage2.battVCorMode == BATTV_COR_MODE_OPENTIME)
+  {
+    inj_opentime_uS = configPage2.injOpen * currentStatus.batCorrection; // Apply voltage correction to injector open time.
+    currentStatus.batCorrection = 100; // This is to ensure that the correction is not applied twice. There is no battery correction fator as we have instead changed the open time
+  }
+  if (configPage2.battVCorMode == BATTV_COR_MODE_WHOLE)
+  {
+    if (currentStatus.batCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.batCorrection); }  
+  }
+
+  currentStatus.iatCorrection = correctionIATDensity();
+  if (currentStatus.iatCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.iatCorrection); }
+
+  currentStatus.baroCorrection = correctionBaro();
+  if (currentStatus.baroCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.baroCorrection); }
+
+  currentStatus.flexCorrection = correctionFlex();
+  if (currentStatus.flexCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.flexCorrection); }
+
+  currentStatus.fuelTempCorrection = correctionFuelTemp();
+  if (currentStatus.fuelTempCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.fuelTempCorrection); }
+
+  currentStatus.launchCorrection = correctionLaunch();
+  if (currentStatus.launchCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.launchCorrection); }
+
+  bitWrite(currentStatus.status1, BIT_STATUS1_DFCO, correctionDFCO());
+  byte dfcoTaperCorrection = correctionDFCOfuel();
+  if (dfcoTaperCorrection == 0) { sumCorrections = 0; }
+  else if (dfcoTaperCorrection != 100) { sumCorrections = div100(sumCorrections * dfcoTaperCorrection); }
+
+  if(sumCorrections > 1500) { sumCorrections = 1500; } //This is the maximum allowable increase during cranking
+  return (uint16_t)sumCorrections;
 }
+
+//******************************** IGNITION ADVANCE CORRECTIONS ********************************
+
 /** Correct ignition timing to configured fixed value.
  * Must be called near end to override all other corrections.
  */
@@ -727,6 +704,17 @@ int8_t correctionFixedTiming(int8_t advance)
   int8_t ignFixValue = advance;
   if (configPage2.fixAngEnable == 1) { ignFixValue = configPage4.FixAng; } //Check whether the user has set a fixed timing angle
   return ignFixValue;
+}
+/** Ignition correction for coolant temperature (CLT).
+ */
+TESTABLE_INLINE_STATIC int8_t correctionCLTadvance(int8_t advance)
+{
+  int8_t ignCLTValue = advance;
+  //Adjust the advance based on CLT.
+  int8_t advanceCLTadjust = (int16_t)(table2D_getValue(&CLTAdvanceTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET)) - 15;
+  ignCLTValue = (advance + advanceCLTadjust);
+  
+  return ignCLTValue;
 }
 /** Correct ignition timing to configured fixed value to use during craning.
  * Must be called near end to override all other corrections.
@@ -742,7 +730,7 @@ int8_t correctionCrankingFixedTiming(int8_t advance)
   return ignCrankFixValue;
 }
 
-int8_t correctionFlexTiming(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionFlexTiming(int8_t advance)
 {
   int16_t ignFlexValue = advance;
   if( configPage2.flexEnabled == 1 ) //Check for flex being enabled
@@ -754,7 +742,7 @@ int8_t correctionFlexTiming(int8_t advance)
   return (int8_t) ignFlexValue;
 }
 
-int8_t correctionWMITiming(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionWMITiming(int8_t advance)
 {
   if( (configPage10.wmiEnabled >= 1) && (configPage10.wmiAdvEnabled == 1) && !BIT_CHECK(currentStatus.status4, BIT_STATUS4_WMI_EMPTY) ) //Check for wmi being enabled
   {
@@ -767,26 +755,18 @@ int8_t correctionWMITiming(int8_t advance)
 }
 /** Ignition correction for inlet air temperature (IAT).
  */
-int8_t correctionIATretard(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionIATretard(int8_t advance)
 {
   int8_t advanceIATadjust = table2D_getValue(&IATRetardTable, currentStatus.IAT);
 
   return advance - advanceIATadjust;
 }
-/** Ignition correction for coolant temperature (CLT).
- */
-int8_t correctionCLTadvance(int8_t advance)
-{
-  int8_t ignCLTValue = advance;
-  //Adjust the advance based on CLT.
-  int8_t advanceCLTadjust = (int16_t)(table2D_getValue(&CLTAdvanceTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET)) - 15;
-  ignCLTValue = (advance + advanceCLTadjust);
-  
-  return ignCLTValue;
-}
+
 /** Ignition Idle advance correction.
  */
-int8_t correctionIdleAdvance(int8_t advance)
+#define IGN_IDLE_THRESHOLD 200 //RPM threshold (below CL idle target) for when ign based idle control will engage
+
+TESTABLE_INLINE_STATIC int8_t correctionIdleAdvance(int8_t advance)
 {
 
   int8_t ignIdleValue = advance;
@@ -831,7 +811,7 @@ When some other mechanism is also present, wait until the engine is no more than
 }
 /** Ignition soft revlimit correction.
  */
-int8_t correctionSoftRevLimit(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionSoftRevLimit(int8_t advance)
 {
   byte ignSoftRevValue = advance;
   BIT_CLEAR(currentStatus.status2, BIT_STATUS2_SFTLIM);
@@ -856,7 +836,7 @@ int8_t correctionSoftRevLimit(int8_t advance)
 }
 /** Ignition Nitrous oxide correction.
  */
-int8_t correctionNitrous(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionNitrous(int8_t advance)
 {
   byte ignNitrous = advance;
   //Check if nitrous is currently active
@@ -877,7 +857,7 @@ int8_t correctionNitrous(int8_t advance)
 }
 /** Ignition soft launch correction.
  */
-int8_t correctionSoftLaunch(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionSoftLaunch(int8_t advance)
 {
   byte ignSoftLaunchValue = advance;
   //SoftCut rev limit for 2-step launch control.
@@ -902,7 +882,7 @@ int8_t correctionSoftLaunch(int8_t advance)
 }
 /** Ignition correction for soft flat shift.
  */
-int8_t correctionSoftFlatShift(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionSoftFlatShift(int8_t advance)
 {
   int8_t ignSoftFlatValue = advance;
 
@@ -917,7 +897,7 @@ int8_t correctionSoftFlatShift(int8_t advance)
 }
 
 
-uint8_t _calculateKnockRecovery(uint8_t curKnockRetard)
+static inline uint8_t _calculateKnockRecovery(uint8_t curKnockRetard)
 {
   uint8_t tmpKnockRetard = curKnockRetard;
   //Check whether we are in knock recovery
@@ -953,7 +933,7 @@ uint8_t _calculateKnockRecovery(uint8_t curKnockRetard)
 
 /** Ignition knock (retard) correction.
  */
-int8_t correctionKnockTiming(int8_t advance)
+static inline int8_t correctionKnockTiming(int8_t advance)
 {
   byte tmpKnockRetard = 0;
 
@@ -1042,7 +1022,7 @@ int8_t correctionKnockTiming(int8_t advance)
 
 /** Ignition DFCO taper correction.
  */
-int8_t correctionDFCOignition(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionDFCOignition(int8_t advance)
 {
   int8_t dfcoRetard = advance;
   if ( (configPage9.dfcoTaperEnable == 1) && BIT_CHECK(currentStatus.status1, BIT_STATUS1_DFCO) )
@@ -1104,4 +1084,31 @@ uint16_t correctionsDwell(uint16_t dwell)
   }
 
   return tempDwell;
+}
+
+/** Dispatch calculations for all ignition related corrections.
+ * @param base_advance - Base ignition advance (deg. ?)
+ * @return Advance considering all (~12) individual corrections
+ */
+int8_t correctionsIgn(int8_t base_advance)
+{
+  int8_t advance;
+  advance = correctionFlexTiming(base_advance);
+  advance = correctionWMITiming(advance);
+  advance = correctionIATretard(advance);
+  advance = correctionCLTadvance(advance);
+  advance = correctionIdleAdvance(advance);
+  advance = correctionSoftRevLimit(advance);
+  advance = correctionNitrous(advance);
+  advance = correctionSoftLaunch(advance);
+  advance = correctionSoftFlatShift(advance);
+  advance = correctionKnockTiming(advance);
+
+  advance = correctionDFCOignition(advance);
+
+  //Fixed timing check must go last
+  advance = correctionFixedTiming(advance);
+  advance = correctionCrankingFixedTiming(advance); //This overrides the regular fixed timing, must come last
+
+  return advance;
 }
