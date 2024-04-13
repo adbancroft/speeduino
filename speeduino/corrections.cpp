@@ -52,6 +52,8 @@ static uint8_t dfcoDelay;
 static uint8_t idleAdvTaper;
 static uint8_t dfcoTaper;
 
+static constexpr uint8_t NO_FUEL_CORRECTION = 100U;
+
 /** Initialise instances and vars related to corrections (at ECU boot-up).
  */
 void initialiseCorrections(void)
@@ -67,7 +69,7 @@ void initialiseCorrections(void)
   egoPID.SetMode(AUTOMATIC);
 
   currentStatus.flexIgnCorrection = 0;
-  currentStatus.egoCorrection = 100; //Default value of no adjustment must be set to avoid randomness on first correction cycle after startup
+  currentStatus.egoCorrection = NO_FUEL_CORRECTION; //Default value of no adjustment must be set to avoid randomness on first correction cycle after startup
   AFRnextCycle = 0;
   currentStatus.knockActive = false;
   currentStatus.battery10 = 125; //Set battery voltage to sensible value for dwell correction for "flying start" (else ignition gets spurious pulses after boot)  
@@ -112,7 +114,7 @@ static inline uint16_t lookUpCrankingEnrichmentPct(void) {
 //Taper start value needs to account for ASE that is now running, so total correction does not increase when taper begins
 static inline uint16_t computeCrankingTaperStartPct(uint16_t crankingPercent) {
   // Avoid 32-bit division if possible
-  if (BIT_CHECK(currentStatus.engine, BIT_ENGINE_ASE) && currentStatus.ASEValue!=100U) {
+  if (BIT_CHECK(currentStatus.engine, BIT_ENGINE_ASE) && currentStatus.ASEValue!=NO_FUEL_CORRECTION) {
     return udiv_32_16((uint32_t)crankingPercent * UINT32_C(100), currentStatus.ASEValue);
   };
 
@@ -123,7 +125,7 @@ TESTABLE_INLINE_STATIC uint16_t correctionCranking(void)
 {
   static uint8_t crankingEnrichTaper = 0U;
 
-  uint16_t crankingPercent = 100U;
+  uint16_t crankingPercent = NO_FUEL_CORRECTION;
 
   //Check if we are actually cranking
   if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
@@ -136,14 +138,14 @@ TESTABLE_INLINE_STATIC uint16_t correctionCranking(void)
   {
     crankingPercent = (uint16_t) map( crankingEnrichTaper, 
                                       0U, configPage10.crankingEnrichTaper, 
-                                      computeCrankingTaperStartPct(lookUpCrankingEnrichmentPct()), 100U); //Taper from start value to 100%
+                                      computeCrankingTaperStartPct(lookUpCrankingEnrichmentPct()), NO_FUEL_CORRECTION); //Taper from start value to 100%
     if( BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ) ) { crankingEnrichTaper++; }
   } else {
     // Not cranking and taper not in effect, so no cranking enrichment needed.
     // just need to keep MISRA checker happy.
   }
 
-  return max((uint16_t)100U, (uint16_t)crankingPercent);
+  return max((uint16_t)NO_FUEL_CORRECTION, (uint16_t)crankingPercent);
 }
 
 // ============================= After Start Enrichment =============================
@@ -181,7 +183,7 @@ TESTABLE_INLINE_STATIC byte correctionASE(void)
         else
         {
           BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ASE); //Mark ASE as inactive.
-          ASEValue = 100;
+          ASEValue = NO_FUEL_CORRECTION;
         }
       }
       
@@ -195,7 +197,7 @@ TESTABLE_INLINE_STATIC byte correctionASE(void)
   {
     //Engine is cranking, ASE disabled
     BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ASE); //Mark ASE as inactive.
-    ASEValue = 100;
+    ASEValue = NO_FUEL_CORRECTION;
   }
   return ASEValue;
 }
@@ -284,7 +286,7 @@ static inline void updateAeEndTime(void) {
 // Implements the skeleton of the AE algorithm. Callers fill in specific steps via function pointeers
 // (Template Method design pattern in C!)
 static inline uint16_t correctionAccel(void (*onTimeoutExpired)(void), bool (*shouldResetCurrentAe)(void), bool (*shouldStartAe)(void), uint16_t (*computeAe)(void)) {
-  uint16_t accelValue = 100U;
+  uint16_t accelValue = NO_FUEL_CORRECTION;
 
   //First, check whether the accel. enrichment is already running
   if (isAccelEnrichmentOn()) {
@@ -427,7 +429,7 @@ TESTABLE_INLINE_STATIC uint16_t correctionAccel(void)
   if(configPage2.aeMode == AE_MODE_TPS) {
     return correctionAccelModeTps();
   }
-  return 100U;
+  return NO_FUEL_CORRECTION;
 }
 
 // ============================= Flood Clear =============================
@@ -442,7 +444,7 @@ static inline bool isFloodClearActive(const statuses &current, const config4 &pa
 */
 TESTABLE_INLINE_STATIC uint8_t correctionFloodClear(void)
 {
-  return isFloodClearActive(currentStatus, configPage4) ? 0U : 100U;
+  return isFloodClearActive(currentStatus, configPage4) ? 0U : NO_FUEL_CORRECTION;
 }
 
 // ============================= Battery Voltage =============================
@@ -456,7 +458,7 @@ TESTABLE_INLINE_STATIC uint8_t correctionBatVoltage(void)
   if (configPage2.battVCorMode == BATTV_COR_MODE_OPENTIME)
   {
     inj_opentime_uS = configPage2.injOpen * correction; // Apply voltage correction to injector open time.
-    return 100U; // This is to ensure that the correction is not applied twice. There is no battery correction fator as we have instead changed the open time
+    return NO_FUEL_CORRECTION; // This is to ensure that the correction is not applied twice. There is no battery correction fator as we have instead changed the open time
   }
   return correction;
 }
@@ -488,14 +490,14 @@ This simple check applies the extra fuel if we're currently launching
 */
 TESTABLE_INLINE_STATIC uint8_t correctionLaunch(void)
 {
-  return 100U + ((currentStatus.launchingHard || currentStatus.launchingSoft) ? configPage6.lnchFuelAdd : 0U);
+  return (currentStatus.launchingHard || currentStatus.launchingSoft) ? 100U + configPage6.lnchFuelAdd : NO_FUEL_CORRECTION;
 }
 
 // ============================= Deceleration Fuel Cut Off (DFCO) correction =============================
 
 TESTABLE_INLINE_STATIC uint8_t correctionDFCOfuel(void)
 {
-  uint8_t scaleValue = 100;
+  uint8_t scaleValue = NO_FUEL_CORRECTION;
   if ( BIT_CHECK(currentStatus.status1, BIT_STATUS1_DFCO) )
   {
     if ( (configPage9.dfcoTaperEnable == 1) && (dfcoTaper != 0) )
@@ -548,7 +550,7 @@ TESTABLE_INLINE_STATIC bool correctionDFCO(void)
 */
 TESTABLE_INLINE_STATIC uint8_t correctionFlex(void)
 {
-  return configPage2.flexEnabled ? table2D_getValue(&flexFuelTable, currentStatus.ethanolPct) : 100U;
+  return configPage2.flexEnabled ? table2D_getValue(&flexFuelTable, currentStatus.ethanolPct) : NO_FUEL_CORRECTION;
 }
 
 // ============================= Fuel temperature correction =============================
@@ -558,7 +560,7 @@ TESTABLE_INLINE_STATIC uint8_t correctionFlex(void)
 */
 TESTABLE_INLINE_STATIC uint8_t correctionFuelTemp(void)
 {
-  return configPage2.flexEnabled ? table2D_getValue(&fuelTempTable, currentStatus.fuelTemp + CALIBRATION_TEMPERATURE_OFFSET) : 100U;
+  return configPage2.flexEnabled ? table2D_getValue(&fuelTempTable, currentStatus.fuelTemp + CALIBRATION_TEMPERATURE_OFFSET) : NO_FUEL_CORRECTION;
 }
 
 
@@ -596,7 +598,7 @@ PID (Best suited to wideband sensors):
 */
 TESTABLE_INLINE_STATIC byte correctionAFRClosedLoop(void)
 {
-  byte AFRValue = 100U;
+  byte AFRValue = NO_FUEL_CORRECTION;
 
   if((configPage6.egoType > 0) && (BIT_CHECK(currentStatus.status1, BIT_STATUS1_DFCO) != 1  ) ) //egoType of 0 means no O2 sensor. If DFCO is active do not run the ego controllers to prevent iterator wind-up.
   {
@@ -650,9 +652,9 @@ TESTABLE_INLINE_STATIC byte correctionAFRClosedLoop(void)
           if(PID_compute == true) { AFRValue = 100 + PID_output; }
           
         }
-        else { AFRValue = 100; } // Occurs if the egoAlgorithm is set to 0 (No Correction)
+        else { AFRValue = NO_FUEL_CORRECTION; } // Occurs if the egoAlgorithm is set to 0 (No Correction)
       } //Multi variable check 
-      else { AFRValue = 100; } // If multivariable check fails disable correction
+      else { AFRValue = NO_FUEL_CORRECTION; } // If multivariable check fails disable correction
     } //Ignition count check
   } //egoType
 
@@ -666,53 +668,53 @@ This is the only function that should be called from anywhere outside the file
 */
 uint16_t correctionsFuel(void)
 {
-  uint32_t sumCorrections = 100;
+  uint32_t sumCorrections = NO_FUEL_CORRECTION;
   uint16_t result; //temporary variable to store the result of each corrections function
 
   //The values returned by each of the correction functions are multiplied together and then divided back to give a single 0-255 value.
   currentStatus.wueCorrection = correctionWUE();
-  if (currentStatus.wueCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.wueCorrection); }
+  if (currentStatus.wueCorrection != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * currentStatus.wueCorrection); }
 
   currentStatus.ASEValue = correctionASE();
-  if (currentStatus.ASEValue != 100) { sumCorrections = div100(sumCorrections * currentStatus.ASEValue); }
+  if (currentStatus.ASEValue != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * currentStatus.ASEValue); }
 
   result = correctionCranking();
-  if (result != 100) { sumCorrections = div100(sumCorrections * result); }
+  if (result != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * result); }
 
   currentStatus.AEamount = correctionAccel();
   if ( (configPage2.aeApplyMode == AE_MODE_MULTIPLIER) || BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC) ) // multiply by the AE amount in case of multiplier AE mode or Decel
   {
-    if (currentStatus.AEamount != 100) { sumCorrections = div100(sumCorrections * currentStatus.AEamount);}
+    if (currentStatus.AEamount != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * currentStatus.AEamount);}
   }
 
   result = correctionFloodClear();
-  if (result != 100) { sumCorrections = div100(sumCorrections * result); }
+  if (result != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * result); }
 
   currentStatus.egoCorrection = correctionAFRClosedLoop();
-  if (currentStatus.egoCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.egoCorrection); }
+  if (currentStatus.egoCorrection != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * currentStatus.egoCorrection); }
 
   currentStatus.batCorrection = correctionBatVoltage();
-  if (currentStatus.batCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.batCorrection); }  
+  if (currentStatus.batCorrection != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * currentStatus.batCorrection); }  
 
   currentStatus.iatCorrection = correctionIATDensity();
-  if (currentStatus.iatCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.iatCorrection); }
+  if (currentStatus.iatCorrection != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * currentStatus.iatCorrection); }
 
   currentStatus.baroCorrection = correctionBaro();
-  if (currentStatus.baroCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.baroCorrection); }
+  if (currentStatus.baroCorrection != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * currentStatus.baroCorrection); }
 
   currentStatus.flexCorrection = correctionFlex();
-  if (currentStatus.flexCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.flexCorrection); }
+  if (currentStatus.flexCorrection != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * currentStatus.flexCorrection); }
 
   currentStatus.fuelTempCorrection = correctionFuelTemp();
-  if (currentStatus.fuelTempCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.fuelTempCorrection); }
+  if (currentStatus.fuelTempCorrection != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * currentStatus.fuelTempCorrection); }
 
   currentStatus.launchCorrection = correctionLaunch();
-  if (currentStatus.launchCorrection != 100) { sumCorrections = div100(sumCorrections * currentStatus.launchCorrection); }
+  if (currentStatus.launchCorrection != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * currentStatus.launchCorrection); }
 
   bitWrite(currentStatus.status1, BIT_STATUS1_DFCO, correctionDFCO());
   byte dfcoTaperCorrection = correctionDFCOfuel();
   if (dfcoTaperCorrection == 0) { sumCorrections = 0; }
-  else if (dfcoTaperCorrection != 100) { sumCorrections = div100(sumCorrections * dfcoTaperCorrection); }
+  else if (dfcoTaperCorrection != NO_FUEL_CORRECTION) { sumCorrections = div100(sumCorrections * dfcoTaperCorrection); }
 
   if(sumCorrections > 1500) { sumCorrections = 1500; } //This is the maximum allowable increase during cranking
   return (uint16_t)sumCorrections;
