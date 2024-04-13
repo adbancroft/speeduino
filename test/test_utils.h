@@ -2,6 +2,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include "table2d.h"
 
 // Unity macro to reduce memory usage (RAM, .bss)
 //
@@ -79,4 +80,12 @@ static inline void populate_table_P(table3d_t &table,
       ++itZ;
     }
   }
+}
+
+static inline void populate_2dtable(table2D *pTable, uint8_t value, uint8_t bin) {
+  for (uint8_t index=0; index<pTable->xSize; ++index) {
+    ((uint8_t*)pTable->values)[index] = value;
+    ((uint8_t*)pTable->axisX)[index] = bin;
+  }
+  pTable->cacheTime = UINT8_MAX;
 }
