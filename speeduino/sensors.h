@@ -24,6 +24,13 @@
 #define VSS_SAMPLES         4 //Must be a power of 2 and smaller than 255
 
 #define TPS_READ_FREQUENCY  30 //ONLY VALID VALUES ARE 15 or 30!!!
+#if TPS_READ_FREQUENCY==30
+#define TPS_TIMER_BIT BIT_TIMER_30HZ
+#elif TPS_READ_FREQUENCY==15
+#define TPS_TIMER_BIT BIT_TIMER_15HZ
+#else
+#error
+#endif
 
 extern volatile byte flexCounter;
 extern volatile unsigned long flexStartTime;
@@ -64,12 +71,20 @@ byte getFuelPressure(void);
 byte getOilPressure(void);
 uint16_t readAuxanalog(uint8_t analogPin);
 uint16_t readAuxdigital(uint8_t digitalPin);
+
 void readCLT(bool useFilter=true); //Allows the option to override the use of the filter
+
 void readIAT(void);
+
 void readO2(void);
+
 void readBat(void);
+
 void readBaro(void);
+
 void readMAP(void);
+#define MAP_TIMER_BIT BIT_TIMER_1KHZ
+
 void instanteneousMAPReading(void);
 uint8_t getAnalogKnock(void);
 
