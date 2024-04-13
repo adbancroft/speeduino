@@ -98,8 +98,8 @@ void test_maths_div360(void)
   test_div360((10000000UL+180UL)+1UL);
   test_div360(10000000UL+360UL);
 
-  test_div360((360UL*MICROS_PER_DEG_1_RPM)/MAX_RPM); // Min revolution time
-  test_div360((360UL*MICROS_PER_DEG_1_RPM)/MIN_RPM); // Max revolution time
+  test_div360(MIN_REVOLUTION_TIME); // Min revolution time
+  test_div360(MAX_REVOLUTION_TIME); // Max revolution time
 }
 
 void assert_udiv_32_16(uint32_t dividend, uint16_t divisor) {

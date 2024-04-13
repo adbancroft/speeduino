@@ -153,7 +153,7 @@ void test_PW_4Cyl_PW0(void)
 //Tests the PW Limit calculation for a normal scenario
 void test_PW_Limit_90pct(void)
 {
-  revolutionTime = 10000UL; //6000 rpm
+  setRevolutionTime(10000UL); //6000 rpm
   configPage2.dutyLim = 90;
 
   //Duty limit of 90% for 10,000uS should give 9,000
@@ -164,7 +164,7 @@ void test_PW_Limit_90pct(void)
 //Occurs at approx. 915rpm
 void test_PW_Limit_Long_Revolution(void)
 {
-  revolutionTime = 100000UL; //600 rpm, below 915rpm cutover point
+  setRevolutionTime(100000UL); //600 rpm, below 915rpm cutover point
   configPage2.dutyLim = 90;
   configPage2.strokes = TWO_STROKE;
   currentStatus.nSquirts = 1U;
