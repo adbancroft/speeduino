@@ -970,6 +970,8 @@ static void setup_TAE()
 {
   setup_AE();
 
+  LOOP_TIMER = 0;
+  BIT_SET(LOOP_TIMER, TPS_TIMER_BIT);
   configPage2.aeMode = AE_MODE_TPS; //Set AE to TPS
 
   TEST_DATA_P uint8_t bins[] = { 0, 8, 22, 97 };
@@ -1003,7 +1005,7 @@ static void test_corrections_TAE_no_rpm_taper()
   TEST_ASSERT_EQUAL((100+132), accelValue);
 	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged on
 	TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, currentStatus.engine); //Confirm AE is flagged on
-
+  
   // No change
   reset_AE();
   currentStatus.TPSlast = 50;
@@ -1027,9 +1029,9 @@ static void test_corrections_TAE_no_rpm_taper()
   // Large change
   reset_AE();
   currentStatus.TPSlast = 0;
-  currentStatus.TPS = 200;
+  currentStatus.TPS = 100;
   accelValue = correctionAccel(); //Run the AE calcs
-  TEST_ASSERT_EQUAL(3000, currentStatus.tpsDOT);
+  TEST_ASSERT_EQUAL(1500, currentStatus.tpsDOT);
   TEST_ASSERT_EQUAL(100+136, accelValue);
 	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged on
 	TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, currentStatus.engine); //Confirm AE is flagged on
@@ -1183,6 +1185,8 @@ static void setup_MAE(void)
   setup_AE();
 
   configPage2.aeMode = AE_MODE_MAP; //Set AE to TPS
+  LOOP_TIMER = 0;
+  BIT_SET(LOOP_TIMER, MAP_TIMER_BIT);
 
   TEST_DATA_P uint8_t bins[] = { 0, 15, 19, 50 };
   TEST_DATA_P uint8_t values[] = { 70, 103, 124, 136 };
@@ -1269,7 +1273,7 @@ static void test_corrections_MAE_no_rpm_taper()
   MAPlast = 10;
   currentStatus.MAP = 1000;
   accelValue = correctionAccel(); //Run the AE calcs
-  TEST_ASSERT_EQUAL(6960, currentStatus.mapDOT);
+  TEST_ASSERT_EQUAL(2550, currentStatus.mapDOT);
   TEST_ASSERT_EQUAL((100+136), accelValue);
 	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged on
 	TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, currentStatus.engine); //Confirm AE is flagged on
@@ -1281,7 +1285,7 @@ static void test_corrections_MAE_no_rpm_taper()
   MAPlast = 10;
   currentStatus.MAP = 1000;
   accelValue = correctionAccel(); //Run the AE calcs
-  TEST_ASSERT_EQUAL(6930, currentStatus.mapDOT);
+  TEST_ASSERT_EQUAL(2550, currentStatus.mapDOT);
   TEST_ASSERT_EQUAL(100+136, accelValue);
 	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged pn  
 	TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, currentStatus.engine); //Confirm AE is flagged on
