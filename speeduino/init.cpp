@@ -20,6 +20,7 @@
 #include "idle.h"
 #include "table2d.h"
 #include "acc_mc33810.h"
+#include "unit_testing.h"
 #include BOARD_H //Note that this is not a real file, it is defined in globals.h. 
 #if defined(EEPROM_RESET_PIN)
   #include EEPROM_LIB_H
@@ -29,10 +30,7 @@
   #include "rtc_common.h"
 #endif
 
-#if !defined(UNIT_TEST)
-static inline 
-#endif
-void construct2dTables(void) {
+TESTABLE_INLINE_STATIC void construct2dTables(void) {
   //Repoint the 2D table structs to the config pages that were just loaded
   taeTable.valueSize = SIZE_BYTE; //Set this table to use byte values
   taeTable.axisSize = SIZE_BYTE; //Set this table to use byte axis bins
