@@ -1259,7 +1259,7 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
 
 uint16_t calculatePWLimit(void)
 {
-  uint32_t tempLimit = percentage(configPage2.dutyLim, revolutionTime); //The pulsewidth limit is determined to be the duty cycle limit (Eg 85%) by the total time it takes to perform 1 revolution
+  uint32_t tempLimit = percentage(configPage2.dutyLim, getRevolutionTime()); //The pulsewidth limit is determined to be the duty cycle limit (Eg 85%) by the total time it takes to perform 1 revolution
   //Handle multiple squirts per rev
   if (configPage2.strokes == FOUR_STROKE) { tempLimit = tempLimit * 2; }
   //Optimise for power of two divisions where possible
