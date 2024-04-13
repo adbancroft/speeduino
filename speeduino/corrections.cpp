@@ -51,7 +51,6 @@ static int16_t knockWindowMax;//The current maximum crank angle for a knock puls
 static uint8_t aseTaper;
 static uint8_t dfcoDelay;
 static uint8_t idleAdvTaper;
-static uint8_t crankingEnrichTaper;
 static uint8_t dfcoTaper;
 
 /** Initialise instances and vars related to corrections (at ECU boot-up).
@@ -80,21 +79,21 @@ void initialiseCorrections(void)
 /** Warm Up Enrichment (WUE) corrections.
 Uses a 2D enrichment table (WUETable) where the X axis is engine temp and the Y axis is the amount of extra fuel to add
 */
-TESTABLE_INLINE_STATIC byte correctionWUE(void)
+TESTABLE_INLINE_STATIC uint8_t correctionWUE(void)
 {
-  byte WUEValue;
+  uint8_t WUEValue;
   //Possibly reduce the frequency this runs at (Costs about 50 loops per second)
   //if (currentStatus.coolant > (WUETable.axisX[9] - CALIBRATION_TEMPERATURE_OFFSET))
   if (currentStatus.coolant > (table2D_getAxisValue(&WUETable, 9) - CALIBRATION_TEMPERATURE_OFFSET))
   {
     //This prevents us doing the 2D lookup if we're already up to temp
     BIT_CLEAR(currentStatus.engine, BIT_ENGINE_WARMUP);
-    WUEValue = table2D_getRawValue(&WUETable, 9);
+    WUEValue = (uint8_t)table2D_getRawValue(&WUETable, 9);
   }
   else
   {
     BIT_SET(currentStatus.engine, BIT_ENGINE_WARMUP);
-    WUEValue = table2D_getValue(&WUETable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
+    WUEValue = (uint8_t)table2D_getValue(&WUETable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
   }
 
   return WUEValue;
@@ -105,29 +104,47 @@ TESTABLE_INLINE_STATIC byte correctionWUE(void)
 /** Cranking Enrichment corrections.
 Additional fuel % to be added when the engine is cranking
 */
+
+static inline uint16_t lookUpCrankingEnrichmentPct(void) {
+  return  (uint16_t)table2D_getValue(&crankingEnrichTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET)
+                * 5U; //multiplied by 5 to get range from 0% to 1275%
+}
+
+//Taper start value needs to account for ASE that is now running, so total correction does not increase when taper begins
+static inline uint16_t computeCrankingTaperStartPct(uint16_t crankingPercent) {
+  // Avoid 32-bit division if possible
+  if (BIT_CHECK(currentStatus.engine, BIT_ENGINE_ASE) && currentStatus.ASEValue!=100U) {
+    return udiv_32_16((uint32_t)crankingPercent * UINT32_C(100), currentStatus.ASEValue);
+  };
+
+  return crankingPercent;
+}
+
 TESTABLE_INLINE_STATIC uint16_t correctionCranking(void)
 {
-  uint16_t crankingValue = 100;
+  static uint8_t crankingEnrichTaper = 0U;
+
+  uint16_t crankingPercent = 100U;
+
   //Check if we are actually cranking
   if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
   {
-    crankingValue = table2D_getValue(&crankingEnrichTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
-    crankingValue = (uint16_t) crankingValue * 5; //multiplied by 5 to get range from 0% to 1275%
-    crankingEnrichTaper = 0;
+    crankingPercent = lookUpCrankingEnrichmentPct();
+    crankingEnrichTaper = 0U;
   }
-  
   //If we're not cranking, check if if cranking enrichment tapering to ASE should be done
   else if ( crankingEnrichTaper < configPage10.crankingEnrichTaper )
   {
-    crankingValue = table2D_getValue(&crankingEnrichTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
-    crankingValue = (uint16_t) crankingValue * 5; //multiplied by 5 to get range from 0% to 1275%
-    //Taper start value needs to account for ASE that is now running, so total correction does not increase when taper begins
-    unsigned long taperStart = (unsigned long) crankingValue * 100 / currentStatus.ASEValue;
-    crankingValue = (uint16_t) map(crankingEnrichTaper, 0, configPage10.crankingEnrichTaper, taperStart, 100); //Taper from start value to 100%
-    if (crankingValue < 100) { crankingValue = 100; } //Sanity check
+    crankingPercent = (uint16_t) map( crankingEnrichTaper, 
+                                      0U, configPage10.crankingEnrichTaper, 
+                                      computeCrankingTaperStartPct(lookUpCrankingEnrichmentPct()), 100U); //Taper from start value to 100%
     if( BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ) ) { crankingEnrichTaper++; }
+  } else {
+    // Not cranking and taper not in effect, so no cranking enrichment needed.
+    // just need to keep MISRA checker happy.
   }
-  return crankingValue;
+
+  return max((uint16_t)100U, (uint16_t)crankingPercent);
 }
 
 // ============================= After Start Enrichment =============================
