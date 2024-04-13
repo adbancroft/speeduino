@@ -92,6 +92,9 @@ uint8_t random1to100(void);
  */
 #define UDIV_ROUND_CLOSEST(n, d, t) ((t)((n) + DIV_ROUND_CORRECT(d, t))/(t)(d))
 
+/** @brief Rounding up \em unsigned integer division */
+#define UDIV_ROUND_UP(n, d, t) ((t)((n) + (t)((d)+1U))/(t)(d))
+
 ///@}
 
 /** @brief Test whether the parameter is an integer or not. */

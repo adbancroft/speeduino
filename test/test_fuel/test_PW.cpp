@@ -159,7 +159,7 @@ void test_PW_Limit_90pct(void)
 {
   test_PW_setCommon();
 
-  revolutionTime = 10000UL; //6000 rpm
+  setRevolutionTime(10000UL, currentStatus); //6000 rpm
   configPage2.dutyLim = 90;
 
   //Duty limit of 90% for 10,000uS should give 9,000
@@ -172,7 +172,7 @@ void test_PW_Limit_Long_Revolution(void)
 {
   test_PW_setCommon();
 
-  revolutionTime = 100000UL; //600 rpm, below 915rpm cutover point
+  setRevolutionTime(100000UL, currentStatus); //600 rpm, below 915rpm cutover point
   configPage2.dutyLim = 90;
   configPage2.strokes = TWO_STROKE;
   currentStatus.nSquirts = 1U;

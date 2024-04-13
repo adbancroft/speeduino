@@ -30,6 +30,7 @@ There are 2 top level functions that call more detailed corrections for Fuel and
 #include "maths.h"
 #include "sensors.h"
 #include "src/PID_v1/PID_v1.h"
+#include "crankMaths.h"
 
 long PID_O2, PID_output, PID_AFRTarget;
 /** Instance of the PID object in case that algorithm is used (Always instantiated).
@@ -1096,11 +1097,11 @@ uint16_t correctionsDwell(uint16_t dwell)
     pulsesPerRevolution = (configPage2.nCylinders >> 1);
     dwellPerRevolution = dwellPerRevolution * pulsesPerRevolution;
   }
-  if(dwellPerRevolution > revolutionTime)
+  if(dwellPerRevolution > getRevolutionTime(currentStatus))
   {
     //Possibly need some method of reducing spark duration here as well, but this is a start
-    uint16_t adjustedSparkDur = udiv_32_16(sparkDur_uS * revolutionTime, dwellPerRevolution);
-    tempDwell = udiv_32_16(revolutionTime, (uint16_t)pulsesPerRevolution) - adjustedSparkDur;
+    uint16_t adjustedSparkDur = udiv_32_16(sparkDur_uS * getRevolutionTime(currentStatus), dwellPerRevolution);
+    tempDwell = udiv_32_16(getRevolutionTime(currentStatus), (uint16_t)pulsesPerRevolution) - adjustedSparkDur;
   }
 
   return tempDwell;

@@ -1,4 +1,3 @@
-#include "globals.h"
 #include "crankMaths.h"
 #include "bit_shifts.h"
 
@@ -13,23 +12,37 @@ int rpmDelta;
 typedef uint32_t UQ24X8_t;
 static constexpr uint8_t UQ24X8_Shift = 8U;
 
-/** @brief uS per degree at current RPM in UQ24.8 fixed point */
+/** @brief µS per degree at current RPM in UQ24.8 fixed point 
+ * 
+ * Ranges between 
+ *   * 1040649 (4065.039 µS/°) at MIN_RPM/MIN_REVOLUTION_TIME
+ *   * 2370    (9.258333 µS/°) at MAX_RPM/MAX_REVOLUTION_TIME
+*/
 static  UQ24X8_t microsPerDegree;
 static constexpr uint8_t microsPerDegree_Shift = UQ24X8_Shift;
 
 typedef uint16_t UQ1X15_t;
 static constexpr uint8_t UQ1X15_Shift = 15U;
 
-/** @brief Degrees per uS in UQ1.15 fixed point.
+/** @brief Degrees per µS in UQ1.15 fixed point.
  * 
- * Ranges from 8 (0.000246) at MIN_RPM to 3542 (0.108) at MAX_RPM
+ * Ranges between 
+ *   * 8    (0.000246 °/µS) at MIN_RPM/MIN_REVOLUTION_TIME
+ *   * 3539 (0.108011 °/µS) at MAX_RPM/MAX_REVOLUTION_TIME
  */
 static UQ1X15_t degreesPerMicro;
 static constexpr uint8_t degreesPerMicro_Shift = UQ1X15_Shift;
 
-void setAngleConverterRevolutionTime(uint32_t revolutionTime) {
-  microsPerDegree = div360(lshift<microsPerDegree_Shift>(revolutionTime));
-  degreesPerMicro = (uint16_t)UDIV_ROUND_CLOSEST(lshift<degreesPerMicro_Shift>(UINT32_C(360)), revolutionTime, uint32_t);
+bool setRevolutionTime(uint32_t revTime, statuses &current) {
+  bool hasChanged = (revTime!=current.revolutionTime) && (revTime>=MIN_REVOLUTION_TIME) && (revTime<MAX_REVOLUTION_TIME);
+  
+  if (hasChanged) {
+    current.revolutionTime = revTime;
+    microsPerDegree = div360(lshift<microsPerDegree_Shift>(revTime));
+    degreesPerMicro = (uint16_t)UDIV_ROUND_CLOSEST(lshift<degreesPerMicro_Shift>(UINT32_C(360)), revTime, uint32_t);
+  }
+
+  return hasChanged;
 }
 
 uint32_t angleToTimeMicroSecPerDegree(uint16_t angle) {
@@ -38,8 +51,8 @@ uint32_t angleToTimeMicroSecPerDegree(uint16_t angle) {
 }
 
 uint16_t timeToAngleDegPerMicroSec(uint32_t time) {
-    uint32_t degFixed = time * (uint32_t)degreesPerMicro;
-    return rshift_round<degreesPerMicro_Shift>(degFixed);
+  uint32_t degFixed = time * (uint32_t)degreesPerMicro;
+  return rshift_round<degreesPerMicro_Shift>(degFixed);
 }
 
 #if SECOND_DERIV_ENABLED!=0

@@ -1,10 +1,10 @@
 #include <unity.h>
 #include "globals.h"
 #include "corrections.h"
-// #include "init.h"
 #include "idle.h"
 #include "../test_utils.h"
 #include "sensors.h"
+#include "crankMaths.h"
 
 extern void construct2dTables(void);
 
@@ -776,7 +776,8 @@ static void setup_correctionsDwell(void) {
     currentStatus.actualDwell = 770;
     currentStatus.battery10 = 95;
 
-    revolutionTime = 666;
+    setRevolutionTime(MIN_REVOLUTION_TIME, currentStatus);
+    TEST_ASSERT_TRUE(setRevolutionTime(6660, currentStatus));
 
     TEST_DATA_P uint8_t bins[] = { 60,  70,  80,  90,  100, 110 };
     TEST_DATA_P uint8_t values[] = { 130, 125, 120, 115, 110, 90 };
@@ -790,18 +791,18 @@ static void test_correctionsDwell_nopertooth(void) {
     configPage2.nCylinders = 8;
 
     configPage4.sparkMode = IGN_MODE_WASTED;
-    TEST_ASSERT_EQUAL(296, correctionsDwell(800));
+    TEST_ASSERT_EQUAL(5920, correctionsDwell(8000));
 
     configPage4.sparkMode = IGN_MODE_SINGLE;
-    TEST_ASSERT_EQUAL(74, correctionsDwell(800));
+    TEST_ASSERT_EQUAL(1480, correctionsDwell(8000));
 
     configPage4.sparkMode = IGN_MODE_ROTARY;
     configPage10.rotaryType = ROTARY_IGN_RX8;
-    TEST_ASSERT_EQUAL(296, correctionsDwell(800));
+    TEST_ASSERT_EQUAL(5920, correctionsDwell(8000));
 
     configPage4.sparkMode = IGN_MODE_ROTARY;
     configPage10.rotaryType = ROTARY_IGN_FC;
-    TEST_ASSERT_EQUAL(74, correctionsDwell(800));
+    TEST_ASSERT_EQUAL(1480, correctionsDwell(8000));
 }
 
 static void test_correctionsDwell_pertooth(void) {
@@ -813,10 +814,10 @@ static void test_correctionsDwell_pertooth(void) {
     configPage4.sparkMode = IGN_MODE_WASTED;
 
     currentStatus.actualDwell = 200;
-    TEST_ASSERT_EQUAL(444, correctionsDwell(800));
+    TEST_ASSERT_EQUAL(6390, correctionsDwell(8000));
 
     currentStatus.actualDwell = 1400;
-    TEST_ASSERT_EQUAL(296, correctionsDwell(800));
+    TEST_ASSERT_EQUAL(6360, correctionsDwell(8000));
 }
 
 static void test_correctionsDwell_wasted_nopertooth_largerevolutiontime(void) {
@@ -824,16 +825,16 @@ static void test_correctionsDwell_wasted_nopertooth_largerevolutiontime(void) {
 
     currentStatus.dwellCorrection = 55;
     currentStatus.battery10 = 105;
-    revolutionTime = 5000;
-    TEST_ASSERT_EQUAL(800, correctionsDwell(800));
+    setRevolutionTime(5000, currentStatus);
+    TEST_ASSERT_EQUAL(4445, correctionsDwell(8000));
 }
 
 static void test_correctionsDwell_initialises_current_actualDwell(void) {
     setup_correctionsDwell();
 
     currentStatus.actualDwell = 0;
-    correctionsDwell(777);
-    TEST_ASSERT_EQUAL(777, currentStatus.actualDwell);
+    correctionsDwell(7770);
+    TEST_ASSERT_EQUAL(7770, currentStatus.actualDwell);
 }
 
 static void test_correctionsDwell_sets_dwellCorrection(void) {
@@ -841,7 +842,7 @@ static void test_correctionsDwell_sets_dwellCorrection(void) {
 
     currentStatus.dwellCorrection = UINT8_MAX;
     currentStatus.battery10 = 90;
-    correctionsDwell(777);
+    correctionsDwell(7770);
     TEST_ASSERT_EQUAL(115, currentStatus.dwellCorrection);
 }
 
@@ -851,10 +852,10 @@ static void test_correctionsDwell_uses_batvcorrection(void) {
     configPage4.sparkMode = IGN_MODE_WASTED;
 
     currentStatus.battery10 = 105;
-    TEST_ASSERT_EQUAL(296, correctionsDwell(800));
+    TEST_ASSERT_EQUAL(5920, correctionsDwell(8000));
 
     currentStatus.battery10 = 65;
-    TEST_ASSERT_EQUAL(337, correctionsDwell(800));
+    TEST_ASSERT_EQUAL(6068, correctionsDwell(8000));
 }
 
 static void test_correctionsDwell(void) {

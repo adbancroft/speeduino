@@ -57,7 +57,7 @@ uint16_t staged_req_fuel_mult_sec = 0;
 
 TESTABLE_INLINE_STATIC uint16_t calculatePWLimit(void)
 {
-  uint32_t tempLimit = percentage(configPage2.dutyLim, revolutionTime); //The pulsewidth limit is determined to be the duty cycle limit (Eg 85%) by the total time it takes to perform 1 revolution
+  uint32_t tempLimit = percentage(configPage2.dutyLim, getRevolutionTime(currentStatus)); //The pulsewidth limit is determined to be the duty cycle limit (Eg 85%) by the total time it takes to perform 1 revolution
   //Handle multiple squirts per rev
   if (configPage2.strokes == FOUR_STROKE) { tempLimit = tempLimit * 2; }
   //Optimise for power of two divisions where possible

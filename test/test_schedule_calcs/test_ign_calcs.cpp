@@ -8,14 +8,12 @@
 
 #define _countof(x) (sizeof(x) / sizeof (x[0]))
 
-extern void SetRevolutionTime(uint32_t revTime);
-
 constexpr uint16_t DWELL_TIME_MS = 4;
 
 uint16_t dwellAngle;
 
 void setEngineSpeed(uint16_t rpm, int16_t max_crank) {
-    SetRevolutionTime(UDIV_ROUND_CLOSEST(60UL*1000000UL, rpm, uint32_t));
+    setRevolutionTime(UDIV_ROUND_CLOSEST(60UL*1000000UL, rpm, uint32_t), currentStatus);
     CRANK_ANGLE_MAX_IGN = max_crank;
     CRANK_ANGLE_MAX_INJ = max_crank;
     dwellAngle = timeToAngleDegPerMicroSec(DWELL_TIME_MS*1000UL);
@@ -66,7 +64,7 @@ static void test_calc_ign_timeout_360()
 {
     setEngineSpeed(4000, 360);
     
-    TEST_ASSERT_EQUAL(15000, revolutionTime);    
+    TEST_ASSERT_EQUAL(15000, getRevolutionTime(currentStatus));    
     TEST_ASSERT_EQUAL(96, dwellAngle);
 
     // Expected test values were generated using floating point calculations (in Excel)

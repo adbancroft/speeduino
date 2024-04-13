@@ -38,9 +38,9 @@
 
 #define CRANK_ANGLE_MAX (max(CRANK_ANGLE_MAX_IGN, CRANK_ANGLE_MAX_INJ))
 
-#define MICROS_PER_SEC INT32_C(1000000)
-#define MICROS_PER_MIN INT32_C(MICROS_PER_SEC*60U)
-#define MICROS_PER_HOUR INT32_C(MICROS_PER_MIN*60U)
+#define MICROS_PER_SEC UINT32_C(1000000)
+#define MICROS_PER_MIN (MICROS_PER_SEC*60UL)
+#define MICROS_PER_HOUR (MICROS_PER_MIN*60UL)
 
 #define SERIAL_PORT_PRIMARY   0
 #define SERIAL_PORT_SECONDARY 3
@@ -435,7 +435,6 @@ extern byte triggerInterrupt3;
 extern byte fpPrimeTime; //The time (in seconds, based on currentStatus.secl) that the fuel pump started priming
 extern uint8_t softLimitTime; //The time (in 0.1 seconds, based on seclx10) that the soft limiter started
 extern volatile uint16_t mainLoopCount;
-extern uint32_t revolutionTime; //The time in uS that one revolution would take at current speed (The time tooth 1 was last seen, minus the time it was seen prior to that)
 extern volatile unsigned long timer5_overflow_count; //Increments every time counter 5 overflows. Used for the fast version of micros()
 extern volatile unsigned long ms_counter; //A counter that increments once per ms
 extern uint16_t fixedCrankingOverride;
@@ -597,6 +596,14 @@ struct statuses {
   byte outputsStatus;
   byte TS_SD_Status; //TunerStudios SD card status
   byte airConStatus;
+
+  /**
+   * @brief The crank revolution time in µS (for one 360° revolution).
+   * 
+   * Will be between MIN_REVOLUTION_TIME & MAX_REVOLUTION_TIME
+   * @warning Do not set this directly. Instead use the setRevolutionTime() function.
+   */
+  uint32_t revolutionTime;
 };
 
 /**
