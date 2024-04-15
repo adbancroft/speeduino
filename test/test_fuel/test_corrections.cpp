@@ -14,6 +14,8 @@ extern byte correctionWUE(void);
 static void setup_wue_table(void) {
   construct2dTables();
   initialiseCorrections();
+  LOOP_TIMER = 0;
+  BIT_SET(LOOP_TIMER, BIT_TIMER_4HZ) ;
 
   //Set some fake values in the table axis. Target value will fall between points 6 and 7
   TEST_DATA_P uint8_t bins[] = { 
@@ -51,24 +53,21 @@ static void test_corrections_WUE_inactive(void)
 static void test_corrections_WUE_inactive_value(void)
 {
   setup_wue_table();
-  configPage4.wueBins[9] = 100;
-  configPage2.wueValues[9] = 123; //Use a value other than 100 here to ensure we are using the non-default value
 
   //Check for WUE being set to the final row of the WUE curve if the coolant is above the max WUE temp
   currentStatus.coolant = 200;
+  configPage4.wueBins[9] = 100;
+  configPage2.wueValues[9] = 123; //Use a value other than 100 here to ensure we are using the non-default value
   
   TEST_ASSERT_EQUAL(123, correctionWUE() );
 }
 
 static void test_corrections_WUE_active_value(void)
 {
-  //Check for WUE being made active and returning a correct interpolated value
-  currentStatus.coolant = 80;
-
   setup_wue_table();
 
-  //Force invalidate the cache
-  WUETable.cacheTime = currentStatus.secl - 1;
+  //Check for WUE being made active and returning a correct interpolated value
+  currentStatus.coolant = 80;
   
   //Value should be midway between 120 and 130 = 125
   TEST_ASSERT_EQUAL(125, correctionWUE() );
@@ -686,6 +685,7 @@ static void test_corrections_bat_mode_wholePw(void) {
   currentStatus.battery10 = 75;
   configPage2.injOpen = 10;
   inj_opentime_uS = configPage2.injOpen * 100U;
+  BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
 
   TEST_ASSERT_EQUAL(108U, correctionBatVoltage() );
   TEST_ASSERT_EQUAL(configPage2.injOpen * 100U, inj_opentime_uS );
@@ -698,6 +698,7 @@ static void test_corrections_bat_mode_opentime(void) {
   currentStatus.battery10 = 75;
   configPage2.injOpen = 10;
   inj_opentime_uS = configPage2.injOpen * 100U;
+  BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
 
   TEST_ASSERT_EQUAL(100U, correctionBatVoltage() );
   TEST_ASSERT_EQUAL(configPage2.injOpen * 108U, inj_opentime_uS );
@@ -1388,6 +1389,31 @@ extern byte correctionIATDensity(void);
  
 extern byte correctionBaro(void);
 
+static void setup_baro_correction(void) {
+  construct2dTables();
+  initialiseCorrections();
+
+  TEST_DATA_P uint8_t bins[] = { 60, 70, 80, 90, 100, 110 };
+  TEST_DATA_P uint8_t values[] = { 115, 110, 105, 100, 95, 90 };
+  populate_2dtable_P(&baroFuelTable, values, bins);
+}
+
+// Battery correction will recalculates at 10Hz, otherwise it will re-use cached values. 
+static void test_corrections_baro_lookup(void) {
+  setup_baro_correction();
+
+  BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
+  currentStatus.baro = 95;
+  currentStatus.baroCorrection = 1U;
+  TEST_ASSERT_NOT_EQUAL(currentStatus.baroCorrection, correctionBaro());
+}
+
+static void test_corrections_baro(void)
+{
+  RUN_TEST_P(test_corrections_baro_lookup);
+}
+
+
 static void test_corrections_correctionsFuel_ae_modes(void) {
   test_corrections_TAE_setup();
   populate_2dtable(&injectorVCorrectionTable, 100, 100);
@@ -1539,4 +1565,5 @@ void testCorrections()
   test_corrections_afrtarget();
   test_corrections_closedloop();
   test_corrections_correctionsFuel();
+  test_corrections_baro();
 }
