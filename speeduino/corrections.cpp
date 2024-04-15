@@ -77,6 +77,7 @@ void initialiseCorrections(void)
   //Default value of no adjustment must be set to avoid randomness on first correction cycle after startup
   currentStatus.egoCorrection = NO_FUEL_CORRECTION; 
   currentStatus.ASEValue = NO_FUEL_CORRECTION;
+  currentStatus.wueCorrection = NO_FUEL_CORRECTION;
   AFRnextCycle = 0;
   BIT_CLEAR(currentStatus.status5, BIT_STATUS5_KNOCK_ACTIVE);
   BIT_CLEAR(currentStatus.status5, BIT_STATUS5_KNOCK_PULSE);
@@ -93,18 +94,21 @@ Uses a 2D enrichment table (WUETable) where the X axis is engine temp and the Y 
 */
 TESTABLE_INLINE_STATIC uint8_t correctionWUE(void)
 {
-  uint8_t WUEValue;
-  //Possibly reduce the frequency this runs at (Costs about 50 loops per second)
-  if (currentStatus.coolant > (table2D_getAxisValue(&WUETable, 9) - CALIBRATION_TEMPERATURE_OFFSET))
-  {
-    //This prevents us doing the 2D lookup if we're already up to temp
-    BIT_CLEAR(currentStatus.engine, BIT_ENGINE_WARMUP);
-    WUEValue = (uint8_t)table2D_getRawValue(&WUETable, 9);
-  }
-  else
-  {
-    BIT_SET(currentStatus.engine, BIT_ENGINE_WARMUP);
-    WUEValue = (uint8_t)table2D_getValue(&WUETable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
+  uint8_t WUEValue = currentStatus.wueCorrection;
+
+  // Only update as fast as the sensor is read
+  if( BIT_CHECK(LOOP_TIMER, CLT_TIMER_BIT) ) { 
+    if (currentStatus.coolant >= (table2D_getAxisValue(&WUETable, WUETable.xSize-1U) - CALIBRATION_TEMPERATURE_OFFSET))
+    {
+      //This prevents us doing the 2D lookup if we're already up to temp
+      BIT_CLEAR(currentStatus.engine, BIT_ENGINE_WARMUP);
+      WUEValue = (uint8_t)table2D_getRawValue(&WUETable, WUETable.xSize-1U);
+    }
+    else
+    {
+      BIT_SET(currentStatus.engine, BIT_ENGINE_WARMUP);
+      WUEValue = (uint8_t)table2D_getValue(&WUETable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
+    }
   }
 
   return WUEValue;
