@@ -213,10 +213,10 @@ static inline void setup_correctionASE(void) {
   initialiseCorrections();
 
   BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK);
+  LOOP_TIMER = 0;
   BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ) ;
   constexpr int16_t COOLANT_INITIAL = 150 - CALIBRATION_TEMPERATURE_OFFSET; 
   currentStatus.coolant = COOLANT_INITIAL;
-  currentStatus.ASEValue = 0U;
   currentStatus.runSecs = 3;
 
   {
@@ -1396,11 +1396,14 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
   populate_2dtable(&flexFuelTable, 100, 100);
   populate_2dtable(&fuelTempTable, 100, 100);
 
+  BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
+
   //Disable the taper
   currentStatus.RPM = 2000;
   configPage2.aeTaperMin = 50; //5000
   configPage2.aeTaperMax = 60; //6000
   configPage2.decelAmount = 33U;
+  configPage2.aseTaperTime = 0U;
 
   currentStatus.TPSlast = 0;
   currentStatus.TPS = 50; //25% actual value
@@ -1412,6 +1415,7 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
   currentStatus.launchingSoft = false;
   BIT_CLEAR(currentStatus.status1, BIT_STATUS1_DFCO);
   BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK);
+  currentStatus.ASEValue = 100U;
 
   configPage2.battVCorMode = BATTV_COR_MODE_WHOLE;
   configPage2.dfcoEnabled = 0;
@@ -1483,6 +1487,7 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   configPage2.flexEnabled = 1;
   configPage2.battVCorMode = BATTV_COR_MODE_WHOLE;
   configPage2.dfcoEnabled = 0;
+  configPage2.aseTaperTime = 0U;
   currentStatus.coolant = 212;
   currentStatus.runSecs = 255; 
   currentStatus.battery10 = 100;  
@@ -1491,6 +1496,7 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   currentStatus.ethanolPct = 100;
   currentStatus.launchingHard = false;
   currentStatus.launchingSoft = false;
+  currentStatus.ASEValue = 100U;
 
   configPage4.wueBins[9] = 100;
   configPage2.wueValues[9] = 100; //Use a value other than 100 here to ensure we are using the non-default value

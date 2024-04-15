@@ -47,7 +47,6 @@ unsigned long knockStartTime;
 static uint8_t lastKnockCount;
 static int16_t knockWindowMin; //The current minimum crank angle for a knock pulse to be valid
 static int16_t knockWindowMax;//The current maximum crank angle for a knock pulse to be valid
-static uint8_t aseTaper;
 static uint8_t dfcoDelay;
 static uint8_t idleAdvTaper;
 static uint8_t dfcoTaper;
@@ -69,7 +68,9 @@ void initialiseCorrections(void)
   egoPID.SetMode(AUTOMATIC);
 
   currentStatus.flexIgnCorrection = 0;
-  currentStatus.egoCorrection = NO_FUEL_CORRECTION; //Default value of no adjustment must be set to avoid randomness on first correction cycle after startup
+  //Default value of no adjustment must be set to avoid randomness on first correction cycle after startup
+  currentStatus.egoCorrection = NO_FUEL_CORRECTION; 
+  currentStatus.ASEValue = NO_FUEL_CORRECTION;
   AFRnextCycle = 0;
   currentStatus.knockActive = false;
   currentStatus.battery10 = 125; //Set battery voltage to sensible value for dwell correction for "flying start" (else ignition gets spurious pulses after boot)  
@@ -84,7 +85,6 @@ TESTABLE_INLINE_STATIC uint8_t correctionWUE(void)
 {
   uint8_t WUEValue;
   //Possibly reduce the frequency this runs at (Costs about 50 loops per second)
-  //if (currentStatus.coolant > (WUETable.axisX[9] - CALIBRATION_TEMPERATURE_OFFSET))
   if (currentStatus.coolant > (table2D_getAxisValue(&WUETable, 9) - CALIBRATION_TEMPERATURE_OFFSET))
   {
     //This prevents us doing the 2D lookup if we're already up to temp
@@ -156,49 +156,49 @@ TESTABLE_INLINE_STATIC uint16_t correctionCranking(void)
  * 
  * @return uint8_t The After Start Enrichment modifier as a %. 100% = No modification. 
  */   
-TESTABLE_INLINE_STATIC byte correctionASE(void)
+TESTABLE_INLINE_STATIC uint8_t correctionASE(void)
 {
-  int16_t ASEValue = currentStatus.ASEValue;
-  //Two checks are required:
-  //1) Is the engine run time less than the configured ase time
-  //2) Make sure we're not still cranking
-  if( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) != true )
-  {
-    if ( BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ) || (currentStatus.ASEValue == 0) )
-    {
-      if ( (currentStatus.runSecs < (table2D_getValue(&ASECountTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET))) && !(BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) )
-      {
-        BIT_SET(currentStatus.engine, BIT_ENGINE_ASE); //Mark ASE as active.
-        ASEValue = 100 + table2D_getValue(&ASETable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
-        aseTaper = 0;
-      }
-      else
-      {
-        if ( aseTaper < configPage2.aseTaperTime ) //Check if we've reached the end of the taper time
-        {
-          BIT_SET(currentStatus.engine, BIT_ENGINE_ASE); //Mark ASE as active.
-          ASEValue = 100 + map(aseTaper, 0, configPage2.aseTaperTime, table2D_getValue(&ASETable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET), 0);
-          aseTaper++;
-        }
-        else
-        {
-          BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ASE); //Mark ASE as inactive.
-          ASEValue = NO_FUEL_CORRECTION;
-        }
-      }
-      
-      //Safety checks
-      if(ASEValue > 255) { ASEValue = 255; }
-      if(ASEValue < 0) { ASEValue = 0; }
-      ASEValue = (byte)ASEValue;
-    }
-  }
-  else
-  {
-    //Engine is cranking, ASE disabled
-    BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ASE); //Mark ASE as inactive.
+  // We use aseTaper both to track taper AND as a flag value
+  // to tell when ASE is complete and avoid unecessary table lookups.
+  constexpr uint8_t ASE_COMPLETE = UINT8_MAX;
+  static uint8_t aseTaper = 0U;
+
+  uint8_t ASEValue = NO_FUEL_CORRECTION;
+
+  if (BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) {
+    // Engine is cranking - mark ASE as inactive and ready to run 
+    BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ASE); 
+    aseTaper = 0U; 
     ASEValue = NO_FUEL_CORRECTION;
+  } else if (aseTaper!=ASE_COMPLETE) {
+    // ASE hasn't started or isn't complete.
+    // We only update ASE every 100ms for performance reasons - coolant
+    // doesn't chnge temperature that quickly. We must use 100ms since 
+    // aseTaper counts tenths of a second.
+    if ( BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ))
+    {
+      if (aseTaper==0U // Avoid table lookup if taper is being applied
+       && (currentStatus.runSecs < ((uint8_t)table2D_getValue(&ASECountTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET))) )
+      {
+        BIT_SET(currentStatus.engine, BIT_ENGINE_ASE);
+        ASEValue = 100U + (uint8_t)table2D_getValue(&ASETable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
+      } else if ( aseTaper < configPage2.aseTaperTime ) { //Check if we've reached the end of the taper time
+        BIT_SET(currentStatus.engine, BIT_ENGINE_ASE);
+        ASEValue = 100U + (uint8_t)map(aseTaper++, 
+                                        0U, configPage2.aseTaperTime, 
+                                        (uint8_t)table2D_getValue(&ASETable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET), 0);
+      } else {
+        // ASE has finished
+        BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ASE); //Mark ASE as inactive.
+        aseTaper = ASE_COMPLETE; // Flag ASE as complete
+        ASEValue = NO_FUEL_CORRECTION;
+      }
+    } else {
+      // ASE is in effect, but we're not due to update, so reuse previous value.
+      ASEValue = currentStatus.ASEValue;
+    }    
   }
+
   return ASEValue;
 }
 
