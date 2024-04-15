@@ -352,13 +352,16 @@ static inline int16_t computeMapDot(void) {
   if (mapChange==0U) {
     return 0U;
   }
-  uint32_t mapDeltaT = MAP_time - MAPlast_time;
-  // Faster division path. Will almost always be taken when above idle - mapDeltaT>65535µS 
-  // would mean RPM<~915 (or ~1830 if averaging over a 720° cycle)
-  if (mapDeltaT<(uint32_t)UINT16_MAX) {
-    return (int16_t)udiv_32_16(MICROS_PER_SEC, mapDeltaT) * mapChange; 
+  uint16_t mapDeltaT = (uint16_t)(MAP_time - MAPlast_time);
+
+  // Faster division path. Will almost always be taken when above idle - mapDeltaT>255ms
+  // would mean RPM<~1400
+  static constexpr uint16_t MAX_udiv_16_8 = UINT8_MAX; 
+  static constexpr uint16_t MIN_udiv_16_8 = MILLIS_PER_SEC/UINT8_MAX; 
+  if (mapDeltaT<=MAX_udiv_16_8 && mapDeltaT>MIN_udiv_16_8) {
+    return (int16_t)udiv_16_8(MILLIS_PER_SEC, mapDeltaT) * mapChange; 
   } 
-  return (MICROS_PER_SEC / mapDeltaT) * mapChange;
+  return (MILLIS_PER_SEC / mapDeltaT) * mapChange;
 }
 
 static inline uint16_t correctionAccelModeMap(void) {

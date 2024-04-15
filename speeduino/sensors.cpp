@@ -226,7 +226,7 @@ void instanteneousMAPReading(void)
   //Update the calculation times and last value. These are used by the MAP based Accel enrich
   MAPlast = currentStatus.MAP;
   MAPlast_time = MAP_time;
-  MAP_time = micros();
+  MAP_time = millis();
 
   unsigned int tempReading;
   //Instantaneous MAP readings
@@ -331,7 +331,7 @@ void readMAP(void)
             //Update the calculation times and last value. These are used by the MAP based Accel enrich
             MAPlast = currentStatus.MAP;
             MAPlast_time = MAP_time;
-            MAP_time = micros();
+            MAP_time = millis();
 
             currentStatus.mapADC = udiv_32_16(MAPrunningValue, MAPcount);
             currentStatus.MAP = fastMap10Bit(currentStatus.mapADC, configPage2.mapMin, configPage2.mapMax); //Get the current MAP value
@@ -391,7 +391,7 @@ void readMAP(void)
           //Update the calculation times and last value. These are used by the MAP based Accel enrich
           MAPlast = currentStatus.MAP;
           MAPlast_time = MAP_time;
-          MAP_time = micros();
+          MAP_time = millis();
 
           currentStatus.mapADC = MAPrunningValue;
           currentStatus.MAP = fastMap10Bit(currentStatus.mapADC, configPage2.mapMin, configPage2.mapMax); //Get the current MAP value
@@ -439,7 +439,7 @@ void readMAP(void)
             //Update the calculation times and last value. These are used by the MAP based Accel enrich
             MAPlast = currentStatus.MAP;
             MAPlast_time = MAP_time;
-            MAP_time = micros();
+            MAP_time = millis();
 
             currentStatus.mapADC = udiv_32_16(MAPrunningValue, MAPcount);
             currentStatus.MAP = fastMap10Bit(currentStatus.mapADC, configPage2.mapMin, configPage2.mapMax); //Get the current MAP value

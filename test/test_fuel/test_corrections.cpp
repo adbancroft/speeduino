@@ -1167,7 +1167,7 @@ static void test_corrections_MAE_negative_tpsdot()
   configPage2.decelAmount = 50;
 
   MAPlast_time = UINT16_MAX*2UL;
-  MAP_time = MAPlast_time + 25000UL; 
+  MAP_time = MAPlast_time + 25UL; 
   MAPlast = 50;
   currentStatus.MAP = 40;
 
@@ -1188,7 +1188,7 @@ static void test_corrections_MAE_no_rpm_taper()
   configPage2.aeTaperMax = 60; //6000
 
   MAPlast_time = UINT16_MAX*2UL;
-  MAP_time = MAPlast_time + 25000UL; 
+  MAP_time = MAPlast_time + 25UL; 
   MAPlast = 40;
   currentStatus.MAP = 50;
 
@@ -1209,7 +1209,7 @@ static void test_corrections_MAE_50pc_rpm_taper()
   configPage2.aeTaperMax = 50; //5000
 
   MAPlast_time = UINT16_MAX*2UL;
-  MAP_time = MAPlast_time + 25000UL; 
+  MAP_time = MAPlast_time + 25UL; 
   MAPlast = 40;
   currentStatus.MAP = 50;
 
@@ -1230,7 +1230,7 @@ static void test_corrections_MAE_110pc_rpm_taper()
   configPage2.aeTaperMax = 50; //5000
 
   MAPlast_time = UINT16_MAX*2UL;
-  MAP_time = MAPlast_time + 25000UL; 
+  MAP_time = MAPlast_time + 25UL; 
   MAPlast = 40;
   currentStatus.MAP = 50;
 
@@ -1251,7 +1251,7 @@ static void test_corrections_MAE_under_threshold()
   configPage2.aeTaperMax = 50; //5000
 
   MAPlast_time = UINT16_MAX*2UL;
-  MAP_time = MAPlast_time + 25000UL; 
+  MAP_time = MAPlast_time + 25UL; 
   MAPlast = 0;
   currentStatus.MAP = 6; 
 	configPage2.maeThresh = 241; //Above the reading of 240%/s
@@ -1272,7 +1272,7 @@ static void test_corrections_MAE_50pc_warmup_taper()
   configPage2.aeTaperMax = 60; //6000
 
   MAPlast_time = UINT16_MAX*2UL;
-  MAP_time = MAPlast_time + 25000UL; 
+  MAP_time = MAPlast_time + 25UL; 
   MAPlast = 40;
   currentStatus.MAP = 50;
 
