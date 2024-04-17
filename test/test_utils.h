@@ -2,7 +2,9 @@
 #pragma once
 
 #include <Arduino.h>
+#include <unity.h>
 #include "table2d.h"
+#include "table3d.h"
 
 // Unity macro to reduce memory usage (RAM, .bss)
 //
@@ -87,5 +89,35 @@ static inline void populate_2dtable(table2D *pTable, uint8_t value, uint8_t bin)
     ((uint8_t*)pTable->values)[index] = value;
     ((uint8_t*)pTable->axisX)[index] = bin;
   }
+  pTable->cacheTime = UINT8_MAX;
+}
+
+static inline size_t getTableElementSize(uint8_t type) {
+  switch (type)
+  {
+    case SIZE_INT: return sizeof(int16_t);
+    case SIZE_BYTE: return sizeof(uint8_t);
+    case SIZE_SIGNED_BYTE: return sizeof(int8_t);
+    default: TEST_ABORT();
+  }
+}
+
+static inline size_t getAxisElementSize(const table2D *pTable) {
+  return getTableElementSize(pTable->axisSize);
+}
+
+static inline size_t getValueElementSize(const table2D *pTable) {
+  return getTableElementSize(pTable->valueSize);
+}
+
+static inline void populate_2dtable(table2D *pTable, const uint8_t values[], const uint8_t bins[]) {
+  memcpy(pTable->axisX, bins, getAxisElementSize(pTable)*pTable->xSize);
+  memcpy(pTable->values, values, getValueElementSize(pTable)*pTable->xSize);
+  pTable->cacheTime = UINT8_MAX;
+}
+
+static inline void populate_2dtable_P(table2D *pTable, const uint8_t values[], const uint8_t bins[]) {
+  memcpy_P(pTable->axisX, bins, getAxisElementSize(pTable)*pTable->xSize);
+  memcpy_P(pTable->values, values, getValueElementSize(pTable)*pTable->xSize);
   pTable->cacheTime = UINT8_MAX;
 }
