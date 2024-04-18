@@ -612,7 +612,6 @@ struct statuses {
   int O2_2ADC;
   uint16_t dwell;          ///< dwell (coil primary winding/circuit on) time (in ms * 10 ? See @ref correctionsDwell)
   volatile uint16_t actualDwell;    ///< actual dwell time if new ignition mode is used (in uS)
-  byte dwellCorrection; /**< The amount of correction being applied to the dwell time (in unit ...). */
   byte battery10;     /**< The current BRV in volts (multiplied by 10. Eg 12.5V = 125) */
   int8_t advance;     /**< The current advance value being used in the spark calculation. Can be the same as advance1 or advance2, or a calculated value of both */
   int8_t advance1;    /**< The advance value from ignition table 1 */
