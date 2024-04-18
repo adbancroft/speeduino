@@ -40,7 +40,9 @@ extern volatile unsigned long flexPulseWidth;
 
 #define ADMUX_DEFAULT_CONFIG  0x40 //AVCC reference, ADC0 input, right adjusted, ADC enabled
 
+#if defined(SPEEDY_KNOCK)
 extern volatile byte knockCounter;
+#endif
 
 extern unsigned int MAPcount; //Number of samples taken in the current MAP cycle
 extern uint32_t MAPcurRev; //Tracks which revolution we're sampling on

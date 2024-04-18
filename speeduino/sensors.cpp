@@ -36,8 +36,10 @@ volatile byte flexCounter = 0;
 volatile unsigned long flexStartTime;
 volatile unsigned long flexPulseWidth;
 
+#if defined(SPEEDY_KNOCK)
 volatile byte knockCounter = 0;
 volatile uint16_t knockAngle;
+#endif
 
 //These variables are used for tracking the number of running sensors values that appear to be errors. Once a threshold is reached, the sensor reading will go to default value and assume the sensor is faulty
 byte mapErrorCount = 0;
@@ -831,6 +833,7 @@ void flexPulse(void)
  * The interrupt function for pulses from a knock conditioner / controller
  * 
  */
+#if defined(SPEEDY_KNOCK)
 void knockPulse(void)
 {
   //Check if this the start of a knock. 
@@ -841,8 +844,8 @@ void knockPulse(void)
     knockCounter = 1;
   }
   else { ++knockCounter; } //Knock has already started, so just increment the counter for this
-
 }
+#endif
 
 /**
  * @brief The ISR function for VSS pulses

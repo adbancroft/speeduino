@@ -705,7 +705,7 @@ static void test_correctionSoftFlatShift(void) {
     RUN_TEST_P(test_correctionSoftFlatShift_off_clutchrpmtoolow);
     RUN_TEST_P(test_correctionSoftFlatShift_off_rpmnotinwindow);
 }
-
+#if defined(SPEEDY_KNOCK)
 extern int8_t correctionKnock(int8_t advance);
 
 static void setup_correctionKnock(void) {
@@ -745,12 +745,15 @@ static void test_correctionKnock_disabled_knockactive(void) {
     currentStatus.knockActive = true;
     TEST_ASSERT_EQUAL(-8, correctionKnock(-8));
 }
+#endif
 
 static void test_correctionKnock(void) {
+#if defined(SPEEDY_KNOCK)
     RUN_TEST_P(test_correctionKnock_firstStep);
     RUN_TEST_P(test_correctionKnock_disabled_modeoff);
     RUN_TEST_P(test_correctionKnock_disabled_counttoolow);
     RUN_TEST_P(test_correctionKnock_disabled_knockactive);
+#endif
 }
 
 static void setup_correctionsDwell(void) {

@@ -15,7 +15,8 @@ int8_t correctionCrankingFixedTiming(int8_t advance);
 
 uint16_t correctionsDwell(uint16_t dwell);
 
+#if defined(SPEEDY_KNOCK)
 extern unsigned long knockStartTime;
-
+#endif
 
 #endif // CORRECTIONS_H

@@ -140,16 +140,18 @@ TESTABLE_INLINE_STATIC void construct2dTables(void) {
   fuelTempTable.values = configPage10.fuelTempValues;
   fuelTempTable.axisX = configPage10.fuelTempBins;
 
-  knockWindowStartTable.valueSize = SIZE_BYTE;
-  knockWindowStartTable.axisSize = SIZE_BYTE; //Set this table to use byte axis bins
-  knockWindowStartTable.xSize = 6;
-  knockWindowStartTable.values = configPage10.knock_window_angle;
-  knockWindowStartTable.axisX = configPage10.knock_window_rpms;
-  knockWindowDurationTable.valueSize = SIZE_BYTE;
-  knockWindowDurationTable.axisSize = SIZE_BYTE; //Set this table to use byte axis bins
-  knockWindowDurationTable.xSize = 6;
-  knockWindowDurationTable.values = configPage10.knock_window_dur;
-  knockWindowDurationTable.axisX = configPage10.knock_window_rpms;
+#if defined(SPEEDY_KNOCK)
+    knockWindowStartTable.valueSize = SIZE_BYTE;
+    knockWindowStartTable.axisSize = SIZE_BYTE; //Set this table to use byte axis bins
+    knockWindowStartTable.xSize = 6;
+    knockWindowStartTable.values = configPage10.knock_window_angle;
+    knockWindowStartTable.axisX = configPage10.knock_window_rpms;
+    knockWindowDurationTable.valueSize = SIZE_BYTE;
+    knockWindowDurationTable.axisSize = SIZE_BYTE; //Set this table to use byte axis bins
+    knockWindowDurationTable.xSize = 6;
+    knockWindowDurationTable.values = configPage10.knock_window_dur;
+    knockWindowDurationTable.axisX = configPage10.knock_window_rpms;
+#endif
 
   oilPressureProtectTable.valueSize = SIZE_BYTE;
   oilPressureProtectTable.axisSize = SIZE_BYTE; //Set this table to use byte axis bins

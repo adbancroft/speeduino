@@ -42,10 +42,12 @@ static PID egoPID(&PID_O2, &PID_output, &PID_AFRTarget, configPage6.egoKP, confi
 static uint8_t aeActivatedReading; //The mapDOT/tpsDOT value seen when the MAE/TAE was activated. 
 
 TESTABLE_STATIC uint16_t AFRnextCycle;
+#if defined(SPEEDY_KNOCK)
 unsigned long knockStartTime;
 static uint8_t lastKnockCount;
 static int16_t knockWindowMin; //The current minimum crank angle for a knock pulse to be valid
 static int16_t knockWindowMax;//The current maximum crank angle for a knock pulse to be valid
+#endif
 static uint8_t dfcoDelay;
 static uint8_t dfcoTaper;
 
@@ -71,7 +73,9 @@ void initialiseCorrections(void)
   currentStatus.ASEValue = NO_FUEL_CORRECTION;
   currentStatus.wueCorrection = NO_FUEL_CORRECTION;
   AFRnextCycle = 0;
+#if defined(SPEEDY_KNOCK)
   currentStatus.knockActive = false;
+#endif
   currentStatus.battery10 = 125; //Set battery voltage to sensible value for dwell correction for "flying start" (else ignition gets spurious pulses after boot)  
 }
 
@@ -977,6 +981,7 @@ TESTABLE_INLINE_STATIC int8_t correctionKnock(int8_t advance)
 {
   byte knockRetard = 0;
 
+#if defined(SPEEDY_KNOCK)
   //First check is to do the window calculations (Assuming knock is enabled)
   if( configPage10.knock_mode != KNOCK_MODE_OFF )
   {
@@ -987,7 +992,6 @@ TESTABLE_INLINE_STATIC int8_t correctionKnock(int8_t advance)
 
   if( (configPage10.knock_mode == KNOCK_MODE_DIGITAL)  )
   {
-    //
     if(knockCounter > configPage10.knock_count)
     {
       if(currentStatus.knockActive == true)
@@ -1002,8 +1006,8 @@ TESTABLE_INLINE_STATIC int8_t correctionKnock(int8_t advance)
         knockRetard = configPage10.knock_firstStep;
       }
     }
-
   }
+#endif
 
   return advance - knockRetard;
 }

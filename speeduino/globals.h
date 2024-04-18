@@ -460,8 +460,10 @@ extern struct table2D flexFuelTable;  //6 bin flex fuel correction table for fue
 extern struct table2D flexAdvTable;   //6 bin flex fuel correction table for timing advance (2D)
 extern struct table2D flexBoostTable; //6 bin flex fuel correction table for boost adjustments (2D)
 extern struct table2D fuelTempTable;  //6 bin fuel temperature correction table for fuel adjustments (2D)
+#if defined(SPEEDY_KNOCK)
 extern struct table2D knockWindowStartTable;
 extern struct table2D knockWindowDurationTable;
+#endif
 extern struct table2D oilPressureProtectTable;
 extern struct table2D wmiAdvTable; //6 bin wmi correction table for timing advance (2D)
 extern struct table2D coolantProtectTable; //6 bin coolant temperature protection table for engine protection (2D)
@@ -674,8 +676,10 @@ struct statuses {
   int16_t ignLoad2;
   bool fuelPumpOn; /**< Indicator showing the current status of the fuel pump */
   volatile byte syncLossCounter;
+#if defined(SPEEDY_KNOCK)
   byte knockRetard;
   bool knockActive;
+#endif
   bool toothLogEnabled;
   byte compositeTriggerUsed; // 0 means composite logger disabled, 2 means use secondary input (1st cam), 3 means use tertiary input (2nd cam), 4 means log both cams together
   int16_t vvt1Angle; //Has to be a long for PID calcs (CL VVT control)
@@ -1225,6 +1229,7 @@ struct config10 {
   byte n2o_stage2_adderMax; //Byte 90
   byte n2o_stage2_retard; //Byte 91
 
+#if defined(SPEEDY_KNOCK)
   //Byte 92
   byte knock_mode : 2;
   byte knock_pin : 6;
@@ -1251,7 +1256,9 @@ struct config10 {
   byte knock_duration; //Time after knock retard starts that it should start recovering. Byte 119
   byte knock_recoveryStepTime; //Byte 120
   byte knock_recoveryStep; //Byte 121
-
+#else
+  byte unused92_121[30];
+#endif
   //Byte 122
   byte fuel2Algorithm : 3;
   byte fuel2Mode : 3;
