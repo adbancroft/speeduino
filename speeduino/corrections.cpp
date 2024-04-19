@@ -783,9 +783,13 @@ int8_t correctionFixedTiming(int8_t advance)
  */
 TESTABLE_INLINE_STATIC int8_t correctionCLTadvance(int8_t advance)
 {
-  //Adjust the advance based on CLT.
-  int8_t advanceCLTadjust = (int8_t)(table2D_getValue(&CLTAdvanceTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET)) - 15;
-  return (advance + advanceCLTadjust);
+  // Performance - only lookup update every 100ms.
+  // Coolant temp doesn't change very quickly.
+  static uint8_t cachedValue = UINT8_MAX;
+  if( BIT_CHECK(LOOP_TIMER, BIT_TIMER_4HZ) || (cachedValue == UINT8_MAX)) { 
+    cachedValue = (uint8_t)(table2D_getValue(&CLTAdvanceTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET));
+  }
+  return advance + (int8_t)cachedValue - 15;
 }
 
 /** Correct ignition timing to configured fixed value to use during craning.
