@@ -828,9 +828,12 @@ int8_t correctionFixedTiming(int8_t advance)
  */
 TESTABLE_INLINE_STATIC int8_t correctionCLTadvance(int8_t advance)
 {
-  //Adjust the advance based on CLT.
-  int8_t advanceCLTadjust = (int8_t)(table2D_getValue(&CLTAdvanceTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET)) - 15;
-  return (advance + advanceCLTadjust);
+  static uint8_t cachedValue = 0U; // Setting this to non-zero will use additional RAM for static initialisation
+  // Performance: only update as fast as the sensor is read
+  if( BIT_CHECK(LOOP_TIMER, CLT_TIMER_BIT)) { 
+    cachedValue = (uint8_t)(table2D_getValue(&CLTAdvanceTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET));
+  }
+  return advance + (int8_t)cachedValue - 15;
 }
 
 /** Correct ignition timing to configured fixed value to use during craning.
