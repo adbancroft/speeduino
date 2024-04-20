@@ -32,6 +32,7 @@ There are 2 top level functions that call more detailed corrections for Fuel and
 #include "src/PID_v1/PID_v1.h"
 #include "unit_testing.h"
 #include "temperature_utilities.h"
+#include "idle.h"
 
 static long PID_O2, PID_output, PID_AFRTarget;
 /** Instance of the PID object in case that algorithm is used (Always instantiated).
@@ -205,6 +206,8 @@ TESTABLE_INLINE_STATIC uint8_t correctionASE(void)
       // ASE is in effect, but we're not due to update, so reuse previous value.
       ASEValue = currentStatus.ASEValue;
     }    
+  } else {
+    // ASE is finished, nothing to do but keep MISRA checker happy 
   }
 
   return ASEValue;
@@ -333,15 +336,16 @@ static inline void mapOnTimeoutExpired(void) {
 }
 
 static inline bool mapShouldResetCurrentAe(void) {
-  return abs(currentStatus.mapDOT) > aeActivatedReading;
+  return (uint8_t)abs(currentStatus.mapDOT) > aeActivatedReading;
 } 
 
 static inline bool mapShouldStartAe(void) {
+  uint16_t absMapDelta = getMAPDelta();
   // Check for only very small movement. This not only means we can skip the lookup, but helps reduce false triggering around 0-2% throttle openings
-  if (abs(getMAPDelta()) <= configPage2.maeMinChange) {
+  if (absMapDelta <= (uint16_t)configPage2.maeMinChange) {
     currentStatus.mapDOT = 0;
   } 
-  if (abs(currentStatus.mapDOT) > configPage2.maeThresh) {
+  if (abs(currentStatus.mapDOT) > (int16_t)configPage2.maeThresh) {
     aeActivatedReading = abs(currentStatus.mapDOT);
     return true;
   }
@@ -357,7 +361,7 @@ static inline uint16_t mapComputeAe(void) {
 
 static inline int16_t computeMapDot(void) {
   int16_t mapChange = getMAPDelta();
-  if (mapChange==0U) {
+  if (mapChange==0) {
     return 0U;
   }
   uint16_t mapDeltaT = (uint16_t)(MAP_time - MAPlast_time);
@@ -388,16 +392,18 @@ static inline void tpsOnTimeoutExpired(void) {
 }
 
 static inline bool tpsShouldResetCurrentAe(void) {
-  return abs(currentStatus.tpsDOT) > aeActivatedReading;
+  return (uint8_t)(currentStatus.tpsDOT) > aeActivatedReading;
 } 
 
 static inline bool tpsShouldStartAe(void) {
   // Check for only very small movement. This not only means we can skip the lookup, but helps reduce false triggering around 0-2% throttle openings
-  if (abs(getTPSChange()) <= configPage2.taeMinChange) {
+  uint8_t absTPSChange = abs(getTPSChange());
+  if (absTPSChange <= configPage2.taeMinChange) {
       currentStatus.tpsDOT = 0;
   } 
   
-  if (abs(currentStatus.tpsDOT) > configPage2.taeThresh) {
+  uint8_t absTPSDot = abs(currentStatus.tpsDOT);
+  if (absTPSDot > configPage2.taeThresh) {
       aeActivatedReading = abs(currentStatus.tpsDOT);
       return true;
   }
@@ -511,7 +517,7 @@ TESTABLE_INLINE_STATIC uint8_t correctionDFCOfuel(void)
   uint8_t scaleValue = NO_FUEL_CORRECTION;
   if ( BIT_CHECK(currentStatus.status1, BIT_STATUS1_DFCO) )
   {
-    if ( (configPage9.dfcoTaperEnable == 1) && (dfcoTaper != 0) )
+    if ( (configPage9.dfcoTaperEnable == 1U) && (dfcoTaper != 0U) )
     {
       //Do a check if the user reduced the duration while active to avoid overflow
       if (dfcoTaper > configPage9.dfcoTaperTime) { dfcoTaper = configPage9.dfcoTaperTime; }
@@ -531,16 +537,16 @@ TESTABLE_INLINE_STATIC uint8_t correctionDFCOfuel(void)
 TESTABLE_INLINE_STATIC bool correctionDFCO(void)
 {
   bool DFCOValue = false;
-  if ( configPage2.dfcoEnabled == 1 )
+  if ( configPage2.dfcoEnabled == 1U )
   {
-    if ( BIT_CHECK(currentStatus.status1, BIT_STATUS1_DFCO) == 1 ) 
+    if ( BIT_CHECK(currentStatus.status1, BIT_STATUS1_DFCO) ) 
     {
-      DFCOValue = ( currentStatus.RPM > ( configPage4.dfcoRPM * 10) ) && ( currentStatus.TPS < configPage4.dfcoTPSThresh ); 
+      DFCOValue = ( currentStatus.RPM > ( configPage4.dfcoRPM * 10U) ) && ( currentStatus.TPS < configPage4.dfcoTPSThresh ); 
       if ( DFCOValue == false) { dfcoDelay = 0; }
     }
     else 
     {
-      if ( (currentStatus.TPS < configPage4.dfcoTPSThresh) && (currentStatus.coolant >= toWorkingTemperature(configPage2.dfcoMinCLT)) && ( currentStatus.RPM > (unsigned int)( (configPage4.dfcoRPM * 10) + (configPage4.dfcoHyster * 2)) ) )
+      if ( (currentStatus.TPS < configPage4.dfcoTPSThresh) && (currentStatus.coolant >= toWorkingTemperature(configPage2.dfcoMinCLT)) && ( currentStatus.RPM > (unsigned int)( (configPage4.dfcoRPM * 10U) + (configPage4.dfcoHyster * 2U)) ) )
       {
         if( dfcoDelay < configPage2.dfcoDelay )
         {
@@ -561,7 +567,7 @@ TESTABLE_INLINE_STATIC bool correctionDFCO(void)
 */
 TESTABLE_INLINE_STATIC uint8_t correctionFlex(void)
 {
-  return configPage2.flexEnabled ? table2D_getValue(&flexFuelTable, currentStatus.ethanolPct) : NO_FUEL_CORRECTION;
+  return configPage2.flexEnabled ? (uint8_t)table2D_getValue(&flexFuelTable, currentStatus.ethanolPct) : NO_FUEL_CORRECTION;
 }
 
 // ============================= Fuel temperature correction =============================
@@ -571,7 +577,7 @@ TESTABLE_INLINE_STATIC uint8_t correctionFlex(void)
 */
 TESTABLE_INLINE_STATIC uint8_t correctionFuelTemp(void)
 {
-  return configPage2.flexEnabled ? table2D_getValue(&fuelTempTable, toStorageTemperature(currentStatus.fuelTemp)) : NO_FUEL_CORRECTION;
+  return configPage2.flexEnabled ? (uint8_t)table2D_getValue(&fuelTempTable, toStorageTemperature(currentStatus.fuelTemp)) : NO_FUEL_CORRECTION;
 }
 
 
@@ -605,7 +611,7 @@ static inline uint8_t computeSimpleLeanCorrection(const statuses &current, const
 static inline uint8_t computeSimpleRichCorrection(const statuses &current, const config6 &page6) {
   if(current.egoCorrection > (100U - page6.egoLimit) ) //Fuelling adjustment must be at most the egoLimit amount (up or down)
   {
-    return (current.egoCorrection - 1); //Decrease the fuelling by 1%
+    return (current.egoCorrection - 1U); //Decrease the fuelling by 1%
   }
   return current.egoCorrection; //Means we're at the maximum adjustment amount, so simply return that again  
 }
@@ -630,7 +636,9 @@ static inline uint8_t computePIDCorrection(const statuses &current, const config
   PID_AFRTarget = (long)(current.afrTarget);
 
   (void)egoPID.Compute();
-  return 100U + PID_output;
+  // Can't do this in one step: MISRA compliance.
+  int8_t correction = INT8_C(100) + (int8_t)PID_output;
+  return (uint8_t)correction;
 }
 
 static inline bool inNextAfrCycle(void) {
@@ -650,9 +658,9 @@ static inline bool isAfrClosedLoopOperational(const statuses &current, const con
       && (current.O2 < page6.ego_max) 
       && (current.O2 > page6.ego_min) 
       && (current.runSecs > page6.ego_sdelay) 
-      && (BIT_CHECK(current.status1, BIT_STATUS1_DFCO) == 0) 
-      && ( current.MAP <= (page9.egoMAPMax * 2L) ) 
-      && ( current.MAP >= (page9.egoMAPMin * 2L) )
+      && (BIT_CHECK(current.status1, BIT_STATUS1_DFCO) == false) 
+      && ( current.MAP <= ((int32_t)page9.egoMAPMax * INT32_C(2)) ) 
+      && ( current.MAP >= ((int32_t)page9.egoMAPMin * INT32_C(2)) )
       ;
 }
 
@@ -664,7 +672,7 @@ static inline bool isValidEgoAlgorithm(const config6 &page6) {
 static inline bool isAfrCorrectionEnabled(const statuses &current, const config6 &page6) {
   return (page6.egoType!=EGO_TYPE_OFF) 
       // If DFCO is active do not run the ego controllers to prevent iterator wind-up.
-      && (BIT_CHECK(current.status1, BIT_STATUS1_DFCO) != 1)
+      && (BIT_CHECK(current.status1, BIT_STATUS1_DFCO) == false)
       && isValidEgoAlgorithm(page6);
 }
 
@@ -777,7 +785,7 @@ uint16_t correctionsFuel(void)
  */
 int8_t correctionFixedTiming(int8_t advance)
 {
-  return (configPage2.fixAngEnable == 1) ? configPage4.FixAng : advance; //Check whether the user has set a fixed timing angle
+  return (configPage2.fixAngEnable == 1U) ? configPage4.FixAng : advance; //Check whether the user has set a fixed timing angle
 }
 
 /** Ignition correction for coolant temperature (CLT).
@@ -800,7 +808,7 @@ int8_t correctionCrankingFixedTiming(int8_t advance)
 {
   if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
   { 
-    if ( configPage2.crkngAddCLTAdv == 0 ) { 
+    if ( configPage2.crkngAddCLTAdv == 0U ) { 
       advance = configPage4.CrankAng; //Use the fixed cranking ignition angle
     } else { 
       advance = correctionCLTadvance(configPage4.CrankAng); //Use the CLT compensated cranking ignition angle
@@ -811,7 +819,7 @@ int8_t correctionCrankingFixedTiming(int8_t advance)
 
 TESTABLE_INLINE_STATIC int8_t correctionFlexTiming(int8_t advance)
 {
-  if( configPage2.flexEnabled == 1 ) //Check for flex being enabled
+  if( configPage2.flexEnabled == 1U ) //Check for flex being enabled
   {
     //This gets cast to a signed 8 bit value to allows for negative advance (ie retard) values here.
     currentStatus.flexIgnCorrection = (int16_t) table2D_getValue(&flexAdvTable, currentStatus.ethanolPct) - OFFSET_IGNITION; //Negative values are achieved with offset
@@ -822,11 +830,11 @@ TESTABLE_INLINE_STATIC int8_t correctionFlexTiming(int8_t advance)
 
 TESTABLE_INLINE_STATIC int8_t correctionWMITiming(int8_t advance)
 {
-  if( (configPage10.wmiEnabled >= 1) && (configPage10.wmiAdvEnabled == 1) && !BIT_CHECK(currentStatus.status4, BIT_STATUS4_WMI_EMPTY) ) //Check for wmi being enabled
+  if( (configPage10.wmiEnabled == 1U) && (configPage10.wmiAdvEnabled == 1U) && !BIT_CHECK(currentStatus.status4, BIT_STATUS4_WMI_EMPTY) ) //Check for wmi being enabled
   {
-    if( (currentStatus.TPS >= configPage10.wmiTPS) && (currentStatus.RPM >= configPage10.wmiRPM) && (currentStatus.MAP/2 >= configPage10.wmiMAP) && ((toStorageTemperature(currentStatus.IAT)) >= configPage10.wmiIAT) )
+    if( (currentStatus.TPS >= configPage10.wmiTPS) && (currentStatus.RPM >= configPage10.wmiRPM) && (currentStatus.MAP >= (int32_t)configPage10.wmiMAP*INT32_C(2)) && ((toStorageTemperature(currentStatus.IAT)) >= configPage10.wmiIAT) )
     {
-      return (int16_t) advance + table2D_getValue(&wmiAdvTable, currentStatus.MAP/2) - OFFSET_IGNITION; //Negative values are achieved with offset
+      return (int16_t) advance + (table2D_getValue(&wmiAdvTable, currentStatus.MAP/2) - OFFSET_IGNITION); //Negative values are achieved with offset
     }
   }
   return advance;
@@ -845,8 +853,8 @@ TESTABLE_INLINE_STATIC int8_t correctionIATretard(int8_t advance)
 #define IGN_IDLE_THRESHOLD 200 //RPM threshold (below CL idle target) for when ign based idle control will engage
 
 static inline uint8_t computeIdleAdvanceRpmDelta(void) {
-  int idleRPMdelta = (currentStatus.CLIdleTarget - (currentStatus.RPM / 10) ) + 50;
-  // Limit idle rpm delta between -500rpm - 500rpm
+  int16_t idleRPMdelta = ((int16_t)currentStatus.CLIdleTarget - ((int16_t)currentStatus.RPM / 10) ) + 50;
+  // Limit idle rpm delta between 0rpm - 100rpm
   return constrain(idleRPMdelta, 0, 100);
 }
 
@@ -863,20 +871,20 @@ static inline int8_t applyIdleAdvanceAdjust(int8_t advance, int8_t adjustment) {
 
 static inline bool isIdleAdvanceOn(void) {
   return (configPage2.idleAdvEnabled != IDLEADVANCE_MODE_OFF) 
-      && (runSecsX10 >= (configPage2.idleAdvDelay * 5))
+      && (runSecsX10 >= (configPage2.idleAdvDelay * 5U))
       && BIT_CHECK(currentStatus.engine, BIT_ENGINE_RUN)
       /* When Idle advance is the only idle speed control mechanism, activate as soon as not cranking. 
       When some other mechanism is also present, wait until the engine is no more than 200 RPM below idle target speed on first time
       */
-      && ((configPage6.iacAlgorithm == 0) 
-        || (currentStatus.RPM > (((uint16_t)currentStatus.CLIdleTarget * 10) - (uint16_t)IGN_IDLE_THRESHOLD)));
+      && ((configPage6.iacAlgorithm == IAC_ALGORITHM_NONE) 
+        || (currentStatus.RPM > (((uint16_t)currentStatus.CLIdleTarget * 10U) - (uint16_t)IGN_IDLE_THRESHOLD)));
 }
 
 static inline bool isIdleAdvanceOperational(void) {
-  return (currentStatus.RPM < (configPage2.idleAdvRPM * 100))
-      && ((configPage2.vssMode == 0) || (currentStatus.vss < configPage2.idleAdvVss))
-      && (((configPage2.idleAdvAlgorithm == 0) && (currentStatus.TPS < configPage2.idleAdvTPS)) 
-        || ((configPage2.idleAdvAlgorithm == 1) && (currentStatus.CTPSActive == 1)));// closed throttle position sensor (CTPS) based idle state
+  return (currentStatus.RPM < (configPage2.idleAdvRPM * 100U))
+      && ((configPage2.vssMode == VSS_MODE_OFF) || (currentStatus.vss < configPage2.idleAdvVss))
+      && (((configPage2.idleAdvAlgorithm == IDLEADVANCE_ALGO_TPS) && (currentStatus.TPS < configPage2.idleAdvTPS)) 
+        || ((configPage2.idleAdvAlgorithm == IDLEADVANCE_ALGO_CTPS) && (currentStatus.CTPSActive == true)));// closed throttle position sensor (CTPS) based idle state
 }
 
 TESTABLE_INLINE_STATIC int8_t correctionIdleAdvance(int8_t advance)
@@ -935,6 +943,8 @@ TESTABLE_INLINE_STATIC int8_t correctionSoftRevLimit(int8_t advance)
     }
     else if( BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ) ) { 
       softLimitTime = 0; //Only reset time at runSecsX10 update rate
+    } else {
+      // Nothing to do, keep MISRA checker happy.
     }
   }
 
@@ -946,16 +956,16 @@ TESTABLE_INLINE_STATIC int8_t correctionSoftRevLimit(int8_t advance)
 TESTABLE_INLINE_STATIC int8_t correctionNitrous(int8_t advance)
 {
   //Check if nitrous is currently active
-  if(configPage10.n2o_enable > 0)
+  if(configPage10.n2o_enable != NITROUS_OFF)
   {
     //Check which stage is running (if any)
     if( (currentStatus.nitrous_status == NITROUS_STAGE1) || (currentStatus.nitrous_status == NITROUS_BOTH) )
     {
-      advance -= configPage10.n2o_stage1_retard;
+      advance -= (int8_t)configPage10.n2o_stage1_retard;
     }
     if( (currentStatus.nitrous_status == NITROUS_STAGE2) || (currentStatus.nitrous_status == NITROUS_BOTH) )
     {
-      advance -= configPage10.n2o_stage2_retard;
+      advance -= (int8_t)configPage10.n2o_stage2_retard;
     }
   }
 
@@ -966,7 +976,7 @@ TESTABLE_INLINE_STATIC int8_t correctionNitrous(int8_t advance)
 TESTABLE_INLINE_STATIC int8_t correctionSoftLaunch(int8_t advance)
 {
   //SoftCut rev limit for 2-step launch control.
-  if (configPage6.launchEnabled && currentStatus.clutchTrigger && (currentStatus.clutchEngagedRPM < ((unsigned int)(configPage6.flatSArm) * 100)) && (currentStatus.RPM > ((unsigned int)(configPage6.lnchSoftLim) * 100)) && (currentStatus.TPS >= configPage10.lnchCtrlTPS) )
+  if (configPage6.launchEnabled && currentStatus.clutchTrigger && (currentStatus.clutchEngagedRPM < ((unsigned int)(configPage6.flatSArm) * 100U)) && (currentStatus.RPM > ((unsigned int)(configPage6.lnchSoftLim) * 100U)) && (currentStatus.TPS >= configPage10.lnchCtrlTPS) )
   {
     currentStatus.launchingSoft = true;
     BIT_SET(currentStatus.spark, BIT_SPARK_SLAUNCH);
@@ -984,7 +994,7 @@ TESTABLE_INLINE_STATIC int8_t correctionSoftLaunch(int8_t advance)
  */
 TESTABLE_INLINE_STATIC int8_t correctionSoftFlatShift(int8_t advance)
 {
-  if(configPage6.flatSEnable && currentStatus.clutchTrigger && (currentStatus.clutchEngagedRPM > ((unsigned int)(configPage6.flatSArm) * 100)) && (currentStatus.RPM > (currentStatus.clutchEngagedRPM - (configPage6.flatSSoftWin * 100) ) ) )
+  if(configPage6.flatSEnable && currentStatus.clutchTrigger && (currentStatus.clutchEngagedRPM > ((unsigned int)(configPage6.flatSArm) * 100U)) && (currentStatus.RPM > (currentStatus.clutchEngagedRPM - (configPage6.flatSSoftWin * 100U) ) ) )
   {
     BIT_SET(currentStatus.spark2, BIT_SPARK2_FLATSS);
     advance = configPage6.flatSRetard;
@@ -997,7 +1007,7 @@ TESTABLE_INLINE_STATIC int8_t correctionSoftFlatShift(int8_t advance)
  */
 TESTABLE_INLINE_STATIC int8_t correctionKnock(int8_t advance)
 {
-  byte knockRetard = 0;
+  int8_t knockRetard = 0;
 
 #if defined(SPEEDY_KNOCK)
   //First check is to do the window calculations (Assuming knock is enabled)
@@ -1034,13 +1044,13 @@ TESTABLE_INLINE_STATIC int8_t correctionKnock(int8_t advance)
  */
 TESTABLE_INLINE_STATIC int8_t correctionDFCOignition(int8_t advance)
 {
-  if ( (configPage9.dfcoTaperEnable == 1) && BIT_CHECK(currentStatus.status1, BIT_STATUS1_DFCO) )
+  if ( (configPage9.dfcoTaperEnable == 1U) && BIT_CHECK(currentStatus.status1, BIT_STATUS1_DFCO) )
   {
-    if ( dfcoTaper != 0 )
+    if ( dfcoTaper != 0U )
     {
       advance -= map(dfcoTaper, configPage9.dfcoTaperTime, 0, 0, configPage9.dfcoTaperAdvance);
     }
-    else { advance -= configPage9.dfcoTaperAdvance; } //Taper ended, use full value
+    else { advance -= (int8_t)configPage9.dfcoTaperAdvance; } //Taper ended, use full value
   }
   else { dfcoTaper = configPage9.dfcoTaperTime; } //Keep updating the duration until DFCO is active
   return advance;
@@ -1052,7 +1062,7 @@ static inline uint8_t getPulsesPerRev(void) {
   if( ( (configPage4.sparkMode == IGN_MODE_SINGLE) || 
      ((configPage4.sparkMode == IGN_MODE_ROTARY) && (configPage10.rotaryType != ROTARY_IGN_RX8)) ) 
      //No point in running this for 1 cylinder engines
-     && (configPage2.nCylinders > 1) )  {
+     && (configPage2.nCylinders > 1U) )  {
     return configPage2.nCylinders >> 1U;
   }
   return 1U;
@@ -1060,10 +1070,10 @@ static inline uint8_t getPulsesPerRev(void) {
 
 static inline uint16_t adjustDwellClosedLoop(uint16_t dwell) {
     int16_t error = dwell - currentStatus.actualDwell;
-    if(dwell > INT16_MAX) { dwell = INT16_MAX; } //Prevent overflow when casting to signed int
+    if(dwell > (uint16_t)INT16_MAX) { dwell = (uint16_t)INT16_MAX; } //Prevent overflow when casting to signed int
     if(error > ((int16_t)dwell / 2)) { error += error; } //Double correction amount if actual dwell is less than 50% of the requested dwell
     if(error > 0) { 
-      return dwell + error;
+      return dwell + (uint16_t)error;
     }
     return dwell;
 }
@@ -1071,7 +1081,7 @@ static inline uint16_t adjustDwellClosedLoop(uint16_t dwell) {
 uint16_t correctionsDwell(uint16_t dwell)
 {
   //Initialise the actualDwell value if this is the first time being called
-  if(currentStatus.actualDwell == 0) { 
+  if(currentStatus.actualDwell == 0U) { 
     currentStatus.actualDwell = dwell; 
   } 
 
@@ -1081,14 +1091,14 @@ uint16_t correctionsDwell(uint16_t dwell)
   if (BIT_CHECK(LOOP_TIMER, BIT_TIMER_4HZ) || dwellCorrection==0U) {  
     dwellCorrection = (uint8_t)table2D_getValue(&dwellVCorrectionTable, currentStatus.battery10);
   }
-  if (dwellCorrection != 100) { 
+  if (dwellCorrection != 100U) { 
     dwell = div100(dwell) * dwellCorrection; 
   }
 
   //**************************************************************************************************************************
   //Dwell error correction is a basic closed loop to keep the dwell time consistent even when adjusting its end time for the per tooth timing.
   //This is mostly of benefit to low resolution triggers at low rpm (<1500)
-  if( (configPage2.perToothIgn  == true) && (configPage4.dwellErrCorrect == 1) ) {
+  if( (configPage2.perToothIgn  == true) && (configPage4.dwellErrCorrect == 1U) ) {
     dwell = adjustDwellClosedLoop(dwell);
   }
 
@@ -1099,8 +1109,8 @@ uint16_t correctionsDwell(uint16_t dwell)
   1. Single channel spark mode where there will be nCylinders/2 sparks per revolution
   2. Rotary ignition in wasted spark configuration (FC/FD), results in 2 pulses per rev. RX-8 is fully sequential resulting in 1 pulse, so not required
   */
-  uint16_t sparkDur_uS = (configPage4.sparkDur * 100); //Spark duration is in mS*10. Multiple it by 100 to get spark duration in uS
-  int8_t pulsesPerRevolution = getPulsesPerRev();
+  uint16_t sparkDur_uS = (configPage4.sparkDur * 100U); //Spark duration is in mS*10. Multiple it by 100 to get spark duration in uS
+  uint8_t pulsesPerRevolution = getPulsesPerRev();
   uint16_t dwellPerRevolution = (dwell + sparkDur_uS) * pulsesPerRevolution;
   if(dwellPerRevolution > revolutionTime)
   {

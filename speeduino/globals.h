@@ -228,9 +228,9 @@
 #define COMPOSITE_LOG_SYNC 4
 #define COMPOSITE_ENGINE_CYCLE 5
 
-#define EGO_TYPE_OFF      0
-#define EGO_TYPE_NARROW   1
-#define EGO_TYPE_WIDE     2
+#define EGO_TYPE_OFF      0U
+#define EGO_TYPE_NARROW   1U
+#define EGO_TYPE_WIDE     2U
 
 #define INJ_TYPE_PORT 0
 #define INJ_TYPE_TBODY 1
@@ -258,9 +258,9 @@
 #define SEC_TRIGGER_5_3_2   3
 #define SEC_TRIGGER_TOYOTA_3  4
 
-#define ROTARY_IGN_FC       0
-#define ROTARY_IGN_FD       1
-#define ROTARY_IGN_RX8      2
+#define ROTARY_IGN_FC       0U
+#define ROTARY_IGN_FD       1U
+#define ROTARY_IGN_RX8      2U
 
 #define BOOST_MODE_SIMPLE   0
 #define BOOST_MODE_FULL     1
@@ -287,22 +287,22 @@
 #define STAGING_MODE_TABLE  0
 #define STAGING_MODE_AUTO   1
 
-#define NITROUS_OFF         0
-#define NITROUS_STAGE1      1
-#define NITROUS_STAGE2      2
-#define NITROUS_BOTH        3
+#define NITROUS_OFF         0U
+#define NITROUS_STAGE1      1U
+#define NITROUS_STAGE2      2U
+#define NITROUS_BOTH        3U
 
-#define PROTECT_CUT_OFF     0
-#define PROTECT_CUT_IGN     1
-#define PROTECT_CUT_FUEL    2
-#define PROTECT_CUT_BOTH    3
-#define PROTECT_IO_ERROR    7
+#define PROTECT_CUT_OFF     0U
+#define PROTECT_CUT_IGN     1U
+#define PROTECT_CUT_FUEL    2U
+#define PROTECT_CUT_BOTH    3U
+#define PROTECT_IO_ERROR    7U
 
-#define AE_MODE_TPS         0
-#define AE_MODE_MAP         1
+#define AE_MODE_TPS         0U
+#define AE_MODE_MAP         1U
 
-#define AE_MODE_MULTIPLIER  0
-#define AE_MODE_ADDER       1
+#define AE_MODE_MULTIPLIER  0U
+#define AE_MODE_ADDER       1U
 
 #define KNOCK_MODE_OFF      0
 #define KNOCK_MODE_DIGITAL  1
@@ -338,8 +338,8 @@
 #define OPEN_LOOP_BOOST     0
 #define CLOSED_LOOP_BOOST   1
 
-#define SOFT_LIMIT_FIXED        0
-#define SOFT_LIMIT_RELATIVE     1
+#define SOFT_LIMIT_FIXED        0U
+#define SOFT_LIMIT_RELATIVE     1U
 
 #define VVT_MODE_ONOFF      0
 #define VVT_MODE_OPEN_LOOP  1
@@ -357,8 +357,8 @@
 #define GOING_LOW         0
 #define GOING_HIGH        1
 
-#define BATTV_COR_MODE_WHOLE 0
-#define BATTV_COR_MODE_OPENTIME 1
+#define BATTV_COR_MODE_WHOLE 0U
+#define BATTV_COR_MODE_OPENTIME 1U
 
 #define INJ1_CMD_BIT      0
 #define INJ2_CMD_BIT      1
@@ -387,7 +387,7 @@
 
 #define CALIBRATION_TABLE_SIZE 512 ///< Calibration table size for CLT, IAT, O2
 #define OFFSET_FUELTRIM 127U ///< The fuel trim tables are offset by 128 to allow for -128 to +128 values
-#define OFFSET_IGNITION 40 ///< Ignition values from the main spark table are offset 40 degrees downwards to allow for negative spark timing
+#define OFFSET_IGNITION INT16_C(40) ///< Ignition values from the main spark table are offset 40 degrees downwards to allow for negative spark timing
 
 #define SERIAL_BUFFER_THRESHOLD 32 ///< When the serial buffer is filled to greater than this threshold value, the serial processing operations will be performed more urgently in order to avoid it overflowing. Serial buffer is 64 bytes long, so the threshold is set at half this as a reasonable figure
 
@@ -882,6 +882,11 @@ struct config2 {
 
 #define IDLEADVANCE_ALGO_TPS      0U
 #define IDLEADVANCE_ALGO_CTPS     1U
+
+#define VSS_MODE_OFF          0U
+#define VSS_MODE_INTERNAL_PIN 1U
+#define VSS_MODE_EXTERNAL_KM  2U
+#define VSS_MODE_EXTERNAL_MI  3U
 
 /** Page 4 of the config - variables required for ignition and rpm/crank phase /cam phase decoding.
 * See the ini file for further reference.
