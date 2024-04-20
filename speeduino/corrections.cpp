@@ -96,7 +96,7 @@ TESTABLE_INLINE_STATIC uint8_t correctionWUE(void)
 
   // Only update as fast as the sensor is read
   if( BIT_CHECK(LOOP_TIMER, CLT_TIMER_BIT) ) { 
-    if (currentStatus.coolant >= (table2D_getAxisValue(&WUETable, WUETable.xSize-1U) - CALIBRATION_TEMPERATURE_OFFSET))
+    if (currentStatus.coolant >= toWorkingTemperature(table2D_getAxisValue(&WUETable, WUETable.xSize-1U)))
     {
       //This prevents us doing the 2D lookup if we're already up to temp
       BIT_CLEAR(currentStatus.engine, BIT_ENGINE_WARMUP);
@@ -105,7 +105,7 @@ TESTABLE_INLINE_STATIC uint8_t correctionWUE(void)
     else
     {
       BIT_SET(currentStatus.engine, BIT_ENGINE_WARMUP);
-      WUEValue = (uint8_t)table2D_getValue(&WUETable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
+      WUEValue = (uint8_t)table2D_getValue(&WUETable, toStorageTemperature(currentStatus.coolant));
     }
   }
 
@@ -119,8 +119,8 @@ Additional fuel % to be added when the engine is cranking
 */
 
 static inline uint16_t lookUpCrankingEnrichmentPct(void) {
-  return toWorkingU8U16(CRANKING_ENRICHMENT, 
-                        table2D_getValue(&crankingEnrichTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET));
+  return  toWorkingU8U16( CRANKING_ENRICHMENT, 
+                          table2D_getValue(&crankingEnrichTable, toStorageTemperature(currentStatus.coolant)));
 }
 
 //Taper start value needs to account for ASE that is now running, so total correction does not increase when taper begins
@@ -192,15 +192,15 @@ TESTABLE_INLINE_STATIC uint8_t correctionASE(void)
       // We must use 100ms (rather than CLT_TIMER_BIT) since aseTaper counts tenths of a second.
       
       if (aseTaper==0U // Avoid table lookup if taper is being applied
-       && (currentStatus.runSecs < ((uint8_t)table2D_getValue(&ASECountTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET))) )
+       && (currentStatus.runSecs < ((uint8_t)table2D_getValue(&ASECountTable, toStorageTemperature(currentStatus.coolant)))) )
       {
         BIT_SET(currentStatus.engine, BIT_ENGINE_ASE);
-        ASEValue = BASELINE_FUEL_CORRECTION + (uint8_t)table2D_getValue(&ASETable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
+        ASEValue = BASELINE_FUEL_CORRECTION + (uint8_t)table2D_getValue(&ASETable, toStorageTemperature(currentStatus.coolant));
       } else if ( aseTaper < configPage2.aseTaperTime ) { //Check if we've reached the end of the taper time
         BIT_SET(currentStatus.engine, BIT_ENGINE_ASE);
         ASEValue = BASELINE_FUEL_CORRECTION + (uint8_t)map(aseTaper, 
                                         0U, configPage2.aseTaperTime, 
-                                        (uint8_t)table2D_getValue(&ASETable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET), 0);
+                                        (uint8_t)table2D_getValue(&ASETable, toStorageTemperature(currentStatus.coolant)), 0);
         aseTaper = aseTaper + 1U;
       } else {
         // ASE has finished
@@ -257,10 +257,10 @@ static inline uint16_t applyAeCoolantTaper(uint16_t accelCorrection) {
   //Apply AE cold coolant modifier, if CLT is less than taper end temperature
   if ( (accelCorrection!=0U)
     && (configPage2.aeColdPct!=NO_FUEL_CORRECTION)
-    && (currentStatus.coolant < ((int)configPage2.aeColdTaperMax - (int)CALIBRATION_TEMPERATURE_OFFSET) ))
+    && (currentStatus.coolant < toWorkingTemperature(configPage2.aeColdTaperMax) ))
   {
     //If CLT is less than taper min temp, apply full modifier on top of accelCorrection
-    if ( currentStatus.coolant <= ((int)configPage2.aeColdTaperMin - (int)CALIBRATION_TEMPERATURE_OFFSET) )
+    if ( currentStatus.coolant <= toWorkingTemperature(configPage2.aeColdTaperMin) )
     {
       accelCorrection =  (uint16_t)percentage(configPage2.aeColdPct, accelCorrection);
     }
@@ -269,9 +269,9 @@ static inline uint16_t applyAeCoolantTaper(uint16_t accelCorrection) {
     {
       // Tune uses 100% as no adjustment, range 100% to 255%. So subtract 100 to get the adjustment, 
       // scale the adjustment over the coolant RPM range & reapply the 100 offset 
-      const uint8_t coldPct = BASELINE_FUEL_CORRECTION + map( currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET,
-                                                              configPage2.aeColdTaperMin, configPage2.aeColdTaperMax,
-                                                              configPage2.aeColdPct-ONE_HUNDRED_PCT, 0U);       
+      const uint8_t coldPct = ONE_HUNDRED_PCT + map(toStorageTemperature(currentStatus.coolant),
+                                                    configPage2.aeColdTaperMin, configPage2.aeColdTaperMax,
+                                                    configPage2.aeColdPct-ONE_HUNDRED_PCT, 0U);       
       accelCorrection = (uint16_t)percentage(coldPct, accelCorrection);
     }
   }
@@ -519,7 +519,7 @@ This corrects for changes in air density from movement of the temperature.
 */
 TESTABLE_INLINE_STATIC uint8_t correctionIATDensity(void)
 {
-  return (uint8_t)table2D_getValue(&IATDensityCorrectionTable, currentStatus.IAT + CALIBRATION_TEMPERATURE_OFFSET); //currentStatus.IAT is the actual temperature, values in IATDensityCorrectionTable.axisX are temp+offset
+  return (uint8_t)table2D_getValue(&IATDensityCorrectionTable, toStorageTemperature(currentStatus.IAT)); //currentStatus.IAT is the actual temperature, values in IATDensityCorrectionTable.axisX are temp+offset
 }
 
 // ============================= Baro pressure correction =============================
@@ -578,7 +578,7 @@ TESTABLE_INLINE_STATIC bool correctionDFCO(void)
     }
     else 
     {
-      if ( (currentStatus.TPS < configPage4.dfcoTPSThresh) && (currentStatus.coolant >= (int)(configPage2.dfcoMinCLT - CALIBRATION_TEMPERATURE_OFFSET)) && ( currentStatus.RPM > (unsigned int)( (configPage4.dfcoRPM * 10) + (configPage4.dfcoHyster * 2)) ) )
+      if ( (currentStatus.TPS < configPage4.dfcoTPSThresh) && (currentStatus.coolant >= toWorkingTemperature(configPage2.dfcoMinCLT)) && ( currentStatus.RPM > (unsigned int)( (configPage4.dfcoRPM * 10) + (configPage4.dfcoHyster * 2)) ) )
       {
         if( dfcoDelay < configPage2.dfcoDelay )
         {
@@ -609,7 +609,7 @@ TESTABLE_INLINE_STATIC uint8_t correctionFlex(void)
 */
 TESTABLE_INLINE_STATIC uint8_t correctionFuelTemp(void)
 {
-  return configPage2.flexEnabled ? table2D_getValue(&fuelTempTable, currentStatus.fuelTemp + CALIBRATION_TEMPERATURE_OFFSET) : NO_FUEL_CORRECTION;
+  return configPage2.flexEnabled ? table2D_getValue(&fuelTempTable, toStorageTemperature(currentStatus.fuelTemp)) : NO_FUEL_CORRECTION;
 }
 
 
@@ -682,15 +682,15 @@ static inline void setNextAfrCycle(void) {
 }
 
 static inline bool isAfrClosedLoopOperational(const statuses &current, const config6 &page6, const config9 &page9) {
-  return (current.coolant > (int)(page6.egoTemp - CALIBRATION_TEMPERATURE_OFFSET)) 
-      && (current.RPM > toWorkingU8U16(RPM_DIV100, page6.egoRPM)) 
+  return (current.coolant > toWorkingTemperature(page6.egoTemp)) 
+      && (current.RPM > toWorkingU8U16(RPM_COARSE, page6.egoRPM)) 
       && (current.TPS <= page6.egoTPSMax) 
       && (current.O2 < page6.ego_max) 
       && (current.O2 > page6.ego_min) 
       && (current.runSecs > page6.ego_sdelay) 
       && (BIT_CHECK(current.status1, BIT_STATUS1_DFCO) == 0) 
-      && ( current.MAP <= toWorkingU8U16(EGO_MAP_LIMITS, page9.egoMAPMax) ) 
-      && ( current.MAP >= toWorkingU8U16(EGO_MAP_LIMITS, page9.egoMAPMin) )
+      && ( current.MAP <= toWorkingU8U16(MAP, page9.egoMAPMax) ) 
+      && ( current.MAP >= toWorkingU8U16(MAP, page9.egoMAPMin) )
       ;
 }
 
@@ -830,8 +830,8 @@ TESTABLE_INLINE_STATIC int8_t correctionCLTadvance(int8_t advance)
 {
   static uint8_t cachedValue = 0U; // Setting this to non-zero will use additional RAM for static initialisation
   // Performance: only update as fast as the sensor is read
-  if( BIT_CHECK(LOOP_TIMER, CLT_TIMER_BIT)) { 
-    cachedValue = (uint8_t)(table2D_getValue(&CLTAdvanceTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET));
+  if( BIT_CHECK(LOOP_TIMER, CLT_TIMER_BIT) ) { 
+    cachedValue = (uint8_t)(table2D_getValue(&CLTAdvanceTable, toStorageTemperature(currentStatus.coolant)));
   }
   return advance + (int8_t)cachedValue - 15;
 }
@@ -867,7 +867,7 @@ TESTABLE_INLINE_STATIC int8_t correctionWMITiming(int8_t advance)
 {
   if( (configPage10.wmiEnabled >= 1) && (configPage10.wmiAdvEnabled == 1) && !BIT_CHECK(currentStatus.status4, BIT_STATUS4_WMI_EMPTY) ) //Check for wmi being enabled
   {
-    if( (currentStatus.TPS >= configPage10.wmiTPS) && (currentStatus.RPM >= configPage10.wmiRPM) && (currentStatus.MAP/2 >= configPage10.wmiMAP) && ((currentStatus.IAT + CALIBRATION_TEMPERATURE_OFFSET) >= configPage10.wmiIAT) )
+    if( (currentStatus.TPS >= configPage10.wmiTPS) && (currentStatus.RPM >= configPage10.wmiRPM) && (currentStatus.MAP/2 >= configPage10.wmiMAP) && ((toStorageTemperature(currentStatus.IAT)) >= configPage10.wmiIAT) )
     {
       return (int16_t) advance + table2D_getValue(&wmiAdvTable, currentStatus.MAP/2) - OFFSET_IGNITION; //Negative values are achieved with offset
     }

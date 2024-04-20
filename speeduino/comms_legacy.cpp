@@ -20,6 +20,7 @@ A full copy of the license may be found in the projects root directory
 #include "page_crc.h"
 #include "logger.h"
 #include "table3d_axis_io.h"
+#include "scale_translate.h"
 #include BOARD_H
 #ifdef RTC_ENABLED
   #include "rtc_common.h"
@@ -1176,14 +1177,14 @@ void receiveCalibration(byte tableID)
       //coolant table
       pnt_TargetTable_values = (uint16_t *)&cltCalibration_values;
       pnt_TargetTable_bins = (uint16_t *)&cltCalibration_bins;
-      OFFSET = CALIBRATION_TEMPERATURE_OFFSET; //
+      OFFSET = -TEMPERATURE.translate; //
       DIVISION_FACTOR = 10;
       break;
     case 1:
       //Inlet air temp table
       pnt_TargetTable_values = (uint16_t *)&iatCalibration_values;
       pnt_TargetTable_bins = (uint16_t *)&iatCalibration_bins;
-      OFFSET = CALIBRATION_TEMPERATURE_OFFSET;
+      OFFSET = -TEMPERATURE.translate;
       DIVISION_FACTOR = 10;
       break;
     case 2:

@@ -6,6 +6,7 @@
 #include "maths.h"
 #include "utilities.h"
 #include BOARD_H 
+#include "scale_translate.h"
 
 /** 
  * Returns a numbered byte-field (partial field in case of multi-byte fields) from "current status" structure in the format expected by TunerStudio
@@ -29,8 +30,8 @@ byte getTSLogEntry(uint16_t byteNum)
     case 3: statusValue = currentStatus.syncLossCounter; break;
     case 4: statusValue = lowByte(currentStatus.MAP); break; //2 bytes for MAP
     case 5: statusValue = highByte(currentStatus.MAP); break;
-    case 6: statusValue = lowByte(currentStatus.IAT + CALIBRATION_TEMPERATURE_OFFSET); break; //mat
-    case 7: statusValue = lowByte(currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET); break; //Coolant ADC
+    case 6: statusValue = toStorageTemperature(currentStatus.IAT); break; //mat
+    case 7: statusValue = toStorageTemperature(currentStatus.coolant); break; //Coolant ADC
     case 8: statusValue = currentStatus.batCorrection; break; //Battery voltage correction (%)
     case 9: statusValue = currentStatus.battery10; break; //battery voltage
     case 10: statusValue = currentStatus.O2; break; //O2
@@ -163,7 +164,7 @@ byte getTSLogEntry(uint16_t byteNum)
     case 113: statusValue = currentStatus.vvt2TargetAngle; break;
     case 114: statusValue = lowByte(currentStatus.vvt2Duty); break;
     case 115: statusValue = currentStatus.outputsStatus; break;
-    case 116: statusValue = lowByte(currentStatus.fuelTemp + CALIBRATION_TEMPERATURE_OFFSET); break; //Fuel temperature from flex sensor
+    case 116: statusValue = lowByte(toStorageTemperature(currentStatus.fuelTemp)); break; //Fuel temperature from flex sensor
     case 117: statusValue = currentStatus.fuelTempCorrection; break; //Fuel temperature Correction (%)
     case 118: statusValue = currentStatus.advance1; break; //advance 1 (%)
     case 119: statusValue = currentStatus.advance2; break; //advance 2 (%)
@@ -354,8 +355,8 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 3: statusValue = (byte)div100(currentStatus.dwell); break; //Dwell in ms * 10
     case 4: statusValue = lowByte(currentStatus.MAP); break; //2 bytes for MAP
     case 5: statusValue = highByte(currentStatus.MAP); break;
-    case 6: statusValue = (byte)(currentStatus.IAT + CALIBRATION_TEMPERATURE_OFFSET); break; //mat
-    case 7: statusValue = (byte)(currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET); break; //Coolant ADC
+    case 6: statusValue = (byte)(toStorageTemperature(currentStatus.IAT)); break; //mat
+    case 7: statusValue = (byte)(toStorageTemperature(currentStatus.coolant)); break; //Coolant ADC
     case 8: statusValue = currentStatus.batCorrection; break; //Battery voltage correction (%)
     case 9: statusValue = currentStatus.battery10; break; //battery voltage
     case 10: statusValue = currentStatus.O2; break; //O2
@@ -464,7 +465,7 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 108: statusValue = currentStatus.vvt2TargetAngle; break;
     case 109: statusValue = currentStatus.vvt2Duty; break;
     case 110: statusValue = currentStatus.outputsStatus; break;
-    case 111: statusValue = (byte)(currentStatus.fuelTemp + CALIBRATION_TEMPERATURE_OFFSET); break; //Fuel temperature from flex sensor
+    case 111: statusValue = (byte)(toStorageTemperature(currentStatus.fuelTemp)); break; //Fuel temperature from flex sensor
     case 112: statusValue = currentStatus.fuelTempCorrection; break; //Fuel temperature Correction (%)
     case 113: statusValue = currentStatus.VE1; break; //VE 1 (%)
     case 114: statusValue = currentStatus.VE2; break; //VE 2 (%)

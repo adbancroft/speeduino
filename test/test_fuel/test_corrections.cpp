@@ -6,6 +6,7 @@
 #include "init.h"
 #include "sensors.h"
 #include "speeduino.h"
+#include "scale_translate.h"
 #include "../test_utils.h"
 
 extern void construct2dTables(void);
@@ -21,12 +22,12 @@ static void setup_wue_table(void) {
   //Set some fake values in the table axis. Target value will fall between points 6 and 7
   TEST_DATA_P uint8_t bins[] = { 
     0, 0, 0, 0, 0, 0,
-    70 + CALIBRATION_TEMPERATURE_OFFSET,
-    90 + CALIBRATION_TEMPERATURE_OFFSET,
-    100 + CALIBRATION_TEMPERATURE_OFFSET,
-    120 + CALIBRATION_TEMPERATURE_OFFSET
+    toStorageTemperature(70),
+    toStorageTemperature(90),
+    toStorageTemperature(100),
+    toStorageTemperature(120)
   };
-  TEST_DATA_P uint8_t values[] = { 0, 0, 0, 0, 0, 0, 120, 130, 130, 130 };
+  TEST_DATA_P uint8_t values[] = { 0, 0, 0, 0, 0, 0, 120, 130, 140, 150 };
   populate_2dtable_P(&WUETable, values, bins);
 }
 
@@ -90,15 +91,15 @@ static void setup_correctionCranking(void) {
 
   LOOP_TIMER = 0;
   BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
-  constexpr int16_t COOLANT_INITIAL = 150 - CALIBRATION_TEMPERATURE_OFFSET; 
+  constexpr int16_t COOLANT_INITIAL = toWorkingTemperature(150); 
   currentStatus.coolant = COOLANT_INITIAL;
 
   TEST_DATA_P uint8_t values[] = { 120U / 5U, 130U / 5U, 140U / 5U, 150U / 5U };
   TEST_DATA_P uint8_t bins[] = { 
-    (uint8_t)(COOLANT_INITIAL + CALIBRATION_TEMPERATURE_OFFSET - 10U),
-    (uint8_t)(COOLANT_INITIAL + CALIBRATION_TEMPERATURE_OFFSET + 10U),
-    (uint8_t)(COOLANT_INITIAL + CALIBRATION_TEMPERATURE_OFFSET + 20U),
-    (uint8_t)(COOLANT_INITIAL + CALIBRATION_TEMPERATURE_OFFSET + 30U)
+    (uint8_t)(toStorageTemperature(COOLANT_INITIAL) - 10U),
+    (uint8_t)(toStorageTemperature(COOLANT_INITIAL) + 10U),
+    (uint8_t)(toStorageTemperature(COOLANT_INITIAL) + 20U),
+    (uint8_t)(toStorageTemperature(COOLANT_INITIAL) + 30U)
   };
   populate_2dtable_P(&crankingEnrichTable, values, bins);
 }
@@ -215,17 +216,17 @@ static inline void setup_correctionASE(void) {
   BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK);
   LOOP_TIMER = 0;
   BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ) ;
-  constexpr int16_t COOLANT_INITIAL = 150 - CALIBRATION_TEMPERATURE_OFFSET; 
+  constexpr int16_t COOLANT_INITIAL = toWorkingTemperature(150); 
   currentStatus.coolant = COOLANT_INITIAL;
   currentStatus.runSecs = 3;
 
   {
     TEST_DATA_P uint8_t values[] = { 10, 8, 6, 4 };
     TEST_DATA_P uint8_t bins[] = { 
-      (uint8_t)(COOLANT_INITIAL + CALIBRATION_TEMPERATURE_OFFSET - 10U),
-      (uint8_t)(COOLANT_INITIAL + CALIBRATION_TEMPERATURE_OFFSET + 10U),
-      (uint8_t)(COOLANT_INITIAL + CALIBRATION_TEMPERATURE_OFFSET + 20U),
-      (uint8_t)(COOLANT_INITIAL + CALIBRATION_TEMPERATURE_OFFSET + 30U)
+      toStorageTemperature(COOLANT_INITIAL) - 10U,
+      toStorageTemperature(COOLANT_INITIAL) + 10U,
+      toStorageTemperature(COOLANT_INITIAL) + 20U,
+      toStorageTemperature(COOLANT_INITIAL) + 30U
     };
     populate_2dtable_P(&ASECountTable, values, bins);
   }
@@ -233,10 +234,10 @@ static inline void setup_correctionASE(void) {
   {
     TEST_DATA_P uint8_t values[] = { 20, 30, 40, 50 };
     TEST_DATA_P uint8_t bins[] = { 
-      (uint8_t)(COOLANT_INITIAL + CALIBRATION_TEMPERATURE_OFFSET - 10U),
-      (uint8_t)(COOLANT_INITIAL + CALIBRATION_TEMPERATURE_OFFSET + 10U),
-      (uint8_t)(COOLANT_INITIAL + CALIBRATION_TEMPERATURE_OFFSET + 20U),
-      (uint8_t)(COOLANT_INITIAL + CALIBRATION_TEMPERATURE_OFFSET + 30U)
+      toStorageTemperature(COOLANT_INITIAL) - 10U,
+      toStorageTemperature(COOLANT_INITIAL) + 10U,
+      toStorageTemperature(COOLANT_INITIAL) + 20U,
+      toStorageTemperature(COOLANT_INITIAL) + 30U
     };
     populate_2dtable_P(&ASETable, values, bins);
   } 
@@ -338,7 +339,7 @@ static void setup_ego_simple(void) {
   currentStatus.runSecs = configPage6.ego_sdelay + 2U;
 
   configPage6.egoTemp = 150U;
-  currentStatus.coolant = (configPage6.egoTemp - CALIBRATION_TEMPERATURE_OFFSET) + 1U; 
+  currentStatus.coolant = toWorkingTemperature(configPage6.egoTemp) + 1U; 
 
   configPage6.egoRPM = 30U;
   currentStatus.RPM = configPage6.egoRPM*100U + 1U;
@@ -392,7 +393,7 @@ static void test_corrections_closedloop_off_no_algorithm(void) {
 static void test_corrections_closedloop_off_invalidconditions_coolant(void) {
   setup_ego_simple();
   currentStatus.O2 = currentStatus.afrTarget + 1U;
-  currentStatus.coolant = (configPage6.egoTemp - CALIBRATION_TEMPERATURE_OFFSET) - 1U; 
+  currentStatus.coolant = toWorkingTemperature(configPage6.egoTemp) - 1U; 
   TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop());
 }
 
@@ -649,14 +650,14 @@ static void setupFuelTempTable(void) {
 static void test_corrections_fueltemp_off(void) {
   setupFuelTempTable();
   configPage2.flexEnabled = false;
-  currentStatus.fuelTemp = 65 - CALIBRATION_TEMPERATURE_OFFSET;
+  currentStatus.fuelTemp = toWorkingTemperature(65);
   TEST_ASSERT_EQUAL(100U, correctionFuelTemp() );
 }
 
 static void test_corrections_fueltemp_on(void) {
   setupFuelTempTable();
   configPage2.flexEnabled = true;
-  currentStatus.fuelTemp = 65 - CALIBRATION_TEMPERATURE_OFFSET;
+  currentStatus.fuelTemp = toWorkingTemperature(65);
   TEST_ASSERT_EQUAL(135U, correctionFuelTemp() );
 }
 
@@ -971,13 +972,12 @@ static void setup_AE(void) {
   //Divided by 100
   configPage2.aeTaperMin = 10; //1000
   configPage2.aeTaperMax = 50; //5000
-  configPage2.aeTime = 255;
-
+	
 	//Set the coolant to be above the warmup AE taper
 	configPage2.aeColdTaperMax = 60;
 	configPage2.aeColdTaperMin = 0;
-	
-  currentStatus.coolant = (int)(configPage2.aeColdTaperMax - CALIBRATION_TEMPERATURE_OFFSET) + 1;
+	currentStatus.coolant = toWorkingTemperature(configPage2.aeColdTaperMax) + 1;
+
   currentStatus.AEEndTime = micros();
 
   reset_AE();
@@ -1142,8 +1142,8 @@ static void test_corrections_TAE_50pc_warmup_taper()
 	
 	//Set a cold % of 50% increase
 	configPage2.aeColdPct = 150;
-	configPage2.aeColdTaperMax = 60 + CALIBRATION_TEMPERATURE_OFFSET;
-	configPage2.aeColdTaperMin = 0 + CALIBRATION_TEMPERATURE_OFFSET;
+	configPage2.aeColdTaperMax = toStorageTemperature(60);
+	configPage2.aeColdTaperMin = toStorageTemperature(0);
 	//Set the coolant to be 50% of the way through the warmup range
 	currentStatus.coolant = 30;
 
@@ -1201,7 +1201,7 @@ static void setup_MAE(void)
 {
   setup_AE();
 
-  configPage2.aeMode = AE_MODE_MAP; //Set AE to TPS
+  configPage2.aeMode = AE_MODE_MAP; //Set AE to MP
   LOOP_TIMER = 0;
   BIT_SET(LOOP_TIMER, MAP_TIMER_BIT);
 
@@ -1384,8 +1384,8 @@ static void test_corrections_MAE_50pc_warmup_taper()
 
 	//Set a cold % of 50% increase
 	configPage2.aeColdPct = 150;
-	configPage2.aeColdTaperMax = 60 + CALIBRATION_TEMPERATURE_OFFSET;
-	configPage2.aeColdTaperMin = 0 + CALIBRATION_TEMPERATURE_OFFSET;
+	configPage2.aeColdTaperMax = toStorageTemperature(60);
+	configPage2.aeColdTaperMin = toStorageTemperature(0);
 	//Set the coolant to be 50% of the way through the warmup range
 	currentStatus.coolant = 30;
 
@@ -1676,7 +1676,7 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   currentStatus.coolant = 212;
   currentStatus.runSecs = 255; 
   currentStatus.battery10 = 100;  
-  currentStatus.IAT = 100 - CALIBRATION_TEMPERATURE_OFFSET;
+  currentStatus.IAT = toWorkingTemperature(100);
   currentStatus.baro = 100;
   currentStatus.ethanolPct = 100;
   currentStatus.launchingHard = false;
