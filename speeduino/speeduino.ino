@@ -45,6 +45,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "SD_logger.h"
 #include "schedule_calcs.h"
 #include "auxiliaries.h"
+#include "temperature_utilities.h"
 #include RTC_LIB_H //Defined in each boards .h file
 #include BOARD_H //Note that this is not a real file, it is defined in globals.h. 
 
@@ -288,7 +289,7 @@ void loop(void)
       //Lookup the current target idle RPM. This is aligned with coolant and so needs to be calculated at the same rate CLT is read
       if( (configPage2.idleAdvEnabled >= 1) || (configPage6.iacAlgorithm != IAC_ALGORITHM_NONE) )
       {
-        currentStatus.CLIdleTarget = (byte)table2D_getValue(&idleTargetTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET); //All temps are offset by 40 degrees
+        currentStatus.CLIdleTarget = (byte)table2D_getValue(&idleTargetTable, toStorageTemperature(currentStatus.coolant)); //All temps are offset by 40 degrees
         if(BIT_CHECK(currentStatus.airConStatus, BIT_AIRCON_TURNING_ON)) { currentStatus.CLIdleTarget += configPage15.airConIdleUpRPMAdder;  } //Adds Idle Up RPM amount if active
       }
 

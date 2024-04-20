@@ -20,6 +20,7 @@ A full copy of the license may be found in the projects root directory
 #include "logger.h"
 #include "comms_legacy.h"
 #include "src/FastCRC/FastCRC.h"
+#include "temperature_utilities.h"
 #include <avr/pgmspace.h>
 #ifdef RTC_ENABLED
   #include "rtc_common.h"
@@ -401,7 +402,7 @@ static uint16_t toTemperature(byte lo, byte hi)
   tempValue = tempValue / 10; //TS sends values multiplied by 10 so divide back to whole degrees. 
   tempValue = ((tempValue - 32) * 5) / 9; //Convert from F to C
   //Apply the temp offset and check that it results in all values being positive
-  return max( tempValue + CALIBRATION_TEMPERATURE_OFFSET, 0 );
+  return max(toStorageTemperature(tempValue), 0 );
 }
 
 /**

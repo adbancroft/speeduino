@@ -2,6 +2,7 @@
 #include "globals.h"
 #include "engineProtection.h"
 #include "maths.h"
+#include "temperature_utilities.h"
 
 byte oilProtStartTime = 0;
 
@@ -38,7 +39,7 @@ byte checkRevLimit(void)
     }
     else if(configPage9.hardRevMode == HARD_REV_COOLANT )
     {
-      currentLimitRPM = (int16_t)(table2D_getValue(&coolantProtectTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET));
+      currentLimitRPM = (int16_t)(table2D_getValue(&coolantProtectTable, toStorageTemperature(currentStatus.coolant)));
       if(currentStatus.RPMdiv100 > currentLimitRPM)
       {
         BIT_SET(currentStatus.engineProtectStatus, ENGINE_PROTECT_BIT_COOLANT);

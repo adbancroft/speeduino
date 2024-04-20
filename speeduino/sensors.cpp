@@ -19,6 +19,7 @@ A full copy of the license may be found in the projects root directory
 #include "decoders.h"
 #include "auxiliaries.h"
 #include "utilities.h"
+#include "temperature_utilities.h"
 #include BOARD_H
 
 uint32_t MAPcurRev; //Tracks which revolution we're sampling on
@@ -528,7 +529,7 @@ void readCLT(bool useFilter)
   if(useFilter == true) { currentStatus.cltADC = ADC_FILTER(tempReading, configPage4.ADCFILTER_CLT, currentStatus.cltADC); }
   else { currentStatus.cltADC = tempReading; }
   
-  currentStatus.coolant = table2D_getValue(&cltCalibrationTable, currentStatus.cltADC) - CALIBRATION_TEMPERATURE_OFFSET; //Temperature calibration values are stored as positive bytes. We subtract 40 from them to allow for negative temperatures
+  currentStatus.coolant = toWorkingTemperature(table2D_getValue(&cltCalibrationTable, currentStatus.cltADC)); //Temperature calibration values are stored as positive bytes. We subtract 40 from them to allow for negative temperatures
 }
 
 void readIAT(void)
@@ -541,7 +542,7 @@ void readIAT(void)
     tempReading = analogRead(pinIAT);
   #endif
   currentStatus.iatADC = ADC_FILTER(tempReading, configPage4.ADCFILTER_IAT, currentStatus.iatADC);
-  currentStatus.IAT = table2D_getValue(&iatCalibrationTable, currentStatus.iatADC) - CALIBRATION_TEMPERATURE_OFFSET;
+  currentStatus.IAT = toWorkingTemperature(table2D_getValue(&iatCalibrationTable, currentStatus.iatADC));
 }
 
 void readBaro(void)

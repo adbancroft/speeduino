@@ -29,6 +29,7 @@ A full copy of the license may be found in the projects root directory
 #include "scheduledIO.h"
 #include "timers.h"
 #include "schedule_calcs.h"
+#include "temperature_utilities.h"
 
 FuelSchedule fuelSchedule1(FUEL1_COUNTER, FUEL1_COMPARE, FUEL1_TIMER_DISABLE, FUEL1_TIMER_ENABLE);
 FuelSchedule fuelSchedule2(FUEL2_COUNTER, FUEL2_COMPARE, FUEL2_TIMER_DISABLE, FUEL2_TIMER_ENABLE);
@@ -285,7 +286,7 @@ void refreshIgnitionSchedule1(unsigned long timeToEnd)
  */
 extern void beginInjectorPriming(void)
 {
-  unsigned long primingValue = table2D_getValue(&PrimingPulseTable, currentStatus.coolant + CALIBRATION_TEMPERATURE_OFFSET);
+  unsigned long primingValue = table2D_getValue(&PrimingPulseTable, toStorageTemperature(currentStatus.coolant));
   if( (primingValue > 0) && (currentStatus.TPS < configPage4.floodClear) )
   {
     primingValue = primingValue * 100 * 5; //to achieve long enough priming pulses, the values in tuner studio are divided by 0.5 instead of 0.1, so multiplier of 5 is required.
