@@ -888,6 +888,11 @@ struct config2 {
 #define VSS_MODE_EXTERNAL_KM  2U
 #define VSS_MODE_EXTERNAL_MI  3U
 
+static inline bool isExternalVssMode(uint8_t vssMode) {
+  return vssMode==VSS_MODE_EXTERNAL_KM
+      || vssMode==VSS_MODE_EXTERNAL_MI;
+}
+
 /** Page 4 of the config - variables required for ignition and rpm/crank phase /cam phase decoding.
 * See the ini file for further reference.
 */

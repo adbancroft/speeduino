@@ -289,7 +289,7 @@ void doUpdates(void)
     configPage4.baroFuelValues[7] = 100;
 
     //Idle advance curve was added. Add default values
-    configPage2.idleAdvEnabled = 0; //Turn this off by default
+    configPage2.idleAdvEnabled = IDLEADVANCE_MODE_OFF; //Turn this off by default
     configPage2.idleAdvTPS = 5; //Active below 5% tps
     configPage2.idleAdvRPM = 20; //Active below 2000 RPM
     configPage4.idleAdvBins[0] = 30;
@@ -370,7 +370,7 @@ void doUpdates(void)
     configPage2.SoftLimitMode = SOFT_LIMIT_FIXED;
 
     //VSS was added for testing, disable it by default
-    configPage2.vssMode = 0;
+    configPage2.vssMode = VSS_MODE_OFF;
 
     writeAllConfig();
     storeEEPROMVersion(14);
