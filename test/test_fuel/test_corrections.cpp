@@ -1581,8 +1581,6 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
   populate_2dtable(&flexFuelTable, 100, 100);
   populate_2dtable(&fuelTempTable, 100, 100);
 
-  BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
-
   //Disable the taper
   currentStatus.RPM = 2000;
   configPage2.aeTaperMin = 50; //5000
@@ -1669,10 +1667,16 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   populate_2dtable(&flexFuelTable, 255, 100);
   populate_2dtable(&fuelTempTable, 255, 100);
 
+  LOOP_TIMER = 0;
+  BIT_SET(LOOP_TIMER, IAT_TIMER_BIT);
+
   configPage2.flexEnabled = 1;
   configPage2.battVCorMode = BATTV_COR_MODE_WHOLE;
   configPage2.dfcoEnabled = 0;
   configPage2.aseTaperTime = 0U;
+  configPage2.taeThresh = UINT8_MAX;
+  configPage2.taeMinChange = UINT8_MAX;
+  configPage2.aeMode = AE_MODE_TPS; //Set AE to TPS
   currentStatus.coolant = 212;
   currentStatus.runSecs = 255; 
   currentStatus.battery10 = 100;  
@@ -1683,6 +1687,9 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   currentStatus.launchingSoft = false;
   currentStatus.AEamount = 100U;
   currentStatus.ASEValue = 100U;
+  currentStatus.TPSlast = 0;
+  currentStatus.TPS = currentStatus.TPSlast;
+  currentStatus.AEamount = 100;
 
   configPage4.wueBins[9] = 100;
   configPage2.wueValues[9] = 100; //Use a value other than 100 here to ensure we are using the non-default value
