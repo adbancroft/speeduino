@@ -178,6 +178,16 @@ static void test_toRawS8(void) {
     TEST_ASSERT_EQUAL_INT8(992, toRawS8(CONVERT_U16U8_SCALE, INT16_MAX));
 }
 
+static void test_toStorageTemperature(void) {
+    TEST_ASSERT_EQUAL_UINT8(0, toStorageTemperature(-40));
+    TEST_ASSERT_EQUAL_UINT8(255, toStorageTemperature(215));
+}
+
+static void test_toWorkingTemperature(void) {
+    TEST_ASSERT_EQUAL_INT16(-40, toWorkingTemperature(0));
+    TEST_ASSERT_EQUAL_INT16(215, toWorkingTemperature(255));
+}
+
 void testScaleAndTranslate(void)
 {
     RUN_TEST(test_toWorkingU8U16);
@@ -186,4 +196,6 @@ void testScaleAndTranslate(void)
     RUN_TEST(test_toWorkingU32);
     RUN_TEST(test_toRawU8);
     RUN_TEST(test_toRawS8);
+    RUN_TEST(test_toStorageTemperature);
+    RUN_TEST(test_toWorkingTemperature);
 }

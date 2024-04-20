@@ -13,6 +13,7 @@
 #include "sensors.h"
 #include "updates.h"
 #include "pages.h"
+#include "scale_translate.h"
 #include EEPROM_LIB_H //This is defined in the board .h files
 
 void doUpdates(void)
@@ -333,7 +334,7 @@ void doUpdates(void)
     //Introduced a DFCO delay option. Default it to 0
     configPage2.dfcoDelay = 0;
     //Introduced a minimum temperature for DFCO. Default it to 40C
-    configPage2.dfcoMinCLT = 80; //CALIBRATION_TEMPERATURE_OFFSET is 40
+    configPage2.dfcoMinCLT = (-TEMPERATURE.translate)*2; //CALIBRATION_TEMPERATURE_OFFSET is 40
 
     //Update flex fuel ignition config values for 40 degrees offset
     for (int i=0; i<6; i++)

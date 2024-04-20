@@ -171,4 +171,35 @@ static constexpr conversionFactor TPS_DOT = { .scale=10U, .translate=0U };
 /** @brief Cranking enrichment values range from 0% to 1275% */
 static constexpr conversionFactor CRANKING_ENRICHMENT = { .scale=5U, .translate=0U };
 
+/** 
+ * @brief All temperature measurements are stored offset by 40 degrees.
+ * This is so we can use an unsigned byte (0-255) to represent temperature ranges from -40 to 215
+ * 
+ * @see toStorageTemperature
+ * @see toWorkingTemperature
+ */
+static constexpr conversionFactor TEMPERATURE = { .scale=1U, .translate=-40 };
+
+/**
+ * @brief Convert from a working temperature (-40, 215) to storage (0, 255)
+ * 
+ * This is done often enough to warrant wrapping toRawU8
+ * 
+ * @param temp Working temperature (-40, 215)
+ */
+static inline constexpr uint8_t toStorageTemperature(int16_t temp) {
+    return toRawU8(TEMPERATURE, temp);
+}
+
+/**
+ * @brief Convert from a storage temperature (0, 255) to working (-40, 215)
+ * 
+ * This is done often enough to warrant wrapping toRawU8
+ * 
+ * @param temp Storage temperature (0, 255)
+ */
+static inline constexpr int16_t toWorkingTemperature(uint8_t temp) {
+    return toWorkingU8S16(TEMPERATURE, temp);
+}
+
 ///@}
