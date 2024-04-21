@@ -851,8 +851,15 @@ TESTABLE_INLINE_STATIC int8_t correctionWMITiming(int8_t advance)
  */
 TESTABLE_INLINE_STATIC int8_t correctionIATretard(int8_t advance)
 {
-  return advance - table2D_getValue(&IATRetardTable, currentStatus.IAT);
+  // Performance - only lookup update every 100ms.
+  // Intake Air Temperature doesn't change very quickly.
+  static uint8_t cachedValue = UINT8_MAX;
+  if( BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ) || (cachedValue == UINT8_MAX)) { 
+    cachedValue = (uint8_t)table2D_getValue(&IATRetardTable, currentStatus.IAT);
+  }
+  return (int16_t)advance - (int16_t)cachedValue;
 }
+
 
 /** Ignition Idle advance correction.
  */
