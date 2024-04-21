@@ -205,7 +205,7 @@ static void test_corrections_ASE_inactive_cranking(void)
 
   // Taper finished
   TEST_ASSERT_EQUAL(100U, correctionASE());
-  TEST_ASSERT_FALSE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_ASE));
+  TEST_ASSERT_BIT_LOW(BIT_ENGINE_ASE, currentStatus.engine);
 }
 
 static inline void setup_correctionASE(void) {
@@ -248,7 +248,7 @@ static void test_corrections_ASE_initial(void)
 
   // Should be half way between the 2 table values.
   TEST_ASSERT_EQUAL(125, correctionASE());
-  TEST_ASSERT_TRUE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_ASE));
+  TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ASE, currentStatus.engine);
 }
 
 static void test_corrections_ASE_taper(void) {
@@ -265,7 +265,7 @@ static void test_corrections_ASE_taper(void) {
 
   // Should be half way between the interpolated table value and 100%.
   TEST_ASSERT_INT_WITHIN(1, 113, correctionASE());
-  TEST_ASSERT_TRUE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_ASE));
+  TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ASE, currentStatus.engine);
   
   // Final taper step
   for (uint8_t index=configPage2.aseTaperTime/2U; index<configPage2.aseTaperTime-2U; ++index) {
@@ -990,8 +990,8 @@ static void test_corrections_TAE_no_rpm_taper()
 
   TEST_ASSERT_EQUAL(750, currentStatus.tpsDOT); //DOT is 750%/s (25 * 30)
   TEST_ASSERT_EQUAL((100+132), accelValue);
-	TEST_ASSERT_TRUE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC)); //Confirm AE is flagged on
-	TEST_ASSERT_FALSE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC)); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, currentStatus.engine); //Confirm AE is flagged on
 }
 
 static void test_corrections_TAE_negative_tpsdot()
@@ -1011,8 +1011,8 @@ static void test_corrections_TAE_negative_tpsdot()
 
   TEST_ASSERT_EQUAL(-750, currentStatus.tpsDOT); //DOT is 750%/s (25 * 30)
   TEST_ASSERT_EQUAL(configPage2.decelAmount, accelValue);
-	TEST_ASSERT_FALSE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC)); //Confirm AE is flagged on
-	TEST_ASSERT_TRUE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC)); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_LOW(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_DCC, currentStatus.engine); //Confirm AE is flagged on
 }
 
 static void test_corrections_TAE_50pc_rpm_taper()
@@ -1031,8 +1031,8 @@ static void test_corrections_TAE_50pc_rpm_taper()
 
   TEST_ASSERT_EQUAL(750, currentStatus.tpsDOT); //DOT is 750%/s (25 * 30)
   TEST_ASSERT_EQUAL((100+66), accelValue);
-	TEST_ASSERT_TRUE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC)); //Confirm AE is flagged on
-	TEST_ASSERT_FALSE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC)); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, currentStatus.engine); //Confirm AE is flagged on
 }
 
 static void test_corrections_TAE_110pc_rpm_taper()
@@ -1051,8 +1051,8 @@ static void test_corrections_TAE_110pc_rpm_taper()
 
   TEST_ASSERT_EQUAL(750, currentStatus.tpsDOT); //DOT is 750%/s (25 * 30)
   TEST_ASSERT_EQUAL(100, accelValue); //Should be no AE as we're above the RPM taper end point
-	TEST_ASSERT_TRUE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC)); //Confirm AE is flagged on
-	TEST_ASSERT_FALSE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC)); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, currentStatus.engine); //Confirm AE is flagged on
 }
 
 static void test_corrections_TAE_under_threshold()
@@ -1072,8 +1072,8 @@ static void test_corrections_TAE_under_threshold()
 
   TEST_ASSERT_EQUAL(90, currentStatus.tpsDOT); //DOT is 90%/s (3% * 30)
   TEST_ASSERT_EQUAL(100, accelValue); //Should be no AE as we're above the RPM taper end point
-	TEST_ASSERT_FALSE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC)); //Confirm AE is flagged off
-	TEST_ASSERT_FALSE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC)); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_LOW(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged off
+	TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, currentStatus.engine); //Confirm AE is flagged on
 }
 
 static void test_corrections_TAE_50pc_warmup_taper()
@@ -1099,8 +1099,8 @@ static void test_corrections_TAE_50pc_warmup_taper()
 
   TEST_ASSERT_EQUAL(750, currentStatus.tpsDOT); //DOT is 750%/s (25 * 30)
   TEST_ASSERT_EQUAL((100+165), accelValue); //Total AE should be 132 + (50% * 50%) = 132 * 1.25 = 165
-	TEST_ASSERT_TRUE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC)); //Confirm AE is flagged on
-	TEST_ASSERT_FALSE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC)); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged on
+  TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, currentStatus.engine); //Confirm AE is flagged on
 }
 
 static void test_corrections_TAE()
@@ -1159,8 +1159,8 @@ static void test_corrections_MAE_negative_tpsdot()
 
   TEST_ASSERT_EQUAL(-400, currentStatus.mapDOT);
   TEST_ASSERT_EQUAL(configPage2.decelAmount, accelValue);
-	TEST_ASSERT_FALSE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC)); //Confirm AE is flagged on
-	TEST_ASSERT_TRUE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC)); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_LOW(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_DCC, currentStatus.engine); //Confirm AE is flagged on
 }
 
 static void test_corrections_MAE_no_rpm_taper()
@@ -1180,7 +1180,7 @@ static void test_corrections_MAE_no_rpm_taper()
 
   TEST_ASSERT_EQUAL(400, currentStatus.mapDOT);
   TEST_ASSERT_EQUAL((100+132), accelValue);
-	TEST_ASSERT_TRUE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC)); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged on
 }
 
 static void test_corrections_MAE_50pc_rpm_taper()
@@ -1201,7 +1201,7 @@ static void test_corrections_MAE_50pc_rpm_taper()
 
   TEST_ASSERT_EQUAL(400, currentStatus.mapDOT);
   TEST_ASSERT_EQUAL((100+66), accelValue);
-	TEST_ASSERT_TRUE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC)); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged on
 }
 
 static void test_corrections_MAE_110pc_rpm_taper()
@@ -1222,7 +1222,7 @@ static void test_corrections_MAE_110pc_rpm_taper()
 
   TEST_ASSERT_EQUAL(400, currentStatus.mapDOT);
   TEST_ASSERT_EQUAL(100, accelValue); //Should be no AE as we're above the RPM taper end point
-	TEST_ASSERT_TRUE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC)); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged on
 }
 
 static void test_corrections_MAE_under_threshold()
@@ -1244,7 +1244,7 @@ static void test_corrections_MAE_under_threshold()
 
   TEST_ASSERT_EQUAL(240, currentStatus.mapDOT);
   TEST_ASSERT_EQUAL(100, accelValue); //Should be no AE as we're above the RPM taper end point
-	TEST_ASSERT_FALSE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC)); //Confirm AE is flagged off
+	TEST_ASSERT_BIT_LOW(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged off
 }
 
 static void test_corrections_MAE_50pc_warmup_taper()
@@ -1271,7 +1271,7 @@ static void test_corrections_MAE_50pc_warmup_taper()
 
   TEST_ASSERT_EQUAL(400, currentStatus.mapDOT);
   TEST_ASSERT_EQUAL((100+165), accelValue); 
-	TEST_ASSERT_TRUE(BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC)); //Confirm AE is flagged on
+	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, currentStatus.engine); //Confirm AE is flagged on
 }
 
 static void test_corrections_MAE()
