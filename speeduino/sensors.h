@@ -84,6 +84,7 @@ void readBat(void);
 #define BAT_TIMER_BIT BIT_TIMER_4HZ
 
 void readBaro(void);
+#define BARO_TIMER_BIT BIT_TIMER_1HZ
 
 void readMAP(void);
 #define MAP_TIMER_BIT BIT_TIMER_1KHZ
