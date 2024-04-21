@@ -1393,9 +1393,11 @@ extern byte correctionBaro(void);
 static void setup_baro_correction(void) {
   construct2dTables();
   initialiseCorrections();
+  LOOP_TIMER = 0;
+  BIT_SET(LOOP_TIMER, BIT_TIMER_4HZ);
 
   TEST_DATA_P uint8_t bins[] = { 60, 70, 80, 90, 100, 110 };
-  TEST_DATA_P uint8_t values[] = { 115, 110, 105, 100, 95, 90 };
+  TEST_DATA_P uint8_t values[] = { 120, 110, 100, 90, 80, 70 };
   populate_2dtable_P(&baroFuelTable, values, bins);
 }
 
@@ -1403,10 +1405,15 @@ static void setup_baro_correction(void) {
 static void test_corrections_baro_lookup(void) {
   setup_baro_correction();
 
-  BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
-  currentStatus.baro = 95;
+  currentStatus.baro = 65;
   currentStatus.baroCorrection = 1U;
   TEST_ASSERT_NOT_EQUAL(currentStatus.baroCorrection, correctionBaro());
+  TEST_ASSERT_EQUAL(115, correctionBaro());
+
+  currentStatus.baro = 105;
+  currentStatus.baroCorrection = 1U;
+  TEST_ASSERT_EQUAL(75, correctionBaro());
+  TEST_ASSERT_EQUAL(75, correctionBaro());
 }
 
 static void test_corrections_baro(void)
@@ -1417,6 +1424,9 @@ static void test_corrections_baro(void)
 
 static void test_corrections_correctionsFuel_ae_modes(void) {
   test_corrections_TAE_setup();
+  // Makes no sense in real life, but this is an artifical test
+  BIT_SET(LOOP_TIMER, BIT_TIMER_4HZ);
+  BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
   populate_2dtable(&injectorVCorrectionTable, 100, 100);
   populate_2dtable(&baroFuelTable, 100, 100);
   populate_2dtable(&IATDensityCorrectionTable, 100, 100);
@@ -1504,7 +1514,10 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
 static void test_corrections_correctionsFuel_clip_limit(void) {
   construct2dTables();
   initialiseCorrections();
-
+  LOOP_TIMER = 0;
+  // Makes no sense in real life, but this is an artifical test
+  BIT_SET(LOOP_TIMER, BIT_TIMER_4HZ);
+  BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
   populate_2dtable(&injectorVCorrectionTable, 255, 100);
   populate_2dtable(&baroFuelTable, 255, 100);
   populate_2dtable(&IATDensityCorrectionTable, 255, 100);

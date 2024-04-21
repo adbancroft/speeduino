@@ -75,6 +75,7 @@ void initialiseCorrections(void)
   currentStatus.ASEValue = NO_FUEL_CORRECTION;
   currentStatus.wueCorrection = NO_FUEL_CORRECTION;
   currentStatus.iatCorrection = NO_FUEL_CORRECTION;
+  currentStatus.baroCorrection = NO_FUEL_CORRECTION;
   AFRnextCycle = 0;
 #if defined(SPEEDY_KNOCK)
   currentStatus.knockActive = false;
@@ -503,7 +504,12 @@ TESTABLE_INLINE_STATIC uint8_t correctionIATDensity(void)
  */
 TESTABLE_INLINE_STATIC uint8_t correctionBaro(void)
 {
-  return (uint8_t)table2D_getValue(&baroFuelTable, currentStatus.baro);
+  // Only update every 250ms.
+  // External air pressure doesn't change very quickly.
+  if( BIT_CHECK(LOOP_TIMER, BIT_TIMER_4HZ) ) { 
+    return (uint8_t)table2D_getValue(&baroFuelTable, currentStatus.baro);
+  }
+  return currentStatus.baroCorrection;
 }
 
 // ============================= Launch control correction =============================
