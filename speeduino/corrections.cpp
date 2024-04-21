@@ -889,8 +889,14 @@ TESTABLE_INLINE_STATIC int8_t correctionWMITiming(int8_t advance)
  */
 TESTABLE_INLINE_STATIC int8_t correctionIATretard(int8_t advance)
 {
-  return advance - table2D_getValue(&IATRetardTable, currentStatus.IAT);
+  static uint8_t cachedValue = 0U; // Setting this to non-zero will use additional RAM for static initialisation
+  // Performance: only update as fast as the sensor is read
+  if( BIT_CHECK(LOOP_TIMER, IAT_TIMER_BIT)) { 
+    cachedValue = (uint8_t)table2D_getValue(&IATRetardTable, currentStatus.IAT);
+  }
+  return (int16_t)advance - (int16_t)cachedValue;
 }
+
 
 /** Ignition Idle advance correction.
  */
