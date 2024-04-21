@@ -673,9 +673,12 @@ uint8_t correctionBatVoltage(void);
 static void setup_battery_correction(void) {
   construct2dTables();
   initialiseCorrections();
+  
+  LOOP_TIMER = 0;
+  BIT_SET(LOOP_TIMER, BIT_TIMER_4HZ);
 
   TEST_DATA_P uint8_t bins[] = { 60, 70, 80, 90, 100, 110 };
-  TEST_DATA_P uint8_t values[] = { 115, 110, 105, 100, 95, 90 };
+  TEST_DATA_P uint8_t values[] = { 130, 120, 110, 100, 90, 80 };
   populate_2dtable_P(&injectorVCorrectionTable, values, bins);   
 }
 
@@ -686,9 +689,12 @@ static void test_corrections_bat_mode_wholePw(void) {
   currentStatus.battery10 = 75;
   configPage2.injOpen = 10;
   inj_opentime_uS = configPage2.injOpen * 100U;
-  BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
 
-  TEST_ASSERT_EQUAL(108U, correctionBatVoltage() );
+  TEST_ASSERT_EQUAL(115U, correctionBatVoltage() );
+  TEST_ASSERT_EQUAL(configPage2.injOpen * 100U, inj_opentime_uS );
+
+  currentStatus.battery10 = 105;
+  TEST_ASSERT_EQUAL(85U, correctionBatVoltage() );
   TEST_ASSERT_EQUAL(configPage2.injOpen * 100U, inj_opentime_uS );
 }
 
@@ -699,13 +705,12 @@ static void test_corrections_bat_mode_opentime(void) {
   currentStatus.battery10 = 75;
   configPage2.injOpen = 10;
   inj_opentime_uS = configPage2.injOpen * 100U;
-  BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
 
   TEST_ASSERT_EQUAL(100U, correctionBatVoltage() );
-  TEST_ASSERT_EQUAL(configPage2.injOpen * 108U, inj_opentime_uS );
+  TEST_ASSERT_EQUAL(configPage2.injOpen * 115U, inj_opentime_uS );
   // Run again & confirm inj_opentime_uS is unchanged
   TEST_ASSERT_EQUAL(100U, correctionBatVoltage() );
-  TEST_ASSERT_EQUAL(configPage2.injOpen * 108U, inj_opentime_uS );
+  TEST_ASSERT_EQUAL(configPage2.injOpen * 115U, inj_opentime_uS );
 }
 
 static void test_corrections_bat(void)

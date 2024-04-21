@@ -76,6 +76,7 @@ void initialiseCorrections(void)
   currentStatus.wueCorrection = NO_FUEL_CORRECTION;
   currentStatus.iatCorrection = NO_FUEL_CORRECTION;
   currentStatus.baroCorrection = NO_FUEL_CORRECTION;
+  currentStatus.batCorrection = NO_FUEL_CORRECTION;
   AFRnextCycle = 0;
 #if defined(SPEEDY_KNOCK)
   currentStatus.knockActive = false;
@@ -473,9 +474,14 @@ Uses a 2D enrichment table (injectorVCorrectionTable) where the X axis is batter
 */
 TESTABLE_INLINE_STATIC uint8_t correctionBatVoltage(void)
 {
-  uint8_t correction = (uint8_t)table2D_getValue(&injectorVCorrectionTable, currentStatus.battery10);
-  if (configPage2.battVCorMode == BATTV_COR_MODE_OPENTIME)
-  {
+  // Only update every 250ms.
+  // Batteru voltage doesn't change very quickly.
+  uint8_t correction = currentStatus.batCorrection;
+  if( BIT_CHECK(LOOP_TIMER, BIT_TIMER_4HZ) ) { 
+    correction = (uint8_t)table2D_getValue(&injectorVCorrectionTable, currentStatus.battery10);
+  }
+  
+  if (configPage2.battVCorMode == BATTV_COR_MODE_OPENTIME) {
     inj_opentime_uS = configPage2.injOpen * correction; // Apply voltage correction to injector open time.
     return NO_FUEL_CORRECTION; // This is to ensure that the correction is not applied twice. There is no battery correction fator as we have instead changed the open time
   }
