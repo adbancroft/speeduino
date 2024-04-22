@@ -722,32 +722,32 @@ static void test_corrections_bat(void)
 uint8_t correctionLaunch(void);
 
 static void test_corrections_launch_inactive(void) {
-  currentStatus.launchingHard = false;
-  currentStatus.launchingSoft = false;
+  BIT_CLEAR(currentStatus.spark, BIT_SPARK_HLAUNCH);
+  BIT_CLEAR(currentStatus.spark, BIT_SPARK_SLAUNCH);
   configPage6.lnchFuelAdd = 25;
 
   TEST_ASSERT_EQUAL(100U, correctionLaunch() );
 }
 
 static void test_corrections_launch_hard(void) {
-  currentStatus.launchingHard = true;
-  currentStatus.launchingSoft = false;
+  BIT_SET(currentStatus.spark, BIT_SPARK_HLAUNCH);
+  BIT_CLEAR(currentStatus.spark, BIT_SPARK_SLAUNCH);
   configPage6.lnchFuelAdd = 25;
 
   TEST_ASSERT_EQUAL(125U, correctionLaunch() );
 }
 
 static void test_corrections_launch_soft(void) {
-  currentStatus.launchingHard = false;
-  currentStatus.launchingSoft = true;
+  BIT_CLEAR(currentStatus.spark, BIT_SPARK_HLAUNCH);
+  BIT_SET(currentStatus.spark, BIT_SPARK_SLAUNCH);
   configPage6.lnchFuelAdd = 25;
 
   TEST_ASSERT_EQUAL(125U, correctionLaunch() );
 }
 
 static void test_corrections_launch_both(void) {
-  currentStatus.launchingHard = true;
-  currentStatus.launchingSoft = true;
+  BIT_SET(currentStatus.spark, BIT_SPARK_HLAUNCH);
+  BIT_SET(currentStatus.spark, BIT_SPARK_SLAUNCH);
   configPage6.lnchFuelAdd = 25;
 
   TEST_ASSERT_EQUAL(125U, correctionLaunch() );
@@ -1453,8 +1453,8 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
   currentStatus.runSecs = 255; 
   currentStatus.battery10 = 90;  
   currentStatus.IAT = 100;
-  currentStatus.launchingHard = false;
-  currentStatus.launchingSoft = false;
+  BIT_CLEAR(currentStatus.spark, BIT_SPARK_HLAUNCH);
+  BIT_CLEAR(currentStatus.spark, BIT_SPARK_SLAUNCH);
   BIT_CLEAR(currentStatus.status1, BIT_STATUS1_DFCO);
   BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK);
   currentStatus.ASEValue = 100U;
@@ -1539,8 +1539,8 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   currentStatus.IAT = toWorkingTemperature(100);
   currentStatus.baro = 100;
   currentStatus.ethanolPct = 100;
-  currentStatus.launchingHard = false;
-  currentStatus.launchingSoft = false;
+  BIT_CLEAR(currentStatus.spark, BIT_SPARK_HLAUNCH);
+  BIT_CLEAR(currentStatus.spark, BIT_SPARK_SLAUNCH);
   currentStatus.ASEValue = 100U;
 
   configPage4.wueBins[9] = 100;

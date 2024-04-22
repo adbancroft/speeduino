@@ -82,6 +82,9 @@ void initialiseCorrections(void)
   currentStatus.knockActive = false;
 #endif
   currentStatus.battery10 = 125; //Set battery voltage to sensible value for dwell correction for "flying start" (else ignition gets spurious pulses after boot)  
+
+  BIT_CLEAR(currentStatus.spark, BIT_SPARK_HLAUNCH);
+  BIT_CLEAR(currentStatus.spark, BIT_SPARK_SLAUNCH);
 }
 
 // ============================= Warm Up Enrichment =============================
@@ -525,7 +528,7 @@ This simple check applies the extra fuel if we're currently launching
 */
 TESTABLE_INLINE_STATIC uint8_t correctionLaunch(void)
 {
-  return (currentStatus.launchingHard || currentStatus.launchingSoft) ? 100U + configPage6.lnchFuelAdd : NO_FUEL_CORRECTION;
+  return (BIT_CHECK(currentStatus.spark, BIT_SPARK_HLAUNCH) || BIT_CHECK(currentStatus.spark, BIT_SPARK_SLAUNCH)) ? 100U + configPage6.lnchFuelAdd : NO_FUEL_CORRECTION;
 }
 
 // ============================= Deceleration Fuel Cut Off (DFCO) correction =============================
@@ -1003,13 +1006,11 @@ TESTABLE_INLINE_STATIC int8_t correctionSoftLaunch(int8_t advance)
   //SoftCut rev limit for 2-step launch control.
   if (configPage6.launchEnabled && currentStatus.clutchTrigger && (currentStatus.clutchEngagedRPM < ((unsigned int)(configPage6.flatSArm) * 100U)) && (currentStatus.RPM > ((unsigned int)(configPage6.lnchSoftLim) * 100U)) && (currentStatus.TPS >= configPage10.lnchCtrlTPS) )
   {
-    currentStatus.launchingSoft = true;
     BIT_SET(currentStatus.spark, BIT_SPARK_SLAUNCH);
     advance = configPage6.lnchRetard;
   }
   else
   {
-    currentStatus.launchingSoft = false;
     BIT_CLEAR(currentStatus.spark, BIT_SPARK_SLAUNCH);
   }
 

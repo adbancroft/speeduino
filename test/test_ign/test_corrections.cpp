@@ -566,14 +566,11 @@ static void test_correctionSoftLaunch_on(void) {
 
     configPage6.lnchRetard = -3;
     TEST_ASSERT_EQUAL(configPage6.lnchRetard, correctionSoftLaunch(-8));
-    TEST_ASSERT_TRUE(currentStatus.launchingSoft);
     TEST_ASSERT_BIT_HIGH(BIT_SPARK_SLAUNCH, currentStatus.spark);
 
     configPage6.lnchRetard = 3;
-    currentStatus.launchingSoft = false;
     BIT_CLEAR(currentStatus.spark, BIT_SPARK_SLAUNCH);
     TEST_ASSERT_EQUAL(configPage6.lnchRetard, correctionSoftLaunch(8));
-    TEST_ASSERT_TRUE(currentStatus.launchingSoft);
     TEST_ASSERT_BIT_HIGH(BIT_SPARK_SLAUNCH, currentStatus.spark);
 }
 
@@ -583,7 +580,6 @@ static void test_correctionSoftLaunch_off_disabled(void) {
     configPage6.lnchRetard = -3;
 
     TEST_ASSERT_EQUAL(-8, correctionSoftLaunch(-8));
-    TEST_ASSERT_FALSE(currentStatus.launchingSoft);
     TEST_ASSERT_BIT_LOW(BIT_SPARK_SLAUNCH, currentStatus.spark);
 }
 
@@ -593,7 +589,6 @@ static void test_correctionSoftLaunch_off_noclutchtrigger(void) {
     configPage6.lnchRetard = -3;
 
     TEST_ASSERT_EQUAL(-8, correctionSoftLaunch(-8));
-    TEST_ASSERT_FALSE(currentStatus.launchingSoft);
     TEST_ASSERT_BIT_LOW(BIT_SPARK_SLAUNCH, currentStatus.spark);
 }
 
@@ -603,7 +598,6 @@ static void test_correctionSoftLaunch_off_clutchrpmlow(void) {
     configPage6.lnchRetard = -3;
 
     TEST_ASSERT_EQUAL(-8, correctionSoftLaunch(-8));
-    TEST_ASSERT_FALSE(currentStatus.launchingSoft);
     TEST_ASSERT_BIT_LOW(BIT_SPARK_SLAUNCH, currentStatus.spark);
 }
 
@@ -613,7 +607,6 @@ static void test_correctionSoftLaunch_off_rpmlimit(void) {
     configPage6.lnchRetard = -3;
 
     TEST_ASSERT_EQUAL(-8, correctionSoftLaunch(-8));
-    TEST_ASSERT_FALSE(currentStatus.launchingSoft);
     TEST_ASSERT_BIT_LOW(BIT_SPARK_SLAUNCH, currentStatus.spark);
 }
 
@@ -623,7 +616,6 @@ static void test_correctionSoftLaunch_off_tpslow(void) {
     configPage6.lnchRetard = -3;
 
     TEST_ASSERT_EQUAL(-8, correctionSoftLaunch(-8));
-    TEST_ASSERT_FALSE(currentStatus.launchingSoft);
     TEST_ASSERT_BIT_LOW(BIT_SPARK_SLAUNCH, currentStatus.spark);
 }
 

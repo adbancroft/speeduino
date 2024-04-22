@@ -774,7 +774,7 @@ void loop(void)
       uint16_t maxAllowedRPM = checkRevLimit(); //The maximum RPM allowed by all the potential limiters (Engine protection, 2-step, flat shift etc). Divided by 100. `checkRevLimit()` returns the current maximum RPM allow (divided by 100) based on either the fixed hard limit or the current coolant temp
       //Check each of the functions that has an RPM limit. Update the max allowed RPM if the function is active and has a lower RPM than already set
       if( checkEngineProtect() && (configPage4.engineProtectMaxRPM < maxAllowedRPM)) { maxAllowedRPM = configPage4.engineProtectMaxRPM; }
-      if ( (currentStatus.launchingHard == true) && (configPage6.lnchHardLim < maxAllowedRPM) ) { maxAllowedRPM = configPage6.lnchHardLim; }
+      if (BIT_CHECK(currentStatus.spark, BIT_SPARK_HLAUNCH) && (configPage6.lnchHardLim < maxAllowedRPM) ) { maxAllowedRPM = configPage6.lnchHardLim; }
       maxAllowedRPM = maxAllowedRPM * 100; //All of the above limits are divided by 100, convert back to RPM
       if ( (currentStatus.flatShiftingHard == true) && (currentStatus.clutchEngagedRPM < maxAllowedRPM) ) { maxAllowedRPM = currentStatus.clutchEngagedRPM; } //Flat shifting is a special case as the RPM limit is based on when the clutch was engaged. It is not divided by 100 as it is set with the actual RPM
     
@@ -1675,7 +1675,6 @@ void checkLaunchAndFlatShift()
   if(currentStatus.clutchTrigger && (currentStatus.previousClutchTrigger != currentStatus.clutchTrigger) ) { currentStatus.clutchEngagedRPM = currentStatus.RPM; } //Check whether the clutch has been engaged or disengaged and store the current RPM if so
 
   //Default flags to off
-  currentStatus.launchingHard = false; 
   BIT_CLEAR(currentStatus.spark, BIT_SPARK_HLAUNCH); 
   currentStatus.flatShiftingHard = false;
 
@@ -1688,7 +1687,6 @@ void checkLaunchAndFlatShift()
     if(currentStatus.RPM > launchRPMLimit)
     {
       //HardCut rev limit for 2-step launch control.
-      currentStatus.launchingHard = true; 
       BIT_SET(currentStatus.spark, BIT_SPARK_HLAUNCH); 
     }
   } 
