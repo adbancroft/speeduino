@@ -48,7 +48,6 @@ static unsigned long knockStartTime;
 static uint8_t knockLastRecoveryStep;
 //static int16_t knockWindowMin; //The current minimum crank angle for a knock pulse to be valid
 //static int16_t knockWindowMax;//The current maximum crank angle for a knock pulse to be valid
-TESTABLE_STATIC uint8_t dfcoDelay;
 static uint8_t dfcoTaper;
 
 // Constant that represents "no fuel correction"
@@ -592,6 +591,8 @@ TESTABLE_INLINE_STATIC bool correctionDFCO(void)
   bool DFCOValue = false;
   if ( configPage2.dfcoEnabled == 1U )
   {
+    static uint8_t dfcoDelay;
+
     if ( BIT_CHECK(currentStatus.status1, BIT_STATUS1_DFCO) ) 
     {
       DFCOValue = ( currentStatus.RPM > ( configPage4.dfcoRPM * 10U) ) && ( currentStatus.TPS < configPage4.dfcoTPSThresh ); 
