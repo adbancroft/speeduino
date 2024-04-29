@@ -101,7 +101,7 @@ TESTABLE_INLINE_STATIC uint8_t correctionWUE(void)
   uint8_t WUEValue = currentStatus.wueCorrection;
 
   // Only update as fast as the sensor is read
-  if( BIT_CHECK(LOOP_TIMER, CLT_TIMER_BIT) ) { 
+  if( BIT_CHECK(LOOP_TIMER, CLT_READ_TIMER_BIT) ) { 
     if (currentStatus.coolant >= toWorkingTemperature(table2D_getAxisValue(&WUETable, WUETable.xSize-1U)))
     {
       //This prevents us doing the 2D lookup if we're already up to temp
@@ -195,7 +195,7 @@ TESTABLE_INLINE_STATIC uint8_t correctionASE(void)
       // We only update ASE every 100ms for performance reasons - coolant
       // doesn't change temperature that quickly. 
       //
-      // We must use 100ms (rather than CLT_TIMER_BIT) since aseTaper counts tenths of a second.
+      // We must use 100ms (rather than CLT_READ_TIMER_BIT) since aseTaper counts tenths of a second.
       
       if (aseTaper==0U // Avoid table lookup if taper is being applied
        && (currentStatus.runSecs < ((uint8_t)table2D_getValue(&ASECountTable, toStorageTemperature(currentStatus.coolant)))) )
@@ -403,7 +403,7 @@ static inline uint16_t correctionAccelModeMap(void) {
   uint16_t aeCorrection = currentStatus.AEamount;
 
   // No point in updating faster than the MAP sensor is read
-  if (BIT_CHECK(LOOP_TIMER, MAP_TIMER_BIT)) {
+  if (BIT_CHECK(LOOP_TIMER, MAP_READ_TIMER_BIT)) {
     currentStatus.mapDOT = computeMapDot();
 
     aeCorrection = correctionAccel(mapOnTimeoutExpired, mapShouldResetAe, mapShouldStartAe, mapComputeAe);
@@ -458,7 +458,7 @@ static inline uint16_t correctionAccelModeTps(void) {
   uint16_t aeCorrection = currentStatus.AEamount;
 
   // No point in updating faster than the TPS is read
-  if (BIT_CHECK(LOOP_TIMER, TPS_TIMER_BIT)) {
+  if (BIT_CHECK(LOOP_TIMER, TPS_READ_TIMER_BIT)) {
     currentStatus.tpsDOT = computeTPSDOT();
 
     aeCorrection = correctionAccel(tpsOnTimeoutExpired, tpsShouldResetAe, tpsShouldStartAe, tpsComputeAe);
@@ -513,7 +513,7 @@ TESTABLE_INLINE_STATIC uint8_t correctionBatVoltage(void)
 {
   // No point in updating more often than the sensor is read
   uint8_t correction = currentStatus.batCorrection;
-  if( BIT_CHECK(LOOP_TIMER, BAT_TIMER_BIT) ) { 
+  if( BIT_CHECK(LOOP_TIMER, BAT_READ_TIMER_BIT) ) { 
     correction = (uint8_t)table2D_getValue(&injectorVCorrectionTable, currentStatus.battery10);
   }
   
@@ -532,7 +532,7 @@ This corrects for changes in air density from movement of the temperature.
 TESTABLE_INLINE_STATIC uint8_t correctionIATDensity(void)
 {
   // Performance: only update as fast as the sensor is read
-  if( BIT_CHECK(LOOP_TIMER, IAT_TIMER_BIT) ) { 
+  if( BIT_CHECK(LOOP_TIMER, IAT_READ_TIMER_BIT) ) { 
     return (uint8_t)table2D_getValue(&IATDensityCorrectionTable, toStorageTemperature(currentStatus.IAT)); //currentStatus.IAT is the actual temperature, values in IATDensityCorrectionTable.axisX are temp+offset
   }
   return currentStatus.iatCorrection;
@@ -546,7 +546,7 @@ TESTABLE_INLINE_STATIC uint8_t correctionIATDensity(void)
 TESTABLE_INLINE_STATIC uint8_t correctionBaro(void)
 {
   // No point in updating more often than the sensor is read
-  if( BIT_CHECK(LOOP_TIMER, BARO_TIMER_BIT) ) { 
+  if( BIT_CHECK(LOOP_TIMER, BARO_READ_TIMER_BIT) ) { 
     return (uint8_t)table2D_getValue(&baroFuelTable, currentStatus.baro);
   }
   return currentStatus.baroCorrection;
@@ -853,7 +853,7 @@ TESTABLE_INLINE_STATIC int8_t correctionCLTadvance(int8_t advance)
 {
   static uint8_t cachedValue = 0U; // Setting this to non-zero will use additional RAM for static initialisation
   // Performance: only update as fast as the sensor is read
-  if( BIT_CHECK(LOOP_TIMER, CLT_TIMER_BIT) ) { 
+  if( BIT_CHECK(LOOP_TIMER, CLT_READ_TIMER_BIT) ) { 
     cachedValue = (uint8_t)(table2D_getValue(&CLTAdvanceTable, toStorageTemperature(currentStatus.coolant)));
   }
   return advance + (int8_t)cachedValue - 15;
@@ -905,7 +905,7 @@ TESTABLE_INLINE_STATIC int8_t correctionIATretard(int8_t advance)
 {
   static uint8_t cachedValue = 0U; // Setting this to non-zero will use additional RAM for static initialisation
   // Performance: only update as fast as the sensor is read
-  if( BIT_CHECK(LOOP_TIMER, IAT_TIMER_BIT)) { 
+  if( BIT_CHECK(LOOP_TIMER, IAT_READ_TIMER_BIT)) { 
     cachedValue = (uint8_t)table2D_getValue(&IATRetardTable, currentStatus.IAT);
   }
   return (int16_t)advance - (int16_t)cachedValue;
@@ -1237,7 +1237,7 @@ uint16_t correctionsDwell(uint16_t dwell)
   //**************************************************************************************************************************
   //Pull battery voltage based dwell correction and apply if needed
   static uint8_t dwellCorrection = ONE_HUNDRED_PCT;
-  if (BIT_CHECK(LOOP_TIMER, BAT_TIMER_BIT)) { // Performance: only update as fast as the sensor is read
+  if (BIT_CHECK(LOOP_TIMER, BAT_READ_TIMER_BIT)) { // Performance: only update as fast as the sensor is read
     dwellCorrection = (uint8_t)table2D_getValue(&dwellVCorrectionTable, currentStatus.battery10);
   }
   if (dwellCorrection != ONE_HUNDRED_PCT) { 

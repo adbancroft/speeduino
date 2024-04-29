@@ -23,15 +23,6 @@
 #define VSS_GEAR_HYSTERESIS 10
 #define VSS_SAMPLES         4 //Must be a power of 2 and smaller than 255
 
-#define TPS_READ_FREQUENCY  30 //ONLY VALID VALUES ARE 15 or 30!!!
-#if TPS_READ_FREQUENCY==30
-#define TPS_TIMER_BIT BIT_TIMER_30HZ
-#elif TPS_READ_FREQUENCY==15
-#define TPS_TIMER_BIT BIT_TIMER_15HZ
-#else
-#error
-#endif
-
 extern volatile byte flexCounter;
 extern volatile unsigned long flexStartTime;
 extern volatile unsigned long flexPulseWidth;
@@ -59,8 +50,6 @@ extern unsigned long MAPlast_time; //The time the previous MAP sample was taken
 #define ADC_FILTER(input, alpha, prior) (((long)input * (256 - alpha) + ((long)prior * alpha))) >> 8
 
 void initialiseADC(void);
-void readTPS(bool useFilter=true); //Allows the option to override the use of the filter
-void readO2_2(void);
 void flexPulse(void);
 void knockPulse(void);
 uint32_t vssGetPulseGap(byte toothHistoryIndex);
@@ -72,22 +61,85 @@ byte getOilPressure(void);
 uint16_t readAuxanalog(uint8_t analogPin);
 uint16_t readAuxdigital(uint8_t digitalPin);
 
+#define TPS_READ_FREQUENCY  30 //ONLY VALID VALUES ARE 15 or 30!!!
+
+/** @brief Define the TPS sensor read frequency. */
+#if TPS_READ_FREQUENCY==30
+#define TPS_READ_TIMER_BIT BIT_TIMER_30HZ
+#elif TPS_READ_FREQUENCY==15
+#define TPS_READ_TIMER_BIT BIT_TIMER_15HZ
+#else
+#error
+#endif
+
+/**
+ * @brief Read the TPS sensor
+ * 
+ * We expect this to be called at TPS_READ_TIMER_BIT intervals
+ */
+void readTPS(bool useFilter=true); //Allows the option to override the use of the filter
+
+/** @brief Define the coolant sensor read frequency. */
+#define CLT_READ_TIMER_BIT BIT_TIMER_4HZ
+
+/**
+ * @brief Read the coolant sensor
+ * 
+ * We expect this to be called at CLT_READ_TIMER_BIT intervals
+ */
 void readCLT(bool useFilter=true); //Allows the option to override the use of the filter
-#define CLT_TIMER_BIT BIT_TIMER_4HZ
 
+/** @brief Define the IAT sensor read frequency. */
+#define IAT_READ_TIMER_BIT BIT_TIMER_4HZ
+
+/**
+ * @brief Read the IAT sensor
+ * 
+ * We expect this to be called at IAT_READ_TIMER_BIT intervals
+ */
 void readIAT(void);
-#define IAT_TIMER_BIT BIT_TIMER_4HZ
 
+/** @brief Define the O2 sensor read frequency. */
+#define O2_READ_TIMER_BIT BIT_TIMER_30HZ
+
+/**
+ * @brief Read the O2 sensor
+ * 
+ * We expect this to be called at O2_READ_TIMER_BIT intervals
+ */
 void readO2(void);
+/** @copydoc readO2 */
+void readO2_2(void);
 
+/** @brief Define the battery sensor read frequency. */
+#define BAT_READ_TIMER_BIT BIT_TIMER_4HZ
+
+/**
+ * @brief Read the battery sensor
+ * 
+ * We expect this to be called at BAT_READ_TIMER_BIT intervals
+ */
 void readBat(void);
-#define BAT_TIMER_BIT BIT_TIMER_4HZ
 
+/** @brief Define the baro sensor read frequency. */
+#define BARO_READ_TIMER_BIT BIT_TIMER_1HZ
+
+/**
+ * @brief Read the baro sensor
+ * 
+ * We expect this to be called at BARO_READ_TIMER_BIT intervals
+ */
 void readBaro(void);
-#define BARO_TIMER_BIT BIT_TIMER_1HZ
 
+/** @brief Define the MAP sensor read frequency. */
+#define MAP_READ_TIMER_BIT BIT_TIMER_1KHZ
+
+/**
+ * @brief Read the MAP sensor
+ * 
+ * We expect this to be called at MAP_READ_TIMER_BIT intervals
+ */
 void readMAP(void);
-#define MAP_TIMER_BIT BIT_TIMER_1KHZ
 
 void instanteneousMAPReading(void);
 uint8_t getAnalogKnock(void);
