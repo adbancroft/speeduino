@@ -196,10 +196,33 @@ void loop(void)
     }
     //***Perform sensor reads***
     //-----------------------------------------------------------------------------------------------------
+    if (BIT_CHECK(LOOP_TIMER, TPS_READ_TIMER_BIT)) {
+      readTPS();
+    }
+    if (BIT_CHECK(LOOP_TIMER, CLT_READ_TIMER_BIT)) {
+      readCLT();
+    }
+    if (BIT_CHECK(LOOP_TIMER, IAT_READ_TIMER_BIT)) {
+      readIAT();
+    }
+    if (BIT_CHECK(LOOP_TIMER, O2_READ_TIMER_BIT)) {
+      if (configPage2.canWBO == 0) {
+        readO2();
+        readO2_2();
+      } 
+    }
+    if (BIT_CHECK(LOOP_TIMER, BAT_READ_TIMER_BIT)) {
+      readBat();
+    }
+    if (BIT_CHECK(LOOP_TIMER, BARO_READ_TIMER_BIT)) {
+      readBaro();
+    }   
+    if (BIT_CHECK(LOOP_TIMER, MAP_READ_TIMER_BIT)) {
+      readMAP();
+    }
     if (BIT_CHECK(LOOP_TIMER, BIT_TIMER_1KHZ)) //Every 1ms. NOTE: This is NOT guaranteed to run at 1kHz on AVR systems. It will run at 1kHz if possible or as fast as loops/s allows if not. 
     {
       BIT_CLEAR(TIMER_mask, BIT_TIMER_1KHZ);
-      readMAP();
     }
     if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_200HZ))
     {
@@ -213,9 +236,6 @@ void loop(void)
     if (BIT_CHECK(LOOP_TIMER, BIT_TIMER_15HZ)) //Every 32 loops
     {
       BIT_CLEAR(TIMER_mask, BIT_TIMER_15HZ);
-      #if TPS_READ_FREQUENCY == 15
-        readTPS(); //TPS reading to be performed every 32 loops (any faster and it can upset the TPSdot sampling time)
-      #endif
       #if  defined(CORE_TEENSY35)       
           if (configPage9.enable_intcan == 1) // use internal can module
           {
@@ -228,9 +248,6 @@ void loop(void)
 
       //And check whether the tooth log buffer is ready
       if(toothHistoryIndex > TOOTH_LOG_SIZE) { BIT_SET(currentStatus.status1, BIT_STATUS1_TOOTHLOG1READY); }
-
-      
-
     }
     if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ)) //10 hertz
     {
@@ -262,14 +279,7 @@ void loop(void)
       if (configPage2.canBMWCluster == true) { sendBMWCluster(); }
       if (configPage2.canVAGCluster == true) { sendVAGCluster(); }
       #endif
-      #if TPS_READ_FREQUENCY == 30
-        readTPS();
-      #endif
-      if (configPage2.canWBO == 0)
-      {
-        readO2();
-        readO2_2();
-      }      
+    
       #ifdef SD_LOGGING
         if(configPage13.onboard_log_file_rate == LOGGER_RATE_30HZ) { writeSDLogEntry(); }
       #endif
@@ -280,10 +290,6 @@ void loop(void)
     if (BIT_CHECK(LOOP_TIMER, BIT_TIMER_4HZ))
     {
       BIT_CLEAR(TIMER_mask, BIT_TIMER_4HZ);
-      //The IAT and CLT readings can be done less frequently (4 times per second)
-      readCLT();
-      readIAT();
-      readBat();
       nitrousControl();
 
       //Lookup the current target idle RPM. This is aligned with coolant and so needs to be calculated at the same rate CLT is read
@@ -361,7 +367,6 @@ void loop(void)
     if (BIT_CHECK(LOOP_TIMER, BIT_TIMER_1HZ)) //Once per second)
     {
       BIT_CLEAR(TIMER_mask, BIT_TIMER_1HZ);
-      readBaro(); //Infrequent baro readings are not an issue.
 
       if ( (configPage10.wmiEnabled > 0) && (configPage10.wmiIndicatorEnabled > 0) )
       {
