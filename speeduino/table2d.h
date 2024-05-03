@@ -5,10 +5,11 @@ This file is used for everything related to maps/tables including their definiti
 #define TABLE_H
 
 #include "globals.h"
+#include <stdint.h>
 
-#define SIZE_SIGNED_BYTE    4
-#define SIZE_BYTE           8
-#define SIZE_INT            16
+#define SIZE_SIGNED_BYTE    4U
+#define SIZE_BYTE           8U
+#define SIZE_INT            16U
 
 /*
 The 2D table can contain either 8-bit (byte) or 16-bit (int) values
@@ -16,15 +17,12 @@ The valueSize variable should be set to either 8 or 16 to indicate this BEFORE t
 */
 struct table2D {
   //Used 5414 RAM with original version
-  byte valueSize;
-  byte axisSize;
-  byte xSize;
+  uint8_t valueSize;
+  uint8_t axisSize;
+  uint8_t xSize;
 
   void *values;
   void *axisX;
-
-  //int16_t *values16;
-  //int16_t *axisX16;
 
   //Store the last X and Y coordinates in the table. This is used to make the next check faster
   mutable int16_t lastXMax;
