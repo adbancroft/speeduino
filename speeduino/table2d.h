@@ -5,7 +5,7 @@ This file is used for everything related to maps/tables including their definiti
 #define TABLE_H
 
 #include <stdint.h>
-#include <Arduino.h>
+using byte = uint8_t;
 
 /// @cond
 // private to table2D implementation
