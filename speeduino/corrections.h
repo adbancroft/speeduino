@@ -7,7 +7,7 @@ All functions in the gamma file return
 
 void initialiseCorrections(void);
 uint16_t correctionsFuel(void);
-uint8_t calculateAfrTarget(table3d16RpmLoad &afrLookUpTable, const statuses &current, const config2 &page2, const config6 &page6);
+uint8_t calculateAfrTarget(const table3d16RpmLoad &afrLookUpTable, const statuses &current, const config2 &page2, const config6 &page6);
 
 int8_t correctionsIgn(int8_t advance);
 int8_t correctionFixedTiming(int8_t advance);

@@ -58,7 +58,7 @@ ie: Given a value on the X axis, it returns a Y value that corresponds to the po
 This function must take into account whether a table contains 8-bit or 16-bit values.
 Unfortunately this means many of the lines are duplicated depending on this
 */
-int table2D_getValue(struct table2D *fromTable, int X_in)
+int table2D_getValue(const struct table2D *fromTable, int X_in)
 {
   //Orig memory usage = 5414
   int returnValue = 0;
@@ -159,13 +159,13 @@ int table2D_getValue(struct table2D *fromTable, int X_in)
  * @param X_in 
  * @return int16_t 
  */
-int16_t table2D_getAxisValue(struct table2D *fromTable, byte X_in)
+int16_t table2D_getAxisValue(const struct table2D *fromTable, byte X_in)
 {
-  int returnValue = 0;
+  int16_t returnValue = 0;
 
-  if(fromTable->axisSize == SIZE_INT) { returnValue = ((int16_t*)fromTable->axisX)[X_in]; }
-  else if(fromTable->axisSize == SIZE_BYTE) { returnValue = ((uint8_t*)fromTable->axisX)[X_in]; }
-  else if(fromTable->axisSize == SIZE_SIGNED_BYTE) { returnValue = ((int8_t*)fromTable->axisX)[X_in]; }
+  if(fromTable->axisSize == SIZE_INT) { returnValue = ((const int16_t*)fromTable->axisX)[X_in]; }
+  else if(fromTable->axisSize == SIZE_BYTE) { returnValue = ((const uint8_t*)fromTable->axisX)[X_in]; }
+  else if(fromTable->axisSize == SIZE_SIGNED_BYTE) { returnValue = ((const int8_t*)fromTable->axisX)[X_in]; }
   
 
   return returnValue;
@@ -178,13 +178,13 @@ int16_t table2D_getAxisValue(struct table2D *fromTable, byte X_in)
  * @param X_index 
  * @return int16_t 
  */
-int16_t table2D_getRawValue(struct table2D *fromTable, byte X_index)
+int16_t table2D_getRawValue(const struct table2D *fromTable, byte X_index)
 {
   int returnValue = 0;
 
-  if(fromTable->valueSize == SIZE_INT) { returnValue = ((int16_t*)fromTable->values)[X_index]; }
-  else if(fromTable->valueSize == SIZE_BYTE) { returnValue = ((uint8_t*)fromTable->values)[X_index]; }
-  else if(fromTable->valueSize == SIZE_SIGNED_BYTE) { returnValue = ((int8_t*)fromTable->values)[X_index]; }
+  if(fromTable->valueSize == SIZE_INT) { returnValue = ((const int16_t*)fromTable->values)[X_index]; }
+  else if(fromTable->valueSize == SIZE_BYTE) { returnValue = ((const uint8_t*)fromTable->values)[X_index]; }
+  else if(fromTable->valueSize == SIZE_SIGNED_BYTE) { returnValue = ((const int8_t*)fromTable->values)[X_index]; }
 
   return returnValue;
 }
