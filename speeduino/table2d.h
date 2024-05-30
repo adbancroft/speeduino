@@ -27,13 +27,13 @@ struct table2D {
   //int16_t *axisX16;
 
   //Store the last X and Y coordinates in the table. This is used to make the next check faster
-  int16_t lastXMax;
-  int16_t lastXMin;
+  mutable int16_t lastXMax;
+  mutable int16_t lastXMin;
 
   //Store the last input and output for caching
-  int16_t lastInput;
-  int16_t lastOutput;
-  byte cacheTime; //Tracks when the last cache value was set so it can expire after x seconds. A timeout is required to pickup when a tuning value is changed, otherwise the old cached value will continue to be returned as the X value isn't changing. 
+  mutable int16_t lastInput;
+  mutable int16_t lastOutput;
+  mutable byte cacheTime; //Tracks when the last cache value was set so it can expire after x seconds. A timeout is required to pickup when a tuning value is changed, otherwise the old cached value will continue to be returned as the X value isn't changing. 
 };
 
 void construct2dTable(table2D &table, uint8_t length, uint8_t *values, uint8_t *bins);
@@ -43,9 +43,9 @@ void construct2dTable(table2D &table, uint8_t length, uint8_t *values, uint16_t 
 void construct2dTable(table2D &table, uint8_t length, uint16_t *values, uint8_t *bins);
 void construct2dTable(table2D &table, uint8_t length, int16_t *values, uint8_t *bins);
 
-int16_t table2D_getAxisValue(struct table2D *fromTable, byte X_in);
-int16_t table2D_getRawValue(struct table2D *fromTable, byte X_index);
+int16_t table2D_getAxisValue(const struct table2D *fromTable, byte X_in);
+int16_t table2D_getRawValue(const struct table2D *fromTable, byte X_index);
 
-int table2D_getValue(struct table2D *fromTable, int X_in);
+int table2D_getValue(const struct table2D *fromTable, int X_in);
 
 #endif // TABLE_H
