@@ -229,32 +229,32 @@ TESTABLE_INLINE_STATIC uint8_t correctionASE(void)
 
 // ============================= Acceleration Enrichment =============================
 
-static inline void accelEnrichmentOff(void) {
-  BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ACC);
-  BIT_CLEAR(currentStatus.engine, BIT_ENGINE_DCC);
-  currentStatus.AEamount = 0;
+static inline void accelEnrichmentOff(statuses &current) {
+  BIT_CLEAR(current.engine, BIT_ENGINE_ACC);
+  BIT_CLEAR(current.engine, BIT_ENGINE_DCC);
+  current.AEamount = 0;
 }
 
-static inline bool isAccelEnrichmentOn(void) {
-  return (BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC)) || (BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC));
+static inline bool isAccelEnrichmentOn(const statuses &current) {
+  return (BIT_CHECK(current.engine, BIT_ENGINE_ACC)) || (BIT_CHECK(current.engine, BIT_ENGINE_DCC));
 }
 
-static inline uint8_t applyAeRpmTaper(uint8_t accelCorrection) {
+static inline uint8_t applyAeRpmTaper(uint8_t accelCorrection, const statuses &current, const config2 &page2) {
   //Apply the RPM taper to the above
   //The RPM settings are stored divided by 100:
-  if ((configPage2.aeTaperMax>configPage2.aeTaperMin) && (accelCorrection>0U)) {
-    const uint16_t taperMinRpm = toWorkingU8U16(RPM_COARSE, configPage2.aeTaperMin);
+  if ((page2.aeTaperMax>page2.aeTaperMin) && (accelCorrection>0U)) {
+    const uint16_t taperMinRpm = toWorkingU8U16(RPM_COARSE, page2.aeTaperMin);
     // If RPM is lower than the taper range, no correction 
-    if (currentStatus.RPM > taperMinRpm)
+    if (current.RPM > taperMinRpm)
     {
-      const uint16_t taperMaxRpm = toWorkingU8U16(RPM_COARSE, configPage2.aeTaperMax);
-      if(currentStatus.RPM > taperMaxRpm) { 
+      const uint16_t taperMaxRpm = toWorkingU8U16(RPM_COARSE, page2.aeTaperMax);
+      if(current.RPM > taperMaxRpm) { 
         // RPM is above taper range, so accel enrich is turned off
         accelCorrection = 0U;
       } else {
         // RPM is within the taper range, compute the *reverse* percentage
         // of it's position within the RPM taper range
-        const auto taperPercent = (uint8_t)map(currentStatus.RPM,
+        const auto taperPercent = (uint8_t)map( current.RPM,
                                                   taperMinRpm, taperMaxRpm,
                                                   ONE_HUNDRED_PCT, 0U); 
         accelCorrection = (uint8_t)percentage(taperPercent, accelCorrection); //Calculate the above percentage of the calculated accel amount. 
@@ -265,26 +265,26 @@ static inline uint8_t applyAeRpmTaper(uint8_t accelCorrection) {
   return accelCorrection;
 }
 
-static inline uint16_t applyAeCoolantTaper(uint16_t accelCorrection) {
+static inline uint16_t applyAeCoolantTaper(uint16_t accelCorrection, const statuses &current, const config2 &page2) {
   //Apply AE cold coolant modifier, if CLT is less than taper end temperature
   if ( (accelCorrection!=0U)
-    && (configPage2.aeColdPct!=ONE_HUNDRED_PCT)
-    && (configPage2.aeColdTaperMax>configPage2.aeColdTaperMin)
-    && (currentStatus.coolant < toWorkingTemperature(configPage2.aeColdTaperMax) ))
+    && (page2.aeColdPct!=ONE_HUNDRED_PCT)
+    && (page2.aeColdTaperMax>page2.aeColdTaperMin)
+    && (current.coolant < toWorkingTemperature(page2.aeColdTaperMax) ))
   {
     //If CLT is less than taper min temp, apply full modifier on top of accelCorrection
-    if ( currentStatus.coolant <= toWorkingTemperature(configPage2.aeColdTaperMin) )
+    if ( current.coolant <= toWorkingTemperature(page2.aeColdTaperMin) )
     {
-      accelCorrection =  (uint16_t)percentage(configPage2.aeColdPct, accelCorrection);
+      accelCorrection = (uint16_t)percentage(page2.aeColdPct, accelCorrection);
     }
     //If CLT is between taper min and max, taper the modifier value and apply it on top of accelCorrection
     else
     {
       // Tune uses 100% as no adjustment, range 100% to 255%. So subtract 100 to get the adjustment, 
       // scale the adjustment over the coolant RPM range & reapply the 100 offset 
-      const uint8_t coldPct = ONE_HUNDRED_PCT + (uint8_t)map( toStorageTemperature(currentStatus.coolant),
-                                                              configPage2.aeColdTaperMin, configPage2.aeColdTaperMax,
-                                                              configPage2.aeColdPct-ONE_HUNDRED_PCT, 0U);       
+      const uint8_t coldPct = ONE_HUNDRED_PCT + (uint8_t)map( toStorageTemperature(current.coolant),
+                                                              page2.aeColdTaperMin, page2.aeColdTaperMax,
+                                                              page2.aeColdPct-ONE_HUNDRED_PCT, 0U);       
       accelCorrection = (uint16_t)percentage(coldPct, accelCorrection);
     }
   }
@@ -292,97 +292,100 @@ static inline uint16_t applyAeCoolantTaper(uint16_t accelCorrection) {
   return accelCorrection;
 }
 
-static inline uint16_t calcAccelEnrichment(const uint8_t accelCorrection) {
-  BIT_SET(currentStatus.engine, BIT_ENGINE_ACC); //Mark acceleration enrichment as active.
-  return BASELINE_FUEL_CORRECTION + applyAeCoolantTaper(applyAeRpmTaper(accelCorrection));
+static inline uint16_t calcAccelEnrichment(const uint8_t accelCorrection, statuses &current, const config2 &page2) {
+  BIT_SET(current.engine, BIT_ENGINE_ACC); //Mark acceleration enrichment as active.
+  return BASELINE_FUEL_CORRECTION + applyAeCoolantTaper(applyAeRpmTaper(accelCorrection, current, page2), current, page2);
 }
 
-static inline uint16_t calcDeccelEnrichment(void) {
-  BIT_SET(currentStatus.engine, BIT_ENGINE_DCC); //Mark deceleration enleanment as active.
-  return configPage2.decelAmount; //In decel, use the decel fuel amount as accelCorrection
+static inline uint16_t calcDeccelEnrichment(statuses &current, const config2 &page2) {
+  BIT_SET(current.engine, BIT_ENGINE_DCC); //Mark deceleration enleanment as active.
+  return page2.decelAmount; //In decel, use the decel fuel amount as accelCorrection
 }
 
-static inline bool aeTimeoutExpired(void) {
-  return micros() >= currentStatus.AEEndTime;
+static inline bool aeTimeoutExpired(const statuses &current) {
+  return micros() >= current.AEEndTime;
 }
 
 //Set the time in the future where the enrichment will be turned off. 
-static inline void updateAeTimeout(void) {
+static inline void updateAeTimeout(statuses &current, const config2 &page2) {
   // taeTime is stored as mS / 10, so multiply it by 10000 to get it in uS
-  currentStatus.AEEndTime = micros() + toWorkingU32(TIME_TENTH_MILLIS, configPage2.aeTime); 
+  current.AEEndTime = micros() + toWorkingU32(TIME_TENTH_MILLIS, page2.aeTime); 
 }
 
-using aeTimeoutExpiredCallback_t = void (*)(void);
-using shouldResetCurrentAeCallback_t = bool (*)(void);
-using shouldStartAeCallback_t = bool (*)(void);
-using computAeCallback_t = uint16_t (*)(void);
+using aeTimeoutExpiredCallback_t = void (*)(statuses &);
+using shouldResetCurrentAeCallback_t = bool (*)(const statuses &);
+using shouldStartAeCallback_t = bool (*)(const statuses &, const config2 &);
+using computAeCallback_t = uint16_t (*)(statuses &, const config2 &, const table2D &);
 
 // Implements the skeleton of the AE algorithm. Callers fill in specific steps via callbacks
 // (Template Method design pattern in C!)
 static inline uint16_t correctionAccel( const aeTimeoutExpiredCallback_t onTimeoutExpired, 
                                         const shouldResetCurrentAeCallback_t shouldResetCurrentAe, 
                                         const shouldStartAeCallback_t shouldStartAe, 
-                                        const computAeCallback_t computeAe) {
+                                        const computAeCallback_t computeAe,
+                                        statuses &current, 
+                                        const config2 &page2,
+                                        const table2D &lookupTable) {
   uint16_t accelCorrection = NO_FUEL_CORRECTION;
 
   //First, check whether the accel. enrichment is already running
-  if (isAccelEnrichmentOn()) {
+  if (isAccelEnrichmentOn(current)) {
     //If it is currently running, check whether it should still be running or whether it's reached it's end time
-    if (aeTimeoutExpired()) {
-      accelEnrichmentOff();
+    if (aeTimeoutExpired(current)) {
+      accelEnrichmentOff(current);
       // Timed out, reset
-      onTimeoutExpired();
+      onTimeoutExpired(current);
     //Need to check whether the accel amount has increased from when AE was turned on
     //If the accel amount HAS increased, we clear the current enrich phase and a new one will be started below
-     } else if(shouldResetCurrentAe()) {
-        accelEnrichmentOff();
+     } else if(shouldResetCurrentAe(current)) {
+        accelEnrichmentOff(current);
     } else {
       //Enrichment still needs to keep running. 
       //Simply return the current amount
-      accelCorrection = currentStatus.AEamount;
+      accelCorrection = current.AEamount;
     }
   }
 
   //Need to check this again as it may have been changed in the above section (Both ACC and DCC are off if this has changed)
-  if ((!isAccelEnrichmentOn()) && (shouldStartAe())) {
-    updateAeTimeout();
-    accelCorrection = computeAe();
+  if ((!isAccelEnrichmentOn(current)) && (shouldStartAe(current, page2))) {
+    updateAeTimeout(current, page2);
+    accelCorrection = computeAe(current, page2, lookupTable);
   } 
 
   return accelCorrection;
 }
 
-static inline void mapOnTimeoutExpired(void) { 
-  currentStatus.mapDOT = 0; 
+static inline void mapOnTimeoutExpired(statuses &current) { 
+  current.mapDOT = 0; 
 }
 
-static inline bool mapShouldResetAe(void) {
-  return (uint16_t)abs(currentStatus.mapDOT) > aeActivatedReading; 
+static inline bool mapShouldResetAe(const statuses &current) {
+  return (uint16_t)abs(current.mapDOT) > aeActivatedReading; 
 }
 
-static inline bool mapShouldStartAe(void) { 
-  return (uint16_t)abs(currentStatus.mapDOT) > configPage2.maeThresh; 
+static inline bool mapShouldStartAe(const statuses &current, const config2 &page2) { 
+  return (uint16_t)abs(current.mapDOT) > page2.maeThresh; 
 };
 
-static inline uint16_t mapComputeAe(void) {
+static inline uint16_t mapComputeAe(statuses &current, const config2 &page2, const table2D &lookupTable) {
   uint16_t aeEnrichment = 0U;
 
-  if (currentStatus.mapDOT < 0) {
-    aeEnrichment = calcDeccelEnrichment();
+  if (current.mapDOT < 0) {
+    aeEnrichment = calcDeccelEnrichment(current, page2);
   } else {
-    aeEnrichment = calcAccelEnrichment((uint8_t)table2D_getValue(&maeTable, toRawU8(MAP_DOT, currentStatus.mapDOT)));
+    aeEnrichment = calcAccelEnrichment((uint8_t)table2D_getValue(&lookupTable, toRawU8(MAP_DOT, current.mapDOT)), current, page2);
   } 
   
-  aeActivatedReading = (uint16_t)abs(currentStatus.mapDOT);
+  aeActivatedReading = (uint16_t)abs(current.mapDOT);
   
   return aeEnrichment;
 }
 
-static inline int16_t computeMapDot(void) {
+static inline int16_t computeMapDot(const statuses &current, const config2 &page2) {
   int16_t mapDOT = 0U;
-  const int16_t mapChange = (int16_t)currentStatus.MAP - (int16_t)MAPlast;
+  const int16_t mapChange = (int16_t)current.MAP - (int16_t)MAPlast;
   // Check for only very small movement. This not only means we can skip the lookup, but helps reduce false triggering around 0-2% throttle openings
-  if ( ((uint16_t)abs(mapChange) > configPage2.maeMinChange)
+  if ( ((uint16_t)abs(mapChange) > page2.maeMinChange)
     // Sanity check
     && (MAP_time>MAPlast_time)) {
     const uint32_t mapDeltaT = MAP_time - MAPlast_time;
@@ -404,52 +407,53 @@ static inline int16_t computeMapDot(void) {
   return mapDOT;
 }
 
-static inline uint16_t correctionAccelModeMap(void) {
-  uint16_t aeCorrection = currentStatus.AEamount;
+static inline uint16_t correctionAccelModeMap(statuses &current, const config2 &page2, const table2D &lookupTable) {
+  uint16_t aeCorrection = current.AEamount;
 
   // No point in updating faster than the MAP sensor is read
   if (BIT_CHECK(LOOP_TIMER, MAP_READ_TIMER_BIT)) {
-    currentStatus.mapDOT = computeMapDot();
+    current.mapDOT = computeMapDot(current, page2);
 
-    aeCorrection = correctionAccel(mapOnTimeoutExpired, mapShouldResetAe, mapShouldStartAe, mapComputeAe);
+    aeCorrection = correctionAccel( mapOnTimeoutExpired, mapShouldResetAe, mapShouldStartAe, mapComputeAe,
+                                    current, page2, lookupTable);
   }
 
   return aeCorrection;
 }
 
-static inline void tpsOnTimeoutExpired(void) { 
-  currentStatus.tpsDOT = 0; 
+static inline void tpsOnTimeoutExpired(statuses &current) { 
+  current.tpsDOT = 0; 
 }
 
-static inline bool tpsShouldResetAe(void) { 
-  return (uint16_t)abs(currentStatus.tpsDOT) > aeActivatedReading; 
+static inline bool tpsShouldResetAe(const statuses &current) { 
+  return (uint16_t)abs(current.tpsDOT) > aeActivatedReading; 
 }
 
-static inline bool tpsShouldStartAe(void) { 
-  return (uint16_t)abs(currentStatus.tpsDOT) > configPage2.taeThresh;
+static inline bool tpsShouldStartAe(const statuses &current, const config2 &page2) { 
+  return (uint16_t)abs(current.tpsDOT) > page2.taeThresh;
 }
 
-static inline uint16_t tpsComputeAe(void) {
+static inline uint16_t tpsComputeAe(statuses &current, const config2 &page2, const table2D &lookupTable) {
   uint16_t aeEnrichment = 0U;
 
   //Check if the TPS rate of change is negative or positive. Negative means decelaration.
-  if (currentStatus.tpsDOT < 0) {
-    aeEnrichment = calcDeccelEnrichment();
+  if (current.tpsDOT < 0) {
+    aeEnrichment = calcDeccelEnrichment(current, page2);
   } else {
-    aeEnrichment = calcAccelEnrichment((uint8_t)table2D_getValue(&taeTable, toRawU8(TPS_DOT, currentStatus.tpsDOT))); 
+    aeEnrichment = calcAccelEnrichment((uint8_t)table2D_getValue(&lookupTable, toRawU8(TPS_DOT, current.tpsDOT)), current, page2); 
   }
-  aeActivatedReading = (uint16_t)abs(currentStatus.tpsDOT);
+  aeActivatedReading = (uint16_t)abs(current.tpsDOT);
 
   return aeEnrichment;
 }
 
-static inline int16_t computeTPSDOT(void) {
+static inline int16_t computeTPSDOT(const statuses &current, const config2 &page2) {
   //Get the TPS rate change
-  const int16_t tpsChange = (int16_t)currentStatus.TPS - (int16_t)currentStatus.TPSlast;
+  const int16_t tpsChange = (int16_t)current.TPS - (int16_t)current.TPSlast;
   
   int16_t tpsDOT = 0;
   // Check for only very small movement. This not only means we can skip the lookup, but helps reduce false triggering around 0-2% throttle openings
-  if ((uint16_t)abs(tpsChange) > configPage2.taeMinChange) {
+  if ((uint16_t)abs(tpsChange) > page2.taeMinChange) {
     tpsDOT = (TPS_READ_FREQUENCY * tpsChange) / 2; //This is the % per second that the TPS has moved, adjusted for the 0.5% resolution of the TPS
 
     static constexpr int16_t TPS_DOT_MIN = -2550;
@@ -459,14 +463,15 @@ static inline int16_t computeTPSDOT(void) {
   return tpsDOT;
 }
 
-static inline uint16_t correctionAccelModeTps(void) {
-  uint16_t aeCorrection = currentStatus.AEamount;
+static inline uint16_t correctionAccelModeTps(statuses &current, const config2 &page2, const table2D &lookupTable) {
+  uint16_t aeCorrection = current.AEamount;
 
   // No point in updating faster than the TPS is read
   if (BIT_CHECK(LOOP_TIMER, TPS_READ_TIMER_BIT)) {
-    currentStatus.tpsDOT = computeTPSDOT();
+    current.tpsDOT = computeTPSDOT(current, page2);
 
-    aeCorrection = correctionAccel(tpsOnTimeoutExpired, tpsShouldResetAe, tpsShouldStartAe, tpsComputeAe);
+    aeCorrection = correctionAccel(tpsOnTimeoutExpired, tpsShouldResetAe, tpsShouldStartAe, tpsComputeAe,
+                                    current, page2, lookupTable);
   }
 
   return aeCorrection;
@@ -483,13 +488,13 @@ static inline uint16_t correctionAccelModeTps(void) {
  * As the maximum enrichment amount is +255% and maximum cold adjustment for this is 255%, the overall return value
  * from this function can be 100+(255*255/100)=750. Hence this function returns a uint16_t rather than uint8_t.
  */
-TESTABLE_INLINE_STATIC uint16_t correctionAccel(void)
+TESTABLE_INLINE_STATIC uint16_t correctionAccel(statuses &current, const config2 &page2, const table2D &tpsLookupTable, const table2D &mapLookupTable)
 {
-  if(AE_MODE_MAP==configPage2.aeMode) {
-    return correctionAccelModeMap();
+  if(AE_MODE_MAP==page2.aeMode) {
+    return correctionAccelModeMap(current, page2, mapLookupTable);
   }
-  if(AE_MODE_TPS==configPage2.aeMode) {
-    return correctionAccelModeTps();
+  if(AE_MODE_TPS==page2.aeMode) {
+    return correctionAccelModeTps(current, page2, tpsLookupTable);
   }
   return NO_FUEL_CORRECTION;
 }
@@ -810,7 +815,7 @@ uint16_t correctionsFuel(void)
 
   sumCorrections = combineCorrections(sumCorrections, correctionCranking());
 
-  currentStatus.AEamount = correctionAccel();
+  currentStatus.AEamount = correctionAccel(currentStatus, configPage2, taeTable, maeTable);
   if ( (configPage2.aeApplyMode == AE_MODE_MULTIPLIER) || BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC) ) // multiply by the AE amount in case of multiplier AE mode or Decel
   {
     sumCorrections = combineCorrections(sumCorrections, currentStatus.AEamount);
