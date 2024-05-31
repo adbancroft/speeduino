@@ -13,15 +13,21 @@ extern void construct2dTables(void);
 extern void construct2dTable(table2D &table, uint8_t valueSize, uint8_t axisSize, uint8_t length, void *values, void *bins);
 extern void construct2dTable(table2D &table, uint8_t length, uint8_t *values, uint8_t *bins);
 
-extern byte correctionWUE(void);
+extern uint8_t correctionWUE(statuses &current, const table2D &lookUpTable);
 
-static void setup_wue_table(void) {
-  construct2dTables();
-  initialiseCorrections();
+struct wue_test_data_t {
+  statuses current;
+  table2D lookupTable;
+  uint8_t bins[10];
+  uint8_t values[10];  
+};
+
+static void setup_wue_table(wue_test_data_t &testData) {
   LOOP_TIMER = 0;
   BIT_SET(LOOP_TIMER, CLT_READ_TIMER_BIT) ;
 
   //Set some fake values in the table axis. Target value will fall between points 6 and 7
+  construct2dTable(testData.lookupTable, _countof(testData.bins), testData.values, testData.bins);
   TEST_DATA_P uint8_t bins[] = { 
     0, 0, 0, 0, 0, 0,
     toStorageTemperature(70),
@@ -30,51 +36,55 @@ static void setup_wue_table(void) {
     toStorageTemperature(120)
   };
   TEST_DATA_P uint8_t values[] = { 0, 0, 0, 0, 0, 0, 120, 130, 140, 150 };
-  populate_2dtable_P(&WUETable, values, bins);
+  populate_2dtable_P(&testData.lookupTable, values, bins);
 }
 
 static void test_corrections_WUE_active(void)
 {
-  setup_wue_table();
+  wue_test_data_t testData;
+  setup_wue_table(testData);
 
   //Check for WUE being active
-  currentStatus.coolant = 0;
+  testData.current.coolant = 0;
 
-  correctionWUE();
-  TEST_ASSERT_BIT_HIGH(BIT_ENGINE_WARMUP, currentStatus.engine);
+  correctionWUE(testData.current, testData.lookupTable);
+  TEST_ASSERT_BIT_HIGH(BIT_ENGINE_WARMUP, testData.current.engine);
 }
 
 static void test_corrections_WUE_inactive(void)
 {
-  setup_wue_table();
+  wue_test_data_t testData;
+  setup_wue_table(testData);
 
   //Check for WUE being inactive due to the temp being too high
-  currentStatus.coolant = 200;
-  correctionWUE();
-  TEST_ASSERT_BIT_LOW(BIT_ENGINE_WARMUP, currentStatus.engine);
+  testData.current.coolant = 200;
+  correctionWUE(testData.current, testData.lookupTable);
+  TEST_ASSERT_BIT_LOW(BIT_ENGINE_WARMUP, testData.current.engine);
 }
 
 static void test_corrections_WUE_inactive_value(void)
 {
-  setup_wue_table();
+  wue_test_data_t testData;
+  setup_wue_table(testData);
 
   //Check for WUE being set to the final row of the WUE curve if the coolant is above the max WUE temp
-  currentStatus.coolant = 200;
-  configPage4.wueBins[9] = 100;
-  configPage2.wueValues[9] = 123; //Use a value other than 100 here to ensure we are using the non-default value
+  testData.current.coolant = 200;
+  testData.bins[9] = 100;
+  testData.values[9] = 123; //Use a value other than 100 here to ensure we are using the non-default value
   
-  TEST_ASSERT_EQUAL(123, correctionWUE() );
+  TEST_ASSERT_EQUAL(123, correctionWUE(testData.current, testData.lookupTable) );
 }
 
 static void test_corrections_WUE_active_value(void)
 {
-  setup_wue_table();
+  wue_test_data_t testData;
+  setup_wue_table(testData);
 
   //Check for WUE being made active and returning a correct interpolated value
-  currentStatus.coolant = 80;
+  testData.current.coolant = 80;
   
   //Value should be midway between 120 and 130 = 125
-  TEST_ASSERT_EQUAL(125, correctionWUE() );
+  TEST_ASSERT_EQUAL(125, correctionWUE(testData.current, testData.lookupTable) );
 }
 
 static void test_corrections_WUE(void)
@@ -1654,7 +1664,7 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
   configPage6.egoType = 0;
   configPage6.egoAlgorithm = EGO_ALGORITHM_SIMPLE;
 
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionWUE(), "correctionWUE");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionWUE(currentStatus, WUETable), "correctionWUE");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionASE(), "correctionASE");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionCranking(), "correctionCranking");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFloodClear(), "correctionFloodClear");
@@ -1738,7 +1748,7 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   configPage4.wueBins[9] = 100;
   configPage2.wueValues[9] = 100; //Use a value other than 100 here to ensure we are using the non-default value
 
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionWUE(), "correctionWUE");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionWUE(currentStatus, WUETable), "correctionWUE");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionASE(), "correctionASE");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionCranking(), "correctionCranking");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAccel(currentStatus, configPage2, taeTable, maeTable), "correctionAccel");

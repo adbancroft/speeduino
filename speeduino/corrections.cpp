@@ -98,26 +98,26 @@ void initialiseCorrections(void)
 /** Warm Up Enrichment (WUE) corrections.
 Uses a 2D enrichment table (WUETable) where the X axis is engine temp and the Y axis is the amount of extra fuel to add
 */
-TESTABLE_INLINE_STATIC uint8_t correctionWUE(void)
+TESTABLE_INLINE_STATIC uint8_t correctionWUE(statuses &current, const table2D &lookupTable)
 {
-  uint8_t WUEValue = currentStatus.wueCorrection;
+  uint8_t accelCorrection = current.wueCorrection;
 
   // Only update as fast as the sensor is read
   if( BIT_CHECK(LOOP_TIMER, CLT_READ_TIMER_BIT) ) { 
-    if (currentStatus.coolant >= toWorkingTemperature((uint8_t)table2D_getAxisValue(&WUETable, WUETable.xSize-1U)))
+    if (current.coolant >= toWorkingTemperature((uint8_t)table2D_getAxisValue(&lookupTable, lookupTable.xSize-1U)))
     {
       //This prevents us doing the 2D lookup if we're already up to temp
-      BIT_CLEAR(currentStatus.engine, BIT_ENGINE_WARMUP);
-      WUEValue = (uint8_t)table2D_getRawValue(&WUETable, WUETable.xSize-1U);
+      BIT_CLEAR(current.engine, BIT_ENGINE_WARMUP);
+      accelCorrection = (uint8_t)table2D_getRawValue(&lookupTable, lookupTable.xSize-1U);
     }
     else
     {
-      BIT_SET(currentStatus.engine, BIT_ENGINE_WARMUP);
-      WUEValue = (uint8_t)table2D_getValue(&WUETable, toStorageTemperature(currentStatus.coolant));
+      BIT_SET(current.engine, BIT_ENGINE_WARMUP);
+      accelCorrection = (uint8_t)table2D_getValue(&lookupTable, toStorageTemperature(current.coolant));
     }
   }
 
-  return WUEValue;
+  return accelCorrection;
 }
 
 // ============================= Cranking Enrichment =============================
@@ -807,7 +807,7 @@ This is the only function that should be called from anywhere outside the file
 uint16_t correctionsFuel(void)
 {
   //The values returned by each of the correction functions are multiplied together and then divided back to give a single 0-255 value.
-  currentStatus.wueCorrection = correctionWUE();
+  currentStatus.wueCorrection = correctionWUE(currentStatus, WUETable);
   uint32_t sumCorrections = currentStatus.wueCorrection;
 
   currentStatus.ASEValue = correctionASE();
