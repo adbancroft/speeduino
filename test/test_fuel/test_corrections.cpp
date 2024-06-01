@@ -709,49 +709,54 @@ static void test_corrections_flex(void)
   RUN_TEST_P(test_corrections_fueltemp_on);
 }
 
-uint8_t correctionBatVoltage(void);
+extern uint8_t correctionBatVoltage(const statuses &current, table2D &lookupTable, const config2 &page2);
 
-static void setup_battery_correction(void) {
-  construct2dTables();
-  initialiseCorrections();
-  
+struct battery_testdata_t : public test_2dtable_t<6> {
+  statuses current;
+  config2 page2;
+};
+
+static void setup_battery_correction(battery_testdata_t &testData) {
   LOOP_TIMER = 0;
   BIT_SET(LOOP_TIMER, BAT_READ_TIMER_BIT);
 
+  construct2dTable(testData.lookupTable, _countof(testData.bins), testData.values, testData.bins);
   TEST_DATA_P uint8_t bins[] = { 60, 70, 80, 90, 100, 110 };
   TEST_DATA_P uint8_t values[] = { 130, 120, 110, 100, 90, 80 };
-  populate_2dtable_P(&injectorVCorrectionTable, values, bins);   
+  populate_2dtable_P(&testData.lookupTable, values, bins);   
 }
 
 static void test_corrections_bat_mode_wholePw(void) {
-  setup_battery_correction();
+  battery_testdata_t testData;
+  setup_battery_correction(testData);
 
-  configPage2.battVCorMode = BATTV_COR_MODE_WHOLE;
-  currentStatus.battery10 = 75;
-  configPage2.injOpen = 10;
-  inj_opentime_uS = configPage2.injOpen * 100U;
+  testData.page2.battVCorMode = BATTV_COR_MODE_WHOLE;
+  testData.current.battery10 = 75;
+  testData.page2.injOpen = 10;
+  inj_opentime_uS = testData.page2.injOpen * 100U;
 
-  TEST_ASSERT_EQUAL(115U, correctionBatVoltage() );
-  TEST_ASSERT_EQUAL(configPage2.injOpen * 100U, inj_opentime_uS );
+  TEST_ASSERT_EQUAL(115U, correctionBatVoltage(testData.current, testData.lookupTable, testData.page2) );
+  TEST_ASSERT_EQUAL(testData.page2.injOpen * 100U, inj_opentime_uS );
 
-  currentStatus.battery10 = 105;
-  TEST_ASSERT_EQUAL(85U, correctionBatVoltage() );
-  TEST_ASSERT_EQUAL(configPage2.injOpen * 100U, inj_opentime_uS );
+  testData.current.battery10 = 105;
+  TEST_ASSERT_EQUAL(85U, correctionBatVoltage(testData.current, testData.lookupTable, testData.page2) );
+  TEST_ASSERT_EQUAL(testData.page2.injOpen * 100U, inj_opentime_uS );
 }
 
 static void test_corrections_bat_mode_opentime(void) {
-  setup_battery_correction();
+  battery_testdata_t testData;
+  setup_battery_correction(testData);
 
-  configPage2.battVCorMode = BATTV_COR_MODE_OPENTIME;
-  currentStatus.battery10 = 75;
-  configPage2.injOpen = 10;
-  inj_opentime_uS = configPage2.injOpen * 100U;
+  testData.page2.battVCorMode = BATTV_COR_MODE_OPENTIME;
+  testData.current.battery10 = 75;
+  testData.page2.injOpen = 10;
+  inj_opentime_uS = testData.page2.injOpen * 100U;
 
-  TEST_ASSERT_EQUAL(100U, correctionBatVoltage() );
-  TEST_ASSERT_EQUAL(configPage2.injOpen * 115U, inj_opentime_uS );
+  TEST_ASSERT_EQUAL(100U, correctionBatVoltage(testData.current, testData.lookupTable, testData.page2) );
+  TEST_ASSERT_EQUAL(testData.page2.injOpen * 115U, inj_opentime_uS );
   // Run again & confirm inj_opentime_uS is unchanged
-  TEST_ASSERT_EQUAL(100U, correctionBatVoltage() );
-  TEST_ASSERT_EQUAL(configPage2.injOpen * 115U, inj_opentime_uS );
+  TEST_ASSERT_EQUAL(100U, correctionBatVoltage(testData.current, testData.lookupTable, testData.page2) );
+  TEST_ASSERT_EQUAL(testData.page2.injOpen * 115U, inj_opentime_uS );
 }
 
 static void test_corrections_bat(void)
@@ -1695,7 +1700,7 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionCranking(currentStatus, crankingEnrichTable, configPage10), "correctionCranking");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFloodClear(currentStatus, configPage4), "correctionFloodClear");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAFRClosedLoop(), "correctionAFRClosedLoop");
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionBatVoltage(), "correctionBatVoltage");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionBatVoltage(currentStatus, injectorVCorrectionTable, configPage2), "correctionBatVoltage");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionIATDensity(), "correctionIATDensity");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionBaro(), "correctionBaro");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFlex(), "correctionFlex");
@@ -1780,7 +1785,7 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAccel(currentStatus, configPage2, taeTable, maeTable), "correctionAccel");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFloodClear(currentStatus, configPage4), "correctionFloodClear");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAFRClosedLoop(), "correctionAFRClosedLoop");
-  TEST_ASSERT_EQUAL_MESSAGE(255, correctionBatVoltage(), "correctionBatVoltage");
+  TEST_ASSERT_EQUAL_MESSAGE(255, correctionBatVoltage(currentStatus, injectorVCorrectionTable, configPage2), "correctionBatVoltage");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionIATDensity(), "correctionIATDensity");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionBaro(), "correctionBaro");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionFlex(), "correctionFlex");

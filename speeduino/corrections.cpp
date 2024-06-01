@@ -519,16 +519,16 @@ TESTABLE_INLINE_STATIC uint8_t correctionFloodClear(const statuses &current, con
 /** Battery Voltage correction.
 Uses a 2D enrichment table (injectorVCorrectionTable) where the X axis is battery voltage and the Y axis is the percent of extra fuel to add.
 */
-TESTABLE_INLINE_STATIC uint8_t correctionBatVoltage(void)
+TESTABLE_INLINE_STATIC uint8_t correctionBatVoltage(const statuses &current, table2D &lookupTable, const config2 &page2)
 {
   // No point in updating more often than the sensor is read
-  uint8_t correction = currentStatus.batCorrection;
+  uint8_t correction = current.batCorrection;
   if( BIT_CHECK(LOOP_TIMER, BAT_READ_TIMER_BIT) ) { 
-    correction = (uint8_t)table2D_getValue(&injectorVCorrectionTable, currentStatus.battery10);
+    correction = (uint8_t)table2D_getValue(&lookupTable, current.battery10);
   }
   
-  if (configPage2.battVCorMode == BATTV_COR_MODE_OPENTIME) {
-    inj_opentime_uS = configPage2.injOpen * correction; // Apply voltage correction to injector open time.
+  if (page2.battVCorMode == BATTV_COR_MODE_OPENTIME) {
+    inj_opentime_uS = page2.injOpen * correction; // Apply voltage correction to injector open time.
     correction = NO_FUEL_CORRECTION; // This is to ensure that the correction is not applied twice. There is no battery correction fator as we have instead changed the open time
   }
   return correction;
@@ -826,7 +826,7 @@ uint16_t correctionsFuel(void)
   currentStatus.egoCorrection = correctionAFRClosedLoop();
   sumCorrections = combineCorrections(sumCorrections, currentStatus.egoCorrection);
   
-  currentStatus.batCorrection = correctionBatVoltage();
+  currentStatus.batCorrection = correctionBatVoltage(currentStatus, injectorVCorrectionTable, configPage2);
   sumCorrections = combineCorrections(sumCorrections, currentStatus.batCorrection);
 
   currentStatus.iatCorrection = correctionIATDensity();
