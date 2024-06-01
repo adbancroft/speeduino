@@ -219,31 +219,39 @@ static void test_corrections_cranking(void)
   RUN_TEST_P(test_corrections_cranking_taper_withase);
 }
 
-extern uint8_t correctionASE(void);
+extern uint8_t correctionASE(statuses &current, const table2D &durationTable, const table2D &amountTable, const config2 &page2);
 
 static void test_corrections_ASE_inactive_cranking(void)
 {
-  construct2dTables();
-  initialiseCorrections();
-  BIT_SET(currentStatus.engine, BIT_ENGINE_CRANK);
+  statuses current;
+  BIT_SET(current.engine, BIT_ENGINE_CRANK);
 
   // Taper finished
-  TEST_ASSERT_EQUAL(100U, correctionASE());
-  TEST_ASSERT_BIT_LOW(BIT_ENGINE_ASE, currentStatus.engine);
+  TEST_ASSERT_EQUAL(100U, correctionASE(current, table2D(), table2D(), config2()));
+  TEST_ASSERT_BIT_LOW(BIT_ENGINE_ASE, current.engine);
 }
 
-static inline void setup_correctionASE(void) {
-  construct2dTables();
-  initialiseCorrections();
+struct ase_testdata_t {
+  statuses current;
+  table2D durationTable;
+  uint8_t durationBins[4];
+  uint8_t durationValues[4];  
+  table2D amountTable;
+  uint8_t amountBins[4];
+  uint8_t amountValues[4];  
+  config2 page2;
+};
 
-  BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK);
+static inline void setup_correctionASE(ase_testdata_t &testData) {
+  BIT_CLEAR(testData.current.engine, BIT_ENGINE_CRANK);
   LOOP_TIMER = 0;
   BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ) ;
   constexpr int16_t COOLANT_INITIAL = toWorkingTemperature(150); 
-  currentStatus.coolant = COOLANT_INITIAL;
-  currentStatus.runSecs = 3;
+  testData.current.coolant = COOLANT_INITIAL;
+  testData.current.runSecs = 3;
 
   {
+    construct2dTable(testData.durationTable, _countof(testData.durationBins), testData.durationValues, testData.durationBins);
     TEST_DATA_P uint8_t values[] = { 10, 8, 6, 4 };
     TEST_DATA_P uint8_t bins[] = { 
       toStorageTemperature(COOLANT_INITIAL) - 10U,
@@ -251,10 +259,11 @@ static inline void setup_correctionASE(void) {
       toStorageTemperature(COOLANT_INITIAL) + 20U,
       toStorageTemperature(COOLANT_INITIAL) + 30U
     };
-    populate_2dtable_P(&ASECountTable, values, bins);
+    populate_2dtable_P(&testData.durationTable, values, bins);
   }
 
   {
+    construct2dTable(testData.amountTable, _countof(testData.amountBins), testData.amountValues, testData.amountBins);
     TEST_DATA_P uint8_t values[] = { 20, 30, 40, 50 };
     TEST_DATA_P uint8_t bins[] = { 
       toStorageTemperature(COOLANT_INITIAL) - 10U,
@@ -262,44 +271,46 @@ static inline void setup_correctionASE(void) {
       toStorageTemperature(COOLANT_INITIAL) + 20U,
       toStorageTemperature(COOLANT_INITIAL) + 30U
     };
-    populate_2dtable_P(&ASETable, values, bins);
+    populate_2dtable_P(&testData.amountTable, values, bins);
   } 
 }
 
 static void test_corrections_ASE_initial(void)
 {
-  setup_correctionASE();
+  ase_testdata_t testData;
+  setup_correctionASE(testData);
 
   // Should be half way between the 2 table values.
-  TEST_ASSERT_EQUAL(125, correctionASE());
-  TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ASE, currentStatus.engine);
+  TEST_ASSERT_EQUAL(125, correctionASE(testData.current, testData.durationTable, testData.amountTable, testData.page2));
+  TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ASE, testData.current.engine);
 }
 
 static void test_corrections_ASE_taper(void) {
-  setup_correctionASE();
+  ase_testdata_t testData;
+  setup_correctionASE(testData);
   // Switch to ASE taper
-  configPage2.aseTaperTime = 12U;
-  currentStatus.runSecs = 9;
+  testData.page2.aseTaperTime = 12U;
+  testData.current.runSecs = 9;
 
   // Advance taper to halfway
-  BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK);
-  for (uint8_t index=0; index<configPage2.aseTaperTime/2U; ++index) {
-    (void)correctionASE();
+  BIT_CLEAR(testData.current.engine, BIT_ENGINE_CRANK);
+  for (uint8_t index=0; index<testData.page2.aseTaperTime/2U; ++index) {
+    (void)correctionASE(testData.current, testData.durationTable, testData.amountTable, testData.page2);
   }
 
   // Should be half way between the interpolated table value and 100%.
-  TEST_ASSERT_INT_WITHIN(1, 113, correctionASE());
-  TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ASE, currentStatus.engine);
+  TEST_ASSERT_INT_WITHIN(1, 113, correctionASE(testData.current, testData.durationTable, testData.amountTable, testData.page2));
+  TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ASE, testData.current.engine);
   
   // Final taper step
-  for (uint8_t index=configPage2.aseTaperTime/2U; index<configPage2.aseTaperTime-2U; ++index) {
-    (void)correctionASE();
+  for (uint8_t index=testData.page2.aseTaperTime/2U; index<testData.page2.aseTaperTime-2U; ++index) {
+    (void)correctionASE(testData.current, testData.durationTable, testData.amountTable, testData.page2);
   }
-  TEST_ASSERT_INT_WITHIN(1, 103U, correctionASE() );
+  TEST_ASSERT_INT_WITHIN(1, 103U, correctionASE(testData.current, testData.durationTable, testData.amountTable, testData.page2) );
 
   // Taper finished
-  TEST_ASSERT_EQUAL(100U, correctionASE());  
-  TEST_ASSERT_EQUAL(100U, correctionASE());  
+  TEST_ASSERT_EQUAL(100U, correctionASE(testData.current, testData.durationTable, testData.amountTable, testData.page2));  
+  TEST_ASSERT_EQUAL(100U, correctionASE(testData.current, testData.durationTable, testData.amountTable, testData.page2));  
 }
 
 static void test_corrections_ASE(void)
@@ -1674,7 +1685,7 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
   configPage6.egoAlgorithm = EGO_ALGORITHM_SIMPLE;
 
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionWUE(currentStatus, WUETable), "correctionWUE");
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionASE(), "correctionASE");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionASE(currentStatus, ASECountTable, ASETable, configPage2), "correctionASE");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionCranking(currentStatus, crankingEnrichTable, configPage10), "correctionCranking");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFloodClear(), "correctionFloodClear");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAFRClosedLoop(), "correctionAFRClosedLoop");
@@ -1758,7 +1769,7 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   configPage2.wueValues[9] = 100; //Use a value other than 100 here to ensure we are using the non-default value
 
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionWUE(currentStatus, WUETable), "correctionWUE");
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionASE(), "correctionASE");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionASE(currentStatus, ASECountTable, ASETable, configPage2), "correctionASE");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionCranking(currentStatus, crankingEnrichTable, configPage10), "correctionCranking");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAccel(currentStatus, configPage2, taeTable, maeTable), "correctionAccel");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFloodClear(), "correctionFloodClear");

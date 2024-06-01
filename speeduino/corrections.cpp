@@ -176,7 +176,7 @@ TESTABLE_INLINE_STATIC uint16_t correctionCranking(const statuses &current, cons
  * 
  * @return uint8_t The After Start Enrichment modifier as a %. 100% = No modification. 
  */   
-TESTABLE_INLINE_STATIC uint8_t correctionASE(void)
+TESTABLE_INLINE_STATIC uint8_t correctionASE(statuses &current, const table2D &durationTable, const table2D &amountTable, const config2 &page2)
 {
   // We use aseTaper both to track taper AND as a flag value
   // to tell when ASE is complete and avoid unecessary table lookups.
@@ -185,9 +185,9 @@ TESTABLE_INLINE_STATIC uint8_t correctionASE(void)
 
   uint8_t ASEValue = NO_FUEL_CORRECTION;
 
-  if (BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK)) {
+  if (BIT_CHECK(current.engine, BIT_ENGINE_CRANK)) {
     // Engine is cranking - mark ASE as inactive and ready to run 
-    BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ASE); 
+    BIT_CLEAR(current.engine, BIT_ENGINE_ASE); 
     aseTaper = 0U; 
     ASEValue = NO_FUEL_CORRECTION;
   } else if (aseTaper!=ASE_COMPLETE) {
@@ -200,25 +200,25 @@ TESTABLE_INLINE_STATIC uint8_t correctionASE(void)
       // We must use 100ms (rather than CLT_READ_TIMER_BIT) since aseTaper counts tenths of a second.
       
       if ((aseTaper==0U) // Avoid table lookup if taper is being applied
-       && (currentStatus.runSecs < ((uint8_t)table2D_getValue(&ASECountTable, toStorageTemperature(currentStatus.coolant)))) )
+       && (current.runSecs < ((uint8_t)table2D_getValue(&durationTable, toStorageTemperature(current.coolant)))) )
       {
-        BIT_SET(currentStatus.engine, BIT_ENGINE_ASE);
-        ASEValue = BASELINE_FUEL_CORRECTION + (uint8_t)table2D_getValue(&ASETable, toStorageTemperature(currentStatus.coolant));
-      } else if ( aseTaper < configPage2.aseTaperTime ) { //Check if we've reached the end of the taper time
-        BIT_SET(currentStatus.engine, BIT_ENGINE_ASE);
+        BIT_SET(current.engine, BIT_ENGINE_ASE);
+        ASEValue = BASELINE_FUEL_CORRECTION + (uint8_t)table2D_getValue(&amountTable, toStorageTemperature(current.coolant));
+      } else if ( aseTaper < page2.aseTaperTime ) { //Check if we've reached the end of the taper time
+        BIT_SET(current.engine, BIT_ENGINE_ASE);
         ASEValue = BASELINE_FUEL_CORRECTION + (uint8_t)map(aseTaper, 
-                                        0U, configPage2.aseTaperTime, 
-                                        (uint8_t)table2D_getValue(&ASETable, toStorageTemperature(currentStatus.coolant)), 0);
+                                        0U, page2.aseTaperTime, 
+                                        (uint8_t)table2D_getValue(&amountTable, toStorageTemperature(current.coolant)), 0);
         aseTaper = aseTaper + 1U;
       } else {
         // ASE has finished
-        BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ASE); //Mark ASE as inactive.
+        BIT_CLEAR(current.engine, BIT_ENGINE_ASE); //Mark ASE as inactive.
         aseTaper = ASE_COMPLETE; // Flag ASE as complete
         ASEValue = NO_FUEL_CORRECTION;
       }
     } else {
       // ASE is in effect, but we're not due to update, so reuse previous value.
-      ASEValue = currentStatus.ASEValue;
+      ASEValue = current.ASEValue;
     }    
   } else {
     // ASE is finished, nothing to do but keep MISRA checker happy 
@@ -810,7 +810,7 @@ uint16_t correctionsFuel(void)
   currentStatus.wueCorrection = correctionWUE(currentStatus, WUETable);
   uint32_t sumCorrections = currentStatus.wueCorrection;
 
-  currentStatus.ASEValue = correctionASE();
+  currentStatus.ASEValue = correctionASE(currentStatus, ASECountTable, ASETable, configPage2);
   sumCorrections = combineCorrections(sumCorrections, currentStatus.ASEValue);
 
   sumCorrections = combineCorrections(sumCorrections, correctionCranking(currentStatus, crankingEnrichTable, configPage10));
