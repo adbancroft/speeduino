@@ -1612,7 +1612,7 @@ static void test_corrections_afrtarget(void) {
   RUN_TEST_P(test_corrections_afrtarget_ego);
 }
 
-extern byte correctionIATDensity(void);
+extern byte correctionIATDensity(const statuses &current, table2D &lookupTable);
 
 #if !defined(_countof)
 #define _countof(x) (sizeof(x) / sizeof (x[0]))
@@ -1701,7 +1701,7 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFloodClear(currentStatus, configPage4), "correctionFloodClear");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAFRClosedLoop(), "correctionAFRClosedLoop");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionBatVoltage(currentStatus, injectorVCorrectionTable, configPage2), "correctionBatVoltage");
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionIATDensity(), "correctionIATDensity");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionIATDensity(currentStatus, IATDensityCorrectionTable), "correctionIATDensity");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionBaro(), "correctionBaro");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFlex(), "correctionFlex");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFuelTemp(), "correctionFuelTemp");
@@ -1786,7 +1786,7 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFloodClear(currentStatus, configPage4), "correctionFloodClear");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAFRClosedLoop(), "correctionAFRClosedLoop");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionBatVoltage(currentStatus, injectorVCorrectionTable, configPage2), "correctionBatVoltage");
-  TEST_ASSERT_EQUAL_MESSAGE(255, correctionIATDensity(), "correctionIATDensity");
+  TEST_ASSERT_EQUAL_MESSAGE(255, correctionIATDensity(currentStatus, IATDensityCorrectionTable), "correctionIATDensity");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionBaro(), "correctionBaro");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionFlex(), "correctionFlex");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionFuelTemp(), "correctionFuelTemp");

@@ -539,13 +539,13 @@ TESTABLE_INLINE_STATIC uint8_t correctionBatVoltage(const statuses &current, tab
 /** Simple temperature based corrections lookup based on the inlet air temperature (IAT).
 This corrects for changes in air density from movement of the temperature.
 */
-TESTABLE_INLINE_STATIC uint8_t correctionIATDensity(void)
+TESTABLE_INLINE_STATIC uint8_t correctionIATDensity(const statuses &current, table2D &lookupTable)
 {
   // Performance: only update as fast as the sensor is read
   if( BIT_CHECK(LOOP_TIMER, IAT_READ_TIMER_BIT) ) { 
-    return (uint8_t)table2D_getValue(&IATDensityCorrectionTable, toStorageTemperature(currentStatus.IAT)); //currentStatus.IAT is the actual temperature, values in IATDensityCorrectionTable.axisX are temp+offset
+    return (uint8_t)table2D_getValue(&lookupTable, toStorageTemperature(current.IAT)); //currentStatus.IAT is the actual temperature, values in IATDensityCorrectionTable.axisX are temp+offset
   }
-  return currentStatus.iatCorrection;
+  return current.iatCorrection;
 }
 
 // ============================= Baro pressure correction =============================
@@ -829,7 +829,7 @@ uint16_t correctionsFuel(void)
   currentStatus.batCorrection = correctionBatVoltage(currentStatus, injectorVCorrectionTable, configPage2);
   sumCorrections = combineCorrections(sumCorrections, currentStatus.batCorrection);
 
-  currentStatus.iatCorrection = correctionIATDensity();
+  currentStatus.iatCorrection = correctionIATDensity(currentStatus, IATDensityCorrectionTable);
   sumCorrections = combineCorrections(sumCorrections, currentStatus.iatCorrection);
 
   currentStatus.baroCorrection = correctionBaro();
