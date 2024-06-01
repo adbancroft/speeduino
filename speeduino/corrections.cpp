@@ -643,9 +643,9 @@ TESTABLE_INLINE_STATIC uint8_t correctionFlex(const statuses &current, const con
 /*
  * Fuel temperature adjustment to vary fuel based on fuel temperature reading
 */
-TESTABLE_INLINE_STATIC uint8_t correctionFuelTemp(void)
+TESTABLE_INLINE_STATIC uint8_t correctionFuelTemp(const statuses &current, const config2 &page2, const table2D &lookUptable)
 {
-  return configPage2.flexEnabled==1U ? (uint8_t)table2D_getValue(&fuelTempTable, toStorageTemperature(currentStatus.fuelTemp)) : NO_FUEL_CORRECTION;
+  return page2.flexEnabled==1U ? (uint8_t)table2D_getValue(&lookUptable, toStorageTemperature(current.fuelTemp)) : NO_FUEL_CORRECTION;
 }
 
 
@@ -838,7 +838,7 @@ uint16_t correctionsFuel(void)
   currentStatus.flexCorrection = correctionFlex(currentStatus, configPage2, flexFuelTable);
   sumCorrections = combineCorrections(sumCorrections, currentStatus.flexCorrection);
 
-  currentStatus.fuelTempCorrection = correctionFuelTemp();
+  currentStatus.fuelTempCorrection = correctionFuelTemp(currentStatus, configPage2, fuelTempTable);
   sumCorrections = combineCorrections(sumCorrections, currentStatus.fuelTempCorrection);
 
   currentStatus.launchCorrection = correctionLaunch(currentStatus, configPage6);
