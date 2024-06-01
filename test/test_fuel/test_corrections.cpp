@@ -766,38 +766,46 @@ static void test_corrections_bat(void)
   RUN_TEST_P(test_corrections_bat_mode_opentime);
 }
 
-uint8_t correctionLaunch(void);
+uint8_t correctionLaunch(const statuses &current, const config6 &page6);
 
 static void test_corrections_launch_inactive(void) {
-  BIT_CLEAR(currentStatus.status2, BIT_STATUS2_HLAUNCH);
-  BIT_CLEAR(currentStatus.status2, BIT_STATUS2_SLAUNCH);
-  configPage6.lnchFuelAdd = 25;
+  statuses current;
+  config6 page6;
+  BIT_CLEAR(current.status2, BIT_STATUS2_HLAUNCH);
+  BIT_CLEAR(current.status2, BIT_STATUS2_SLAUNCH);
+  page6.lnchFuelAdd = 25;
 
-  TEST_ASSERT_EQUAL(100U, correctionLaunch() );
+  TEST_ASSERT_EQUAL(100U, correctionLaunch(current, page6) );
 }
 
 static void test_corrections_launch_hard(void) {
-  BIT_SET(currentStatus.status2, BIT_STATUS2_HLAUNCH);
-  BIT_CLEAR(currentStatus.status2, BIT_STATUS2_SLAUNCH);
-  configPage6.lnchFuelAdd = 25;
+  statuses current;
+  config6 page6;
+  BIT_SET(current.status2, BIT_STATUS2_HLAUNCH);
+  BIT_CLEAR(current.status2, BIT_STATUS2_SLAUNCH);
+  page6.lnchFuelAdd = 25;
 
-  TEST_ASSERT_EQUAL(125U, correctionLaunch() );
+  TEST_ASSERT_EQUAL(125U, correctionLaunch(current, page6) );
 }
 
 static void test_corrections_launch_soft(void) {
-  BIT_CLEAR(currentStatus.status2, BIT_STATUS2_HLAUNCH);
-  BIT_SET(currentStatus.status2, BIT_STATUS2_SLAUNCH);
-  configPage6.lnchFuelAdd = 25;
+  statuses current;
+  config6 page6;
+  BIT_CLEAR(current.status2, BIT_STATUS2_HLAUNCH);
+  BIT_SET(current.status2, BIT_STATUS2_SLAUNCH);
+  page6.lnchFuelAdd = 25;
 
-  TEST_ASSERT_EQUAL(125U, correctionLaunch() );
+  TEST_ASSERT_EQUAL(125U, correctionLaunch(current, page6) );
 }
 
 static void test_corrections_launch_both(void) {
-  BIT_SET(currentStatus.status2, BIT_STATUS2_HLAUNCH);
-  BIT_SET(currentStatus.status2, BIT_STATUS2_SLAUNCH);
-  configPage6.lnchFuelAdd = 25;
+  statuses current;
+  config6 page6;
+  BIT_SET(current.status2, BIT_STATUS2_HLAUNCH);
+  BIT_SET(current.status2, BIT_STATUS2_SLAUNCH);
+  page6.lnchFuelAdd = 25;
 
-  TEST_ASSERT_EQUAL(125U, correctionLaunch() );
+  TEST_ASSERT_EQUAL(125U, correctionLaunch(current, page6) );
 }
 
 static void test_corrections_launch(void)
@@ -1708,7 +1716,7 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionBaro(currentStatus, baroFuelTable), "correctionBaro");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFlex(), "correctionFlex");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFuelTemp(), "correctionFuelTemp");
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionLaunch(), "correctionLaunch");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionLaunch(currentStatus, configPage6), "correctionLaunch");
   TEST_ASSERT_FALSE(correctionDFCO());
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionDFCOfuel(), "correctionDFCOfuel");
 
@@ -1793,7 +1801,7 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionBaro(currentStatus, baroFuelTable), "correctionBaro");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionFlex(), "correctionFlex");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionFuelTemp(), "correctionFuelTemp");
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionLaunch(), "correctionLaunch");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionLaunch(currentStatus, configPage6), "correctionLaunch");
   TEST_ASSERT_FALSE(correctionDFCO());
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionDFCOfuel(), "correctionDFCOfuel");
 
