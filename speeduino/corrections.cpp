@@ -567,9 +567,9 @@ TESTABLE_INLINE_STATIC uint8_t correctionBaro(const statuses &current, const tab
 /** Launch control has a setting to increase the fuel load to assist in bringing up boost.
 This simple check applies the extra fuel if we're currently launching
 */
-TESTABLE_INLINE_STATIC uint8_t correctionLaunch(void)
+TESTABLE_INLINE_STATIC uint8_t correctionLaunch(const statuses &current, const config6 &page6)
 {
-  return (BIT_CHECK(currentStatus.status2, BIT_STATUS2_HLAUNCH) || BIT_CHECK(currentStatus.status2, BIT_STATUS2_SLAUNCH)) ? (BASELINE_FUEL_CORRECTION + configPage6.lnchFuelAdd) : NO_FUEL_CORRECTION;
+  return (BIT_CHECK(current.status2, BIT_STATUS2_HLAUNCH) || BIT_CHECK(current.status2, BIT_STATUS2_SLAUNCH)) ? (BASELINE_FUEL_CORRECTION + page6.lnchFuelAdd) : NO_FUEL_CORRECTION;
 }
 
 // ============================= Deceleration Fuel Cut Off (DFCO) correction =============================
@@ -841,7 +841,7 @@ uint16_t correctionsFuel(void)
   currentStatus.fuelTempCorrection = correctionFuelTemp();
   sumCorrections = combineCorrections(sumCorrections, currentStatus.fuelTempCorrection);
 
-  currentStatus.launchCorrection = correctionLaunch();
+  currentStatus.launchCorrection = correctionLaunch(currentStatus, configPage6);
   sumCorrections = combineCorrections(sumCorrections, currentStatus.launchCorrection);
 
   BIT_WRITE(currentStatus.status1, BIT_STATUS1_DFCO, correctionDFCO());
