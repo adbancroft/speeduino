@@ -20,6 +20,10 @@ struct test_2dtable_t {
   table2D lookupTable;
   uint8_t bins[length];
   uint8_t values[length];  
+
+  test_2dtable_t() {
+    construct2dTable(lookupTable, length, values, bins);
+  }
 };
 
 struct wue_test_data_t : public test_2dtable_t<10> {
@@ -31,7 +35,6 @@ static void setup_wue_table(wue_test_data_t &testData) {
   BIT_SET(LOOP_TIMER, CLT_READ_TIMER_BIT) ;
 
   //Set some fake values in the table axis. Target value will fall between points 6 and 7
-  construct2dTable(testData.lookupTable, _countof(testData.bins), testData.values, testData.bins);
   TEST_DATA_P uint8_t bins[_countof(testData.bins)] = { 
     0, 0, 0, 0, 0, 0,
     toStorageTemperature(70),
@@ -112,7 +115,6 @@ static void setup_correctionCranking(cranking_testdata_t &testData) {
   constexpr int16_t COOLANT_INITIAL = toWorkingTemperature(150); 
   testData.current.coolant = COOLANT_INITIAL;
 
-  construct2dTable(testData.lookupTable, _countof(testData.bins), testData.values, testData.bins);
   TEST_DATA_P uint8_t values[_countof(testData.values)] = { 120U / 5U, 130U / 5U, 140U / 5U, 150U / 5U };
   TEST_DATA_P uint8_t bins[_countof(testData.bins)] = { 
     (uint8_t)(toStorageTemperature(COOLANT_INITIAL) - 10U),
@@ -709,7 +711,7 @@ static void test_corrections_flex(void)
   RUN_TEST_P(test_corrections_fueltemp_on);
 }
 
-extern uint8_t correctionBatVoltage(const statuses &current, table2D &lookupTable, const config2 &page2);
+extern uint8_t correctionBatVoltage(const statuses &current, const table2D &lookupTable, const config2 &page2);
 
 struct battery_testdata_t : public test_2dtable_t<6> {
   statuses current;
@@ -720,7 +722,6 @@ static void setup_battery_correction(battery_testdata_t &testData) {
   LOOP_TIMER = 0;
   BIT_SET(LOOP_TIMER, BAT_READ_TIMER_BIT);
 
-  construct2dTable(testData.lookupTable, _countof(testData.bins), testData.values, testData.bins);
   TEST_DATA_P uint8_t bins[] = { 60, 70, 80, 90, 100, 110 };
   TEST_DATA_P uint8_t values[] = { 130, 120, 110, 100, 90, 80 };
   populate_2dtable_P(&testData.lookupTable, values, bins);   
@@ -1052,7 +1053,6 @@ static void setup_TAE(statuses &current, config2 &page2, table2D &taeLookup) {
 
 static void setup_TAE(ae_test_data_t &testData)
 {
-  construct2dTable(testData.lookupTable, _countof(ae_test_data_t::bins), testData.values, testData.bins);
   setup_TAE(testData.current, testData.page2, testData.lookupTable);
 }
 
@@ -1269,7 +1269,6 @@ static void setup_MAE(ae_test_data_t &testData)
   LOOP_TIMER = 0;
   BIT_SET(LOOP_TIMER, MAP_READ_TIMER_BIT);
 
-  construct2dTable(testData.lookupTable, _countof(ae_test_data_t::bins), testData.values, testData.bins);
   TEST_DATA_P uint8_t bins[_countof(ae_test_data_t::bins)] = { 0, 15, 19, 50 };
   TEST_DATA_P uint8_t values[_countof(ae_test_data_t::values)] = { 70, 103, 124, 136 };
   populate_2dtable_P(&testData.lookupTable, values, bins); 
@@ -1612,38 +1611,42 @@ static void test_corrections_afrtarget(void) {
   RUN_TEST_P(test_corrections_afrtarget_ego);
 }
 
-extern byte correctionIATDensity(const statuses &current, table2D &lookupTable);
+extern byte correctionIATDensity(const statuses &current, const table2D &lookupTable);
 
 #if !defined(_countof)
 #define _countof(x) (sizeof(x) / sizeof (x[0]))
 #endif
  
-extern byte correctionBaro(void);
+struct baro_test_data_t : public test_2dtable_t<8> {
+  statuses current;
+};
 
-static void setup_baro_correction(void) {
-  construct2dTables();
-  initialiseCorrections();
+ 
+extern byte correctionBaro(const statuses &current, const table2D &lookupTable);
+
+static void setup_baro_correction(baro_test_data_t &testData) {
   LOOP_TIMER = 0;
   BIT_SET(LOOP_TIMER, BARO_READ_TIMER_BIT);
 
   TEST_DATA_P uint8_t bins[] = { 60, 70, 80, 90, 100, 110 };
   TEST_DATA_P uint8_t values[] = { 120, 110, 100, 90, 80, 70 };
-  populate_2dtable_P(&baroFuelTable, values, bins);
+  populate_2dtable_P(&testData.lookupTable, values, bins);
 }
 
 // Battery correction will recalculates at 10Hz, otherwise it will re-use cached values. 
 static void test_corrections_baro_lookup(void) {
-  setup_baro_correction();
+  baro_test_data_t testData;
+  setup_baro_correction(testData);
 
-  currentStatus.baro = 65;
-  currentStatus.baroCorrection = 1U;
-  TEST_ASSERT_NOT_EQUAL(currentStatus.baroCorrection, correctionBaro());
-  TEST_ASSERT_EQUAL(115, correctionBaro());
+  testData.current.baro = 65;
+  testData.current.baroCorrection = 1U;
+  TEST_ASSERT_NOT_EQUAL(testData.current.baroCorrection, correctionBaro(testData.current, testData.lookupTable));
+  TEST_ASSERT_EQUAL(115, correctionBaro(testData.current, testData.lookupTable));
 
-  currentStatus.baro = 105;
-  currentStatus.baroCorrection = 1U;
-  TEST_ASSERT_EQUAL(75, correctionBaro());
-  TEST_ASSERT_EQUAL(75, correctionBaro());
+  testData.current.baro = 105;
+  testData.current.baroCorrection = 1U;
+  TEST_ASSERT_EQUAL(75, correctionBaro(testData.current, testData.lookupTable));
+  TEST_ASSERT_EQUAL(75, correctionBaro(testData.current, testData.lookupTable));
 }
 
 static void test_corrections_baro(void)
@@ -1702,7 +1705,7 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAFRClosedLoop(), "correctionAFRClosedLoop");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionBatVoltage(currentStatus, injectorVCorrectionTable, configPage2), "correctionBatVoltage");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionIATDensity(currentStatus, IATDensityCorrectionTable), "correctionIATDensity");
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionBaro(), "correctionBaro");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionBaro(currentStatus, baroFuelTable), "correctionBaro");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFlex(), "correctionFlex");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFuelTemp(), "correctionFuelTemp");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionLaunch(), "correctionLaunch");
@@ -1787,7 +1790,7 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAFRClosedLoop(), "correctionAFRClosedLoop");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionBatVoltage(currentStatus, injectorVCorrectionTable, configPage2), "correctionBatVoltage");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionIATDensity(currentStatus, IATDensityCorrectionTable), "correctionIATDensity");
-  TEST_ASSERT_EQUAL_MESSAGE(255, correctionBaro(), "correctionBaro");
+  TEST_ASSERT_EQUAL_MESSAGE(255, correctionBaro(currentStatus, baroFuelTable), "correctionBaro");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionFlex(), "correctionFlex");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionFuelTemp(), "correctionFuelTemp");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionLaunch(), "correctionLaunch");

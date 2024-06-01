@@ -519,7 +519,7 @@ TESTABLE_INLINE_STATIC uint8_t correctionFloodClear(const statuses &current, con
 /** Battery Voltage correction.
 Uses a 2D enrichment table (injectorVCorrectionTable) where the X axis is battery voltage and the Y axis is the percent of extra fuel to add.
 */
-TESTABLE_INLINE_STATIC uint8_t correctionBatVoltage(const statuses &current, table2D &lookupTable, const config2 &page2)
+TESTABLE_INLINE_STATIC uint8_t correctionBatVoltage(const statuses &current, const table2D &lookupTable, const config2 &page2)
 {
   // No point in updating more often than the sensor is read
   uint8_t correction = current.batCorrection;
@@ -539,7 +539,7 @@ TESTABLE_INLINE_STATIC uint8_t correctionBatVoltage(const statuses &current, tab
 /** Simple temperature based corrections lookup based on the inlet air temperature (IAT).
 This corrects for changes in air density from movement of the temperature.
 */
-TESTABLE_INLINE_STATIC uint8_t correctionIATDensity(const statuses &current, table2D &lookupTable)
+TESTABLE_INLINE_STATIC uint8_t correctionIATDensity(const statuses &current, const table2D &lookupTable)
 {
   // Performance: only update as fast as the sensor is read
   if( BIT_CHECK(LOOP_TIMER, IAT_READ_TIMER_BIT) ) { 
@@ -553,13 +553,13 @@ TESTABLE_INLINE_STATIC uint8_t correctionIATDensity(const statuses &current, tab
 /** Correction for current barometric / ambient pressure.
  * @returns A percentage value indicating the amount the fuelling should be changed based on the barometric reading. 100 = No change. 110 = 10% increase. 90 = 10% decrease
  */
-TESTABLE_INLINE_STATIC uint8_t correctionBaro(void)
+TESTABLE_INLINE_STATIC uint8_t correctionBaro(const statuses &current, const table2D &lookupTable)
 {
   // No point in updating more often than the sensor is read
   if( BIT_CHECK(LOOP_TIMER, BARO_READ_TIMER_BIT) ) { 
-    return (uint8_t)table2D_getValue(&baroFuelTable, currentStatus.baro);
+    return (uint8_t)table2D_getValue(&lookupTable, current.baro);
   }
-  return currentStatus.baroCorrection;
+  return current.baroCorrection;
 }
 
 // ============================= Launch control correction =============================
@@ -832,7 +832,7 @@ uint16_t correctionsFuel(void)
   currentStatus.iatCorrection = correctionIATDensity(currentStatus, IATDensityCorrectionTable);
   sumCorrections = combineCorrections(sumCorrections, currentStatus.iatCorrection);
 
-  currentStatus.baroCorrection = correctionBaro();
+  currentStatus.baroCorrection = correctionBaro(currentStatus, baroFuelTable);
   sumCorrections = combineCorrections(sumCorrections, currentStatus.baroCorrection);
 
   currentStatus.flexCorrection = correctionFlex();
