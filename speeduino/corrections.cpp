@@ -633,9 +633,9 @@ TESTABLE_INLINE_STATIC bool correctionDFCO(const statuses &current, const config
 /** Flex fuel adjustment to vary fuel based on ethanol content.
  * The amount of extra fuel required is a linear relationship based on the % of ethanol.
 */
-TESTABLE_INLINE_STATIC uint8_t correctionFlex(void)
+TESTABLE_INLINE_STATIC uint8_t correctionFlex(const statuses &current, const config2 &page2, const table2D &lookUptable)
 {
-  return configPage2.flexEnabled==1U ? (uint8_t)table2D_getValue(&flexFuelTable, currentStatus.ethanolPct) : NO_FUEL_CORRECTION;
+  return page2.flexEnabled==1U ? (uint8_t)table2D_getValue(&lookUptable, current.ethanolPct) : NO_FUEL_CORRECTION;
 }
 
 // ============================= Fuel temperature correction =============================
@@ -835,7 +835,7 @@ uint16_t correctionsFuel(void)
   currentStatus.baroCorrection = correctionBaro(currentStatus, baroFuelTable);
   sumCorrections = combineCorrections(sumCorrections, currentStatus.baroCorrection);
 
-  currentStatus.flexCorrection = correctionFlex();
+  currentStatus.flexCorrection = correctionFlex(currentStatus, configPage2, flexFuelTable);
   sumCorrections = combineCorrections(sumCorrections, currentStatus.flexCorrection);
 
   currentStatus.fuelTempCorrection = correctionFuelTemp();
