@@ -15,11 +15,15 @@ extern void construct2dTable(table2D &table, uint8_t length, uint8_t *values, ui
 
 extern uint8_t correctionWUE(statuses &current, const table2D &lookUpTable);
 
-struct wue_test_data_t {
-  statuses current;
+template <uint8_t length>
+struct test_2dtable_t {
   table2D lookupTable;
-  uint8_t bins[10];
-  uint8_t values[10];  
+  uint8_t bins[length];
+  uint8_t values[length];  
+};
+
+struct wue_test_data_t : public test_2dtable_t<10> {
+  statuses current;
 };
 
 static void setup_wue_table(wue_test_data_t &testData) {
@@ -28,14 +32,14 @@ static void setup_wue_table(wue_test_data_t &testData) {
 
   //Set some fake values in the table axis. Target value will fall between points 6 and 7
   construct2dTable(testData.lookupTable, _countof(testData.bins), testData.values, testData.bins);
-  TEST_DATA_P uint8_t bins[] = { 
+  TEST_DATA_P uint8_t bins[_countof(testData.bins)] = { 
     0, 0, 0, 0, 0, 0,
     toStorageTemperature(70),
     toStorageTemperature(90),
     toStorageTemperature(100),
     toStorageTemperature(120)
   };
-  TEST_DATA_P uint8_t values[] = { 0, 0, 0, 0, 0, 0, 120, 130, 140, 150 };
+  TEST_DATA_P uint8_t values[_countof(testData.values)] = { 0, 0, 0, 0, 0, 0, 120, 130, 140, 150 };
   populate_2dtable_P(&testData.lookupTable, values, bins);
 }
 
@@ -95,109 +99,116 @@ static void test_corrections_WUE(void)
   RUN_TEST_P(test_corrections_WUE_inactive_value);
 }
 
-extern uint16_t correctionCranking(void);
+extern uint16_t correctionCranking(const statuses &current, const table2D &lookupTable, const config10 &page10);
 
-static void setup_correctionCranking(void) {
-  construct2dTables();
-  initialiseCorrections();
+struct cranking_testdata_t : public test_2dtable_t<4> {
+  statuses current;
+  config10 page10;
+};
 
+static void setup_correctionCranking(cranking_testdata_t &testData) {
   LOOP_TIMER = 0;
   BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
   constexpr int16_t COOLANT_INITIAL = toWorkingTemperature(150); 
-  currentStatus.coolant = COOLANT_INITIAL;
+  testData.current.coolant = COOLANT_INITIAL;
 
-  TEST_DATA_P uint8_t values[] = { 120U / 5U, 130U / 5U, 140U / 5U, 150U / 5U };
-  TEST_DATA_P uint8_t bins[] = { 
+  construct2dTable(testData.lookupTable, _countof(testData.bins), testData.values, testData.bins);
+  TEST_DATA_P uint8_t values[_countof(testData.values)] = { 120U / 5U, 130U / 5U, 140U / 5U, 150U / 5U };
+  TEST_DATA_P uint8_t bins[_countof(testData.bins)] = { 
     (uint8_t)(toStorageTemperature(COOLANT_INITIAL) - 10U),
     (uint8_t)(toStorageTemperature(COOLANT_INITIAL) + 10U),
     (uint8_t)(toStorageTemperature(COOLANT_INITIAL) + 20U),
     (uint8_t)(toStorageTemperature(COOLANT_INITIAL) + 30U)
   };
-  populate_2dtable_P(&crankingEnrichTable, values, bins);
+  populate_2dtable_P(&testData.lookupTable, values, bins);
 }
 
 static void test_corrections_cranking_inactive(void) {
-  setup_correctionCranking();
+  cranking_testdata_t testData;
+  setup_correctionCranking(testData);
   
-  BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK);
-  BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ASE);
-  configPage10.crankingEnrichTaper = 0U;
+  BIT_CLEAR(testData.current.engine, BIT_ENGINE_CRANK);
+  BIT_CLEAR(testData.current.engine, BIT_ENGINE_ASE);
+  testData.page10.crankingEnrichTaper = 0U;
 
-  TEST_ASSERT_EQUAL(100, correctionCranking() );
+  TEST_ASSERT_EQUAL(100, correctionCranking(testData.current, testData.lookupTable, testData.page10) );
 } 
 
 static void test_corrections_cranking_cranking(void) {
-  setup_correctionCranking();
+  cranking_testdata_t testData;
+  setup_correctionCranking(testData);
   
-  BIT_SET(currentStatus.engine, BIT_ENGINE_CRANK);
-  BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ASE);
-  configPage10.crankingEnrichTaper = 0U;
+  BIT_SET(testData.current.engine, BIT_ENGINE_CRANK);
+  BIT_CLEAR(testData.current.engine, BIT_ENGINE_ASE);
+  testData.page10.crankingEnrichTaper = 0U;
 
   // Should be half way between the 2 table values.
-  TEST_ASSERT_EQUAL(125, correctionCranking() );
+  TEST_ASSERT_EQUAL(125, correctionCranking(testData.current, testData.lookupTable, testData.page10) );
 } 
 
 static void test_corrections_cranking_taper_noase(void) {
-  setup_correctionCranking();
-  BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ASE);
+  cranking_testdata_t testData;
+  setup_correctionCranking(testData);
+  BIT_CLEAR(testData.current.engine, BIT_ENGINE_ASE);
   
-  configPage10.crankingEnrichTaper = 100U;
-  currentStatus.ASEValue = 100U;
+  testData.page10.crankingEnrichTaper = 100U;
+  testData.current.ASEValue = 100U;
 
   // Reset taper
-  BIT_SET(currentStatus.engine, BIT_ENGINE_CRANK);
-  (void)correctionCranking();
+  BIT_SET(testData.current.engine, BIT_ENGINE_CRANK);
+  (void)correctionCranking(testData.current, testData.lookupTable, testData.page10);
 
   // Advance taper to halfway
-  BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK);
-  for (uint8_t index=0; index<configPage10.crankingEnrichTaper/2U; ++index) {
-    (void)correctionCranking();
+  BIT_CLEAR(testData.current.engine, BIT_ENGINE_CRANK);
+  for (uint8_t index=0; index<testData.page10.crankingEnrichTaper/2U; ++index) {
+    (void)correctionCranking(testData.current, testData.lookupTable, testData.page10);
   }
 
   // Should be half way between the interpolated table value and 100%.
-  TEST_ASSERT_INT_WITHIN(1, 113U, correctionCranking() );
+  TEST_ASSERT_INT_WITHIN(1, 113U, correctionCranking(testData.current, testData.lookupTable, testData.page10) );
   
   // Final taper step
-  for (uint8_t index=configPage10.crankingEnrichTaper/2U; index<configPage10.crankingEnrichTaper-2U; ++index) {
-    (void)correctionCranking();
+  for (uint8_t index=testData.page10.crankingEnrichTaper/2U; index<testData.page10.crankingEnrichTaper-2U; ++index) {
+    (void)correctionCranking(testData.current, testData.lookupTable, testData.page10);
   }
-  TEST_ASSERT_INT_WITHIN(1, 101U, correctionCranking() );
+  TEST_ASSERT_INT_WITHIN(1, 101U, correctionCranking(testData.current, testData.lookupTable, testData.page10) );
 
   // Taper finished
-  TEST_ASSERT_EQUAL(100U, correctionCranking());
-  TEST_ASSERT_EQUAL(100U, correctionCranking());
+  TEST_ASSERT_EQUAL(100U, correctionCranking(testData.current, testData.lookupTable, testData.page10));
+  TEST_ASSERT_EQUAL(100U, correctionCranking(testData.current, testData.lookupTable, testData.page10));
 } 
 
 
 static void test_corrections_cranking_taper_withase(void) {
-  setup_correctionCranking();
-  configPage10.crankingEnrichTaper = 100U;
+  cranking_testdata_t testData;
+  setup_correctionCranking(testData);
+  testData.page10.crankingEnrichTaper = 100U;
   
-  BIT_SET(currentStatus.engine, BIT_ENGINE_ASE);
-  currentStatus.ASEValue = 50U;
+  BIT_SET(testData.current.engine, BIT_ENGINE_ASE);
+  testData.current.ASEValue = 50U;
 
   // Reset taper
-  BIT_SET(currentStatus.engine, BIT_ENGINE_CRANK);
-  (void)correctionCranking();
+  BIT_SET(testData.current.engine, BIT_ENGINE_CRANK);
+  (void)correctionCranking(testData.current, testData.lookupTable, testData.page10);
 
   // Advance taper to halfway
-  BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK);
-  for (uint8_t index=0; index<configPage10.crankingEnrichTaper/2U; ++index) {
-    (void)correctionCranking();
+  BIT_CLEAR(testData.current.engine, BIT_ENGINE_CRANK);
+  for (uint8_t index=0; index<testData.page10.crankingEnrichTaper/2U; ++index) {
+    (void)correctionCranking(testData.current, testData.lookupTable, testData.page10);
   }
 
   // Should be half way between the interpolated table value and 100%.
-  TEST_ASSERT_INT_WITHIN(1, 175U, correctionCranking() );
+  TEST_ASSERT_INT_WITHIN(1, 175U, correctionCranking(testData.current, testData.lookupTable, testData.page10) );
   
   // Final taper step
-  for (uint8_t index=configPage10.crankingEnrichTaper/2U; index<configPage10.crankingEnrichTaper-2U; ++index) {
-    (void)correctionCranking();
+  for (uint8_t index=testData.page10.crankingEnrichTaper/2U; index<testData.page10.crankingEnrichTaper-2U; ++index) {
+    (void)correctionCranking(testData.current, testData.lookupTable, testData.page10);
   }
-  TEST_ASSERT_INT_WITHIN(1, 102U, correctionCranking() );
+  TEST_ASSERT_INT_WITHIN(1, 102U, correctionCranking(testData.current, testData.lookupTable, testData.page10) );
 
   // Taper finished
-  TEST_ASSERT_EQUAL(100U, correctionCranking());
-  TEST_ASSERT_EQUAL(100U, correctionCranking());
+  TEST_ASSERT_EQUAL(100U, correctionCranking(testData.current, testData.lookupTable, testData.page10));
+  TEST_ASSERT_EQUAL(100U, correctionCranking(testData.current, testData.lookupTable, testData.page10));
 } 
 
 static void test_corrections_cranking(void)
@@ -977,12 +988,9 @@ static void test_corrections_dfco()
 //**********************************************************************************************************************
 //Setup a basic TAE enrichment curve, threshold etc that are common to all tests. Specifica values maybe updated in each individual test
 
-struct ae_test_data_t {
+struct ae_test_data_t :public test_2dtable_t<4> {
   statuses current;
   config2 page2;
-  table2D aeLookup;
-  uint8_t bins[4];
-  uint8_t values[4];
 };
 
 static void reset_AE(statuses &current) {
@@ -1015,15 +1023,15 @@ static void setup_TAE(statuses &current, config2 &page2, table2D &taeLookup) {
   page2.taeThresh = 0;
   page2.taeMinChange = 0;
 
-  TEST_DATA_P uint8_t bins[] = { 0, 8, 22, 97 };
-  TEST_DATA_P uint8_t values[] = { 70, 103, 124, 136 };
+  TEST_DATA_P uint8_t bins[_countof(ae_test_data_t::bins)] = { 0, 8, 22, 97 };
+  TEST_DATA_P uint8_t values[_countof(ae_test_data_t::values)] = { 70, 103, 124, 136 };
   populate_2dtable_P(&taeLookup, values, bins); 
 }
 
 static void setup_TAE(ae_test_data_t &testData)
 {
-  construct2dTable(testData.aeLookup, _countof(ae_test_data_t::bins), testData.values, testData.bins);
-  setup_TAE(testData.current, testData.page2, testData.aeLookup);
+  construct2dTable(testData.lookupTable, _countof(ae_test_data_t::bins), testData.values, testData.bins);
+  setup_TAE(testData.current, testData.page2, testData.lookupTable);
 }
 
 extern uint16_t correctionAccel(statuses &current, const config2 &page2, const table2D &aeLookup, const table2D &mapLookupTable);
@@ -1044,7 +1052,7 @@ static void test_corrections_TAE_no_rpm_taper()
   testData.current.TPSlast = 0;
   testData.current.TPS = 50; //25% actual value
 
-  uint16_t accelValue = correctionAccel(testData.current, testData.page2, testData.aeLookup, table2D()); //Run the AE calcs
+  uint16_t accelValue = correctionAccel(testData.current, testData.page2, testData.lookupTable, table2D()); //Run the AE calcs
 
   TEST_ASSERT_EQUAL(750, testData.current.tpsDOT); //DOT is 750%/s (25 * 30)
   TEST_ASSERT_EQUAL((100+132), accelValue);
@@ -1055,7 +1063,7 @@ static void test_corrections_TAE_no_rpm_taper()
   reset_AE(testData.current);
   testData.current.TPSlast = 50;
   testData.current.TPS = 50;
-  accelValue = correctionAccel(testData.current, testData.page2, testData.aeLookup, table2D()); //Run the AE calcs
+  accelValue = correctionAccel(testData.current, testData.page2, testData.lookupTable, table2D()); //Run the AE calcs
   TEST_ASSERT_EQUAL(0, testData.current.tpsDOT);
   TEST_ASSERT_EQUAL(100, accelValue);
   TEST_ASSERT_BIT_LOW(BIT_ENGINE_ACC, testData.current.engine); //Confirm AE is flagged off
@@ -1065,7 +1073,7 @@ static void test_corrections_TAE_no_rpm_taper()
   reset_AE(testData.current);
   testData.current.TPSlast = 50;
   testData.current.TPS = 51;
-  accelValue = correctionAccel(testData.current, testData.page2, testData.aeLookup, table2D()); //Run the AE calcs
+  accelValue = correctionAccel(testData.current, testData.page2, testData.lookupTable, table2D()); //Run the AE calcs
   TEST_ASSERT_EQUAL(15, testData.current.tpsDOT);
   TEST_ASSERT_EQUAL(100+74, accelValue);
   TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, testData.current.engine); //Confirm AE is flagged on
@@ -1075,7 +1083,7 @@ static void test_corrections_TAE_no_rpm_taper()
   reset_AE(testData.current);
   testData.current.TPSlast = 0;
   testData.current.TPS = 100;
-  accelValue = correctionAccel(testData.current, testData.page2, testData.aeLookup, table2D()); //Run the AE calcs
+  accelValue = correctionAccel(testData.current, testData.page2, testData.lookupTable, table2D()); //Run the AE calcs
   TEST_ASSERT_EQUAL(1500, testData.current.tpsDOT);
   TEST_ASSERT_EQUAL(100+136, accelValue);
   TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, testData.current.engine); //Confirm AE is flagged on
@@ -1092,7 +1100,7 @@ static void test_corrections_TAE_negative_tpsdot()
   testData.current.TPSlast = 50;
   testData.current.TPS = 0;
 
-  uint16_t accelValue = correctionAccel(testData.current, testData.page2, testData.aeLookup, table2D());  //Run the AE calcs
+  uint16_t accelValue = correctionAccel(testData.current, testData.page2, testData.lookupTable, table2D());  //Run the AE calcs
 
   TEST_ASSERT_EQUAL(-750, testData.current.tpsDOT); //DOT is 750%/s (25 * 30)
   TEST_ASSERT_EQUAL(testData.page2.decelAmount, accelValue);
@@ -1113,7 +1121,7 @@ static void test_corrections_TAE_50pc_rpm_taper()
   testData.current.TPSlast = 0;
   testData.current.TPS = 50; //25% actual value
 
-  uint16_t accelValue = correctionAccel(testData.current, testData.page2, testData.aeLookup, table2D());  //Run the AE calcs
+  uint16_t accelValue = correctionAccel(testData.current, testData.page2, testData.lookupTable, table2D());  //Run the AE calcs
 
   TEST_ASSERT_EQUAL(750, testData.current.tpsDOT); //DOT is 750%/s (25 * 30)
   TEST_ASSERT_EQUAL((100+66), accelValue);
@@ -1134,7 +1142,7 @@ static void test_corrections_TAE_110pc_rpm_taper()
   testData.current.TPSlast = 0;
   testData.current.TPS = 50; //25% actual value
 
-  uint16_t accelValue = correctionAccel(testData.current, testData.page2, testData.aeLookup, table2D());  //Run the AE calcs
+  uint16_t accelValue = correctionAccel(testData.current, testData.page2, testData.lookupTable, table2D());  //Run the AE calcs
 
   TEST_ASSERT_EQUAL(750, testData.current.tpsDOT); //DOT is 750%/s (25 * 30)
   TEST_ASSERT_EQUAL(100, accelValue); //Should be no AE as we're above the RPM taper end point
@@ -1156,7 +1164,7 @@ static void test_corrections_TAE_under_threshold()
   testData.current.TPS = 6; //3% actual value. TPSDot should be 90%/s
 	testData.page2.taeThresh = 100; //Above the reading of 90%/s
 
-  uint16_t accelValue = correctionAccel(testData.current, testData.page2, testData.aeLookup, table2D());  //Run the AE calcs
+  uint16_t accelValue = correctionAccel(testData.current, testData.page2, testData.lookupTable, table2D());  //Run the AE calcs
 
   TEST_ASSERT_EQUAL(90, testData.current.tpsDOT); //DOT is 90%/s (3% * 30)
   TEST_ASSERT_EQUAL(100, accelValue); //Should be no AE as we're above the RPM taper end point
@@ -1180,7 +1188,7 @@ static void test_corrections_TAE_50pc_warmup_taper()
 	//Set the coolant to be 50% of the way through the warmup range
 	testData.current.coolant = 30;
 
-  uint16_t accelValue = correctionAccel(testData.current, testData.page2, testData.aeLookup, table2D());  //Run the AE calcs
+  uint16_t accelValue = correctionAccel(testData.current, testData.page2, testData.lookupTable, table2D());  //Run the AE calcs
 
   TEST_ASSERT_EQUAL(750, testData.current.tpsDOT); //DOT is 750%/s (25 * 30)
   TEST_ASSERT_EQUAL((100+165), accelValue); //Total AE should be 132 + (50% * 50%) = 132 * 1.25 = 165
@@ -1199,19 +1207,19 @@ static void test_corrections_TAE_timout()
   testData.current.TPS = 50; //25% actual value
   testData.page2.aeTime = 0; // This should cause the testData.current cycle to expire & the next one to not occur.
 
-  TEST_ASSERT_EQUAL((100+132), correctionAccel(testData.current, testData.page2, testData.aeLookup, table2D()));
+  TEST_ASSERT_EQUAL((100+132), correctionAccel(testData.current, testData.page2, testData.lookupTable, table2D()));
   TEST_ASSERT_EQUAL(750, testData.current.tpsDOT); //DOT is 750%/s (25 * 30)
   TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, testData.current.engine); //Confirm AE is flagged on
   TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, testData.current.engine); //Confirm AE is flagged on
   
   // TAE should have timed out
-  TEST_ASSERT_EQUAL(100, correctionAccel(testData.current, testData.page2, testData.aeLookup, table2D()));
+  TEST_ASSERT_EQUAL(100, correctionAccel(testData.current, testData.page2, testData.lookupTable, table2D()));
   TEST_ASSERT_EQUAL(0, testData.current.tpsDOT);
   TEST_ASSERT_BIT_LOW(BIT_ENGINE_ACC, testData.current.engine); //Confirm AE is flagged off
   TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, testData.current.engine); //Confirm AE is flagged off
 
   // But TPS hasn't changed position so another cycle should begin
-  TEST_ASSERT_EQUAL((100+132), correctionAccel(testData.current, testData.page2, testData.aeLookup, table2D()));
+  TEST_ASSERT_EQUAL((100+132), correctionAccel(testData.current, testData.page2, testData.lookupTable, table2D()));
   TEST_ASSERT_EQUAL(750, testData.current.tpsDOT); //DOT is 750%/s (25 * 30)
   TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, testData.current.engine); //Confirm AE is flagged on
   TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, testData.current.engine); //Confirm AE is flagged on
@@ -1239,10 +1247,10 @@ static void setup_MAE(ae_test_data_t &testData)
   LOOP_TIMER = 0;
   BIT_SET(LOOP_TIMER, MAP_READ_TIMER_BIT);
 
-  construct2dTable(testData.aeLookup, _countof(ae_test_data_t::bins), testData.values, testData.bins);
-  TEST_DATA_P uint8_t bins[] = { 0, 15, 19, 50 };
-  TEST_DATA_P uint8_t values[] = { 70, 103, 124, 136 };
-  populate_2dtable_P(&testData.aeLookup, values, bins); 
+  construct2dTable(testData.lookupTable, _countof(ae_test_data_t::bins), testData.values, testData.bins);
+  TEST_DATA_P uint8_t bins[_countof(ae_test_data_t::bins)] = { 0, 15, 19, 50 };
+  TEST_DATA_P uint8_t values[_countof(ae_test_data_t::values)] = { 70, 103, 124, 136 };
+  populate_2dtable_P(&testData.lookupTable, values, bins); 
 
   testData.page2.maeThresh = 0;
   testData.page2.maeMinChange = 0;
@@ -1260,7 +1268,7 @@ static void test_corrections_MAE_negative_mapdot()
   MAPlast = 50;
   testData.current.MAP = 40;
 
-  uint16_t accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.aeLookup); //Run the AE calcs
+  uint16_t accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.lookupTable); //Run the AE calcs
 
   TEST_ASSERT_EQUAL(-400, testData.current.mapDOT);
   TEST_ASSERT_EQUAL(testData.page2.decelAmount, accelValue);
@@ -1277,9 +1285,10 @@ static void test_corrections_MAE_no_rpm_taper()
   MAPlast_time = UINT16_MAX*2UL;
   MAP_time = MAPlast_time + 25000UL; 
   MAPlast = 40;
-  currentStatus.MAP = 50;
-  uint16_t accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.aeLookup); //Run the AE calcs
-  TEST_ASSERT_EQUAL(400, currentStatus.mapDOT);
+  testData.current.MAP = 50;
+
+  uint16_t accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.lookupTable); //Run the AE calcs
+  TEST_ASSERT_EQUAL(400, testData.current.mapDOT);
   TEST_ASSERT_EQUAL((100+132), accelValue);
 	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, testData.current.engine); //Confirm AE is flagged on
 	TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, testData.current.engine); //Confirm AE is flagged on
@@ -1290,7 +1299,7 @@ static void test_corrections_MAE_no_rpm_taper()
   MAP_time = MAPlast_time + 1000UL; 
   MAPlast = 40;
   testData.current.MAP = 40;
-  accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.aeLookup); //Run the AE calcs
+  accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.lookupTable); //Run the AE calcs
   TEST_ASSERT_EQUAL(0, testData.current.mapDOT);
   TEST_ASSERT_EQUAL(100, accelValue);
 	TEST_ASSERT_BIT_LOW(BIT_ENGINE_ACC, testData.current.engine); //Confirm AE is flagged off
@@ -1302,7 +1311,7 @@ static void test_corrections_MAE_no_rpm_taper()
   MAP_time = MAPlast_time + 1000UL; 
   MAPlast = 40;
   testData.current.MAP = 41;
-  accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.aeLookup); //Run the AE calcs
+  accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.lookupTable); //Run the AE calcs
   TEST_ASSERT_EQUAL(1000, testData.current.mapDOT);
   TEST_ASSERT_EQUAL((100+136), accelValue);
 	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, testData.current.engine); //Confirm AE is flagged on
@@ -1314,7 +1323,7 @@ static void test_corrections_MAE_no_rpm_taper()
   MAP_time = MAPlast_time + UINT16_MAX*2UL; 
   MAPlast = 40;
   testData.current.MAP = 41;
-  accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.aeLookup); //Run the AE calcs
+  accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.lookupTable); //Run the AE calcs
   TEST_ASSERT_EQUAL(7, testData.current.mapDOT);
   TEST_ASSERT_EQUAL(100+70, accelValue);
 	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, testData.current.engine); //Confirm AE is flagged on
@@ -1326,7 +1335,7 @@ static void test_corrections_MAE_no_rpm_taper()
   MAP_time = MAPlast_time + 1000UL; 
   MAPlast = 10;
   testData.current.MAP = 1000;
-  accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.aeLookup); //Run the AE calcs
+  accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.lookupTable); //Run the AE calcs
   TEST_ASSERT_EQUAL(2550, testData.current.mapDOT);
   TEST_ASSERT_EQUAL((100+136), accelValue);
 	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, testData.current.engine); //Confirm AE is flagged on
@@ -1338,7 +1347,7 @@ static void test_corrections_MAE_no_rpm_taper()
   MAP_time = MAPlast_time + UINT16_MAX*2; 
   MAPlast = 10;
   testData.current.MAP = 1000;
-  accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.aeLookup); //Run the AE calcs
+  accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.lookupTable); //Run the AE calcs
   TEST_ASSERT_EQUAL(2550, testData.current.mapDOT);
   TEST_ASSERT_EQUAL(100+136, accelValue);
 	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, testData.current.engine); //Confirm AE is flagged pn  
@@ -1360,7 +1369,7 @@ static void test_corrections_MAE_50pc_rpm_taper()
   MAPlast = 40;
   testData.current.MAP = 50;
 
-  uint16_t accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.aeLookup); //Run the AE calcs
+  uint16_t accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.lookupTable); //Run the AE calcs
 
   TEST_ASSERT_EQUAL(400, testData.current.mapDOT);
   TEST_ASSERT_EQUAL((100+66), accelValue);
@@ -1382,7 +1391,7 @@ static void test_corrections_MAE_110pc_rpm_taper()
   MAPlast = 40;
   testData.current.MAP = 50;
 
-  uint16_t accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.aeLookup); //Run the AE calcs
+  uint16_t accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.lookupTable); //Run the AE calcs
 
   TEST_ASSERT_EQUAL(400, testData.current.mapDOT);
   TEST_ASSERT_EQUAL(100, accelValue); //Should be no AE as we're above the RPM taper end point
@@ -1405,7 +1414,7 @@ static void test_corrections_MAE_under_threshold()
   testData.current.MAP = 6; 
 	testData.page2.maeThresh = 241; //Above the reading of 240%/s
 
-  uint16_t accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.aeLookup); //Run the AE calcs
+  uint16_t accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.lookupTable); //Run the AE calcs
 
   TEST_ASSERT_EQUAL(240, testData.current.mapDOT);
   TEST_ASSERT_EQUAL(100, accelValue); //Should be no AE as we're above the RPM taper end point
@@ -1430,7 +1439,7 @@ static void test_corrections_MAE_50pc_warmup_taper()
 	//Set the coolant to be 50% of the way through the warmup range
 	testData.current.coolant = 30;
 
-  uint16_t accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.aeLookup); //Run the AE calcs
+  uint16_t accelValue = correctionAccel(testData.current, testData.page2, table2D(), testData.lookupTable); //Run the AE calcs
 
   TEST_ASSERT_EQUAL(400, testData.current.mapDOT);
   TEST_ASSERT_EQUAL((100+165), accelValue); 
@@ -1449,19 +1458,19 @@ static void test_corrections_MAE_timeout()
   MAPlast = 40;
   testData.current.MAP = 50;
   testData.page2.aeTime = 0; // This should cause the testData.current cycle to expire & the next one to not occur.
-  TEST_ASSERT_EQUAL((100+132), correctionAccel(testData.current, testData.page2, table2D(), testData.aeLookup));
+  TEST_ASSERT_EQUAL((100+132), correctionAccel(testData.current, testData.page2, table2D(), testData.lookupTable));
   TEST_ASSERT_EQUAL(400, testData.current.mapDOT);
 	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, testData.current.engine); //Confirm AE is flagged on
 	TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, testData.current.engine); //Confirm AE is flagged on
 
   // Timeout TAE
-  TEST_ASSERT_EQUAL(100, correctionAccel(testData.current, testData.page2, table2D(), testData.aeLookup));
+  TEST_ASSERT_EQUAL(100, correctionAccel(testData.current, testData.page2, table2D(), testData.lookupTable));
   TEST_ASSERT_EQUAL(0, testData.current.mapDOT);
 	TEST_ASSERT_BIT_LOW(BIT_ENGINE_ACC, testData.current.engine); //Confirm AE is flagged on
   TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, testData.current.engine); //Confirm AE is flagged on
 
   // But we haven't changed MAP readings so another cycle should begin
-  TEST_ASSERT_EQUAL((100+132), correctionAccel(testData.current, testData.page2, table2D(), testData.aeLookup));
+  TEST_ASSERT_EQUAL((100+132), correctionAccel(testData.current, testData.page2, table2D(), testData.lookupTable));
   TEST_ASSERT_EQUAL(400, testData.current.mapDOT);
 	TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ACC, testData.current.engine); //Confirm AE is flagged on
 	TEST_ASSERT_BIT_LOW(BIT_ENGINE_DCC, testData.current.engine); //Confirm AE is flagged on
@@ -1666,7 +1675,7 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
 
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionWUE(currentStatus, WUETable), "correctionWUE");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionASE(), "correctionASE");
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionCranking(), "correctionCranking");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionCranking(currentStatus, crankingEnrichTable, configPage10), "correctionCranking");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFloodClear(), "correctionFloodClear");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAFRClosedLoop(), "correctionAFRClosedLoop");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionBatVoltage(), "correctionBatVoltage");
@@ -1750,7 +1759,7 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
 
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionWUE(currentStatus, WUETable), "correctionWUE");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionASE(), "correctionASE");
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionCranking(), "correctionCranking");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionCranking(currentStatus, crankingEnrichTable, configPage10), "correctionCranking");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAccel(currentStatus, configPage2, taeTable, maeTable), "correctionAccel");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFloodClear(), "correctionFloodClear");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAFRClosedLoop(), "correctionAFRClosedLoop");

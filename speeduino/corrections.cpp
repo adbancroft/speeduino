@@ -126,46 +126,46 @@ TESTABLE_INLINE_STATIC uint8_t correctionWUE(statuses &current, const table2D &l
 Additional fuel % to be added when the engine is cranking
 */
 
-static inline uint16_t lookUpCrankingEnrichmentPct(void) {
+static inline uint16_t lookUpCrankingEnrichmentPct(const statuses &current, const table2D &lookupTable) {
   return  toWorkingU8U16( CRANKING_ENRICHMENT, 
-                          (uint8_t)table2D_getValue(&crankingEnrichTable, toStorageTemperature(currentStatus.coolant)));
+                          (uint8_t)table2D_getValue(&lookupTable, toStorageTemperature(current.coolant)));
 }
 
 //Taper start value needs to account for ASE that is now running, so total correction does not increase when taper begins
-static inline uint16_t computeCrankingTaperStartPct(uint16_t crankingPercent) {
+static inline uint16_t computeCrankingTaperStartPct(uint16_t crankingPercent, const statuses &current) {
   // Avoid 32-bit division if possible
-  if (BIT_CHECK(currentStatus.engine, BIT_ENGINE_ASE) && (currentStatus.ASEValue!=NO_FUEL_CORRECTION)) {
-    return udiv_32_16((uint32_t)crankingPercent * BASELINE_FUEL_CORRECTION, currentStatus.ASEValue);
+  if (BIT_CHECK(current.engine, BIT_ENGINE_ASE) && (current.ASEValue!=NO_FUEL_CORRECTION)) {
+    return udiv_32_16((uint32_t)crankingPercent * BASELINE_FUEL_CORRECTION, current.ASEValue);
   }
 
   return crankingPercent;
 }
 
-TESTABLE_INLINE_STATIC uint16_t correctionCranking(void)
+TESTABLE_INLINE_STATIC uint16_t correctionCranking(const statuses &current, const table2D &lookupTable, const config10 &page10)
 {
   static uint8_t crankingEnrichTaper = 0U;
 
-  uint16_t crankingPercent = NO_FUEL_CORRECTION;
+  uint16_t accelCorrection = NO_FUEL_CORRECTION;
 
   //Check if we are actually cranking
-  if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
+  if ( BIT_CHECK(current.engine, BIT_ENGINE_CRANK) )
   {
-    crankingPercent = lookUpCrankingEnrichmentPct();
+    accelCorrection = lookUpCrankingEnrichmentPct(current, lookupTable);
     crankingEnrichTaper = 0U;
   }
   //If we're not cranking, check if if cranking enrichment tapering to ASE should be done
-  else if ( crankingEnrichTaper < configPage10.crankingEnrichTaper )
+  else if ( crankingEnrichTaper < page10.crankingEnrichTaper )
   {
-    crankingPercent = (uint16_t) map( crankingEnrichTaper, 
-                                      0U, configPage10.crankingEnrichTaper, 
-                                      computeCrankingTaperStartPct(lookUpCrankingEnrichmentPct()), NO_FUEL_CORRECTION); //Taper from start value to 100%
+    accelCorrection = (uint16_t) map( crankingEnrichTaper, 
+                                      0U, page10.crankingEnrichTaper, 
+                                      computeCrankingTaperStartPct(lookUpCrankingEnrichmentPct(current, lookupTable), current), NO_FUEL_CORRECTION); //Taper from start value to 100%
     if( BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ) ) { ++crankingEnrichTaper; }
   } else {
     // Not cranking and taper not in effect, so no cranking enrichment needed.
     // just need to keep MISRA checker happy.
   }
 
-  return max((uint16_t)NO_FUEL_CORRECTION, (uint16_t)crankingPercent);
+  return max((uint16_t)NO_FUEL_CORRECTION, (uint16_t)accelCorrection);
 }
 
 // ============================= After Start Enrichment =============================
@@ -813,7 +813,7 @@ uint16_t correctionsFuel(void)
   currentStatus.ASEValue = correctionASE();
   sumCorrections = combineCorrections(sumCorrections, currentStatus.ASEValue);
 
-  sumCorrections = combineCorrections(sumCorrections, correctionCranking());
+  sumCorrections = combineCorrections(sumCorrections, correctionCranking(currentStatus, crankingEnrichTable, configPage10));
 
   currentStatus.AEamount = correctionAccel(currentStatus, configPage2, taeTable, maeTable);
   if ( (configPage2.aeApplyMode == AE_MODE_MULTIPLIER) || BIT_CHECK(currentStatus.engine, BIT_ENGINE_DCC) ) // multiply by the AE amount in case of multiplier AE mode or Decel
