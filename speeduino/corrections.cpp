@@ -509,9 +509,9 @@ static inline bool isFloodClearActive(const statuses &current, const config4 &pa
 /** Simple check to see whether we are cranking with the TPS above the flood clear threshold.
 @return 100 (not cranking and thus no need for flood-clear) or 0 (Engine cranking and TPS above @ref config4.floodClear limit).
 */
-TESTABLE_INLINE_STATIC uint8_t correctionFloodClear(void)
+TESTABLE_INLINE_STATIC uint8_t correctionFloodClear(const statuses &current, const config4 &page4)
 {
-  return isFloodClearActive(currentStatus, configPage4) ? 0U : NO_FUEL_CORRECTION;
+  return isFloodClearActive(current, page4) ? 0U : NO_FUEL_CORRECTION;
 }
 
 // ============================= Battery Voltage =============================
@@ -821,7 +821,7 @@ uint16_t correctionsFuel(void)
     sumCorrections = combineCorrections(sumCorrections, currentStatus.AEamount);
   }
 
-  sumCorrections = combineCorrections(sumCorrections, correctionFloodClear());
+  sumCorrections = combineCorrections(sumCorrections, correctionFloodClear(currentStatus, configPage4));
 
   currentStatus.egoCorrection = correctionAFRClosedLoop();
   sumCorrections = combineCorrections(sumCorrections, currentStatus.egoCorrection);
