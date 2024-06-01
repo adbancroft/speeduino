@@ -816,190 +816,205 @@ static void test_corrections_launch(void)
   RUN_TEST_P(test_corrections_launch_both);
 }
 
-extern bool correctionDFCO(void);
+struct dfco_test_data_t : public test_2dtable_t<10> {
+  statuses current;
+  config2 page2;
+  config4 page4;
+  config9 page9;
+};
 
-static void setup_DFCO_on_taper_off_no_delay()
+extern bool correctionDFCO(const statuses &current, const config2 &page2, const config4 &page4);
+
+static void setup_DFCO_on_taper_off_no_delay(dfco_test_data_t &testData)
 {
-  construct2dTables();
-  initialiseCorrections();
-
   //Sets all the required conditions to have the DFCO be active
-  configPage2.dfcoEnabled = 1; //Ensure DFCO option is turned on
-  currentStatus.RPM = 4000; //Set the current simulated RPM to a level above the DFCO rpm threshold
-  currentStatus.TPS = 0; //Set the simulated TPS to 0 
-  currentStatus.coolant = 80;
-  configPage4.dfcoRPM = 150; //DFCO enable RPM = 1500
-  configPage4.dfcoTPSThresh = 1;
-  configPage4.dfcoHyster = 25;
-  configPage2.dfcoMinCLT = 40; //Actually 0 with offset
-  configPage2.dfcoDelay = 0;
-  configPage9.dfcoTaperEnable = 0; //Enable
+  testData.page2.dfcoEnabled = 1; //Ensure DFCO option is turned on
+  testData.current.RPM = 4000; //Set the current simulated RPM to a level above the DFCO rpm threshold
+  testData.current.TPS = 0; //Set the simulated TPS to 0 
+  testData.current.coolant = 80;
+  testData.page4.dfcoRPM = 150; //DFCO enable RPM = 1500
+  testData.page4.dfcoTPSThresh = 1;
+  testData.page4.dfcoHyster = 25;
+  testData.page2.dfcoMinCLT = 40; //Actually 0 with offset
+  testData.page2.dfcoDelay = 0;
+  testData.page9.dfcoTaperEnable = 0; //Enable
 
-  correctionDFCO();
+  correctionDFCO(testData.current, testData.page2, testData.page4);
 }
 
 //**********************************************************************************************************************
 static void test_corrections_dfco_on(void)
 {
   //Test under ideal conditions that DFCO goes active
-  setup_DFCO_on_taper_off_no_delay();
+  dfco_test_data_t testData;
+  setup_DFCO_on_taper_off_no_delay(testData);
 
-  TEST_ASSERT_TRUE(correctionDFCO());
+  TEST_ASSERT_TRUE(correctionDFCO(testData.current, testData.page2, testData.page4));
 }
 
 static void test_corrections_dfco_off_RPM()
 {
   //Test that DFCO comes on and then goes off when the RPM drops below threshold
-  setup_DFCO_on_taper_off_no_delay();
+  dfco_test_data_t testData;
+  setup_DFCO_on_taper_off_no_delay(testData);
 
-  TEST_ASSERT_TRUE(correctionDFCO()); //Make sure DFCO is on initially
-  currentStatus.RPM = 1000; //Set the current simulated RPM below the threshold + hyster
-  TEST_ASSERT_FALSE(correctionDFCO()); //Test DFCO is now off
+  TEST_ASSERT_TRUE(correctionDFCO(testData.current, testData.page2, testData.page4)); //Make sure DFCO is on initially
+  testData.current.RPM = 1000; //Set the current simulated RPM below the threshold + hyster
+  TEST_ASSERT_FALSE(correctionDFCO(testData.current, testData.page2, testData.page4)); //Test DFCO is now off
 }
 
 static void test_corrections_dfco_off_TPS()
 {
   //Test that DFCO comes on and then goes off when the TPS goes above the required threshold (ie not off throttle)
-  setup_DFCO_on_taper_off_no_delay();
+  dfco_test_data_t testData;
+  setup_DFCO_on_taper_off_no_delay(testData);
 
-  TEST_ASSERT_TRUE(correctionDFCO()); //Make sure DFCO is on initially
-  currentStatus.TPS = 10; //Set the current simulated TPS to be above the threshold
-  TEST_ASSERT_FALSE(correctionDFCO()); //Test DFCO is now off
+  TEST_ASSERT_TRUE(correctionDFCO(testData.current, testData.page2, testData.page4)); //Make sure DFCO is on initially
+  testData.current.TPS = 10; //Set the current simulated TPS to be above the threshold
+  TEST_ASSERT_FALSE(correctionDFCO(testData.current, testData.page2, testData.page4)); //Test DFCO is now off
 }
 
 static void test_corrections_dfco_off_delay()
 {
   //Test that DFCO comes will not activate if there has not been a long enough delay
   //The steup function below simulates a 2 second delay
-  setup_DFCO_on_taper_off_no_delay();
+  dfco_test_data_t testData;
+  setup_DFCO_on_taper_off_no_delay(testData);
 
   BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
-  configPage2.dfcoDelay = 5;
+  testData.page2.dfcoDelay = 5;
   
-  for (uint8_t index = 0; index < configPage2.dfcoDelay; ++index) {
-    TEST_ASSERT_FALSE(correctionDFCO()); //Make sure DFCO does not come on...
+  for (uint8_t index = 0; index < testData.page2.dfcoDelay; ++index) {
+    TEST_ASSERT_FALSE(correctionDFCO(testData.current, testData.page2, testData.page4)); //Make sure DFCO does not come on...
   }
   // ...until simulated delay period expires
-  TEST_ASSERT_TRUE(correctionDFCO()); 
+  TEST_ASSERT_TRUE(correctionDFCO(testData.current, testData.page2, testData.page4)); 
 }
 
-static void setup_DFCO_on_taper_on_no_delay()
+static void setup_DFCO_on_taper_on_no_delay( dfco_test_data_t &testData)
 {
-  setup_DFCO_on_taper_off_no_delay();
+  setup_DFCO_on_taper_off_no_delay(testData);
 
-  configPage9.dfcoTaperEnable = 1; //Enable
-  configPage9.dfcoTaperTime = 20; //2.0 second
-  configPage9.dfcoTaperFuel = 0; //Scale fuel to 0%
-  configPage9.dfcoTaperAdvance = 20; //Reduce 20deg until full fuel cut
+  testData.page9.dfcoTaperEnable = 1; //Enable
+  testData.page9.dfcoTaperTime = 20; //2.0 second
+  testData.page9.dfcoTaperFuel = 0; //Scale fuel to 0%
+  testData.page9.dfcoTaperAdvance = 20; //Reduce 20deg until full fuel cut
 }
 
-extern byte correctionDFCOfuel(void);
-extern int8_t correctionDFCOignition(int8_t advance);
+extern byte correctionDFCOfuel(const statuses &current, const config9 &page9);
+
+extern int8_t correctionDFCOignition(int8_t advance, const statuses &current, const config9 &page9);
 
 static void test_correctionDFCOfuel_DFCO_off()
 {
-  setup_DFCO_on_taper_off_no_delay();
+  dfco_test_data_t testData;
+  setup_DFCO_on_taper_off_no_delay(testData);
 
-  BIT_CLEAR(currentStatus.status1, BIT_STATUS1_DFCO);
-  TEST_ASSERT_EQUAL(100, correctionDFCOfuel());
+  BIT_CLEAR(testData.current.status1, BIT_STATUS1_DFCO);
+  TEST_ASSERT_EQUAL(100, correctionDFCOfuel(testData.current, testData.page9));
 }
 
 static void test_correctionDFCOfuel_notaper()
 {
-  setup_DFCO_on_taper_off_no_delay();
+  dfco_test_data_t testData;
+  setup_DFCO_on_taper_off_no_delay(testData);
 
-  configPage9.dfcoTaperEnable = 0; //Disable
-  BIT_SET(currentStatus.status1, BIT_STATUS1_DFCO);
-  TEST_ASSERT_EQUAL(0, correctionDFCOfuel());
+  testData.page9.dfcoTaperEnable = 0; //Disable
+  BIT_SET(testData.current.status1, BIT_STATUS1_DFCO);
+  TEST_ASSERT_EQUAL(0, correctionDFCOfuel(testData.current, testData.page9));
 }
 
-static inline void reset_dfco_taper(void) {
-  BIT_CLEAR(currentStatus.status1, BIT_STATUS1_DFCO);
-  TEST_ASSERT_EQUAL(100, correctionDFCOfuel());
-  TEST_ASSERT_EQUAL(20, correctionDFCOignition(20));
+static inline void reset_dfco_taper(dfco_test_data_t &testData) {
+  BIT_CLEAR(testData.current.status1, BIT_STATUS1_DFCO);
+  TEST_ASSERT_EQUAL(100, correctionDFCOfuel(testData.current, testData.page9));
+  TEST_ASSERT_EQUAL(20, correctionDFCOignition(20, testData.current, testData.page9));
 }
 
-static inline void advance_dfco_taper(uint8_t count) {
+static inline void advance_dfco_taper(uint8_t count, dfco_test_data_t &testData) {
   BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
   for (uint8_t index = 0; index < count; ++index) {
-    (void)correctionDFCOfuel();
+    (void)correctionDFCOfuel(testData.current, testData.page9);
   }
 }
 
 static void test_correctionDFCOfuel_taper()
 {
-  setup_DFCO_on_taper_on_no_delay();
+  dfco_test_data_t testData;
+  setup_DFCO_on_taper_on_no_delay(testData);
 
-  reset_dfco_taper();
+  reset_dfco_taper(testData);
 
-  BIT_SET(currentStatus.status1, BIT_STATUS1_DFCO);
+  BIT_SET(testData.current.status1, BIT_STATUS1_DFCO);
 
   // 50% test
-  advance_dfco_taper(configPage9.dfcoTaperTime/2);
+  advance_dfco_taper(testData.page9.dfcoTaperTime/2, testData);
   BIT_CLEAR(LOOP_TIMER, BIT_TIMER_10HZ);
-  TEST_ASSERT_EQUAL(50, correctionDFCOfuel());
+  TEST_ASSERT_EQUAL(50, correctionDFCOfuel(testData.current, testData.page9));
 
   // 75% test
-  advance_dfco_taper(configPage9.dfcoTaperTime/4);
+  advance_dfco_taper(testData.page9.dfcoTaperTime/4, testData);
   BIT_CLEAR(LOOP_TIMER, BIT_TIMER_10HZ);
-  TEST_ASSERT_EQUAL(25, correctionDFCOfuel());
+  TEST_ASSERT_EQUAL(25, correctionDFCOfuel(testData.current, testData.page9));
 
   // Advance taper to 100%
-  advance_dfco_taper(configPage9.dfcoTaperTime/4);
+  advance_dfco_taper(testData.page9.dfcoTaperTime/4, testData);
 
   // 100% & beyond test
   BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
-  TEST_ASSERT_EQUAL(0, correctionDFCOfuel());
-  TEST_ASSERT_EQUAL(0, correctionDFCOfuel());
-  TEST_ASSERT_EQUAL(0, correctionDFCOfuel());
-  TEST_ASSERT_EQUAL(0, correctionDFCOfuel());
-  TEST_ASSERT_EQUAL(0, correctionDFCOfuel());
+  TEST_ASSERT_EQUAL(0, correctionDFCOfuel(testData.current, testData.page9));
+  TEST_ASSERT_EQUAL(0, correctionDFCOfuel(testData.current, testData.page9));
+  TEST_ASSERT_EQUAL(0, correctionDFCOfuel(testData.current, testData.page9));
+  TEST_ASSERT_EQUAL(0, correctionDFCOfuel(testData.current, testData.page9));
+  TEST_ASSERT_EQUAL(0, correctionDFCOfuel(testData.current, testData.page9));
 }
 
 static void test_correctionDFCOignition_DFCO_off()
 {
-  setup_DFCO_on_taper_off_no_delay();
+  dfco_test_data_t testData;
+  setup_DFCO_on_taper_off_no_delay(testData);
 
-  BIT_CLEAR(currentStatus.status1, BIT_STATUS1_DFCO);
-  TEST_ASSERT_EQUAL(45, correctionDFCOignition(45));
+  BIT_CLEAR(testData.current.status1, BIT_STATUS1_DFCO);
+  TEST_ASSERT_EQUAL(45, correctionDFCOignition(45, testData.current, testData.page9));
 }
 
 static void test_correctionDFCOignition_notaper()
 {
-  setup_DFCO_on_taper_off_no_delay();
+  dfco_test_data_t testData;
+  setup_DFCO_on_taper_off_no_delay(testData);
 
-  configPage9.dfcoTaperEnable = 0; //Disable
-  BIT_SET(currentStatus.status1, BIT_STATUS1_DFCO);
-  TEST_ASSERT_EQUAL(45, correctionDFCOignition(45));
+  testData.page9.dfcoTaperEnable = 0; //Disable
+  BIT_SET(testData.current.status1, BIT_STATUS1_DFCO);
+  TEST_ASSERT_EQUAL(45, correctionDFCOignition(45, testData.current, testData.page9));
 }
 
 static void test_correctionDFCOignition_taper()
 {
-  setup_DFCO_on_taper_on_no_delay();
+  dfco_test_data_t testData;
+  setup_DFCO_on_taper_on_no_delay(testData);
 
-  reset_dfco_taper();
+  reset_dfco_taper(testData);
 
-  BIT_SET(currentStatus.status1, BIT_STATUS1_DFCO);
+  BIT_SET(testData.current.status1, BIT_STATUS1_DFCO);
 
   // 25% test
-  advance_dfco_taper(configPage9.dfcoTaperTime/4);
-  TEST_ASSERT_EQUAL(15, correctionDFCOignition(20));
+  advance_dfco_taper(testData.page9.dfcoTaperTime/4, testData);
+  TEST_ASSERT_EQUAL(15, correctionDFCOignition(20, testData.current, testData.page9));
 
   // 50% test
-  advance_dfco_taper(configPage9.dfcoTaperTime/4);
-  TEST_ASSERT_EQUAL(10, correctionDFCOignition(20));
+  advance_dfco_taper(testData.page9.dfcoTaperTime/4, testData);
+  TEST_ASSERT_EQUAL(10, correctionDFCOignition(20, testData.current, testData.page9));
 
   // 75% test
-  advance_dfco_taper(configPage9.dfcoTaperTime/4);
-  TEST_ASSERT_EQUAL(5, correctionDFCOignition(20));
+  advance_dfco_taper(testData.page9.dfcoTaperTime/4, testData);
+  TEST_ASSERT_EQUAL(5, correctionDFCOignition(20, testData.current, testData.page9));
 
   // 100% & beyond test
-  advance_dfco_taper(configPage9.dfcoTaperTime/4);
-  TEST_ASSERT_EQUAL(0, correctionDFCOignition(20));
-  advance_dfco_taper(1);
-  TEST_ASSERT_EQUAL(0, correctionDFCOignition(20));
-  advance_dfco_taper(1);
-  TEST_ASSERT_EQUAL(0, correctionDFCOignition(20));
+  advance_dfco_taper(testData.page9.dfcoTaperTime/4, testData);
+  TEST_ASSERT_EQUAL(0, correctionDFCOignition(20, testData.current, testData.page9));
+  advance_dfco_taper(1, testData);
+  TEST_ASSERT_EQUAL(0, correctionDFCOignition(20, testData.current, testData.page9));
+  advance_dfco_taper(1, testData);
+  TEST_ASSERT_EQUAL(0, correctionDFCOignition(20, testData.current, testData.page9));
 }
 
 static void test_corrections_dfco()
@@ -1717,8 +1732,8 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFlex(), "correctionFlex");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFuelTemp(), "correctionFuelTemp");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionLaunch(currentStatus, configPage6), "correctionLaunch");
-  TEST_ASSERT_FALSE(correctionDFCO());
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionDFCOfuel(), "correctionDFCOfuel");
+  TEST_ASSERT_FALSE(correctionDFCO(currentStatus, configPage2, configPage4));
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionDFCOfuel(currentStatus, configPage9), "correctionDFCOfuel");
 
   // Acceeleration
   configPage2.aeApplyMode = AE_MODE_MULTIPLIER;
@@ -1802,8 +1817,8 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionFlex(), "correctionFlex");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionFuelTemp(), "correctionFuelTemp");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionLaunch(currentStatus, configPage6), "correctionLaunch");
-  TEST_ASSERT_FALSE(correctionDFCO());
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionDFCOfuel(), "correctionDFCOfuel");
+  TEST_ASSERT_FALSE(correctionDFCO(currentStatus, configPage2, configPage4));
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionDFCOfuel(currentStatus, configPage9), "correctionDFCOfuel");
 
   TEST_ASSERT_EQUAL(1500U, correctionsFuel());
 }
