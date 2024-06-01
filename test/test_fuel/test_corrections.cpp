@@ -320,30 +320,36 @@ static void test_corrections_ASE(void)
   RUN_TEST_P(test_corrections_ASE_taper);
 }
 
-uint8_t correctionFloodClear(void);
+extern uint8_t correctionFloodClear(const statuses &current, const config4 &page4);
 
 static void test_corrections_floodclear_no_crank_inactive(void) {
-  BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK);
-  configPage4.floodClear = 90;
-  currentStatus.TPS = configPage4.floodClear + 10;
+  statuses current;
+  config4  page4;
+  BIT_CLEAR(current.engine, BIT_ENGINE_CRANK);
+  page4.floodClear = 90;
+  current.TPS = page4.floodClear + 10;
 
-  TEST_ASSERT_EQUAL(100U, correctionFloodClear() );
+  TEST_ASSERT_EQUAL(100U, correctionFloodClear(current, page4) );
 }
 
 static void test_corrections_floodclear_crank_below_threshold_inactive(void) {
-  BIT_SET(currentStatus.engine, BIT_ENGINE_CRANK);
-  configPage4.floodClear = 90;
-  currentStatus.TPS = configPage4.floodClear - 10;
+  statuses current;
+  config4  page4;
+  BIT_SET(current.engine, BIT_ENGINE_CRANK);
+  page4.floodClear = 90;
+  current.TPS = page4.floodClear - 10;
 
-  TEST_ASSERT_EQUAL(100U, correctionFloodClear() );
+  TEST_ASSERT_EQUAL(100U, correctionFloodClear(current, page4) );
 }
 
 static void test_corrections_floodclear_crank_above_threshold_active(void) {
-  BIT_SET(currentStatus.engine, BIT_ENGINE_CRANK);
-  configPage4.floodClear = 90;
-  currentStatus.TPS = configPage4.floodClear + 10;
+  statuses current;
+  config4  page4;
+  BIT_SET(current.engine, BIT_ENGINE_CRANK);
+  page4.floodClear = 90;
+  current.TPS = page4.floodClear + 10;
 
-  TEST_ASSERT_EQUAL(0U, correctionFloodClear() );
+  TEST_ASSERT_EQUAL(0U, correctionFloodClear(current, page4) );
 }
 
 static void test_corrections_floodclear(void)
@@ -1687,7 +1693,7 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionWUE(currentStatus, WUETable), "correctionWUE");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionASE(currentStatus, ASECountTable, ASETable, configPage2), "correctionASE");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionCranking(currentStatus, crankingEnrichTable, configPage10), "correctionCranking");
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionFloodClear(), "correctionFloodClear");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionFloodClear(currentStatus, configPage4), "correctionFloodClear");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAFRClosedLoop(), "correctionAFRClosedLoop");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionBatVoltage(), "correctionBatVoltage");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionIATDensity(), "correctionIATDensity");
@@ -1772,7 +1778,7 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionASE(currentStatus, ASECountTable, ASETable, configPage2), "correctionASE");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionCranking(currentStatus, crankingEnrichTable, configPage10), "correctionCranking");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAccel(currentStatus, configPage2, taeTable, maeTable), "correctionAccel");
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionFloodClear(), "correctionFloodClear");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionFloodClear(currentStatus, configPage4), "correctionFloodClear");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAFRClosedLoop(), "correctionAFRClosedLoop");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionBatVoltage(), "correctionBatVoltage");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionIATDensity(), "correctionIATDensity");
