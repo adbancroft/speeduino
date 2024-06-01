@@ -653,29 +653,40 @@ static void test_corrections_closedloop(void)
   RUN_TEST_P(test_corrections_closedloop_pid_rich_maxcorrection);
 }
 
-uint8_t correctionFlex(void);
 
-static void setupFlexFuelTable(void) {
-  construct2dTables();
-  initialiseCorrections();
+uint8_t correctionFlex(const statuses &current, const config2 &page2, const table2D &lookUptable);
 
-  TEST_DATA_P uint8_t bins[] = { 0, 10, 30, 50, 60, 70 };
-  TEST_DATA_P uint8_t values[] = { 0, 20, 40, 80, 120, 150 };
-  populate_2dtable_P(&flexFuelTable, values, bins);  
+struct flex_test_data_t : public test_2dtable_t<6> {
+  statuses current;
+  config2 page2;
+};
+
+static void setupFlexFuelTable(flex_test_data_t &testData) {
+  TEST_DATA_P uint8_t bins[_countof(flex_test_data_t::bins)] = { 0, 10, 30, 50, 60, 70 };
+  TEST_DATA_P uint8_t values[_countof(flex_test_data_t::values)] = { 0, 20, 40, 80, 120, 150 };
+  populate_2dtable_P(&testData.lookupTable, values, bins);  
 }
 
 static void test_corrections_flex_flex_off(void) {
-  setupFlexFuelTable();
-  configPage2.flexEnabled = false;
-  currentStatus.ethanolPct = 65;
-  TEST_ASSERT_EQUAL(100U, correctionFlex() );
+  flex_test_data_t testData;
+  setupFlexFuelTable(testData);
+  testData.page2.flexEnabled = false;
+  testData.current.ethanolPct = 65;
+  TEST_ASSERT_EQUAL(100U, correctionFlex(testData.current, testData.page2, testData.lookupTable) );
 }
 
 static void test_corrections_flex_flex_on(void) {
-  setupFlexFuelTable();
-  configPage2.flexEnabled = true;
-  currentStatus.ethanolPct = 65;
-  TEST_ASSERT_EQUAL(135U, correctionFlex() );
+  flex_test_data_t testData;
+  setupFlexFuelTable(testData);
+  testData.page2.flexEnabled = true;
+  testData.current.ethanolPct = 65;
+  TEST_ASSERT_EQUAL(135U, correctionFlex(testData.current, testData.page2, testData.lookupTable) );
+}
+
+static void test_corrections_flex(void)
+{
+  RUN_TEST_P(test_corrections_flex_flex_off);
+  RUN_TEST_P(test_corrections_flex_flex_on);
 }
 
 uint8_t correctionFuelTemp(void);
@@ -703,10 +714,8 @@ static void test_corrections_fueltemp_on(void) {
   TEST_ASSERT_EQUAL(135U, correctionFuelTemp() );
 }
 
-static void test_corrections_flex(void)
+static void test_corrections_fueltemp(void)
 {
-  RUN_TEST_P(test_corrections_flex_flex_off);
-  RUN_TEST_P(test_corrections_flex_flex_on);
   RUN_TEST_P(test_corrections_fueltemp_off);
   RUN_TEST_P(test_corrections_fueltemp_on);
 }
@@ -1729,7 +1738,7 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionBatVoltage(currentStatus, injectorVCorrectionTable, configPage2), "correctionBatVoltage");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionIATDensity(currentStatus, IATDensityCorrectionTable), "correctionIATDensity");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionBaro(currentStatus, baroFuelTable), "correctionBaro");
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionFlex(), "correctionFlex");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionFlex(currentStatus, configPage2, flexFuelTable), "correctionFlex");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFuelTemp(), "correctionFuelTemp");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionLaunch(currentStatus, configPage6), "correctionLaunch");
   TEST_ASSERT_FALSE(correctionDFCO(currentStatus, configPage2, configPage4));
@@ -1814,7 +1823,7 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionBatVoltage(currentStatus, injectorVCorrectionTable, configPage2), "correctionBatVoltage");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionIATDensity(currentStatus, IATDensityCorrectionTable), "correctionIATDensity");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionBaro(currentStatus, baroFuelTable), "correctionBaro");
-  TEST_ASSERT_EQUAL_MESSAGE(255, correctionFlex(), "correctionFlex");
+  TEST_ASSERT_EQUAL_MESSAGE(255, correctionFlex(currentStatus, configPage2, flexFuelTable), "correctionFlex");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionFuelTemp(), "correctionFuelTemp");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionLaunch(currentStatus, configPage6), "correctionLaunch");
   TEST_ASSERT_FALSE(correctionDFCO(currentStatus, configPage2, configPage4));
@@ -1841,6 +1850,7 @@ void testCorrections()
     test_corrections_bat();
     test_corrections_launch();
     test_corrections_flex();
+    test_corrections_fueltemp();
     test_corrections_afrtarget();
     test_corrections_closedloop();
     test_corrections_correctionsFuel();
