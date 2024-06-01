@@ -689,29 +689,33 @@ static void test_corrections_flex(void)
   RUN_TEST_P(test_corrections_flex_flex_on);
 }
 
-uint8_t correctionFuelTemp(void);
+struct fueltemp_test_data_t : public test_2dtable_t<6> {
+  statuses current;
+  config2 page2;
+};
 
-static void setupFuelTempTable(void) {
-  construct2dTables();
-  initialiseCorrections();
+uint8_t correctionFuelTemp(const statuses &current, const config2 &page2, const table2D &lookUptable);
 
+static void setupFuelTempTable(fueltemp_test_data_t &testData) {
   TEST_DATA_P uint8_t bins[] = { 0, 10, 30, 50, 60, 70 };
   TEST_DATA_P uint8_t values[] = { 0, 20, 40, 80, 120, 150 };
-  populate_2dtable_P(&fuelTempTable, values, bins);   
+  populate_2dtable_P(&testData.lookupTable, values, bins);   
 }
 
 static void test_corrections_fueltemp_off(void) {
-  setupFuelTempTable();
-  configPage2.flexEnabled = false;
-  currentStatus.fuelTemp = toWorkingTemperature(65);
-  TEST_ASSERT_EQUAL(100U, correctionFuelTemp() );
+  fueltemp_test_data_t testData;
+  setupFuelTempTable(testData);
+  testData.page2.flexEnabled = false;
+  testData.current.fuelTemp = toWorkingTemperature(65);
+  TEST_ASSERT_EQUAL(100U, correctionFuelTemp(testData.current, testData.page2, testData.lookupTable) );
 }
 
 static void test_corrections_fueltemp_on(void) {
-  setupFuelTempTable();
-  configPage2.flexEnabled = true;
-  currentStatus.fuelTemp = toWorkingTemperature(65);
-  TEST_ASSERT_EQUAL(135U, correctionFuelTemp() );
+  fueltemp_test_data_t testData;
+  setupFuelTempTable(testData);
+  testData.page2.flexEnabled = true;
+  testData.current.fuelTemp = toWorkingTemperature(65);
+  TEST_ASSERT_EQUAL(135U, correctionFuelTemp(testData.current, testData.page2, testData.lookupTable) );
 }
 
 static void test_corrections_fueltemp(void)
@@ -1739,7 +1743,7 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionIATDensity(currentStatus, IATDensityCorrectionTable), "correctionIATDensity");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionBaro(currentStatus, baroFuelTable), "correctionBaro");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFlex(currentStatus, configPage2, flexFuelTable), "correctionFlex");
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionFuelTemp(), "correctionFuelTemp");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionFuelTemp(currentStatus, configPage2, fuelTempTable), "correctionFuelTemp");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionLaunch(currentStatus, configPage6), "correctionLaunch");
   TEST_ASSERT_FALSE(correctionDFCO(currentStatus, configPage2, configPage4));
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionDFCOfuel(currentStatus, configPage9), "correctionDFCOfuel");
@@ -1824,7 +1828,7 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionIATDensity(currentStatus, IATDensityCorrectionTable), "correctionIATDensity");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionBaro(currentStatus, baroFuelTable), "correctionBaro");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionFlex(currentStatus, configPage2, flexFuelTable), "correctionFlex");
-  TEST_ASSERT_EQUAL_MESSAGE(255, correctionFuelTemp(), "correctionFuelTemp");
+  TEST_ASSERT_EQUAL_MESSAGE(255, correctionFuelTemp(currentStatus, configPage2, fuelTempTable), "correctionFuelTemp");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionLaunch(currentStatus, configPage6), "correctionLaunch");
   TEST_ASSERT_FALSE(correctionDFCO(currentStatus, configPage2, configPage4));
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionDFCOfuel(currentStatus, configPage9), "correctionDFCOfuel");
