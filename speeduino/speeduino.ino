@@ -72,7 +72,7 @@ inline uint16_t applyFuelTrimToPW(trimTable3d *pTrimTable, int16_t fuelLoad, int
     return percentage(pw1percent, currentPW);
 }
 
-static inline void setIgnitionSchedule(IgnitionSchedule &schedule, uint8_t index, uint16_t crankAngle, uint16_t totalDwell) {
+static SCHEDULE_INLINE void setIgnitionSchedule(IgnitionSchedule &schedule, uint8_t index, uint16_t crankAngle, uint16_t totalDwell) {
   if ((maxIgnOutputs>index) && (BIT_CHECK(ignitionChannelsOn, IGN1_CMD_BIT+index)) ) {
     setIgnitionSchedule(schedule, crankAngle, totalDwell);
   }
