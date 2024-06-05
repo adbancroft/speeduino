@@ -46,6 +46,13 @@ See page 136 of the processors datasheet: http://www.atmel.com/Images/doc2549.pd
 #include "board_definition.h"
 #include "scheduledIO.h"
 
+// Inlining seems to be very important for AVR performance
+#if defined(CORE_AVR)
+#define SCHEDULE_INLINE inline __attribute__((always_inline))
+#else
+#define SCHEDULE_INLINE inline
+#endif
+
 #define USE_IGN_REFRESH
 #define IGNITION_REFRESH_THRESHOLD  30 //Time in uS that the refresh functions will check to ensure there is enough time before changing the end compare
 
@@ -135,7 +142,7 @@ struct Schedule {
   compare_t &_compare;       ///< **Reference**to the compare register. E.g. OCR3A
 };
 
-static inline bool isRunning(const Schedule &schedule) {
+static SCHEDULE_INLINE bool isRunning(const Schedule &schedule) {
   // Using flags and bitwise AND (&) to check multiple states is much quicker
   // than a logical or (||) (one less branch & 30% less instructions)
   static constexpr uint8_t flags = RUNNING | RUNNING_WITHNEXT;
@@ -147,7 +154,7 @@ static inline bool isRunning(const Schedule &schedule) {
 void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration);
 void _setSchedulePending(Schedule &schedule, uint32_t timeout, uint32_t duration);
 
-static inline __attribute__((always_inline)) void _setSchedule(Schedule &schedule, uint32_t timeout, uint32_t duration) {
+static SCHEDULE_INLINE void _setSchedule(Schedule &schedule, uint32_t timeout, uint32_t duration) {
   if(timeout<MAX_TIMER_PERIOD && duration<MAX_TIMER_PERIOD) {
     ATOMIC() {
       if(!isRunning(schedule)) { //Check that we're not already part way through a schedule
@@ -175,7 +182,7 @@ void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidC
  * @brief Is the schedule in pending state?
  * I.e. waiting for a timer interrupt to start the scheduled action. E.g. open an injector
  */
-static inline bool isPending(const Schedule &schedule) {
+static SCHEDULE_INLINE bool isPending(const Schedule &schedule) {
   static constexpr uint8_t flags = PENDING | PENDING_WITH_OVERRIDE;
   return (bool)(schedule.Status & flags);
 }
@@ -253,7 +260,7 @@ struct FuelSchedule : public Schedule {
 
 };
 
-static inline void setFuelSchedule(FuelSchedule &schedule, uint32_t timeout, uint32_t duration) {
+static SCHEDULE_INLINE void setFuelSchedule(FuelSchedule &schedule, uint32_t timeout, uint32_t duration) {
   _setSchedule(schedule, timeout, duration);
 }
 

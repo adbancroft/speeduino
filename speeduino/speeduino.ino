@@ -46,6 +46,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "schedule_calcs.h"
 #include "auxiliaries.h"
 #include "board_definition.h"
+#include "unit_testing.h"
 #include RTC_LIB_H //Defined in each boards .h file
 
 
@@ -59,6 +60,174 @@ uint32_t rollingCutLastRev = 0; /**< Tracks whether we're on the same or a diffe
 
 uint16_t staged_req_fuel_mult_pri = 0;
 uint16_t staged_req_fuel_mult_sec = 0;   
+
+TESTABLE_INLINE_STATIC uint16_t calculatePWLimit(void)
+{
+  uint32_t tempLimit = percentage(configPage2.dutyLim, revolutionTime); //The pulsewidth limit is determined to be the duty cycle limit (Eg 85%) by the total time it takes to perform 1 revolution
+  //Handle multiple squirts per rev
+  if (configPage2.strokes == FOUR_STROKE) { tempLimit = tempLimit * 2; }
+  //Optimise for power of two divisions where possible
+  switch(currentStatus.nSquirts)
+  {
+    case 1:
+      //No action needed
+      break;
+    case 2:
+      tempLimit = tempLimit / 2;
+      break;
+    case 4:
+      tempLimit = tempLimit / 4;
+      break;
+    case 8:
+      tempLimit = tempLimit / 8;
+      break;
+    default:
+      //Non-PoT squirts value. Perform (slow) uint32_t division
+      tempLimit = tempLimit / currentStatus.nSquirts;
+      break;
+  }
+  if(tempLimit > UINT16_MAX) { tempLimit = UINT16_MAX; }
+
+  return tempLimit;
+}
+
+/** Lookup the ignition advance from 3D ignition table.
+ * The values used to look this up will be RPM and whatever load source the user has configured.
+ * 
+ * @return byte The current target advance value in degrees
+ */
+static inline byte getAdvance1(void)
+{
+  byte tempAdvance = 0;
+  if (configPage2.ignAlgorithm == LOAD_SOURCE_MAP) //Check which fuelling algorithm is being used
+  {
+    //Speed Density
+    currentStatus.ignLoad = currentStatus.MAP;
+  }
+  else if(configPage2.ignAlgorithm == LOAD_SOURCE_TPS)
+  {
+    //Alpha-N
+    currentStatus.ignLoad = currentStatus.TPS * 2;
+
+  }
+  else if (configPage2.fuelAlgorithm == LOAD_SOURCE_IMAPEMAP)
+  {
+    //IMAP / EMAP
+    currentStatus.ignLoad = ((int16_t)currentStatus.MAP * 100U) / currentStatus.EMAP;
+  }
+  tempAdvance = get3DTableValue(&ignitionTable, currentStatus.ignLoad, currentStatus.RPM) - OFFSET_IGNITION; //As above, but for ignition advance
+  tempAdvance = correctionsIgn(tempAdvance);
+
+  return tempAdvance;
+}
+
+/** Lookup the current VE value from the primary 3D fuel map.
+ * The Y axis value used for this lookup varies based on the fuel algorithm selected (speed density, alpha-n etc).
+ * 
+ * @return byte The current VE value
+ */
+static inline byte getVE1(void)
+{
+  byte tempVE = 100;
+  if (configPage2.fuelAlgorithm == LOAD_SOURCE_MAP) //Check which fuelling algorithm is being used
+  {
+    //Speed Density
+    currentStatus.fuelLoad = currentStatus.MAP;
+  }
+  else if (configPage2.fuelAlgorithm == LOAD_SOURCE_TPS)
+  {
+    //Alpha-N
+    currentStatus.fuelLoad = currentStatus.TPS * 2;
+  }
+  else if (configPage2.fuelAlgorithm == LOAD_SOURCE_IMAPEMAP)
+  {
+    //IMAP / EMAP
+    currentStatus.fuelLoad = ((int16_t)currentStatus.MAP * 100U) / currentStatus.EMAP;
+  }
+  else { currentStatus.fuelLoad = currentStatus.MAP; } //Fallback position
+  tempVE = get3DTableValue(&fuelTable, currentStatus.fuelLoad, currentStatus.RPM); //Perform lookup into fuel map for RPM vs MAP value
+
+  return tempVE;
+}
+
+/**
+ * @brief This function calculates the required pulsewidth time (in us) given the current system state
+ * 
+ * @param REQ_FUEL The required fuel value in uS, as calculated by TunerStudio
+ * @param VE Lookup from the main fuel table. This can either have been MAP or TPS based, depending on the algorithm used
+ * @param MAP In KPa, read from the sensor (This is used when performing a multiply of the map only. It is applicable in both Speed density and Alpha-N)
+ * @param corrections Sum of Enrichment factors (Cold start, acceleration). This is a multiplication factor (Eg to add 10%, this should be 110)
+ * @param injOpen Injector opening time. The time the injector take to open minus the time it takes to close (Both in uS)
+ * @return uint16_t The injector pulse width in uS
+ */
+TESTABLE_INLINE_STATIC uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen)
+{
+  //Standard float version of the calculation
+  //return (REQ_FUEL * (float)(VE/100.0) * (float)(MAP/100.0) * (float)(TPS/100.0) * (float)(corrections/100.0) + injOpen);
+  //Note: The MAP and TPS portions are currently disabled, we use VE and corrections only
+  uint16_t iVE;
+  uint16_t iMAP = 100;
+  uint16_t iAFR = 147;
+
+  //100% float free version, does sacrifice a little bit of accuracy, but not much.
+ 
+  //iVE = ((unsigned int)VE << 7) / 100;
+  iVE = div100(((uint16_t)VE << 7U));
+
+  //Check whether either of the multiply MAP modes is turned on
+  //if ( configPage2.multiplyMAP == MULTIPLY_MAP_MODE_100) { iMAP = ((unsigned int)MAP << 7) / 100; }
+  if ( configPage2.multiplyMAP == MULTIPLY_MAP_MODE_100) { iMAP = div100( ((uint16_t)MAP << 7U) ); }
+  else if( configPage2.multiplyMAP == MULTIPLY_MAP_MODE_BARO) { iMAP = ((unsigned int)MAP << 7U) / currentStatus.baro; }
+  
+  if ( (configPage2.includeAFR == true) && (configPage6.egoType == EGO_TYPE_WIDE) && (currentStatus.runSecs > configPage6.ego_sdelay) ) {
+    iAFR = ((unsigned int)currentStatus.O2 << 7U) / currentStatus.afrTarget;  //Include AFR (vs target) if enabled
+  }
+  if ( (configPage2.incorporateAFR == true) && (configPage2.includeAFR == false) ) {
+    iAFR = ((unsigned int)configPage2.stoich << 7U) / currentStatus.afrTarget;  //Incorporate stoich vs target AFR, if enabled.
+  }
+
+  uint32_t intermediate = rshift<7U>((uint32_t)REQ_FUEL * (uint32_t)iVE); //Need to use an intermediate value to avoid overflowing the long
+  if ( configPage2.multiplyMAP > 0 ) { intermediate = rshift<7U>(intermediate * (uint32_t)iMAP); }
+  
+  if ( (configPage2.includeAFR == true) && (configPage6.egoType == EGO_TYPE_WIDE) && (currentStatus.runSecs > configPage6.ego_sdelay) ) {
+    //EGO type must be set to wideband and the AFR warmup time must've elapsed for this to be used
+    intermediate = rshift<7U>(intermediate * (uint32_t)iAFR);  
+  }
+  if ( (configPage2.incorporateAFR == true) && (configPage2.includeAFR == false) ) {
+    intermediate = rshift<7U>(intermediate * (uint32_t)iAFR);
+  }
+
+  //If corrections are huge, use less bitshift to avoid overflow. Sacrifices a bit more accuracy (basically only during very cold temp cranking)
+  if (corrections < 512 ) { 
+    intermediate = rshift<7U>(intermediate * div100(lshift<7U>(corrections))); 
+  } else if (corrections < 1024 ) { 
+    intermediate = rshift<6U>(intermediate * div100(lshift<6U>(corrections)));
+  } else {
+    intermediate = rshift<5U>(intermediate * div100(lshift<5U>(corrections)));
+  }
+
+  if (intermediate != 0)
+  {
+    //If intermediate is not 0, we need to add the opening time (0 typically indicates that one of the full fuel cuts is active)
+    intermediate += injOpen; //Add the injector opening time
+    //AE calculation only when ACC is active.
+    if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC) )
+    {
+      //AE Adds % of req_fuel
+      if ( configPage2.aeApplyMode == AE_MODE_ADDER )
+        {
+          intermediate += div100(((uint32_t)REQ_FUEL) * (currentStatus.AEamount - 100U));
+        }
+    }
+
+    if ( intermediate > UINT16_MAX)
+    {
+      intermediate = UINT16_MAX;  //Make sure this won't overflow when we convert to uInt. This means the maximum pulsewidth possible is 65.535mS
+    }
+  }
+  return (unsigned int)(intermediate);
+}
+
 #ifndef UNIT_TEST // Scope guard for unit testing
 void setup(void)
 {
@@ -72,13 +241,13 @@ inline uint16_t applyFuelTrimToPW(trimTable3d *pTrimTable, int16_t fuelLoad, int
     return percentage(pw1percent, currentPW);
 }
 
-static inline void setIgnitionSchedule(IgnitionSchedule &schedule, uint8_t index, uint16_t crankAngle, uint16_t totalDwell) {
+static SCHEDULE_INLINE void setIgnitionSchedule(IgnitionSchedule &schedule, uint8_t index, uint16_t crankAngle, uint16_t totalDwell) {
   if ((maxIgnOutputs>index) && (BIT_CHECK(ignitionChannelsOn, IGN1_CMD_BIT+index)) ) {
     setIgnitionSchedule(schedule, crankAngle, totalDwell);
   }
 }
 
-static inline __attribute__((flatten)) void setIgnitionSchedules(uint16_t crankAngle, uint16_t totalDwell) {
+static inline __attribute__((flatten, always_inline)) void setIgnitionSchedules(uint16_t crankAngle, uint16_t totalDwell) {
   setIgnitionSchedule(ignitionSchedule1, 0, crankAngle, totalDwell);
 #if defined(USE_IGN_REFRESH)
   if( isRunning(ignitionSchedule1) && (ignitionSchedule1.dischargeAngle > (int16_t)crankAngle) && (configPage4.StgCycles == 0) && (configPage2.perToothIgn != true) )
@@ -1128,143 +1297,6 @@ void __attribute__((always_inline)) loop(void)
 
 #endif //Unit test guard
 
-/**
- * @brief This function calculates the required pulsewidth time (in us) given the current system state
- * 
- * @param REQ_FUEL The required fuel value in uS, as calculated by TunerStudio
- * @param VE Lookup from the main fuel table. This can either have been MAP or TPS based, depending on the algorithm used
- * @param MAP In KPa, read from the sensor (This is used when performing a multiply of the map only. It is applicable in both Speed density and Alpha-N)
- * @param corrections Sum of Enrichment factors (Cold start, acceleration). This is a multiplication factor (Eg to add 10%, this should be 110)
- * @param injOpen Injector opening time. The time the injector take to open minus the time it takes to close (Both in uS)
- * @return uint16_t The injector pulse width in uS
- */
-uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen)
-{
-  //Standard float version of the calculation
-  //return (REQ_FUEL * (float)(VE/100.0) * (float)(MAP/100.0) * (float)(TPS/100.0) * (float)(corrections/100.0) + injOpen);
-  //Note: The MAP and TPS portions are currently disabled, we use VE and corrections only
-  uint16_t iVE;
-  uint16_t iMAP = 100;
-  uint16_t iAFR = 147;
-
-  //100% float free version, does sacrifice a little bit of accuracy, but not much.
- 
-  //iVE = ((unsigned int)VE << 7) / 100;
-  iVE = div100(((uint16_t)VE << 7U));
-
-  //Check whether either of the multiply MAP modes is turned on
-  //if ( configPage2.multiplyMAP == MULTIPLY_MAP_MODE_100) { iMAP = ((unsigned int)MAP << 7) / 100; }
-  if ( configPage2.multiplyMAP == MULTIPLY_MAP_MODE_100) { iMAP = div100( ((uint16_t)MAP << 7U) ); }
-  else if( configPage2.multiplyMAP == MULTIPLY_MAP_MODE_BARO) { iMAP = ((unsigned int)MAP << 7U) / currentStatus.baro; }
-  
-  if ( (configPage2.includeAFR == true) && (configPage6.egoType == EGO_TYPE_WIDE) && (currentStatus.runSecs > configPage6.ego_sdelay) ) {
-    iAFR = ((unsigned int)currentStatus.O2 << 7U) / currentStatus.afrTarget;  //Include AFR (vs target) if enabled
-  }
-  if ( (configPage2.incorporateAFR == true) && (configPage2.includeAFR == false) ) {
-    iAFR = ((unsigned int)configPage2.stoich << 7U) / currentStatus.afrTarget;  //Incorporate stoich vs target AFR, if enabled.
-  }
-
-  uint32_t intermediate = rshift<7U>((uint32_t)REQ_FUEL * (uint32_t)iVE); //Need to use an intermediate value to avoid overflowing the long
-  if ( configPage2.multiplyMAP > 0 ) { intermediate = rshift<7U>(intermediate * (uint32_t)iMAP); }
-  
-  if ( (configPage2.includeAFR == true) && (configPage6.egoType == EGO_TYPE_WIDE) && (currentStatus.runSecs > configPage6.ego_sdelay) ) {
-    //EGO type must be set to wideband and the AFR warmup time must've elapsed for this to be used
-    intermediate = rshift<7U>(intermediate * (uint32_t)iAFR);  
-  }
-  if ( (configPage2.incorporateAFR == true) && (configPage2.includeAFR == false) ) {
-    intermediate = rshift<7U>(intermediate * (uint32_t)iAFR);
-  }
-
-  //If corrections are huge, use less bitshift to avoid overflow. Sacrifices a bit more accuracy (basically only during very cold temp cranking)
-  if (corrections < 512 ) { 
-    intermediate = rshift<7U>(intermediate * div100(lshift<7U>(corrections))); 
-  } else if (corrections < 1024 ) { 
-    intermediate = rshift<6U>(intermediate * div100(lshift<6U>(corrections)));
-  } else {
-    intermediate = rshift<5U>(intermediate * div100(lshift<5U>(corrections)));
-  }
-
-  if (intermediate != 0)
-  {
-    //If intermediate is not 0, we need to add the opening time (0 typically indicates that one of the full fuel cuts is active)
-    intermediate += injOpen; //Add the injector opening time
-    //AE calculation only when ACC is active.
-    if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_ACC) )
-    {
-      //AE Adds % of req_fuel
-      if ( configPage2.aeApplyMode == AE_MODE_ADDER )
-        {
-          intermediate += div100(((uint32_t)REQ_FUEL) * (currentStatus.AEamount - 100U));
-        }
-    }
-
-    if ( intermediate > UINT16_MAX)
-    {
-      intermediate = UINT16_MAX;  //Make sure this won't overflow when we convert to uInt. This means the maximum pulsewidth possible is 65.535mS
-    }
-  }
-  return (unsigned int)(intermediate);
-}
-
-/** Lookup the current VE value from the primary 3D fuel map.
- * The Y axis value used for this lookup varies based on the fuel algorithm selected (speed density, alpha-n etc).
- * 
- * @return byte The current VE value
- */
-byte getVE1(void)
-{
-  byte tempVE = 100;
-  if (configPage2.fuelAlgorithm == LOAD_SOURCE_MAP) //Check which fuelling algorithm is being used
-  {
-    //Speed Density
-    currentStatus.fuelLoad = currentStatus.MAP;
-  }
-  else if (configPage2.fuelAlgorithm == LOAD_SOURCE_TPS)
-  {
-    //Alpha-N
-    currentStatus.fuelLoad = currentStatus.TPS * 2;
-  }
-  else if (configPage2.fuelAlgorithm == LOAD_SOURCE_IMAPEMAP)
-  {
-    //IMAP / EMAP
-    currentStatus.fuelLoad = ((int16_t)currentStatus.MAP * 100U) / currentStatus.EMAP;
-  }
-  else { currentStatus.fuelLoad = currentStatus.MAP; } //Fallback position
-  tempVE = get3DTableValue(&fuelTable, currentStatus.fuelLoad, currentStatus.RPM); //Perform lookup into fuel map for RPM vs MAP value
-
-  return tempVE;
-}
-
-/** Lookup the ignition advance from 3D ignition table.
- * The values used to look this up will be RPM and whatever load source the user has configured.
- * 
- * @return byte The current target advance value in degrees
- */
-byte getAdvance1(void)
-{
-  byte tempAdvance = 0;
-  if (configPage2.ignAlgorithm == LOAD_SOURCE_MAP) //Check which fuelling algorithm is being used
-  {
-    //Speed Density
-    currentStatus.ignLoad = currentStatus.MAP;
-  }
-  else if(configPage2.ignAlgorithm == LOAD_SOURCE_TPS)
-  {
-    //Alpha-N
-    currentStatus.ignLoad = currentStatus.TPS * 2;
-
-  }
-  else if (configPage2.fuelAlgorithm == LOAD_SOURCE_IMAPEMAP)
-  {
-    //IMAP / EMAP
-    currentStatus.ignLoad = ((int16_t)currentStatus.MAP * 100U) / currentStatus.EMAP;
-  }
-  tempAdvance = get3DTableValue(&ignitionTable, currentStatus.ignLoad, currentStatus.RPM) - OFFSET_IGNITION; //As above, but for ignition advance
-  tempAdvance = correctionsIgn(tempAdvance);
-
-  return tempAdvance;
-}
-
 /** Calculate the Ignition angles for all cylinders (based on @ref config2.nCylinders).
  * both start and end angles are calculated for each channel.
  * Also the mode of ignition firing - wasted spark vs. dedicated spark per cyl. - is considered here.
@@ -1376,36 +1408,6 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
     default:
       break;
   }
-}
-
-uint16_t calculatePWLimit()
-{
-  uint32_t tempLimit = percentage(configPage2.dutyLim, revolutionTime); //The pulsewidth limit is determined to be the duty cycle limit (Eg 85%) by the total time it takes to perform 1 revolution
-  //Handle multiple squirts per rev
-  if (configPage2.strokes == FOUR_STROKE) { tempLimit = tempLimit * 2; }
-  //Optimise for power of two divisions where possible
-  switch(currentStatus.nSquirts)
-  {
-    case 1:
-      //No action needed
-      break;
-    case 2:
-      tempLimit = tempLimit / 2;
-      break;
-    case 4:
-      tempLimit = tempLimit / 4;
-      break;
-    case 8:
-      tempLimit = tempLimit / 8;
-      break;
-    default:
-      //Non-PoT squirts value. Perform (slow) uint32_t division
-      tempLimit = tempLimit / currentStatus.nSquirts;
-      break;
-  }
-  if(tempLimit > UINT16_MAX) { tempLimit = UINT16_MAX; }
-
-  return tempLimit;
 }
 
 void calculateStaging(uint32_t pwLimit)

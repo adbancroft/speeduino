@@ -22,6 +22,7 @@ void testPW(void)
   }
 }
 
+extern uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen);
 int16_t REQ_FUEL;
 byte VE;
 long MAP;
@@ -149,6 +150,8 @@ void test_PW_4Cyl_PW0(void)
   TEST_ASSERT_EQUAL(0, currentStatus.PW3);
   TEST_ASSERT_EQUAL(0, currentStatus.PW4);
 }
+
+extern uint16_t calculatePWLimit(void); 
 
 //Tests the PW Limit calculation for a normal scenario
 void test_PW_Limit_90pct(void)

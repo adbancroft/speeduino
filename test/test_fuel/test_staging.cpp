@@ -44,6 +44,8 @@ void test_Staging_setCommon()
   staged_req_fuel_mult_sec = (100 * totalInjector) / configPage10.stagedInjSizeSec;
 }
 
+extern void calculateStaging(uint32_t pwLimit);
+
 void test_Staging_Off(void)
 {
   test_Staging_setCommon();
