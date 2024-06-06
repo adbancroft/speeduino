@@ -6,7 +6,7 @@
 #include "maths.h"
 #include "timers.h"
 
-static SCHEDULE_INLINE void setOpenAngle(FuelSchedule &schedule, uint16_t pwDegrees, uint16_t injAngle)
+static CRITICAL_INLINE void setOpenAngle(FuelSchedule &schedule, uint16_t pwDegrees, uint16_t injAngle)
 {
   // 0<=injAngle<=720°
   // 0<=injChannelDegrees<=720°
@@ -23,7 +23,7 @@ static SCHEDULE_INLINE void setOpenAngle(FuelSchedule &schedule, uint16_t pwDegr
   while (schedule.openAngle>(uint16_t)CRANK_ANGLE_MAX_INJ) { schedule.openAngle = schedule.openAngle - (uint16_t)CRANK_ANGLE_MAX_INJ; }
 }
 
-static SCHEDULE_INLINE uint32_t _calculateAngularTime(const Schedule &schedule, uint16_t eventAngle, uint16_t crankAngle, uint16_t maxAngle) {
+static CRITICAL_INLINE uint32_t _calculateAngularTime(const Schedule &schedule, uint16_t eventAngle, uint16_t crankAngle, uint16_t maxAngle) {
   int16_t delta = eventAngle - crankAngle;
   if (delta<0 && isRunning(schedule)) {
     delta = delta + (int16_t)maxAngle; 
@@ -31,13 +31,13 @@ static SCHEDULE_INLINE uint32_t _calculateAngularTime(const Schedule &schedule, 
   return delta<0 ? 0U : angleToTimeMicroSecPerDegree((uint16_t)delta);
 }
 
-static SCHEDULE_INLINE uint16_t _adjustToTDC(int16_t angle, uint16_t angleOffset, uint16_t maxAngle) {
+static CRITICAL_INLINE uint16_t _adjustToTDC(int16_t angle, uint16_t angleOffset, uint16_t maxAngle) {
   angle = angle - (int)angleOffset;
   if( angle < 0) { return angle + (int)maxAngle; }
   return angle;
 }
 
-static SCHEDULE_INLINE uint32_t _calculateAngularTime(const Schedule &schedule, uint16_t angleOffset, uint16_t eventAngle, uint16_t crankAngle, uint16_t maxAngle) {
+static CRITICAL_INLINE uint32_t _calculateAngularTime(const Schedule &schedule, uint16_t angleOffset, uint16_t eventAngle, uint16_t crankAngle, uint16_t maxAngle) {
   if (angleOffset==0U) { // Optimize for zero channel angle - no need to adjust start & crank angles
     return _calculateAngularTime(schedule, eventAngle, crankAngle, maxAngle);
   }
@@ -53,38 +53,38 @@ static SCHEDULE_INLINE uint32_t _calculateAngularTime(const Schedule &schedule, 
             maxAngle);
 }
 
-static SCHEDULE_INLINE uint32_t _calculateInjectorTimeout(const FuelSchedule &schedule, int16_t crankAngle)
+static CRITICAL_INLINE uint32_t _calculateInjectorTimeout(const FuelSchedule &schedule, int16_t crankAngle)
 {
   return _calculateAngularTime(schedule, schedule.channelDegrees, schedule.openAngle, crankAngle, CRANK_ANGLE_MAX_INJ);
 }
 
-static SCHEDULE_INLINE int16_t _calculateSparkAngle(const IgnitionSchedule &schedule, int8_t advance) {
+static CRITICAL_INLINE int16_t _calculateSparkAngle(const IgnitionSchedule &schedule, int8_t advance) {
   int16_t angle = (schedule.channelDegrees==0U ? CRANK_ANGLE_MAX_IGN : (int16_t)schedule.channelDegrees) - advance;
   if(angle > CRANK_ANGLE_MAX_IGN) {angle -= CRANK_ANGLE_MAX_IGN;}
   return angle;
 }
 
-static SCHEDULE_INLINE int16_t _calculateCoilChargeAngle(uint16_t dwellAngle, int16_t dischargeAngle) {
+static CRITICAL_INLINE int16_t _calculateCoilChargeAngle(uint16_t dwellAngle, int16_t dischargeAngle) {
   if (dischargeAngle>(int16_t)dwellAngle) {
     return dischargeAngle - (int16_t)dwellAngle;
   }
   return dischargeAngle + CRANK_ANGLE_MAX_IGN - (int16_t)dwellAngle;
 }
 
-static SCHEDULE_INLINE void calculateIgnitionAngles(IgnitionSchedule &schedule, uint16_t dwellAngle, int8_t advance)
+static CRITICAL_INLINE void calculateIgnitionAngles(IgnitionSchedule &schedule, uint16_t dwellAngle, int8_t advance)
 {
   schedule.dischargeAngle = _calculateSparkAngle(schedule,  advance);
   schedule.chargeAngle = _calculateCoilChargeAngle(dwellAngle, schedule.dischargeAngle);
 }
 
 
-static SCHEDULE_INLINE void calculateIgnitionTrailingRotary(IgnitionSchedule &leading, uint16_t dwellAngle, int16_t rotarySplitDegrees, IgnitionSchedule &trailing) 
+static CRITICAL_INLINE void calculateIgnitionTrailingRotary(IgnitionSchedule &leading, uint16_t dwellAngle, int16_t rotarySplitDegrees, IgnitionSchedule &trailing) 
 {
   trailing.dischargeAngle = (int16_t)ignitionLimits(leading.dischargeAngle + rotarySplitDegrees);
   trailing.chargeAngle = (int16_t)ignitionLimits(trailing.dischargeAngle - dwellAngle); 
 }
 
-static SCHEDULE_INLINE uint32_t _calculateIgnitionTimeout(const IgnitionSchedule &schedule, int16_t crankAngle)
+static CRITICAL_INLINE uint32_t _calculateIgnitionTimeout(const IgnitionSchedule &schedule, int16_t crankAngle)
 {
   return _calculateAngularTime(schedule, schedule.channelDegrees, schedule.chargeAngle, crankAngle, CRANK_ANGLE_MAX_IGN);
 }
@@ -94,7 +94,7 @@ static SCHEDULE_INLINE uint32_t _calculateIgnitionTimeout(const IgnitionSchedule
 // So the timing to begin & end charging the coil is based on crank angle.
 // With a more accurate crank angle, we can increase the precision of the
 // spark timing.
-static SCHEDULE_INLINE void adjustCrankAngle(IgnitionSchedule &schedule, int16_t crankAngle) {
+static CRITICAL_INLINE void adjustCrankAngle(IgnitionSchedule &schedule, int16_t crankAngle) {
   constexpr uint8_t MIN_CYCLES_FOR_CORRECTION = 6U;
 
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {

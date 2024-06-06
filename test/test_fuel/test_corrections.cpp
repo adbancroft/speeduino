@@ -27,6 +27,8 @@ void testCorrections()
   }
 }
 
+extern byte correctionWUE(void);
+
 void test_corrections_WUE_active(void)
 {
   //Check for WUE being active
@@ -128,6 +130,11 @@ void test_corrections_launch(void)
 
 }
 
+extern uint8_t dfcoDelay;
+extern uint8_t dfcoTaper;
+
+extern bool correctionDFCO(void);
+
 void setup_DFCO_on()
 {
   //Sets all the required conditions to have the DFCO be active
@@ -197,6 +204,9 @@ void setup_DFCO_taper_on()
   //Set the threshold to be 2.5 seconds, above the simulated delay of 2s
   configPage2.dfcoDelay = 250;
 }
+
+byte correctionDFCOfuel(void);
+
 void test_corrections_dfco_taper()
 {
   setup_DFCO_taper_on();
@@ -224,6 +234,9 @@ void test_corrections_dfco_taper_fuel()
   configPage9.dfcoTaperEnable = 0; //Disable
   TEST_ASSERT_EQUAL(0, correctionDFCOfuel());
 }
+
+extern int8_t correctionDFCOignition(int8_t advance);
+
 void test_corrections_dfco_taper_ign()
 {
   setup_DFCO_taper_on();
@@ -284,6 +297,8 @@ void test_corrections_TAE_setup()
   BIT_CLEAR(currentStatus.engine, BIT_ENGINE_ACC); //Make sure AE is turned off
   BIT_CLEAR(currentStatus.engine, BIT_ENGINE_DCC); //Make sure AE is turned off
 }
+
+extern uint16_t correctionAccel(void);
 
 void test_corrections_TAE_no_rpm_taper()
 {

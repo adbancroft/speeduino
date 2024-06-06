@@ -29,29 +29,30 @@ There are 2 top level functions that call more detailed corrections for Fuel and
 #include "timers.h"
 #include "maths.h"
 #include "sensors.h"
+#include "unit_testing.h"
 #include "src/PID_v1/PID_v1.h"
 #include "crankMaths.h"
 
-long PID_O2, PID_output, PID_AFRTarget;
+static long PID_O2, PID_output, PID_AFRTarget;
 /** Instance of the PID object in case that algorithm is used (Always instantiated).
 * Needs to be global as it maintains state outside of each function call.
 * Comes from Arduino (?) PID library.
 */
-PID egoPID(&PID_O2, &PID_output, &PID_AFRTarget, configPage6.egoKP, configPage6.egoKI, configPage6.egoKD, REVERSE);
+static PID egoPID(&PID_O2, &PID_output, &PID_AFRTarget, configPage6.egoKP, configPage6.egoKI, configPage6.egoKD, REVERSE);
 
-byte activateMAPDOT; //The mapDOT value seen when the MAE was activated. 
-byte activateTPSDOT; //The tpsDOT value seen when the MAE was activated.
+static byte activateMAPDOT; //The mapDOT value seen when the MAE was activated. 
+static byte activateTPSDOT; //The tpsDOT value seen when the MAE was activated.
 
 bool idleAdvActive = false;
 uint16_t AFRnextCycle;
 unsigned long knockStartTime;
-byte lastKnockCount;
-int16_t knockWindowMin; //The current minimum crank angle for a knock pulse to be valid
-int16_t knockWindowMax;//The current maximum crank angle for a knock pulse to be valid
-uint8_t aseTaper;
-uint8_t dfcoDelay;
-uint8_t idleAdvTaper;
-uint8_t crankingEnrichTaper;
+static byte lastKnockCount;
+static int16_t knockWindowMin; //The current minimum crank angle for a knock pulse to be valid
+static int16_t knockWindowMax;//The current maximum crank angle for a knock pulse to be valid
+static uint8_t aseTaper;
+TESTABLE_STATIC uint8_t dfcoDelay;
+static uint8_t idleAdvTaper;
+static uint8_t crankingEnrichTaper;
 uint8_t dfcoTaper;
 
 /** Initialise instances and vars related to corrections (at ECU boot-up).
@@ -65,6 +66,23 @@ void initialiseCorrections(void)
   currentStatus.knockActive = false;
   currentStatus.battery10 = 125; //Set battery voltage to sensible value for dwell correction for "flying start" (else ignition gets spurious pulses after boot)  
 }
+
+TESTABLE_STATIC inline byte correctionWUE(void); //Warmup enrichment
+static inline uint16_t correctionCranking(void); //Cranking enrichment
+static inline byte correctionASE(void); //After Start Enrichment
+TESTABLE_STATIC inline uint16_t correctionAccel(void); //Acceleration Enrichment
+static inline byte correctionFloodClear(void); //Check for flood clear on cranking
+static inline byte correctionAFRClosedLoop(void); //Closed loop AFR adjustment
+static inline byte correctionFlex(void); //Flex fuel adjustment
+static inline byte correctionFuelTemp(void); //Fuel temp correction
+static inline byte correctionBatVoltage(void); //Battery voltage correction
+static inline byte correctionIATDensity(void); //Inlet temp density correction
+static inline byte correctionBaro(void); //Barometric pressure correction
+static inline byte correctionLaunch(void); //Launch control correction
+TESTABLE_STATIC inline byte correctionDFCOfuel(void); //DFCO taper correction
+TESTABLE_STATIC inline bool correctionDFCO(void); //Decelleration fuel cutoff
+
+static inline int8_t correctionIdleAdvance(int8_t advance);
 
 /** Dispatch calculations for all fuel related corrections.
 Calls all the other corrections functions and combines their results.
@@ -135,7 +153,7 @@ uint16_t correctionsFuel(void)
 /** Warm Up Enrichment (WUE) corrections.
 Uses a 2D enrichment table (WUETable) where the X axis is engine temp and the Y axis is the amount of extra fuel to add
 */
-byte correctionWUE(void)
+TESTABLE_STATIC inline byte correctionWUE(void)
 {
   byte WUEValue;
   //Possibly reduce the frequency this runs at (Costs about 50 loops per second)
@@ -158,7 +176,7 @@ byte correctionWUE(void)
 /** Cranking Enrichment corrections.
 Additional fuel % to be added when the engine is cranking
 */
-uint16_t correctionCranking(void)
+static inline uint16_t correctionCranking(void)
 {
   uint16_t crankingValue = 100;
   //Check if we are actually cranking
@@ -189,7 +207,7 @@ uint16_t correctionCranking(void)
  * 
  * @return uint8_t The After Start Enrichment modifier as a %. 100% = No modification. 
  */   
-byte correctionASE(void)
+static inline byte correctionASE(void)
 {
   int16_t ASEValue = currentStatus.ASEValue;
   //Two checks are required:
@@ -246,7 +264,7 @@ byte correctionASE(void)
  * As the maximum enrichment amount is +255% and maximum cold adjustment for this is 255%, the overall return value
  * from this function can be 100+(255*255/100)=750. Hence this function returns a uint16_t rather than byte.
  */
-uint16_t correctionAccel(void)
+TESTABLE_STATIC inline uint16_t correctionAccel(void)
 {
   int16_t accelValue = 100;
   int16_t MAP_change = 0;
@@ -445,7 +463,7 @@ uint16_t correctionAccel(void)
 /** Simple check to see whether we are cranking with the TPS above the flood clear threshold.
 @return 100 (not cranking and thus no need for flood-clear) or 0 (Engine cranking and TPS above @ref config4.floodClear limit).
 */
-byte correctionFloodClear(void)
+static inline byte correctionFloodClear(void)
 {
   byte floodValue = 100;
   if( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
@@ -594,7 +612,7 @@ This continues until either:
 PID (Best suited to wideband sensors):
 
 */
-byte correctionAFRClosedLoop(void)
+static inline byte correctionAFRClosedLoop(void)
 {
   byte AFRValue = 100;
   
@@ -668,6 +686,17 @@ byte correctionAFRClosedLoop(void)
   return AFRValue; //Catch all (Includes when AFR target = current AFR
 }
 
+static inline int8_t correctionFlexTiming(int8_t advance);
+static inline int8_t correctionWMITiming(int8_t advance);
+static inline int8_t correctionIATretard(int8_t advance);
+static inline int8_t correctionCLTadvance(int8_t advance);
+static inline int8_t correctionSoftRevLimit(int8_t advance);
+static inline int8_t correctionNitrous(int8_t advance);
+static inline int8_t correctionSoftLaunch(int8_t advance);
+static inline int8_t correctionSoftFlatShift(int8_t advance);
+static inline int8_t correctionKnock(int8_t advance);
+TESTABLE_STATIC int8_t correctionDFCOignition(int8_t advance);
+
 //******************************** IGNITION ADVANCE CORRECTIONS ********************************
 /** Dispatch calculations for all ignition related corrections.
  * @param base_advance - Base ignition advance (deg. ?)
@@ -695,15 +724,7 @@ int8_t correctionsIgn(int8_t base_advance)
 
   return advance;
 }
-/** Correct ignition timing to configured fixed value.
- * Must be called near end to override all other corrections.
- */
-int8_t correctionFixedTiming(int8_t advance)
-{
-  int8_t ignFixValue = advance;
-  if (configPage2.fixAngEnable == 1) { ignFixValue = configPage4.FixAng; } //Check whether the user has set a fixed timing angle
-  return ignFixValue;
-}
+
 /** Correct ignition timing to configured fixed value to use during craning.
  * Must be called near end to override all other corrections.
  */
@@ -718,7 +739,7 @@ int8_t correctionCrankingFixedTiming(int8_t advance)
   return ignCrankFixValue;
 }
 
-int8_t correctionFlexTiming(int8_t advance)
+static inline int8_t correctionFlexTiming(int8_t advance)
 {
   int16_t ignFlexValue = advance;
   if( configPage2.flexEnabled == 1 ) //Check for flex being enabled
@@ -730,7 +751,7 @@ int8_t correctionFlexTiming(int8_t advance)
   return (int8_t) ignFlexValue;
 }
 
-int8_t correctionWMITiming(int8_t advance)
+static inline int8_t correctionWMITiming(int8_t advance)
 {
   if( (configPage10.wmiEnabled >= 1) && (configPage10.wmiAdvEnabled == 1) && !BIT_CHECK(currentStatus.status4, BIT_STATUS4_WMI_EMPTY) ) //Check for wmi being enabled
   {
@@ -743,7 +764,7 @@ int8_t correctionWMITiming(int8_t advance)
 }
 /** Ignition correction for inlet air temperature (IAT).
  */
-int8_t correctionIATretard(int8_t advance)
+static inline int8_t correctionIATretard(int8_t advance)
 {
   int8_t advanceIATadjust = table2D_getValue(&IATRetardTable, currentStatus.IAT);
 
@@ -751,7 +772,7 @@ int8_t correctionIATretard(int8_t advance)
 }
 /** Ignition correction for coolant temperature (CLT).
  */
-int8_t correctionCLTadvance(int8_t advance)
+static inline int8_t correctionCLTadvance(int8_t advance)
 {
   int8_t ignCLTValue = advance;
   //Adjust the advance based on CLT.
@@ -762,8 +783,10 @@ int8_t correctionCLTadvance(int8_t advance)
 }
 /** Ignition Idle advance correction.
  */
-int8_t correctionIdleAdvance(int8_t advance)
+static inline int8_t correctionIdleAdvance(int8_t advance)
 {
+  //RPM threshold (below CL idle target) for when ign based idle control will engage
+  static constexpr uint8_t IGN_IDLE_THRESHOLD = 200U;
 
   int8_t ignIdleValue = advance;
   //Adjust the advance based on idle target rpm.
@@ -807,7 +830,7 @@ When some other mechanism is also present, wait until the engine is no more than
 }
 /** Ignition soft revlimit correction.
  */
-int8_t correctionSoftRevLimit(int8_t advance)
+static inline int8_t correctionSoftRevLimit(int8_t advance)
 {
   byte ignSoftRevValue = advance;
   BIT_CLEAR(currentStatus.spark, BIT_SPARK_SFTLIM);
@@ -832,7 +855,7 @@ int8_t correctionSoftRevLimit(int8_t advance)
 }
 /** Ignition Nitrous oxide correction.
  */
-int8_t correctionNitrous(int8_t advance)
+static inline int8_t correctionNitrous(int8_t advance)
 {
   byte ignNitrous = advance;
   //Check if nitrous is currently active
@@ -853,7 +876,7 @@ int8_t correctionNitrous(int8_t advance)
 }
 /** Ignition soft launch correction.
  */
-int8_t correctionSoftLaunch(int8_t advance)
+static inline int8_t correctionSoftLaunch(int8_t advance)
 {
   byte ignSoftLaunchValue = advance;
   //SoftCut rev limit for 2-step launch control.
@@ -873,7 +896,7 @@ int8_t correctionSoftLaunch(int8_t advance)
 }
 /** Ignition correction for soft flat shift.
  */
-int8_t correctionSoftFlatShift(int8_t advance)
+static inline int8_t correctionSoftFlatShift(int8_t advance)
 {
   int8_t ignSoftFlatValue = advance;
 
@@ -888,7 +911,7 @@ int8_t correctionSoftFlatShift(int8_t advance)
 }
 /** Ignition knock (retard) correction.
  */
-int8_t correctionKnock(int8_t advance)
+static inline int8_t correctionKnock(int8_t advance)
 {
   byte knockRetard = 0;
 
@@ -925,7 +948,7 @@ int8_t correctionKnock(int8_t advance)
 
 /** Ignition DFCO taper correction.
  */
-int8_t correctionDFCOignition(int8_t advance)
+TESTABLE_STATIC int8_t correctionDFCOignition(int8_t advance)
 {
   int8_t dfcoRetard = advance;
   if ( (configPage9.dfcoTaperEnable == 1) && BIT_CHECK(currentStatus.status1, BIT_STATUS1_DFCO) )

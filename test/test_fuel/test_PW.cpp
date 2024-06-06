@@ -7,6 +7,8 @@
 
 #define PW_ALLOWED_ERROR  30
 
+extern uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen);
+
 void testPW(void)
 {
   SET_UNITY_FILENAME() {

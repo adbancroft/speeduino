@@ -14,6 +14,14 @@
 #include "src/libdivide/constant_fast_div.h"
 #endif
 
+/**
+ * @brief When a function really must be inline.
+ * 
+ * Usually best to let the compiler optimize, so use sparingly & only after
+ * comparing performance with & without applying it.
+ */
+#define CRITICAL_INLINE inline __attribute__((always_inline))
+
 extern uint8_t random1to100(void);
 
 /**

@@ -4,6 +4,3 @@
 
 byte checkEngineProtect(void);
 byte checkRevLimit(void);
-byte checkBoostLimit(void);
-byte checkOilPressureLimit(void);
-byte checkAFRLimit(void);

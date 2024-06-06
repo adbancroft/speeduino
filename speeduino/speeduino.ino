@@ -45,8 +45,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "SD_logger.h"
 #include "auxiliaries.h"
 #include "board_definition.h"
+#include "unit_testing.h"
 #include RTC_LIB_H //Defined in each boards .h file
 
+TESTABLE_INLINE_STATIC uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen);
 
 uint16_t req_fuel_uS = 0; /**< The required fuel variable (As calculated by TunerStudio) in uS */
 uint16_t inj_opentime_uS = 0;
@@ -74,13 +76,13 @@ static inline void applyFuelTrimToPW(FuelSchedule &schedule, int16_t fuelLoad, i
     if (pw1percent != 100U) { schedule.pw = percentage(pw1percent, schedule.pw); }
 }
 
-static void setIgnitionSchedule(IgnitionSchedule &schedule, uint8_t index, uint16_t crankAngle, uint16_t totalDwell) {
+static CRITICAL_INLINE void setIgnitionSchedule(IgnitionSchedule &schedule, uint8_t index, uint16_t crankAngle, uint16_t totalDwell) {
   if ((maxIgnOutputs>index) && (BIT_CHECK(ignitionChannelsOn, (IGN1_CMD_BIT+index))) ) {
     setIgnitionSchedule(schedule, crankAngle, totalDwell);
   }
 }
 
-static inline __attribute__((flatten)) void setIgnitionSchedules(uint16_t crankAngle, uint16_t totalDwell) {
+static CRITICAL_INLINE void setIgnitionSchedules(uint16_t crankAngle, uint16_t totalDwell) {
   setIgnitionSchedule(ignitionSchedule1, 0, crankAngle, totalDwell);
 #if defined(USE_IGN_REFRESH)
   if( isRunning(ignitionSchedule1) && (ignitionSchedule1.dischargeAngle > (int16_t)crankAngle) && (configPage4.StgCycles == 0) && (configPage2.perToothIgn != true) )
@@ -120,13 +122,13 @@ static inline __attribute__((flatten)) void setIgnitionSchedules(uint16_t crankA
 #endif
 } 
 
-static void setFuelSchedule(FuelSchedule &schedule, uint8_t index, uint16_t crankAngle) {
+static CRITICAL_INLINE void setFuelSchedule(FuelSchedule &schedule, uint8_t index, uint16_t crankAngle) {
   if( (maxInjOutputs > index) && (schedule.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, (INJ1_CMD_BIT+index))) ) {
     setFuelSchedule(schedule, crankAngle);
   }
 }
 
-static inline __attribute__((flatten)) void setFuelSchedules(uint16_t crankAngle) {
+static CRITICAL_INLINE void setFuelSchedules(uint16_t crankAngle) {
   setFuelSchedule(fuelSchedule1, 0, crankAngle);
   setFuelSchedule(fuelSchedule2, 1, crankAngle);
   setFuelSchedule(fuelSchedule3, 2, crankAngle);
@@ -1017,7 +1019,7 @@ void __attribute__((always_inline)) loop(void)
  * @param injOpen Injector opening time. The time the injector take to open minus the time it takes to close (Both in uS)
  * @return uint16_t The injector pulse width in uS
  */
-uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen)
+TESTABLE_INLINE_STATIC uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen)
 {
   //Standard float version of the calculation
   //return (REQ_FUEL * (float)(VE/100.0) * (float)(MAP/100.0) * (float)(TPS/100.0) * (float)(corrections/100.0) + injOpen);
@@ -1090,9 +1092,9 @@ uint16_t PW(int REQ_FUEL, byte VE, long MAP, uint16_t corrections, int injOpen)
  * 
  * @return byte The current VE value
  */
-byte getVE1(void)
+uint8_t getVE1(void)
 {
-  byte tempVE = 100;
+  uint8_t tempVE = 100;
   if (configPage2.fuelAlgorithm == LOAD_SOURCE_MAP) //Check which fuelling algorithm is being used
   {
     //Speed Density
@@ -1119,9 +1121,9 @@ byte getVE1(void)
  * 
  * @return byte The current target advance value in degrees
  */
-byte getAdvance1(void)
+int8_t getAdvance1(void)
 {
-  byte tempAdvance = 0;
+  int8_t tempAdvance = 0;
   if (configPage2.ignAlgorithm == LOAD_SOURCE_MAP) //Check which fuelling algorithm is being used
   {
     //Speed Density

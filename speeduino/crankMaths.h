@@ -87,6 +87,16 @@ static inline uint32_t getRevolutionTime(void) {
   return revolutionTime;
 }
 
+/// @cond
+namespace crank_math_detail {
+  // Private to crankMath
+  typedef uint32_t UQ24X8_t;
+  static constexpr uint8_t UQ24X8_Shift = 8U;
+  static constexpr uint8_t microsPerDegree_Shift = UQ24X8_Shift;
+}
+/// @endcond
+
+
 /**
  * @brief Converts angular degrees to the time interval that amount of rotation
  * will take at the current crank revolution time (@ref setRevolutionTime).
@@ -97,7 +107,21 @@ static inline uint32_t getRevolutionTime(void) {
  * @param angle Angle in degrees
  * @return Time interval in µS
  */
-uint32_t angleToTimeMicroSecPerDegree(uint16_t angle);
+// uint32_t angleToTimeMicroSecPerDegree(uint16_t angle);
+static CRITICAL_INLINE uint32_t angleToTimeMicroSecPerDegree(uint16_t angle) {
+  extern crank_math_detail::UQ24X8_t microsPerDegree;
+  crank_math_detail::UQ24X8_t micros = (uint32_t)angle * (uint32_t)microsPerDegree;
+  return rshift_round<crank_math_detail::microsPerDegree_Shift>(micros);
+}
+
+/// @cond
+namespace crank_math_detail {
+  // Private to crankMath
+  typedef uint16_t UQ1X15_t;
+  static constexpr uint8_t UQ1X15_Shift = 15U;
+  static constexpr uint8_t degreesPerMicro_Shift = UQ1X15_Shift;
+}
+/// @endcond
 
 /**
  * @brief Converts a time interval in µS to the equivalent degrees of angular (crank)
@@ -108,7 +132,12 @@ uint32_t angleToTimeMicroSecPerDegree(uint16_t angle);
  * @param time Time interval in µS
  * @return Angle in degrees
  */
-uint16_t timeToAngleDegPerMicroSec(uint32_t time);
+static CRITICAL_INLINE uint16_t timeToAngleDegPerMicroSec(uint32_t time) {
+    extern crank_math_detail::UQ1X15_t degreesPerMicro;
+    uint32_t degFixed = time * (uint32_t)degreesPerMicro;
+    return rshift_round<crank_math_detail::degreesPerMicro_Shift>(degFixed);
+}
+
 
 /** @brief Calculate RPM based on the current crank revolution time (@ref setRevolutionTime). */
 static inline uint16_t rpmFromRevolutionTime(void) {

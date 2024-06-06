@@ -3,7 +3,11 @@
 #include "engineProtection.h"
 #include "maths.h"
 
-byte oilProtStartTime = 0;
+static inline byte checkAFRLimit(void);
+static inline byte checkBoostLimit(void);
+static inline byte checkOilPressureLimit(void);
+
+static byte oilProtStartTime = 0;
 
 byte checkEngineProtect(void)
 {
@@ -51,7 +55,7 @@ byte checkRevLimit(void)
   return currentLimitRPM;
 }
 
-byte checkBoostLimit(void)
+static inline byte checkBoostLimit(void)
 {
   byte boostLimitActive = 0;
   BIT_CLEAR(currentStatus.engineProtectStatus, ENGINE_PROTECT_BIT_MAP);
@@ -92,7 +96,7 @@ byte checkBoostLimit(void)
   return boostLimitActive;
 }
 
-byte checkOilPressureLimit(void)
+static inline byte checkOilPressureLimit(void)
 {
   byte oilProtectActive = 0;
   bool alreadyActive = BIT_CHECK(currentStatus.engineProtectStatus, ENGINE_PROTECT_BIT_OIL);
@@ -123,7 +127,7 @@ byte checkOilPressureLimit(void)
   return oilProtectActive;
 }
 
-byte checkAFRLimit(void)
+static inline byte checkAFRLimit(void)
 {
   static bool checkAFRLimitActive = false;
   static bool afrProtectCountEnabled = false;
