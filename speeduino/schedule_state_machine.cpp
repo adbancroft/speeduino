@@ -18,7 +18,7 @@ void defaultRunningToPending(Schedule *schedule) {
   schedule->_status = PENDING;
 }
 
-static inline bool hasNextSchedule(const Schedule &schedule) {
+static CRITICAL_INLINE bool hasNextSchedule(const Schedule &schedule) {
   return schedule._status==RUNNING_WITHNEXT;
 }
 

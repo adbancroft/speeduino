@@ -9,20 +9,13 @@ byte deltaToothCount = 0; //The last tooth that was used with the deltaV calc
 int rpmDelta;
 #endif
 
-typedef uint32_t UQ24X8_t;
-static constexpr uint8_t UQ24X8_Shift = 8U;
-
 /** @brief µS per degree at current RPM in UQ24.8 fixed point 
  * 
  * Ranges between 
  *   * 1040649 (4065.039 µS/°) at MIN_RPM/MIN_REVOLUTION_TIME
  *   * 2370    (9.258333 µS/°) at MAX_RPM/MAX_REVOLUTION_TIME
 */
-static  UQ24X8_t microsPerDegree;
-static constexpr uint8_t microsPerDegree_Shift = UQ24X8_Shift;
-
-typedef uint16_t UQ1X15_t;
-static constexpr uint8_t UQ1X15_Shift = 15U;
+crank_math_detail::UQ24X8_t microsPerDegree; // cppcheck-suppress misra-c2012-8.4 ; To allow inlining in header
 
 /** @brief Degrees per µS in UQ1.15 fixed point.
  * 
@@ -30,8 +23,7 @@ static constexpr uint8_t UQ1X15_Shift = 15U;
  *   * 8    (0.000246 °/µS) at MIN_RPM/MIN_REVOLUTION_TIME
  *   * 3539 (0.108011 °/µS) at MAX_RPM/MAX_REVOLUTION_TIME
  */
-static UQ1X15_t degreesPerMicro;
-static constexpr uint8_t degreesPerMicro_Shift = UQ1X15_Shift;
+crank_math_detail::UQ1X15_t degreesPerMicro; // cppcheck-suppress misra-c2012-8.4 ; To allow inlining in header
 
 /** @brief The time in µS that one revolution would take at current speed */
 uint32_t revolutionTime = MIN_REVOLUTION_TIME; // cppcheck-suppress misra-c2012-8.4 ; To allow inlining in header
@@ -41,21 +33,11 @@ bool setRevolutionTime(uint32_t revTime) {
   
   if (hasChanged) {
     revolutionTime = revTime;
-    microsPerDegree = div360(lshift<microsPerDegree_Shift>(revTime));
-    degreesPerMicro = (uint16_t)UDIV_ROUND_CLOSEST(lshift<degreesPerMicro_Shift>(UINT32_C(360)), revTime, uint32_t);
+    microsPerDegree = div360(lshift<crank_math_detail::microsPerDegree_Shift>(revTime));
+    degreesPerMicro = (uint16_t)UDIV_ROUND_CLOSEST(lshift<crank_math_detail::degreesPerMicro_Shift>(UINT32_C(360)), revTime, uint32_t);
   }
 
   return hasChanged;
-}
-
-uint32_t angleToTimeMicroSecPerDegree(uint16_t angle) {
-  UQ24X8_t micros = (uint32_t)angle * (uint32_t)microsPerDegree;
-  return rshift_round<microsPerDegree_Shift>(micros);
-}
-
-uint16_t timeToAngleDegPerMicroSec(uint32_t time) {
-  uint32_t degFixed = time * (uint32_t)degreesPerMicro;
-  return rshift_round<degreesPerMicro_Shift>(degFixed);
 }
 
 #if SECOND_DERIV_ENABLED!=0

@@ -75,6 +75,7 @@ void calculateSecondaryFuel(void)
   }
 }
 
+extern int8_t correctionFixedTiming(int8_t advance);
 
 void calculateSecondarySpark(void)
 {

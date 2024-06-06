@@ -44,13 +44,8 @@ See page 136 of the processors datasheet: http://www.atmel.com/Images/doc2549.pd
 #include "board_definition.h"
 #include "scheduledIO.h"
 #include "table3d.h"
-
-// Inlining seems to be very important for AVR performance
-#if defined(CORE_AVR)
-#define SCHEDULE_INLINE inline __attribute__((always_inline))
-#else
-#define SCHEDULE_INLINE inline
-#endif
+#include "timers.h"
+#include "maths.h"
 
 #define USE_IGN_REFRESH
 #define IGNITION_REFRESH_THRESHOLD  30 //Time in uS that the refresh functions will check to ensure there is enough time before changing the end compare
@@ -162,23 +157,28 @@ struct Schedule {
   compare_t &_compare;       ///< **Reference**to the compare register. E.g. OCR3A
 };
 
-static SCHEDULE_INLINE bool isRunning(const Schedule &schedule) {
+static CRITICAL_INLINE bool isRunning(const Schedule &schedule) {
   return schedule._status==RUNNING || schedule._status==RUNNING_WITHNEXT;
 }
 
 /// @cond 
 // Private function - not for use external to the scheduler code
-void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration);
-void _setSchedulePending(Schedule &schedule, uint32_t timeout, uint32_t duration);
-
-static SCHEDULE_INLINE void _setSchedule(Schedule &schedule, uint32_t timeout, uint32_t duration) {
+static CRITICAL_INLINE void _setSchedule(Schedule &schedule, uint32_t timeout, uint32_t duration) {
   if(timeout<MAX_TIMER_PERIOD && duration<MAX_TIMER_PERIOD) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {    
       if(!isRunning(schedule)) { //Check that we're not already part way through a schedule
-        _setSchedulePending(schedule, timeout, duration);
+        //The following must be enclosed in the noInterupts block to avoid contention caused if the relevant interrupt fires before the state is fully set
+        schedule._duration = uS_TO_TIMER_COMPARE(duration);
+        SET_COMPARE(schedule._compare, schedule._counter + (COMPARE_TYPE)uS_TO_TIMER_COMPARE(timeout));
+        schedule._status = PENDING; //Turn this schedule on        
       }
       else {
-        _setScheduleNext(schedule, timeout, duration);
+        //If the schedule is already running, we can set the next schedule so it is ready to go
+        //This is required in cases of high rpm and high DC where there otherwise would not be enough time to set the schedule
+        schedule._nextStartCompare = schedule._counter + uS_TO_TIMER_COMPARE(timeout);
+        // Schedule must already be running, so safe to reuse this.
+        schedule._duration = uS_TO_TIMER_COMPARE(duration);
+        schedule._status = RUNNING_WITHNEXT;
       }
     }
   }
@@ -199,7 +199,7 @@ void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidC
  * @brief Is the schedule in pending state?
  * I.e. waiting for a timer interrupt to start the scheduled action. E.g. open an injector
  */
-static SCHEDULE_INLINE bool isPending(const Schedule &schedule) {
+static CRITICAL_INLINE bool isPending(const Schedule &schedule) {
   return schedule._status==PENDING || schedule._status==PENDING_WITH_OVERRIDE;
 }
 
@@ -239,7 +239,7 @@ struct IgnitionSchedule : public Schedule {
  * @param crankAngle The current crank angle
  * @return uint32_t 
  */
-static SCHEDULE_INLINE uint32_t _calculateIgnitionTimeout(const IgnitionSchedule &schedule, int16_t crankAngle);
+static CRITICAL_INLINE uint32_t _calculateIgnitionTimeout(const IgnitionSchedule &schedule, int16_t crankAngle);
 /// @endcond
 
 /** @brief Set the next schedule for the ignition channel.
@@ -248,7 +248,7 @@ static SCHEDULE_INLINE uint32_t _calculateIgnitionTimeout(const IgnitionSchedule
  * @param crankAngle The current crank angle
  * @param dwellDuration The coil dwell time in µS
  */
-static SCHEDULE_INLINE void setIgnitionSchedule(IgnitionSchedule &schedule, int16_t crankAngle, uint32_t dwellDuration) {
+static CRITICAL_INLINE void setIgnitionSchedule(IgnitionSchedule &schedule, int16_t crankAngle, uint32_t dwellDuration) {
   // Do not override the per-tooth timing - quick & dirty check
   if (schedule._status!=PENDING_WITH_OVERRIDE) {
     uint32_t delay = _calculateIgnitionTimeout(schedule, crankAngle);
@@ -331,7 +331,7 @@ struct FuelSchedule : public Schedule {
 
 /// @cond
 // Private function - not for use external to the scheduler code
-static SCHEDULE_INLINE uint32_t _calculateInjectorTimeout(const FuelSchedule &schedule, int16_t crankAngle);
+static CRITICAL_INLINE uint32_t _calculateInjectorTimeout(const FuelSchedule &schedule, int16_t crankAngle);
 /// @endcond
 
 /** @brief Set the next schedule for the fuel channel. 
@@ -340,7 +340,7 @@ static SCHEDULE_INLINE uint32_t _calculateInjectorTimeout(const FuelSchedule &sc
  * @param schedule The fuel channel
  * @param crankAngle The current crank angle
  */
-static SCHEDULE_INLINE void setFuelSchedule(FuelSchedule &schedule, int16_t crankAngle) {
+static CRITICAL_INLINE void setFuelSchedule(FuelSchedule &schedule, int16_t crankAngle) {
   uint32_t delay = _calculateInjectorTimeout(schedule, crankAngle);  
 
   if (delay > 0U) {
@@ -363,7 +363,7 @@ void moveToNextState(FuelSchedule &schedule);
  * @param pwDegrees How many crank degrees the calculated PW will take at the current speed
  * @param injAngle The requested injection angle
   */
-static SCHEDULE_INLINE void setOpenAngle(FuelSchedule &schedule, uint16_t pwDegrees, uint16_t injAngle);
+static CRITICAL_INLINE void setOpenAngle(FuelSchedule &schedule, uint16_t pwDegrees, uint16_t injAngle);
 
 extern FuelSchedule fuelSchedule1;
 extern FuelSchedule fuelSchedule2;

@@ -295,7 +295,7 @@ inline const page_iterator_t create_raw_iterator(void *pBuffer, uint8_t pageNum,
 //
 // Alternative implementation would be to encode the mapping into data structures
 // That uses flash memory, which is scarce. And it was too slow.
-static inline __attribute__((always_inline)) // <-- this is critical for performance
+static CRITICAL_INLINE // <-- this is critical for performance
 page_iterator_t map_page_offset_to_entity(uint8_t pageNumber, uint16_t offset)
 {
   // The start address of the 1st entity in any page.
