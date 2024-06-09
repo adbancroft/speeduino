@@ -34,67 +34,11 @@ There are 2 top level functions that call more detailed corrections for Fuel and
 #include "scale_translate.h"
 #include "idle.h"
 
-static long PID_O2;
-static long PID_output;
-static long PID_AFRTarget;
-/** Instance of the PID object in case that algorithm is used (Always instantiated).
-* Needs to be global as it maintains state outside of each function call.
-* Comes from Arduino (?) PID library.
-*/
-static PID egoPID(&PID_O2, &PID_output, &PID_AFRTarget, 
-                  // Defaults - they are set to the tune values prior to every
-                  // call to Compute() 
-                  100, 20, 0, 
-                  REVERSE);
-
-static uint16_t aeActivatedReading; //The mapDOT/tpsDOT value seen when the MAE/TAE was activated. 
-
-TESTABLE_STATIC uint16_t AFRnextCycle;
-static unsigned long knockStartTime;
-static uint8_t knockLastRecoveryStep;
-//static int16_t knockWindowMin; //The current minimum crank angle for a knock pulse to be valid
-//static int16_t knockWindowMax;//The current maximum crank angle for a knock pulse to be valid
-static uint8_t dfcoTaper;
-
 // Constant that represents "no fuel correction"
 static constexpr uint8_t NO_FUEL_CORRECTION = ONE_HUNDRED_PCT;
 // Constant that represents the baseline fuel correction to be modified
 // (yes, it's the same as NO_FUEL_CORRECTION, but captures a slightly different concept)
 static constexpr uint8_t BASELINE_FUEL_CORRECTION = ONE_HUNDRED_PCT;
-
-/** Initialise instances and vars related to corrections (at ECU boot-up).
- */
-void initialiseCorrections(void)
-{
-  PID_output = 0L;
-  PID_O2 = 0L;
-  PID_AFRTarget = 0L;
-  // Toggling between modes resets the PID internal state
-  // This is required by the unit tests
-  // TODO: modify PID code to provide a method to reset it. 
-  egoPID.SetMode(AUTOMATIC);
-  egoPID.SetMode(MANUAL);
-  egoPID.SetMode(AUTOMATIC);
-
-  currentStatus.flexIgnCorrection = 0;
-  //Default value of no adjustment must be set to avoid randomness on first correction cycle after startup
-  currentStatus.egoCorrection = NO_FUEL_CORRECTION; 
-  currentStatus.ASEValue = NO_FUEL_CORRECTION;
-  currentStatus.wueCorrection = NO_FUEL_CORRECTION;
-  currentStatus.iatCorrection = NO_FUEL_CORRECTION;
-  currentStatus.baroCorrection = NO_FUEL_CORRECTION;
-  currentStatus.batCorrection = NO_FUEL_CORRECTION;
-  AFRnextCycle = 0;
-  BIT_CLEAR(currentStatus.status5, BIT_STATUS5_KNOCK_ACTIVE);
-  BIT_CLEAR(currentStatus.status5, BIT_STATUS5_KNOCK_PULSE);
-  currentStatus.knockCount = 1;
-  knockLastRecoveryStep = 0;
-  knockStartTime = 0;
-  currentStatus.battery10 = 125; //Set battery voltage to sensible value for dwell correction for "flying start" (else ignition gets spurious pulses after boot)  
-
-  BIT_CLEAR(currentStatus.status2, BIT_STATUS2_HLAUNCH);
-  BIT_CLEAR(currentStatus.status2, BIT_STATUS2_SLAUNCH);
-}
 
 // ============================= Warm Up Enrichment =============================
 
@@ -231,6 +175,8 @@ TESTABLE_INLINE_STATIC uint8_t correctionASE(statuses &current, const table2D &d
 }
 
 // ============================= Acceleration Enrichment =============================
+
+static uint16_t aeActivatedReading; //The mapDOT/tpsDOT value seen when the MAE/TAE was activated. 
 
 static inline void accelEnrichmentOff(statuses &current) {
   BIT_CLEAR(current.engine, BIT_ENGINE_ACC);
@@ -577,6 +523,8 @@ TESTABLE_INLINE_STATIC uint8_t correctionLaunch(const statuses &current, const c
 
 // ============================= Deceleration Fuel Cut Off (DFCO) correction =============================
 
+static uint8_t dfcoTaper;
+
 TESTABLE_INLINE_STATIC uint8_t correctionDFCOfuel(const statuses &current, const config9 &page9)
 {
   uint8_t scaleValue = NO_FUEL_CORRECTION;
@@ -653,6 +601,20 @@ TESTABLE_INLINE_STATIC uint8_t correctionFuelTemp(const statuses &current, const
 
 
 // ============================= Air Fuel Ratio (AFR) correction =============================
+
+static long PID_O2;
+static long PID_output;
+static long PID_AFRTarget;
+/** Instance of the PID object in case that algorithm is used (Always instantiated).
+* Needs to be global as it maintains state outside of each function call.
+* Comes from Arduino (?) PID library.
+*/
+static PID egoPID(&PID_O2, &PID_output, &PID_AFRTarget, 
+                  // Defaults - they are set to the tune values prior to every
+                  // call to Compute() 
+                  100, 20, 0, 
+                  REVERSE);
+TESTABLE_STATIC uint16_t AFRnextCycle;
 
 uint8_t calculateAfrTarget(const table3d16RpmLoad &afrLookUpTable, const statuses &current, const config2 &page2, const config6 &page6) {
   //afrTarget value lookup must be done if O2 sensor is enabled, and always if incorporateAFR is enabled
@@ -761,6 +723,20 @@ static inline uint8_t computeAFRCorrection(const statuses &current, const config
   return correction;
 }
 
+TESTABLE_INLINE_STATIC void initialiseAfrClosedLoop(void) {
+  PID_output = 0L;
+  PID_O2 = 0L;
+  PID_AFRTarget = 0L;
+  // Toggling between modes resets the PID internal state
+  // This is required by the unit tests
+  // TODO: modify PID code to provide a method to reset it. 
+  egoPID.SetMode(AUTOMATIC);
+  egoPID.SetMode(MANUAL);
+  egoPID.SetMode(AUTOMATIC);
+
+  AFRnextCycle = 0;
+}
+
 /** Lookup the AFR target table and perform either a simple or PID adjustment based on this.
 
 Simple (Best suited to narrowband sensors):
@@ -795,6 +771,7 @@ TESTABLE_INLINE_STATIC uint8_t correctionAFRClosedLoop(const statuses &current, 
   return correction;
 }
 
+// ============================= correctionsFuel =============================
 
 static inline uint32_t combineCorrections(uint32_t sumCorrections, uint16_t correction) {
   if (correction == NO_FUEL_CORRECTION) {
@@ -852,6 +829,22 @@ uint16_t correctionsFuel(void)
 
   //This is the maximum allowable increase
   return min((uint16_t)1500U, (uint16_t)sumCorrections);
+}
+
+/** Initialise instances and vars related to fuel corrections (at ECU boot-up).
+ */
+void initialiseFuelCorrections(statuses &current)
+{
+  initialiseAfrClosedLoop();
+
+  //Default value of no adjustment must be set to avoid randomness on first correction cycle after startup
+  current.egoCorrection = NO_FUEL_CORRECTION; 
+  current.ASEValue = NO_FUEL_CORRECTION;
+  current.wueCorrection = NO_FUEL_CORRECTION;
+  current.iatCorrection = NO_FUEL_CORRECTION;
+  current.baroCorrection = NO_FUEL_CORRECTION;
+  current.batCorrection = NO_FUEL_CORRECTION;
+  current.battery10 = 125; //Set battery voltage to sensible value for dwell correction for "flying start" (else ignition gets spurious pulses after boot)  
 }
 
 //******************************** IGNITION ADVANCE CORRECTIONS ********************************
@@ -1103,6 +1096,11 @@ TESTABLE_INLINE_STATIC int8_t correctionSoftFlatShift(int8_t advance)
   return advance;
 }
 
+static unsigned long knockStartTime;
+static uint8_t knockLastRecoveryStep;
+//static int16_t knockWindowMin; //The current minimum crank angle for a knock pulse to be valid
+//static int16_t knockWindowMax;//The current maximum crank angle for a knock pulse to be valid
+
 static inline uint8_t _calculateKnockRecovery(uint8_t curKnockRetard)
 {
   uint8_t tmpKnockRetard = curKnockRetard;
@@ -1333,4 +1331,18 @@ int8_t correctionsIgn(int8_t base_advance)
   advance = correctionCrankingFixedTiming(advance); //This overrides the regular fixed timing, must come last
 
   return advance;
+}
+
+void initialiseIgnCorrections(statuses &current) {
+  current.flexIgnCorrection = 0;
+  current.battery10 = 125; //Set battery voltage to sensible value for dwell correction for "flying start" (else ignition gets spurious pulses after boot)  
+
+  BIT_CLEAR(current.status5, BIT_STATUS5_KNOCK_ACTIVE);
+  BIT_CLEAR(current.status5, BIT_STATUS5_KNOCK_PULSE);
+  current.knockCount = 1;
+  knockLastRecoveryStep = 0;
+  knockStartTime = 0;
+
+  BIT_CLEAR(current.status2, BIT_STATUS2_HLAUNCH); 
+  BIT_CLEAR(current.status2, BIT_STATUS2_SLAUNCH); 
 }

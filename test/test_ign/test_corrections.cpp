@@ -36,7 +36,7 @@ extern int8_t correctionCLTadvance(int8_t advance);
 
 static void setup_clt_advance_table(void) {
   construct2dTables();
-  initialiseCorrections();
+  initialiseIgnCorrections(currentStatus);
   LOOP_TIMER = 0;
   BIT_SET(LOOP_TIMER, BIT_TIMER_4HZ);
   TEST_DATA_P uint8_t bins[] = { 60, 70, 80, 90, 100, 110 };
@@ -102,7 +102,7 @@ extern int8_t correctionFlexTiming(int8_t advance);
 
 static void setup_flexAdv(void) {
   construct2dTables();
-  initialiseCorrections();
+  initialiseIgnCorrections(currentStatus);
   TEST_DATA_P uint8_t bins[] = { 30, 40, 50, 60, 70, 80 };
   TEST_DATA_P uint8_t values[] = { 30, 25, 20, 15, 10, 5 };
   populate_2dtable_P(&flexAdvTable, values, bins);
@@ -139,7 +139,7 @@ extern int8_t correctionWMITiming(int8_t advance);
 
 static void setup_WMIAdv(void) {
     construct2dTables();
-    initialiseCorrections();
+    initialiseIgnCorrections(currentStatus);
 
     configPage10.wmiEnabled= 1;
     configPage10.wmiAdvEnabled = 1;
@@ -241,7 +241,7 @@ extern int8_t correctionIATretard(int8_t advance);
 
 static void setup_IATRetard(void) {
   construct2dTables();
-  initialiseCorrections();
+  initialiseIgnCorrections(currentStatus);
   LOOP_TIMER = 0;
   BIT_SET(LOOP_TIMER, IAT_READ_TIMER_BIT);
   TEST_DATA_P uint8_t bins[] = { 30, 40, 50, 60, 70, 80 };
@@ -280,7 +280,7 @@ static void setup_idleadv_ctps(void) {
 
 static void setup_correctionIdleAdvance(void) {
     construct2dTables();
-    initialiseCorrections();
+    initialiseIgnCorrections(currentStatus);
 
     TEST_DATA_P uint8_t bins[] = { 30, 40, 50, 60, 70, 80 };
     TEST_DATA_P uint8_t values[] = { 30, 25, 20, 15, 10, 5 };
@@ -417,7 +417,7 @@ extern int8_t correctionSoftRevLimit(int8_t advance);
 
 static void setup_correctionSoftRevLimit(void) {
     construct2dTables();
-    initialiseCorrections();
+    initialiseIgnCorrections(currentStatus);
 
     configPage6.engineProtectType = PROTECT_CUT_IGN;
     configPage4.SoftRevLim = 50;
@@ -749,7 +749,7 @@ static void test_correctionKnock(void) {
 
 static void setup_correctionsDwell(void) {
     construct2dTables();
-    initialiseCorrections();
+    initialiseIgnCorrections(currentStatus);
     BIT_SET(LOOP_TIMER, BIT_TIMER_4HZ);
 
     configPage4.sparkDur = 10;
