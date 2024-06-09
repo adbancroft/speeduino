@@ -572,8 +572,10 @@ static void test_corrections_closedloop_simple_rich_maxcorrection(void) {
   test_rich_max_correction(testData);
 }
 
+extern void initialiseAfrClosedLoop(void);
+
 static void setup_ego_pid(afr_testdata_t &testData) {
-  initialiseCorrections();
+  initialiseAfrClosedLoop();
   setup_ego_simple(testData);
   testData.page6.egoType = EGO_TYPE_WIDE;
   testData.page6.egoAlgorithm = EGO_ALGORITHM_PID;  
@@ -1713,7 +1715,7 @@ static void test_corrections_baro(void)
 
 static void test_corrections_correctionsFuel_ae_modes(void) {
   construct2dTables();
-  initialiseCorrections();
+  initialiseFuelCorrections(currentStatus);
 
   setup_TAE(currentStatus, configPage2, taeTable);
   //Disable the taper
@@ -1801,7 +1803,7 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
 
 static void test_corrections_correctionsFuel_clip_limit(void) {
   construct2dTables();
-  initialiseCorrections();
+  initialiseFuelCorrections(currentStatus);
 
   // setup_TAE(currentStatus, configPage2, taeTable);
 

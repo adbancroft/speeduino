@@ -171,7 +171,8 @@ void loop(void)
       MAPcurRev = 0;
       MAPcount = 0;
       currentStatus.rpmDOT = 0;
-      initialiseCorrections();
+      initialiseFuelCorrections(currentStatus);
+      initialiseIgnCorrections(currentStatus);
       ignitionCount = 0;
       ignitionChannelsOn = 0;
       fuelChannelsOn = 0;

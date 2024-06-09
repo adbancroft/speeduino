@@ -231,7 +231,8 @@ void initialiseAll(void)
     initialiseFan();
     initialiseAirCon();
     initialiseAuxPWM();
-    initialiseCorrections();
+    initialiseFuelCorrections(currentStatus);
+    initialiseIgnCorrections(currentStatus);
     BIT_CLEAR(currentStatus.engineProtectStatus, PROTECT_IO_ERROR); //Clear the I/O error bit. The bit will be set in initialiseADC() if there is problem in there.
     initialiseADC();
     initialiseProgrammableIO();
