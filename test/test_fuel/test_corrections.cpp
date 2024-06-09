@@ -361,272 +361,293 @@ static void test_corrections_floodclear(void)
   RUN_TEST_P(test_corrections_floodclear_crank_above_threshold_active);
 }
 
-uint8_t correctionAFRClosedLoop(void);
+extern uint8_t correctionAFRClosedLoop(const statuses &current, const config6 &page6, const config9 &page9);
 extern uint16_t AFRnextCycle;
 
-static void setup_valid_ego_cycle(void) {
+struct afr_testdata_t {
+  statuses current;
+  config6 page6;
+  config9 page9;
+};
+
+static void setup_valid_ego_cycle(const config6 &page6) {
   AFRnextCycle = 4196;
-  ignitionCount = AFRnextCycle + (configPage6.egoCount/2U); 
+  ignitionCount = AFRnextCycle + (page6.egoCount/2U); 
 }
 
-static void setup_ego_simple(void) {
-  construct2dTables();
-  initialiseCorrections();
+static void setup_ego_simple(afr_testdata_t &testData) {
+  testData.page6.egoType = EGO_TYPE_NARROW;
+  testData.page6.egoAlgorithm = EGO_ALGORITHM_SIMPLE;
+  testData.page6.egoLimit = 30U;
 
-  configPage6.egoType = EGO_TYPE_NARROW;
-  configPage6.egoAlgorithm = EGO_ALGORITHM_SIMPLE;
-  configPage6.egoLimit = 30U;
+  testData.page6.ego_sdelay = 10;
+  testData.current.runSecs = testData.page6.ego_sdelay + 2U;
 
-  configPage6.ego_sdelay = 10;
-  currentStatus.runSecs = configPage6.ego_sdelay + 2U;
+  testData.page6.egoTemp = 150U;
+  testData.current.coolant = toWorkingTemperature(testData.page6.egoTemp) + 1U; 
 
-  configPage6.egoTemp = 150U;
-  currentStatus.coolant = toWorkingTemperature(configPage6.egoTemp) + 1U; 
+  testData.page6.egoRPM = 30U;
+  testData.current.RPM = testData.page6.egoRPM*100U + 1U;
 
-  configPage6.egoRPM = 30U;
-  currentStatus.RPM = configPage6.egoRPM*100U + 1U;
+  testData.page6.egoTPSMax = 33;
+  testData.current.TPS = testData.page6.egoTPSMax - 1U;
 
-  configPage6.egoTPSMax = 33;
-  currentStatus.TPS = configPage6.egoTPSMax - 1U;
+  testData.page6.ego_max = 150U;
+  testData.page6.ego_min = 50U;
+  testData.current.O2 = testData.page6.ego_min + ((testData.page6.ego_max-testData.page6.ego_min)/2U);
 
-  configPage6.ego_max = 150U;
-  configPage6.ego_min = 50U;
-  currentStatus.O2 = configPage6.ego_min + ((configPage6.ego_max-configPage6.ego_min)/2U);
-
-  configPage9.egoMAPMax = 100U;
-  configPage9.egoMAPMin = 50U;
-  currentStatus.MAP = (configPage9.egoMAPMin + ((configPage9.egoMAPMax-configPage9.egoMAPMin)/2U))*2U;
+  testData.page9.egoMAPMax = 100U;
+  testData.page9.egoMAPMin = 50U;
+  testData.current.MAP = (testData.page9.egoMAPMin + ((testData.page9.egoMAPMax-testData.page9.egoMAPMin)/2U))*2U;
   
-  currentStatus.afrTarget = currentStatus.O2;
-  currentStatus.egoCorrection = 100U;
+  testData.current.afrTarget = testData.current.O2;
+  testData.current.egoCorrection = 100U;
   
-  BIT_CLEAR(currentStatus.status1, BIT_STATUS1_DFCO);
+  BIT_CLEAR(testData.current.status1, BIT_STATUS1_DFCO);
 
-  configPage6.egoCount = 100U;
-  setup_valid_ego_cycle();
+  testData.page6.egoCount = 100U;
+  setup_valid_ego_cycle(testData.page6);
 }
 
 static void test_corrections_closedloop_off_nosensor(void) {
-  setup_ego_simple();
-  currentStatus.O2 = currentStatus.afrTarget + 1U;
-  configPage6.egoType = EGO_TYPE_OFF;
-  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop());
+  afr_testdata_t testData;
+  setup_ego_simple(testData);
+  testData.current.O2 = testData.current.afrTarget + 1U;
+  testData.page6.egoType = EGO_TYPE_OFF;
+  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 }
 
 static void test_corrections_closedloop_off_dfco(void) {
-  setup_ego_simple();
-  currentStatus.O2 = currentStatus.afrTarget + 1U;
-  BIT_SET(currentStatus.status1, BIT_STATUS1_DFCO);
-  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop());
+  afr_testdata_t testData;
+  setup_ego_simple(testData);
+  testData.current.O2 = testData.current.afrTarget + 1U;
+  BIT_SET(testData.current.status1, BIT_STATUS1_DFCO);
+  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 }
 
 static void test_corrections_closedloop_off_no_algorithm(void) {
-  setup_ego_simple();
-  currentStatus.O2 = currentStatus.afrTarget + 1U;
-  configPage6.egoAlgorithm = EGO_ALGORITHM_NONE;
-  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop());
+  afr_testdata_t testData;
+  setup_ego_simple(testData);
+  testData.current.O2 = testData.current.afrTarget + 1U;
+  testData.page6.egoAlgorithm = EGO_ALGORITHM_NONE;
+  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 
-  setup_ego_simple();
-  currentStatus.O2 = currentStatus.afrTarget + 1U;
-  configPage6.egoAlgorithm = EGO_ALGORITHM_INVALID1;
-  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop());
+  setup_ego_simple(testData);
+  testData.current.O2 = testData.current.afrTarget + 1U;
+  testData.page6.egoAlgorithm = EGO_ALGORITHM_INVALID1;
+  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 }
 
 static void test_corrections_closedloop_off_invalidconditions_coolant(void) {
-  setup_ego_simple();
-  currentStatus.O2 = currentStatus.afrTarget + 1U;
-  currentStatus.coolant = toWorkingTemperature(configPage6.egoTemp) - 1U; 
-  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop());
+  afr_testdata_t testData;
+  setup_ego_simple(testData);
+  testData.current.O2 = testData.current.afrTarget + 1U;
+  testData.current.coolant = toWorkingTemperature(testData.page6.egoTemp) - 1U; 
+  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 }
 
 static void test_corrections_closedloop_off_invalidconditions_rpm(void) {
-  setup_ego_simple();
-  currentStatus.O2 = currentStatus.afrTarget + 1U;
-  currentStatus.RPM = (configPage6.egoRPM*100U) - 1U;
-  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop());
+  afr_testdata_t testData;
+  setup_ego_simple(testData);
+  testData.current.O2 = testData.current.afrTarget + 1U;
+  testData.current.RPM = (testData.page6.egoRPM*100U) - 1U;
+  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 }
 
 static void test_corrections_closedloop_off_invalidconditions_tps(void) {
-  setup_ego_simple();
-  currentStatus.O2 = currentStatus.afrTarget + 1U;
-  currentStatus.TPS = configPage6.egoTPSMax + 1U;
-  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop());
+  afr_testdata_t testData;
+  setup_ego_simple(testData);
+  testData.current.O2 = testData.current.afrTarget + 1U;
+  testData.current.TPS = testData.page6.egoTPSMax + 1U;
+  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 }
 
 static void test_corrections_closedloop_off_invalidconditions_o2(void) {
-  setup_ego_simple();
-  currentStatus.O2 = configPage6.ego_min - 1U;
-  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop());
+  afr_testdata_t testData;
+  setup_ego_simple(testData);
+  testData.current.O2 = testData.page6.ego_min - 1U;
+  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 
-  setup_ego_simple();
-  currentStatus.O2 = configPage6.ego_max + 1U;
-  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop());
+  setup_ego_simple(testData);
+  testData.current.O2 = testData.page6.ego_max + 1U;
+  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 }
 
 static void test_corrections_closedloop_off_invalidconditions_map(void) {
-  setup_ego_simple();
-  currentStatus.O2 = currentStatus.afrTarget + 1U;
-  currentStatus.MAP = (configPage9.egoMAPMin*2U) - 1U;
-  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop());
+  afr_testdata_t testData;
+  setup_ego_simple(testData);
+  testData.current.O2 = testData.current.afrTarget + 1U;
+  testData.current.MAP = (testData.page9.egoMAPMin*2U) - 1U;
+  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 
-  setup_ego_simple();
-  currentStatus.O2 = currentStatus.afrTarget + 1U;
-  currentStatus.MAP = (configPage9.egoMAPMax*2U) + 1U;
-  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop());
+  setup_ego_simple(testData);
+  testData.current.O2 = testData.current.afrTarget + 1U;
+  testData.current.MAP = (testData.page9.egoMAPMax*2U) + 1U;
+  TEST_ASSERT_EQUAL(100U, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 }
 
 static void test_corrections_closedloop_outsidecycle(void) {
-  setup_ego_simple();
-  currentStatus.O2 = currentStatus.afrTarget + 1U;
-  currentStatus.egoCorrection = 173U;
-  ignitionCount = AFRnextCycle - (configPage6.egoCount/2U); 
-  TEST_ASSERT_EQUAL(currentStatus.egoCorrection, correctionAFRClosedLoop());
+  afr_testdata_t testData;
+  setup_ego_simple(testData);
+  testData.current.O2 = testData.current.afrTarget + 1U;
+  testData.current.egoCorrection = 173U;
+  ignitionCount = AFRnextCycle - (testData.page6.egoCount/2U); 
+  TEST_ASSERT_EQUAL(testData.current.egoCorrection, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 }
 
-static void test_corrections_closedloop_cycle_countrollover(void) {
-  setup_ego_simple();
-  currentStatus.O2 = currentStatus.afrTarget + 1U;
-  currentStatus.egoCorrection = 101U;
-  ignitionCount = AFRnextCycle - (configPage6.egoCount*2U); 
-  TEST_ASSERT_EQUAL(currentStatus.egoCorrection+1U, correctionAFRClosedLoop());
+static void test_corrections_closedloop_cycle_count_rollover(void) {
+  afr_testdata_t testData;
+  setup_ego_simple(testData);
+  testData.current.O2 = testData.current.afrTarget + 1U;
+  testData.current.egoCorrection = 101U;
+  ignitionCount = AFRnextCycle - (testData.page6.egoCount*2U); 
+  TEST_ASSERT_EQUAL(testData.current.egoCorrection+1U, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 }
 
 static void test_corrections_closedloop_simple_nocorrection(void) {
-  setup_ego_simple();
-  currentStatus.egoCorrection = 101U;
-  currentStatus.O2 = currentStatus.afrTarget;
-  TEST_ASSERT_EQUAL(currentStatus.egoCorrection, correctionAFRClosedLoop());
+  afr_testdata_t testData;
+  setup_ego_simple(testData);
+  testData.current.egoCorrection = 101U;
+  testData.current.O2 = testData.current.afrTarget;
+  TEST_ASSERT_EQUAL(testData.current.egoCorrection, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 }
 
 static void test_corrections_closedloop_simple_lean(void) {
-  setup_ego_simple();
-  currentStatus.O2 = currentStatus.afrTarget + 1U;
-  TEST_ASSERT_EQUAL(currentStatus.egoCorrection+1U, correctionAFRClosedLoop());
+  afr_testdata_t testData;
+  setup_ego_simple(testData);
+  testData.current.O2 = testData.current.afrTarget + 1U;
+  TEST_ASSERT_EQUAL(testData.current.egoCorrection+1U, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 }
 
 static void test_corrections_closedloop_simple_lean_maxcorrection(void) {
-  setup_ego_simple();
+  afr_testdata_t testData;
+  setup_ego_simple(testData);
 
-  currentStatus.O2 = configPage6.ego_max-1U;
+  testData.current.O2 = testData.page6.ego_max-1U;
 
-  for (uint8_t index=0; index<configPage6.egoLimit; ++index) {
-    setup_valid_ego_cycle();
-    currentStatus.egoCorrection = 100U + index;
-    TEST_ASSERT_EQUAL(currentStatus.egoCorrection+1U, correctionAFRClosedLoop());
+  for (uint8_t index=0; index<testData.page6.egoLimit; ++index) {
+    setup_valid_ego_cycle(testData.page6);
+    testData.current.egoCorrection = 100U + index;
+    TEST_ASSERT_EQUAL(testData.current.egoCorrection+1U, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
   }
-  setup_valid_ego_cycle();
-  TEST_ASSERT_EQUAL(100U+configPage6.egoLimit, correctionAFRClosedLoop());
-  setup_valid_ego_cycle();
-  TEST_ASSERT_EQUAL(100U+configPage6.egoLimit, correctionAFRClosedLoop());
-  setup_valid_ego_cycle();
-  TEST_ASSERT_EQUAL(100U+configPage6.egoLimit, correctionAFRClosedLoop());  
+  setup_valid_ego_cycle(testData.page6);
+  TEST_ASSERT_EQUAL(100U+testData.page6.egoLimit, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
+  setup_valid_ego_cycle(testData.page6);
+  TEST_ASSERT_EQUAL(100U+testData.page6.egoLimit, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
+  setup_valid_ego_cycle(testData.page6);
+  TEST_ASSERT_EQUAL(100U+testData.page6.egoLimit, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));  
 }
 
 static void test_corrections_closedloop_simple_rich(void) {
-  setup_ego_simple();
-  currentStatus.O2 = currentStatus.afrTarget - 1U;
-  TEST_ASSERT_EQUAL(currentStatus.egoCorrection-1U, correctionAFRClosedLoop());
+  afr_testdata_t testData;
+  setup_ego_simple(testData);
+  testData.current.O2 = testData.current.afrTarget - 1U;
+  TEST_ASSERT_EQUAL(testData.current.egoCorrection-1U, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 }
 
-static void test_rich_max_correction(void) {
-  currentStatus.O2 = configPage6.ego_min+1U;
+static void test_rich_max_correction(afr_testdata_t &testData) {
+  testData.current.O2 = testData.page6.ego_min+1U;
 
   uint8_t correction = 100U; 
   uint8_t counter = 0;
-  while (correction>(100U-configPage6.egoLimit)) {
-    setup_valid_ego_cycle();
-    currentStatus.egoCorrection = 100U - counter;
-    correction = correctionAFRClosedLoop();
+  while (correction>(100U-testData.page6.egoLimit)) {
+    setup_valid_ego_cycle(testData.page6);
+    testData.current.egoCorrection = 100U - counter;
+    correction = correctionAFRClosedLoop(testData.current, testData.page6, testData.page9);
     TEST_ASSERT_LESS_THAN(100U, correction);
     ++counter;
   }
-  setup_valid_ego_cycle();
-  TEST_ASSERT_EQUAL(100U-configPage6.egoLimit, correctionAFRClosedLoop());
-  setup_valid_ego_cycle();
-  TEST_ASSERT_EQUAL(100U-configPage6.egoLimit, correctionAFRClosedLoop());
-  setup_valid_ego_cycle();
-  TEST_ASSERT_EQUAL(100U-configPage6.egoLimit, correctionAFRClosedLoop());  
+  setup_valid_ego_cycle(testData.page6);
+  TEST_ASSERT_EQUAL(100U-testData.page6.egoLimit, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
+  setup_valid_ego_cycle(testData.page6);
+  TEST_ASSERT_EQUAL(100U-testData.page6.egoLimit, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
+  setup_valid_ego_cycle(testData.page6);
+  TEST_ASSERT_EQUAL(100U-testData.page6.egoLimit, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));  
 }
 
 static void test_corrections_closedloop_simple_rich_maxcorrection(void) {
-  setup_ego_simple();
+  afr_testdata_t testData;
+  setup_ego_simple(testData);
 
-  test_rich_max_correction();
+  test_rich_max_correction(testData);
 }
 
-static void setup_ego_pid(void) {
-  setup_ego_simple();
-  configPage6.egoType = EGO_TYPE_WIDE;
-  configPage6.egoAlgorithm = EGO_ALGORITHM_PID;  
-  configPage6.egoKP = 50U;
-  configPage6.egoKI = 20U;
-  configPage6.egoKD = 10U;
+static void setup_ego_pid(afr_testdata_t &testData) {
+  initialiseCorrections();
+  setup_ego_simple(testData);
+  testData.page6.egoType = EGO_TYPE_WIDE;
+  testData.page6.egoAlgorithm = EGO_ALGORITHM_PID;  
+  testData.page6.egoKP = 50U;
+  testData.page6.egoKI = 20U;
+  testData.page6.egoKD = 10U;
 
   // Initial PID controller setup
-  correctionAFRClosedLoop();
-  setup_valid_ego_cycle();
+  correctionAFRClosedLoop(testData.current, testData.page6, testData.page9);
+  setup_valid_ego_cycle(testData.page6);
 }
 
 // PID is time based and may need multiple cycles to move
-static uint8_t run_pid(uint8_t cycles, uint8_t delayMillis) {
+static uint8_t run_pid(uint8_t cycles, uint8_t delayMillis, afr_testdata_t &testData) {
   for (uint8_t index=0; index<cycles-1U; ++index) {
-    setup_valid_ego_cycle();
-    // Serial.print(currentStatus.O2); Serial.print(" ");
-    // Serial.print(currentStatus.afrTarget); Serial.print(" ");
-    // Serial.println(correctionAFRClosedLoop());
-    (void)correctionAFRClosedLoop();
+    setup_valid_ego_cycle(testData.page6);
+    (void)correctionAFRClosedLoop(testData.current, testData.page6, testData.page9);
     delay(delayMillis);
   }
-  setup_valid_ego_cycle();
-  return correctionAFRClosedLoop();
+  setup_valid_ego_cycle(testData.page6);
+  return correctionAFRClosedLoop(testData.current, testData.page6, testData.page9);
 }
 
 static void test_corrections_closedloop_pid_nocorrection(void) {
-  setup_ego_pid();
-  currentStatus.O2 = currentStatus.afrTarget;
-  TEST_ASSERT_EQUAL(100U, run_pid(10, 10));
+  afr_testdata_t testData;
+  setup_ego_pid(testData);
+  testData.current.O2 = testData.current.afrTarget;
+  TEST_ASSERT_EQUAL(100U, run_pid(10, 10, testData));
 }
 
 static void test_corrections_closedloop_pid_lean(void) {
-  setup_ego_pid();
-  currentStatus.O2 = configPage6.ego_max-1U;
+  afr_testdata_t testData;
+  setup_ego_pid(testData);
+  testData.current.O2 = testData.page6.ego_max-1U;
 
-  TEST_ASSERT_GREATER_THAN(100U, run_pid(10, 10));
+  TEST_ASSERT_GREATER_THAN(100U, run_pid(10, 10, testData));
 }
 
 static void test_corrections_closedloop_pid_lean_maxcorrection(void) {
-  setup_ego_pid();
+  afr_testdata_t testData;
+  setup_ego_pid(testData);
 
-  currentStatus.O2 = configPage6.ego_max-1U;
+  testData.current.O2 = testData.page6.ego_max-1U;
 
-  TEST_ASSERT_EQUAL(100U+configPage6.egoLimit, run_pid(40, 10));
-  setup_valid_ego_cycle();
-  TEST_ASSERT_EQUAL(100U+configPage6.egoLimit, correctionAFRClosedLoop());
-  setup_valid_ego_cycle();
-  TEST_ASSERT_EQUAL(100U+configPage6.egoLimit, correctionAFRClosedLoop());
-  setup_valid_ego_cycle();
-  TEST_ASSERT_EQUAL(100U+configPage6.egoLimit, correctionAFRClosedLoop());
+  TEST_ASSERT_EQUAL(100U+testData.page6.egoLimit, run_pid(40, 10, testData));
+  setup_valid_ego_cycle(testData.page6);
+  TEST_ASSERT_EQUAL(100U+testData.page6.egoLimit, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
+  setup_valid_ego_cycle(testData.page6);
+  TEST_ASSERT_EQUAL(100U+testData.page6.egoLimit, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
+  setup_valid_ego_cycle(testData.page6);
+  TEST_ASSERT_EQUAL(100U+testData.page6.egoLimit, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 }
 
 
 static void test_corrections_closedloop_pid_rich(void) {
-  setup_ego_pid();
-  currentStatus.O2 = configPage6.ego_min+1U;
-  TEST_ASSERT_LESS_THAN(100U, run_pid(10, 10));
+  afr_testdata_t testData;
+  setup_ego_pid(testData);
+  testData.current.O2 = testData.page6.ego_min+1U;
+  TEST_ASSERT_LESS_THAN(100U, run_pid(10, 10, testData));
 }
 
 static void test_corrections_closedloop_pid_rich_maxcorrection(void) {
-  setup_ego_pid();
+  afr_testdata_t testData;
+  setup_ego_pid(testData);
 
-  currentStatus.O2 = configPage6.ego_min+1U;
+  testData.current.O2 = testData.page6.ego_min+1U;
 
-  TEST_ASSERT_EQUAL(100U-configPage6.egoLimit, run_pid(40, 10));
-  setup_valid_ego_cycle();
-  TEST_ASSERT_EQUAL(100U-configPage6.egoLimit, correctionAFRClosedLoop());
-  setup_valid_ego_cycle();
-  TEST_ASSERT_EQUAL(100U-configPage6.egoLimit, correctionAFRClosedLoop());
-  setup_valid_ego_cycle();
-  TEST_ASSERT_EQUAL(100U-configPage6.egoLimit, correctionAFRClosedLoop());
+  TEST_ASSERT_EQUAL(100U-testData.page6.egoLimit, run_pid(40, 10, testData));
+  setup_valid_ego_cycle(testData.page6);
+  TEST_ASSERT_EQUAL(100U-testData.page6.egoLimit, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
+  setup_valid_ego_cycle(testData.page6);
+  TEST_ASSERT_EQUAL(100U-testData.page6.egoLimit, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
+  setup_valid_ego_cycle(testData.page6);
+  TEST_ASSERT_EQUAL(100U-testData.page6.egoLimit, correctionAFRClosedLoop(testData.current, testData.page6, testData.page9));
 }
 
 static void test_corrections_closedloop(void)
@@ -640,7 +661,7 @@ static void test_corrections_closedloop(void)
   RUN_TEST_P(test_corrections_closedloop_off_invalidconditions_map);
   RUN_TEST_P(test_corrections_closedloop_off_invalidconditions_o2);
   RUN_TEST_P(test_corrections_closedloop_outsidecycle);
-  RUN_TEST_P(test_corrections_closedloop_cycle_countrollover);
+  RUN_TEST_P(test_corrections_closedloop_cycle_count_rollover);
   RUN_TEST_P(test_corrections_closedloop_simple_nocorrection);
   RUN_TEST_P(test_corrections_closedloop_simple_lean);
   RUN_TEST_P(test_corrections_closedloop_simple_lean_maxcorrection);
@@ -1738,7 +1759,7 @@ static void test_corrections_correctionsFuel_ae_modes(void) {
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionASE(currentStatus, ASECountTable, ASETable, configPage2), "correctionASE");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionCranking(currentStatus, crankingEnrichTable, configPage10), "correctionCranking");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFloodClear(currentStatus, configPage4), "correctionFloodClear");
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionAFRClosedLoop(), "correctionAFRClosedLoop");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionAFRClosedLoop(currentStatus, configPage6, configPage9), "correctionAFRClosedLoop");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionBatVoltage(currentStatus, injectorVCorrectionTable, configPage2), "correctionBatVoltage");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionIATDensity(currentStatus, IATDensityCorrectionTable), "correctionIATDensity");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionBaro(currentStatus, baroFuelTable), "correctionBaro");
@@ -1823,7 +1844,7 @@ static void test_corrections_correctionsFuel_clip_limit(void) {
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionCranking(currentStatus, crankingEnrichTable, configPage10), "correctionCranking");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionAccel(currentStatus, configPage2, taeTable, maeTable), "correctionAccel");
   TEST_ASSERT_EQUAL_MESSAGE(100, correctionFloodClear(currentStatus, configPage4), "correctionFloodClear");
-  TEST_ASSERT_EQUAL_MESSAGE(100, correctionAFRClosedLoop(), "correctionAFRClosedLoop");
+  TEST_ASSERT_EQUAL_MESSAGE(100, correctionAFRClosedLoop(currentStatus, configPage6, configPage9), "correctionAFRClosedLoop");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionBatVoltage(currentStatus, injectorVCorrectionTable, configPage2), "correctionBatVoltage");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionIATDensity(currentStatus, IATDensityCorrectionTable), "correctionIATDensity");
   TEST_ASSERT_EQUAL_MESSAGE(255, correctionBaro(currentStatus, baroFuelTable), "correctionBaro");

@@ -41,7 +41,11 @@ static long PID_AFRTarget;
 * Needs to be global as it maintains state outside of each function call.
 * Comes from Arduino (?) PID library.
 */
-static PID egoPID(&PID_O2, &PID_output, &PID_AFRTarget, configPage6.egoKP, configPage6.egoKI, configPage6.egoKD, REVERSE);
+static PID egoPID(&PID_O2, &PID_output, &PID_AFRTarget, 
+                  // Defaults - they are set to the tune values prior to every
+                  // call to Compute() 
+                  100, 20, 0, 
+                  REVERSE);
 
 static uint16_t aeActivatedReading; //The mapDOT/tpsDOT value seen when the MAE/TAE was activated. 
 
@@ -57,7 +61,6 @@ static constexpr uint8_t NO_FUEL_CORRECTION = ONE_HUNDRED_PCT;
 // Constant that represents the baseline fuel correction to be modified
 // (yes, it's the same as NO_FUEL_CORRECTION, but captures a slightly different concept)
 static constexpr uint8_t BASELINE_FUEL_CORRECTION = ONE_HUNDRED_PCT;
-
 
 /** Initialise instances and vars related to corrections (at ECU boot-up).
  */
@@ -709,14 +712,14 @@ static inline uint8_t computePIDCorrection(const statuses &current, const config
   return (uint8_t)correction;
 }
 
-static inline bool nextAfrCycleHasStarted(void) {
+static inline bool nextAfrCycleHasStarted(const config6 &page6) {
   return (ignitionCount >= AFRnextCycle)
       // IgnitionCount has rolled over between checks. 
-      || (ignitionCount < (AFRnextCycle - configPage6.egoCount));
+      || (ignitionCount < (AFRnextCycle - page6.egoCount));
 }
 
-static inline void setNextAfrCycle(void) {
-  AFRnextCycle = ignitionCount + configPage6.egoCount; //Set the target ignition event for the next calculation
+static inline void setNextAfrCycle(const config6 &page6) {
+  AFRnextCycle = ignitionCount + page6.egoCount; //Set the target ignition event for the next calculation
 }
 
 static inline bool isAfrClosedLoopOperational(const statuses &current, const config6 &page6, const config9 &page9) {
@@ -771,21 +774,21 @@ This continues until either:
 PID (Best suited to wideband sensors):
 
 */
-TESTABLE_INLINE_STATIC uint8_t correctionAFRClosedLoop(void)
+TESTABLE_INLINE_STATIC uint8_t correctionAFRClosedLoop(const statuses &current, const config6 &page6, const config9 &page9)
 {
   uint8_t correction = NO_FUEL_CORRECTION;
   
-  if (isAfrCorrectionEnabled(currentStatus, configPage6)) {
-    if (nextAfrCycleHasStarted()) {
-      setNextAfrCycle();
+  if (isAfrCorrectionEnabled(current, page6)) {
+    if (nextAfrCycleHasStarted(page6)) {
+      setNextAfrCycle(page6);
         
       //Check all other requirements for closed loop adjustments
-      if (isAfrClosedLoopOperational(currentStatus, configPage6, configPage9)) {
-        correction = computeAFRCorrection(currentStatus, configPage6);
+      if (isAfrClosedLoopOperational(current, page6, page9)) {
+        correction = computeAFRCorrection(current, page6);
       }
     } else {
       // Not within the upcoming cycle, so reuse current correction
-      correction = currentStatus.egoCorrection; 
+      correction = current.egoCorrection; 
     }
   } //egoType
 
@@ -823,7 +826,7 @@ uint16_t correctionsFuel(void)
 
   sumCorrections = combineCorrections(sumCorrections, correctionFloodClear(currentStatus, configPage4));
 
-  currentStatus.egoCorrection = correctionAFRClosedLoop();
+  currentStatus.egoCorrection = correctionAFRClosedLoop(currentStatus, configPage6, configPage9);
   sumCorrections = combineCorrections(sumCorrections, currentStatus.egoCorrection);
   
   currentStatus.batCorrection = correctionBatVoltage(currentStatus, injectorVCorrectionTable, configPage2);
