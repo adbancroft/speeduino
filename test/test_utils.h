@@ -150,3 +150,15 @@ static inline void populate_2dtable_P(table2D *pTable, const TValue values[], co
   populate_2dtable(pTable, values, bins)
 #endif
 }
+
+// On the fly 2d uint8_t table
+template <uint8_t length>
+struct test_2dtable_t {
+  table2D lookupTable;
+  uint8_t bins[length];
+  uint8_t values[length];  
+
+  test_2dtable_t() {
+    construct2dTable(lookupTable, length, values, bins);
+  }
+};
