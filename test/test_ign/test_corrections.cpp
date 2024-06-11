@@ -1,30 +1,31 @@
 #include <unity.h>
 #include "globals.h"
 #include "corrections.h"
-// #include "init.h"
 #include "idle.h"
 #include "../test_utils.h"
 #include "sensors.h"
 #include "scale_translate.h"
 
-extern void construct2dTables(void);
-
-extern int8_t correctionFixedTiming(int8_t advance);
+extern int8_t correctionFixedTiming(int8_t advance, const config2 &page2, const config4 &page4);
 
 static void test_correctionFixedTiming_inactive(void) {
-    configPage2.fixAngEnable = 0;
-    configPage4.FixAng = 13;
+    config2 page2;
+    config4 page4;
+    page2.fixAngEnable = 0;
+    page4.FixAng = 13;
 
-    TEST_ASSERT_EQUAL(8, correctionFixedTiming(8));
-    TEST_ASSERT_EQUAL(-3, correctionFixedTiming(-3));
+    TEST_ASSERT_EQUAL(8, correctionFixedTiming(8, page2, page4));
+    TEST_ASSERT_EQUAL(-3, correctionFixedTiming(-3, page2, page4));
 }
 
 static void test_correctionFixedTiming_active(void) {
-    configPage2.fixAngEnable = 1;
-    configPage4.FixAng = 13;
+    config2 page2;
+    config4 page4;
+    page2.fixAngEnable = 1;
+    page4.FixAng = 13;
 
-    TEST_ASSERT_EQUAL(configPage4.FixAng, correctionFixedTiming(8));
-    TEST_ASSERT_EQUAL(configPage4.FixAng, correctionFixedTiming(-3));
+    TEST_ASSERT_EQUAL(page4.FixAng, correctionFixedTiming(8, page2, page4));
+    TEST_ASSERT_EQUAL(page4.FixAng, correctionFixedTiming(-3, page2, page4));
 }
 
 static void test_correctionFixedTiming(void) {
@@ -32,64 +33,78 @@ static void test_correctionFixedTiming(void) {
     RUN_TEST_P(test_correctionFixedTiming_active);
 }
 
-extern int8_t correctionCLTadvance(int8_t advance);
 
-static void setup_clt_advance_table(void) {
-  construct2dTables();
-  initialiseIgnCorrections(currentStatus);
+extern int8_t correctionCLTadvance(int8_t advance, const statuses &current, const table2D &cltAdvanceLUT);
+
+struct cltadv_test_data_t {
+    statuses current;
+    test_2dtable_t<6> cltAdvLookUp;
+};
+
+static void setup_clt_advance_table(cltadv_test_data_t &testData) {
+  initialiseIgnCorrections(testData.current);
   LOOP_TIMER = 0;
-  BIT_SET(LOOP_TIMER, BIT_TIMER_4HZ);
+  BIT_SET(LOOP_TIMER, CLT_READ_TIMER_BIT);
   TEST_DATA_P uint8_t bins[] = { 60, 70, 80, 90, 100, 110 };
   TEST_DATA_P uint8_t values[] = { 30, 25, 20, 15, 10, 5 };
-  populate_2dtable_P(&CLTAdvanceTable, values, bins);
+  populate_2dtable_P(&testData.cltAdvLookUp.lookupTable, values, bins);
 }
 
 static void test_correctionCLTadvance_lookup(void) {
-    setup_clt_advance_table();
+    cltadv_test_data_t testData;
+    setup_clt_advance_table(testData);
 
-    currentStatus.coolant = toWorkingTemperature(105);
-    TEST_ASSERT_EQUAL(8 + 8 - 15, correctionCLTadvance(8));
+    testData.current.coolant = toWorkingTemperature(105);
+    TEST_ASSERT_EQUAL(8 + 8 - 15, correctionCLTadvance(8, testData.current, testData.cltAdvLookUp.lookupTable));
 
-    currentStatus.coolant = toWorkingTemperature(65);
-    TEST_ASSERT_EQUAL(1 + 28 - 15, correctionCLTadvance(1));
+    testData.current.coolant = toWorkingTemperature(65);
+    TEST_ASSERT_EQUAL(1 + 28 - 15, correctionCLTadvance(1, testData.current, testData.cltAdvLookUp.lookupTable));
 
-    currentStatus.coolant = toWorkingTemperature(105);
-    TEST_ASSERT_EQUAL(-3 + 8 - 15, correctionCLTadvance(-3));
+    testData.current.coolant = toWorkingTemperature(105);
+    TEST_ASSERT_EQUAL(-3 + 8 - 15, correctionCLTadvance(-3, testData.current, testData.cltAdvLookUp.lookupTable));
 }
 
 static void test_correctionCLTadvance(void) {
     RUN_TEST_P(test_correctionCLTadvance_lookup);
 }
 
-static void test_correctionCrankingFixedTiming_nocrank_inactive(void) {
-    setup_clt_advance_table();
-    BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK);
-    configPage2.crkngAddCLTAdv = 0;
-    configPage4.CrankAng = 8;
+struct crank_fixed_timing_t : public cltadv_test_data_t {
+    config2 page2;
+    config4 page4;
+};
 
-    TEST_ASSERT_EQUAL(-7, correctionCrankingFixedTiming(-7));
+static void test_correctionCrankingFixedTiming_nocrank_inactive(void) {
+    crank_fixed_timing_t testData;
+    setup_clt_advance_table(testData);
+    BIT_CLEAR(testData.current.engine, BIT_ENGINE_CRANK);
+    testData.page2.crkngAddCLTAdv = 0;
+    testData.page4.CrankAng = 8;
+
+    TEST_ASSERT_EQUAL(-7, correctionCrankingFixedTiming(-7, testData.current, testData.page2, testData.page4, testData.cltAdvLookUp.lookupTable));
 }
 
 static void test_correctionCrankingFixedTiming_crank_fixed(void) {
-    setup_clt_advance_table();
-    BIT_SET(currentStatus.engine, BIT_ENGINE_CRANK);
-    configPage2.crkngAddCLTAdv = 0;
+    crank_fixed_timing_t testData;
+    setup_clt_advance_table(testData);
+    BIT_SET(testData.current.engine, BIT_ENGINE_CRANK);
+    testData.page2.crkngAddCLTAdv = 0;
 
-    configPage4.CrankAng = 8;
-    TEST_ASSERT_EQUAL(configPage4.CrankAng, correctionCrankingFixedTiming(-7));
+    testData.page4.CrankAng = 8;
+    TEST_ASSERT_EQUAL(testData.page4.CrankAng, correctionCrankingFixedTiming(-7, testData.current, testData.page2, testData.page4, testData.cltAdvLookUp.lookupTable));
 
-    configPage4.CrankAng = -8;
-    TEST_ASSERT_EQUAL(configPage4.CrankAng, correctionCrankingFixedTiming(-7));
+    testData.page4.CrankAng = -8;
+    TEST_ASSERT_EQUAL(testData.page4.CrankAng, correctionCrankingFixedTiming(-7, testData.current, testData.page2, testData.page4, testData.cltAdvLookUp.lookupTable));
 }
 
 static void test_correctionCrankingFixedTiming_crank_coolant(void) {
-    setup_clt_advance_table();
-    BIT_SET(currentStatus.engine, BIT_ENGINE_CRANK);
-    configPage2.crkngAddCLTAdv = 1;
+    crank_fixed_timing_t testData;
+    setup_clt_advance_table(testData);
+    BIT_SET(testData.current.engine, BIT_ENGINE_CRANK);
+    testData.page2.crkngAddCLTAdv = 1;
     
-    configPage4.CrankAng = 8;
-    currentStatus.coolant = toWorkingTemperature(65);
-    TEST_ASSERT_EQUAL(1 + 28 - 15, correctionCLTadvance(1));
+    testData.page4.CrankAng = 8;
+    testData.current.coolant = toWorkingTemperature(65);
+    TEST_ASSERT_EQUAL(1 + 28 - 15, correctionCLTadvance(1, testData.current, testData.cltAdvLookUp.lookupTable));
 }
 
 static void test_correctionCrankingFixedTiming(void) {
@@ -98,36 +113,43 @@ static void test_correctionCrankingFixedTiming(void) {
     RUN_TEST_P(test_correctionCrankingFixedTiming_crank_coolant);
 }
 
-extern int8_t correctionFlexTiming(int8_t advance);
+extern int8_t correctionFlexTiming(int8_t advance, statuses &current, const config2 &page2, const table2D &lookupTable);
 
-static void setup_flexAdv(void) {
-  construct2dTables();
-  initialiseIgnCorrections(currentStatus);
+struct flex_adv_t {
+    statuses current;
+    config2 page2;
+    test_2dtable_t<6> flexAdvLUT; 
+};
+
+static void setup_flexAdv(flex_adv_t &testData) {
+  initialiseIgnCorrections(testData.current);
   TEST_DATA_P uint8_t bins[] = { 30, 40, 50, 60, 70, 80 };
   TEST_DATA_P uint8_t values[] = { 30, 25, 20, 15, 10, 5 };
-  populate_2dtable_P(&flexAdvTable, values, bins);
+  populate_2dtable_P(&testData.flexAdvLUT.lookupTable, values, bins);
 
-  configPage2.flexEnabled = 1;
-  currentStatus.ethanolPct = 55;
+  testData.page2.flexEnabled = 1;
+  testData.current.ethanolPct = 55;
 }
 
 static void test_correctionFlexTiming_inactive(void) {
-    setup_flexAdv();
-    configPage2.flexEnabled = 0;
+    flex_adv_t testData;
+    setup_flexAdv(testData);
+    testData.page2.flexEnabled = 0;
 
-    TEST_ASSERT_EQUAL(-7, correctionFlexTiming(-7));
-    TEST_ASSERT_EQUAL(3, correctionFlexTiming(3));
+    TEST_ASSERT_EQUAL(-7, correctionFlexTiming(-7, testData.current, testData.page2, testData.flexAdvLUT.lookupTable));
+    TEST_ASSERT_EQUAL(3, correctionFlexTiming(3, testData.current, testData.page2, testData.flexAdvLUT.lookupTable));
 }
 
 static void test_correctionFlexTiming_table_lookup(void) {
-    setup_flexAdv();
+    flex_adv_t testData;
+    setup_flexAdv(testData);
 
-    TEST_ASSERT_EQUAL(8 + 18 - OFFSET_IGNITION, correctionFlexTiming(8));
-    TEST_ASSERT_EQUAL(18 - OFFSET_IGNITION, currentStatus.flexIgnCorrection);    
+    TEST_ASSERT_EQUAL(8 + 18 - OFFSET_IGNITION, correctionFlexTiming(8, testData.current, testData.page2, testData.flexAdvLUT.lookupTable));
+    TEST_ASSERT_EQUAL(18 - OFFSET_IGNITION, testData.current.flexIgnCorrection);    
 
-    currentStatus.ethanolPct = 35;
-    TEST_ASSERT_EQUAL(-4 + 28 - OFFSET_IGNITION, correctionFlexTiming(-4));
-    TEST_ASSERT_EQUAL(28 - OFFSET_IGNITION, currentStatus.flexIgnCorrection);    
+    testData.current.ethanolPct = 35;
+    TEST_ASSERT_EQUAL(-4 + 28 - OFFSET_IGNITION, correctionFlexTiming(-4, testData.current, testData.page2, testData.flexAdvLUT.lookupTable));
+    TEST_ASSERT_EQUAL(28 - OFFSET_IGNITION, testData.current.flexIgnCorrection);    
 }
 
 static void test_correctionFlexTiming(void) {
@@ -135,94 +157,107 @@ static void test_correctionFlexTiming(void) {
     RUN_TEST_P(test_correctionFlexTiming_table_lookup);
 }
 
-extern int8_t correctionWMITiming(int8_t advance);
+extern int8_t correctionWMITiming(int8_t advance, const statuses &current, const config10 &page10, const table2D &lookupTable);
 
-static void setup_WMIAdv(void) {
-    construct2dTables();
-    initialiseIgnCorrections(currentStatus);
+struct wmi_advance_t {
+    statuses current;
+    config10 page10;
+    test_2dtable_t<6> flexAdvLUT;
+};
 
-    configPage10.wmiEnabled= 1;
-    configPage10.wmiAdvEnabled = 1;
-    BIT_CLEAR(currentStatus.status4, BIT_STATUS4_WMI_EMPTY);
-    configPage10.wmiTPS = 50;
-    currentStatus.TPS = configPage10.wmiTPS + 1;
-    configPage10.wmiRPM = 30;
-    currentStatus.RPM = configPage10.wmiRPM + 1U;
-    configPage10.wmiMAP = 35;
-    currentStatus.MAP = (configPage10.wmiMAP*2L)+1L;
-    configPage10.wmiIAT = 155;
-    currentStatus.IAT = toWorkingTemperature(configPage10.wmiIAT) + 1;
+static void setup_WMIAdv(wmi_advance_t &testData) {
+    initialiseIgnCorrections(testData.current);
+
+    testData.page10.wmiEnabled= 1;
+    testData.page10.wmiAdvEnabled = 1;
+    BIT_CLEAR(testData.current.status4, BIT_STATUS4_WMI_EMPTY);
+    testData.page10.wmiTPS = 50;
+    testData.current.TPS = testData.page10.wmiTPS + 1;
+    testData.page10.wmiRPM = 30;
+    testData.current.RPM = testData.page10.wmiRPM + 1U;
+    testData.page10.wmiMAP = 35;
+    testData.current.MAP = (testData.page10.wmiMAP*2L)+1L;
+    testData.page10.wmiIAT = 155;
+    testData.current.IAT = toWorkingTemperature(testData.page10.wmiIAT) + 1;
 
     TEST_DATA_P uint8_t bins[] = { 30, 40, 50, 60, 70, 80 };
     TEST_DATA_P uint8_t values[] = { 30, 25, 20, 15, 10, 5 };
-    populate_2dtable_P(&wmiAdvTable, values, bins);
+    populate_2dtable_P(&testData.flexAdvLUT.lookupTable, values, bins);
 }
 
 static void test_correctionWMITiming_table_lookup(void) {
-    setup_WMIAdv();
+    wmi_advance_t testData;
+    setup_WMIAdv(testData);
 
-    currentStatus.MAP = (55*2U)+1U;
-    TEST_ASSERT_EQUAL(8 + 18 - OFFSET_IGNITION, correctionWMITiming(8));
+    testData.current.MAP = (55*2U)+1U;
+    TEST_ASSERT_EQUAL(8 + 18 - OFFSET_IGNITION, correctionWMITiming(8, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
 
-    currentStatus.MAP = (35*2U)+1U;
-    TEST_ASSERT_EQUAL(-4 + 28 - OFFSET_IGNITION, correctionWMITiming(-4));
+    testData.current.MAP = (35*2U)+1U;
+    TEST_ASSERT_EQUAL(-4 + 28 - OFFSET_IGNITION, correctionWMITiming(-4, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
 }
 
 static void test_correctionWMITiming_wmidisabled_inactive(void) {
-    setup_WMIAdv();
-    configPage10.wmiEnabled= 0;
+    wmi_advance_t testData;
+    setup_WMIAdv(testData);
+    testData.page10.wmiEnabled= 0;
 
-    TEST_ASSERT_EQUAL(8, correctionWMITiming(8));
-    TEST_ASSERT_EQUAL(-3, correctionWMITiming(-3));
+    TEST_ASSERT_EQUAL(8, correctionWMITiming(8, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
+    TEST_ASSERT_EQUAL(-3, correctionWMITiming(-3, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
 }
 
 
 static void test_correctionWMITiming_wmiadvdisabled_inactive(void) {
-    setup_WMIAdv();
-    configPage10.wmiAdvEnabled = 0;
+    wmi_advance_t testData;
+    setup_WMIAdv(testData);
+    testData.page10.wmiAdvEnabled = 0;
 
-    TEST_ASSERT_EQUAL(8, correctionWMITiming(8));
-    TEST_ASSERT_EQUAL(-3, correctionWMITiming(-3));
+    TEST_ASSERT_EQUAL(8, correctionWMITiming(8, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
+    TEST_ASSERT_EQUAL(-3, correctionWMITiming(-3, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
 }
 
 static void test_correctionWMITiming_empty_inactive(void) {
-    setup_WMIAdv();
-    BIT_SET(currentStatus.status4, BIT_STATUS4_WMI_EMPTY);
+    wmi_advance_t testData;
+    setup_WMIAdv(testData);
+    BIT_SET(testData.current.status4, BIT_STATUS4_WMI_EMPTY);
 
-    TEST_ASSERT_EQUAL(8, correctionWMITiming(8));
-    TEST_ASSERT_EQUAL(-3, correctionWMITiming(-3));
+    TEST_ASSERT_EQUAL(8, correctionWMITiming(8, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
+    TEST_ASSERT_EQUAL(-3, correctionWMITiming(-3, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
 }
 
 static void test_correctionWMITiming_tpslow_inactive(void) {
-    setup_WMIAdv();
-    currentStatus.TPS = configPage10.wmiTPS - 1;
+    wmi_advance_t testData;
+    setup_WMIAdv(testData);
+    testData.current.TPS = testData.page10.wmiTPS - 1;
 
-    TEST_ASSERT_EQUAL(8, correctionWMITiming(8));
-    TEST_ASSERT_EQUAL(-3, correctionWMITiming(-3));
+    TEST_ASSERT_EQUAL(8, correctionWMITiming(8, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
+    TEST_ASSERT_EQUAL(-3, correctionWMITiming(-3, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
 }
 
 static void test_correctionWMITiming_rpmlow_inactive(void) {
-    setup_WMIAdv();
-    currentStatus.RPM = configPage10.wmiRPM - 1U;
+    wmi_advance_t testData;
+    setup_WMIAdv(testData);
+    testData.current.RPM = testData.page10.wmiRPM - 1U;
 
-    TEST_ASSERT_EQUAL(8, correctionWMITiming(8));
-    TEST_ASSERT_EQUAL(-3, correctionWMITiming(-3));
+    TEST_ASSERT_EQUAL(8, correctionWMITiming(8, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
+    TEST_ASSERT_EQUAL(-3, correctionWMITiming(-3, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
 }
    
 static void test_correctionWMITiming_maplow_inactive(void) {
-    setup_WMIAdv();
-    currentStatus.MAP = (configPage10.wmiMAP*2)-1;
+    wmi_advance_t testData;
+    setup_WMIAdv(testData);
+    testData.current.MAP = (testData.page10.wmiMAP*2)-1;
 
-    TEST_ASSERT_EQUAL(8, correctionWMITiming(8));
-    TEST_ASSERT_EQUAL(-3, correctionWMITiming(-3));
+    TEST_ASSERT_EQUAL(8, correctionWMITiming(8, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
+    TEST_ASSERT_EQUAL(-3, correctionWMITiming(-3, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
 }
     
 static void test_correctionWMITiming_iatlow_inactive(void) {
-    setup_WMIAdv();
-    currentStatus.IAT = toWorkingTemperature(configPage10.wmiIAT) - 1;
+    wmi_advance_t testData;
+    setup_WMIAdv(testData);
+    testData.current.IAT = toWorkingTemperature(testData.page10.wmiIAT) - 1;
 
-    TEST_ASSERT_EQUAL(8, correctionWMITiming(8));
-    TEST_ASSERT_EQUAL(-3, correctionWMITiming(-3));
+    TEST_ASSERT_EQUAL(8, correctionWMITiming(8, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
+    TEST_ASSERT_EQUAL(-3, correctionWMITiming(-3, testData.current, testData.page10, testData.flexAdvLUT.lookupTable));
 }   
 
 static void test_correctionWMITiming(void) {
@@ -237,167 +272,189 @@ static void test_correctionWMITiming(void) {
     RUN_TEST_P(test_correctionWMITiming_iatlow_inactive);
 }
 
-extern int8_t correctionIATretard(int8_t advance);
+extern int8_t correctionIATretard(int8_t advance, const statuses &current, table2D &lookupTable);
 
-static void setup_IATRetard(void) {
-  construct2dTables();
-  initialiseIgnCorrections(currentStatus);
+struct iat_test_data_t {
+    statuses current;
+    test_2dtable_t<6> iatAdvLUT;
+};
+
+static void setup_IATRetard(iat_test_data_t &testData) {
+  initialiseIgnCorrections(testData.current);
   LOOP_TIMER = 0;
   BIT_SET(LOOP_TIMER, IAT_READ_TIMER_BIT);
   TEST_DATA_P uint8_t bins[] = { 30, 40, 50, 60, 70, 80 };
   TEST_DATA_P uint8_t values[] = { 30, 25, 20, 15, 10, 5 };
-  populate_2dtable_P(&IATRetardTable, values, bins);
+  populate_2dtable_P(&testData.iatAdvLUT.lookupTable, values, bins);
 
-  currentStatus.IAT = 75;
+  testData.current.IAT = 75;
 }
 
 static void test_correctionIATretard_table_lookup(void) {
-    setup_IATRetard();
+    iat_test_data_t testData;
+    setup_IATRetard(testData);
 
-    currentStatus.IAT = 75;
-    TEST_ASSERT_EQUAL(-11-8, correctionIATretard(-11));
+    testData.current.IAT = 75;
+    TEST_ASSERT_EQUAL(-11-8, correctionIATretard(-11, testData.current, testData.iatAdvLUT.lookupTable));
 
-    currentStatus.IAT = 45;
-    TEST_ASSERT_EQUAL(-11-23, correctionIATretard(-11));
+    testData.current.IAT = 45;
+    TEST_ASSERT_EQUAL(-11-23, correctionIATretard(-11, testData.current, testData.iatAdvLUT.lookupTable));
 }
 
 static void test_correctionIATretard(void) {
     RUN_TEST_P(test_correctionIATretard_table_lookup);
 }
 
-extern int8_t correctionIdleAdvance(int8_t advance);
+extern int8_t correctionIdleAdvance(int8_t advance, const statuses &current, const config2 &page2, const config6 &page6, const config9 &page9, table2D &lookupTable);
 
-static void setup_idleadv_tps(void) {
-    configPage2.idleAdvAlgorithm = IDLEADVANCE_ALGO_TPS;
-    configPage2.idleAdvTPS = 30;
-    currentStatus.TPS = configPage2.idleAdvTPS - 1U;
+struct idle_advance_test_data_t {
+    statuses current;
+    config2 page2;
+    config6 page6;
+    config9 page9;
+    test_2dtable_t<6> lookupTable;
+};
+
+static void setup_idleadv_tps(idle_advance_test_data_t &testData) {
+    testData.page2.idleAdvAlgorithm = IDLEADVANCE_ALGO_TPS;
+    testData.page2.idleAdvTPS = 30;
+    testData.current.TPS = testData.page2.idleAdvTPS - 1U;
 }
 
-static void setup_idleadv_ctps(void) {
-    configPage2.idleAdvAlgorithm = IDLEADVANCE_ALGO_CTPS;
-    currentStatus.CTPSActive = 1;
+static void setup_idleadv_ctps(idle_advance_test_data_t &testData) {
+    testData.page2.idleAdvAlgorithm = IDLEADVANCE_ALGO_CTPS;
+    testData.current.CTPSActive = 1;
 }
 
-static void setup_correctionIdleAdvance(void) {
-    construct2dTables();
-    initialiseIgnCorrections(currentStatus);
+static void setup_correctionIdleAdvance(idle_advance_test_data_t &testData) {
+    initialiseIgnCorrections(testData.current);
 
     TEST_DATA_P uint8_t bins[] = { 30, 40, 50, 60, 70, 80 };
     TEST_DATA_P uint8_t values[] = { 30, 25, 20, 15, 10, 5 };
-    populate_2dtable_P(&idleAdvanceTable, values, bins);
+    populate_2dtable_P(&testData.lookupTable.lookupTable, values, bins);
   
-    configPage2.idleAdvEnabled = IDLEADVANCE_MODE_ADDED;
-    configPage2.idleAdvDelay = 5;
-    configPage2.idleAdvRPM = 20;
-    configPage2.vssMode = VSS_MODE_OFF;
-    configPage6.iacAlgorithm = IAC_ALGORITHM_NONE;
-    configPage9.idleAdvStartDelay = 0U;
+    testData.page2.idleAdvEnabled = IDLEADVANCE_MODE_ADDED;
+    testData.page2.idleAdvDelay = 5;
+    testData.page2.idleAdvRPM = 20;
+    testData.page2.vssMode = VSS_MODE_OFF;
+    testData.page6.iacAlgorithm = IAC_ALGORITHM_NONE;
+    testData.page9.idleAdvStartDelay = 0U;
 
-    runSecsX10 = configPage2.idleAdvDelay * 5;
-    BIT_SET(currentStatus.engine, BIT_ENGINE_RUN);
-    // int idleRPMdelta = (currentStatus.CLIdleTarget - (currentStatus.RPM / 10) ) + 50;
-    currentStatus.CLIdleTarget = 100;
-    currentStatus.RPM = (configPage2.idleAdvRPM * 100) - 1U;
+    runSecsX10 = testData.page2.idleAdvDelay * 5;
+    BIT_SET(testData.current.engine, BIT_ENGINE_RUN);
+    // int idleRPMdelta = (testData.current.CLIdleTarget - (testData.current.RPM / 10) ) + 50;
+    testData.current.CLIdleTarget = 100;
+    testData.current.RPM = (testData.page2.idleAdvRPM * 100) - 1U;
     
-    setup_idleadv_tps();
+    setup_idleadv_tps(testData);
     // Run once to initialise internal state
-    correctionIdleAdvance(8);
+    correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable);
 }
 
-static void assert_correctionIdleAdvance(int8_t advance, uint8_t expectedLookupValue) {
-    configPage2.idleAdvEnabled = IDLEADVANCE_MODE_ADDED;
-    TEST_ASSERT_EQUAL(advance + expectedLookupValue - 15, correctionIdleAdvance(advance));
+static void assert_correctionIdleAdvance(int8_t advance, uint8_t expectedLookupValue, idle_advance_test_data_t &testData) {
+    testData.page2.idleAdvEnabled = IDLEADVANCE_MODE_ADDED;
+    TEST_ASSERT_EQUAL(advance + expectedLookupValue - 15, correctionIdleAdvance(advance, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
 
-    configPage2.idleAdvEnabled = IDLEADVANCE_MODE_SWITCHED;
-    TEST_ASSERT_EQUAL(expectedLookupValue - 15, correctionIdleAdvance(advance));
+    testData.page2.idleAdvEnabled = IDLEADVANCE_MODE_SWITCHED;
+    TEST_ASSERT_EQUAL(expectedLookupValue - 15, correctionIdleAdvance(advance, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
 }
 
 static void test_correctionIdleAdvance_tps_lookup_nodelay(void) {
-    setup_correctionIdleAdvance();
+    idle_advance_test_data_t testData;
+    setup_correctionIdleAdvance(testData);
 
-    setup_idleadv_tps();
+    setup_idleadv_tps(testData);
 
-    currentStatus.RPM = (currentStatus.CLIdleTarget * 10) + 100;
-    assert_correctionIdleAdvance(8, 25);
+    testData.current.RPM = (testData.current.CLIdleTarget * 10) + 100;
+    assert_correctionIdleAdvance(8, 25, testData);
 
-    currentStatus.RPM = (currentStatus.CLIdleTarget * 10) - 100;
-    assert_correctionIdleAdvance(-3, 15);
+    testData.current.RPM = (testData.current.CLIdleTarget * 10) - 100;
+    assert_correctionIdleAdvance(-3, 15, testData);
 }
 
 static void test_correctionIdleAdvance_ctps_lookup_nodelay(void) {
-    setup_correctionIdleAdvance();
+    idle_advance_test_data_t testData;
+    setup_correctionIdleAdvance(testData);
 
-    setup_idleadv_ctps();
+    setup_idleadv_ctps(testData);
 
-    currentStatus.RPM = (currentStatus.CLIdleTarget * 10) + 100;
-    assert_correctionIdleAdvance(8, 25);
+    testData.current.RPM = (testData.current.CLIdleTarget * 10) + 100;
+    assert_correctionIdleAdvance(8, 25, testData);
 
-    currentStatus.RPM = (currentStatus.CLIdleTarget * 10) - 100;
-    assert_correctionIdleAdvance(-3, 15);
+    testData.current.RPM = (testData.current.CLIdleTarget * 10) - 100;
+    assert_correctionIdleAdvance(-3, 15, testData);
 }
 
 static void test_correctionIdleAdvance_inactive_notrunning(void) {
-    setup_correctionIdleAdvance();
+    idle_advance_test_data_t testData;
+    setup_correctionIdleAdvance(testData);
     
-    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8));
-    BIT_CLEAR(currentStatus.engine, BIT_ENGINE_RUN);
-    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8));
+    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
+    BIT_CLEAR(testData.current.engine, BIT_ENGINE_RUN);
+    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
 }
 
 static void test_correctionIdleAdvance_noadvance_modeoff(void) {
-    setup_correctionIdleAdvance();
-    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8));
-    configPage2.idleAdvEnabled = IDLEADVANCE_MODE_OFF;
-    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8));
+    idle_advance_test_data_t testData;
+    setup_correctionIdleAdvance(testData);
+    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
+    testData.page2.idleAdvEnabled = IDLEADVANCE_MODE_OFF;
+    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
 }
 
 static void test_correctionIdleAdvance_noadvance_rpmtoohigh(void) {
-    setup_correctionIdleAdvance();
-    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8));
-    currentStatus.RPM = (configPage2.idleAdvRPM * 100)+1;
-    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8));
+    idle_advance_test_data_t testData;
+    setup_correctionIdleAdvance(testData);
+    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
+    testData.current.RPM = (testData.page2.idleAdvRPM * 100)+1;
+    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
 }
 
 static void test_correctionIdleAdvance_noadvance_vsslimit(void) {
-    setup_correctionIdleAdvance();
-    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8));
-    configPage2.vssMode = VSS_MODE_INTERNAL_PIN;
-    configPage2.idleAdvVss = 15;
-    currentStatus.vss = configPage2.idleAdvVss + 1;
-    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8));
+    idle_advance_test_data_t testData;
+    setup_correctionIdleAdvance(testData);
+    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
+    testData.page2.vssMode = VSS_MODE_INTERNAL_PIN;
+    testData.page2.idleAdvVss = 15;
+    testData.current.vss = testData.page2.idleAdvVss + 1;
+    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
 }
 
 static void test_correctionIdleAdvance_noadvance_tpslimit(void) {
-    setup_correctionIdleAdvance();
-    setup_idleadv_tps();
-    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8));
-    currentStatus.TPS = configPage2.idleAdvTPS + 1U;
-    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8));
+    idle_advance_test_data_t testData;
+    setup_correctionIdleAdvance(testData);
+    setup_idleadv_tps(testData);
+    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
+    testData.current.TPS = testData.page2.idleAdvTPS + 1U;
+    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
 }
 
 static void test_correctionIdleAdvance_noadvance_ctpsinactive(void) {
-    setup_correctionIdleAdvance();
-    setup_idleadv_ctps();
-    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8));
-    currentStatus.CTPSActive = 0;
-    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8));
+    idle_advance_test_data_t testData;
+    setup_correctionIdleAdvance(testData);
+    setup_idleadv_ctps(testData);
+    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
+    testData.current.CTPSActive = 0;
+    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
 }
 
 static void test_correctionIdleAdvance_noadvance_rundelay(void) {
-    setup_correctionIdleAdvance();
-    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8));
-    runSecsX10 = (configPage2.idleAdvDelay * 5)-1;
-    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8));
+    idle_advance_test_data_t testData;
+    setup_correctionIdleAdvance(testData);
+    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
+    runSecsX10 = (testData.page2.idleAdvDelay * 5)-1;
+    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
 }
 
 static void test_correctionIdleAdvance_delay(void) {
-    setup_correctionIdleAdvance();
-    configPage9.idleAdvStartDelay = 3;
+    idle_advance_test_data_t testData;
+    setup_correctionIdleAdvance(testData);
+    testData.page9.idleAdvStartDelay = 3;
     BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
-    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8));
-    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8));
-    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8));
-    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8));
+    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
+    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
+    TEST_ASSERT_EQUAL(8, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
+    TEST_ASSERT_EQUAL(23, correctionIdleAdvance(8, testData.current, testData.page2, testData.page6, testData.page9, testData.lookupTable.lookupTable));
 }
 
 static void test_correctionIdleAdvance(void) {
@@ -413,78 +470,88 @@ static void test_correctionIdleAdvance(void) {
     RUN_TEST_P(test_correctionIdleAdvance_delay);
 }
 
-extern int8_t correctionSoftRevLimit(int8_t advance);
+extern int8_t correctionSoftRevLimit(int8_t advance, statuses &current, const config2 &page2, const config4 &page4, const config6 &page6);
 
-static void setup_correctionSoftRevLimit(void) {
-    construct2dTables();
-    initialiseIgnCorrections(currentStatus);
+struct soft_revlimit_testdata {
+    statuses current;
+    config2 page2;
+    config4 page4;
+    config6 page6;
+};
 
-    configPage6.engineProtectType = PROTECT_CUT_IGN;
-    configPage4.SoftRevLim = 50;
-    configPage4.SoftLimMax = 1;
-    configPage4.SoftLimRetard = 5;
-    configPage2.SoftLimitMode = SOFT_LIMIT_FIXED;
+static void setup_correctionSoftRevLimit(soft_revlimit_testdata &testData) {
+    initialiseIgnCorrections(testData.current);
 
-    currentStatus.RPMdiv100 = configPage4.SoftRevLim + 1;
+    testData.page6.engineProtectType = PROTECT_CUT_IGN;
+    testData.page4.SoftRevLim = 50;
+    testData.page4.SoftLimMax = 1;
+    testData.page4.SoftLimRetard = 5;
+    testData.page2.SoftLimitMode = SOFT_LIMIT_FIXED;
+
+    testData.current.RPMdiv100 = testData.page4.SoftRevLim + 1;
     softLimitTime = 0;
 
     BIT_CLEAR(LOOP_TIMER, BIT_TIMER_10HZ);
 }
 
-static void assert_correctionSoftRevLimit(int8_t advance) {
-    configPage2.SoftLimitMode = SOFT_LIMIT_FIXED;
-    TEST_ASSERT_EQUAL(configPage4.SoftLimRetard, correctionSoftRevLimit(advance));
-    TEST_ASSERT_BIT_HIGH(BIT_STATUS2_SFTLIM , currentStatus.status2);
+static void assert_correctionSoftRevLimit(int8_t advance, soft_revlimit_testdata &testData) {
+    testData.page2.SoftLimitMode = SOFT_LIMIT_FIXED;
+    TEST_ASSERT_EQUAL(testData.page4.SoftLimRetard, correctionSoftRevLimit(advance, testData.current, testData.page2, testData.page4, testData.page6));
+    TEST_ASSERT_BIT_HIGH(BIT_STATUS2_SFTLIM, testData.current.status2);
 
-    BIT_CLEAR(currentStatus.status2, BIT_STATUS2_SFTLIM);
-    configPage2.SoftLimitMode = SOFT_LIMIT_RELATIVE;
-    TEST_ASSERT_EQUAL(advance-configPage4.SoftLimRetard, correctionSoftRevLimit(advance));
-    TEST_ASSERT_BIT_HIGH(BIT_STATUS2_SFTLIM , currentStatus.status2);
+    BIT_CLEAR(testData.current.status2, BIT_STATUS2_SFTLIM);
+    testData.page2.SoftLimitMode = SOFT_LIMIT_RELATIVE;
+    TEST_ASSERT_EQUAL(advance-testData.page4.SoftLimRetard, correctionSoftRevLimit(advance, testData.current, testData.page2, testData.page4, testData.page6));
+    TEST_ASSERT_BIT_HIGH(BIT_STATUS2_SFTLIM, testData.current.status2);
 }
 
 static void test_correctionSoftRevLimit_modes(void) {
-    setup_correctionSoftRevLimit();
+    soft_revlimit_testdata testData;
+    setup_correctionSoftRevLimit(testData);
 
-    assert_correctionSoftRevLimit(8);
-    assert_correctionSoftRevLimit(-3);
+    assert_correctionSoftRevLimit(8, testData);
+    assert_correctionSoftRevLimit(-3, testData);
 }
 
 static void test_correctionSoftRevLimit_inactive_protecttype(void) {
-    setup_correctionSoftRevLimit();
+    soft_revlimit_testdata testData;
+    setup_correctionSoftRevLimit(testData);
 
-    configPage6.engineProtectType = PROTECT_CUT_OFF;
-    BIT_SET(currentStatus.status2, BIT_STATUS2_SFTLIM);
-    TEST_ASSERT_EQUAL(8, correctionSoftRevLimit(8));
-    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SFTLIM , currentStatus.status2);
+    testData.page6.engineProtectType = PROTECT_CUT_OFF;
+    BIT_SET(testData.current.status2, BIT_STATUS2_SFTLIM);
+    TEST_ASSERT_EQUAL(8, correctionSoftRevLimit(8, testData.current, testData.page2, testData.page4, testData.page6));
+    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SFTLIM, testData.current.status2);
 
-    configPage6.engineProtectType = PROTECT_CUT_FUEL;
-    BIT_SET(currentStatus.status2, BIT_STATUS2_SFTLIM);
-    TEST_ASSERT_EQUAL(8, correctionSoftRevLimit(8));
-    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SFTLIM , currentStatus.status2);
+    testData.page6.engineProtectType = PROTECT_CUT_FUEL;
+    BIT_SET(testData.current.status2, BIT_STATUS2_SFTLIM);
+    TEST_ASSERT_EQUAL(8, correctionSoftRevLimit(8, testData.current, testData.page2, testData.page4, testData.page6));
+    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SFTLIM, testData.current.status2);
 }
 
 static void test_correctionSoftRevLimit_inactive_rpmtoohigh(void) {
-    setup_correctionSoftRevLimit();
-    assert_correctionSoftRevLimit(8);
+    soft_revlimit_testdata testData;
+    setup_correctionSoftRevLimit(testData);
+    assert_correctionSoftRevLimit(8, testData);
 
-    currentStatus.RPMdiv100 = configPage4.SoftRevLim-1;
-    BIT_SET(currentStatus.status2, BIT_STATUS2_SFTLIM);
-    TEST_ASSERT_EQUAL(8, correctionSoftRevLimit(8));
-    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SFTLIM , currentStatus.status2);
+    testData.current.RPMdiv100 = testData.page4.SoftRevLim-1;
+    BIT_SET(testData.current.status2, BIT_STATUS2_SFTLIM);
+    TEST_ASSERT_EQUAL(8, correctionSoftRevLimit(8, testData.current, testData.page2, testData.page4, testData.page6));
+    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SFTLIM, testData.current.status2);
 }
 
 static void test_correctionSoftRevLimit_timeout(void) {
-    setup_correctionSoftRevLimit();
+    soft_revlimit_testdata testData;
+    setup_correctionSoftRevLimit(testData);
 
-    configPage4.SoftLimMax = 3;
-    configPage2.SoftLimitMode = SOFT_LIMIT_RELATIVE;
+    testData.page4.SoftLimMax = 3;
+    testData.page2.SoftLimitMode = SOFT_LIMIT_RELATIVE;
     BIT_SET(LOOP_TIMER, BIT_TIMER_10HZ);
-    TEST_ASSERT_EQUAL(8-configPage4.SoftLimRetard, correctionSoftRevLimit(8));
-    TEST_ASSERT_EQUAL(-5-configPage4.SoftLimRetard, correctionSoftRevLimit(-5));
-    TEST_ASSERT_EQUAL(23-configPage4.SoftLimRetard, correctionSoftRevLimit(23));
-    TEST_ASSERT_EQUAL(-21, correctionSoftRevLimit(-21));
-    TEST_ASSERT_EQUAL(8, correctionSoftRevLimit(8));
-    TEST_ASSERT_EQUAL(0, correctionSoftRevLimit(0));
+    TEST_ASSERT_EQUAL(8-testData.page4.SoftLimRetard, correctionSoftRevLimit(8, testData.current, testData.page2, testData.page4, testData.page6));
+    TEST_ASSERT_EQUAL(-5-testData.page4.SoftLimRetard, correctionSoftRevLimit(-5, testData.current, testData.page2, testData.page4, testData.page6));
+    TEST_ASSERT_EQUAL(23-testData.page4.SoftLimRetard, correctionSoftRevLimit(23, testData.current, testData.page2, testData.page4, testData.page6));
+    TEST_ASSERT_EQUAL(-21, correctionSoftRevLimit(-21, testData.current, testData.page2, testData.page4, testData.page6));
+    TEST_ASSERT_EQUAL(8, correctionSoftRevLimit(8, testData.current, testData.page2, testData.page4, testData.page6));
+    TEST_ASSERT_EQUAL(0, correctionSoftRevLimit(0, testData.current, testData.page2, testData.page4, testData.page6));
 }
 
 static void test_correctionSoftRevLimit(void) {
@@ -494,50 +561,58 @@ static void test_correctionSoftRevLimit(void) {
     RUN_TEST_P(test_correctionSoftRevLimit_timeout);
 }
 
-extern int8_t correctionNitrous(int8_t advance);
+extern int8_t correctionNitrous(int8_t advance, const statuses &current, const config10 &page10);
 
 static void test_correctionNitrous_disabled(void) {
-    configPage10.n2o_enable = 0;
-    TEST_ASSERT_EQUAL(13, correctionNitrous(13));
-    TEST_ASSERT_EQUAL(-13, correctionNitrous(-13));
+    statuses current;
+    config10 page10;
+    page10.n2o_enable = 0;
+    TEST_ASSERT_EQUAL(13, correctionNitrous(13, current, page10));
+    TEST_ASSERT_EQUAL(-13, correctionNitrous(-13, current, page10));
 }
 
 static void test_correctionNitrous_stage1(void) {
-    configPage10.n2o_enable = 1;
-    configPage10.n2o_stage1_retard = 5;
-    configPage10.n2o_stage2_retard = 0;
+    statuses current;
+    config10 page10;
+    page10.n2o_enable = 1;
+    page10.n2o_stage1_retard = 5;
+    page10.n2o_stage2_retard = 0;
     
-    currentStatus.nitrous_status = NITROUS_STAGE1;
-    TEST_ASSERT_EQUAL(8, correctionNitrous(13));
-    TEST_ASSERT_EQUAL(-18, correctionNitrous(-13));
+    current.nitrous_status = NITROUS_STAGE1;
+    TEST_ASSERT_EQUAL(8, correctionNitrous(13, current, page10));
+    TEST_ASSERT_EQUAL(-18, correctionNitrous(-13, current, page10));
     
-    currentStatus.nitrous_status = NITROUS_BOTH;
-    TEST_ASSERT_EQUAL(8, correctionNitrous(13));
-    TEST_ASSERT_EQUAL(-18, correctionNitrous(-13));
+    current.nitrous_status = NITROUS_BOTH;
+    TEST_ASSERT_EQUAL(8, correctionNitrous(13, current, page10));
+    TEST_ASSERT_EQUAL(-18, correctionNitrous(-13, current, page10));
 }
 
 static void test_correctionNitrous_stage2(void) {
-    configPage10.n2o_enable = 1;
-    configPage10.n2o_stage1_retard = 0;
-    configPage10.n2o_stage2_retard = 5;
+    statuses current;
+    config10 page10;
+    page10.n2o_enable = 1;
+    page10.n2o_stage1_retard = 0;
+    page10.n2o_stage2_retard = 5;
     
-    currentStatus.nitrous_status = NITROUS_STAGE2;
-    TEST_ASSERT_EQUAL(8, correctionNitrous(13));
-    TEST_ASSERT_EQUAL(-18, correctionNitrous(-13));
+    current.nitrous_status = NITROUS_STAGE2;
+    TEST_ASSERT_EQUAL(8, correctionNitrous(13, current, page10));
+    TEST_ASSERT_EQUAL(-18, correctionNitrous(-13, current, page10));
     
-    currentStatus.nitrous_status = NITROUS_BOTH;
-    TEST_ASSERT_EQUAL(8, correctionNitrous(13));
-    TEST_ASSERT_EQUAL(-18, correctionNitrous(-13));
+    current.nitrous_status = NITROUS_BOTH;
+    TEST_ASSERT_EQUAL(8, correctionNitrous(13, current, page10));
+    TEST_ASSERT_EQUAL(-18, correctionNitrous(-13, current, page10));
 }
 
 static void test_correctionNitrous_stageboth(void) {
-    configPage10.n2o_enable = 1;
-    configPage10.n2o_stage1_retard = 3;
-    configPage10.n2o_stage2_retard = 5;
+    statuses current;
+    config10 page10;
+    page10.n2o_enable = 1;
+    page10.n2o_stage1_retard = 3;
+    page10.n2o_stage2_retard = 5;
       
-    currentStatus.nitrous_status = NITROUS_BOTH;
-    TEST_ASSERT_EQUAL(5, correctionNitrous(13));
-    TEST_ASSERT_EQUAL(-21, correctionNitrous(-13));
+    current.nitrous_status = NITROUS_BOTH;
+    TEST_ASSERT_EQUAL(5, correctionNitrous(13, current, page10));
+    TEST_ASSERT_EQUAL(-21, correctionNitrous(-13, current, page10));
 }
 
 static void test_correctionNitrous(void) {
@@ -547,76 +622,88 @@ static void test_correctionNitrous(void) {
     RUN_TEST_P(test_correctionNitrous_stageboth);
 }
 
-extern int8_t correctionSoftLaunch(int8_t advance);
+extern int8_t correctionSoftLaunch(int8_t advance, statuses &current, const config6 &page6, const config10 &page10);
 
-static void setup_correctionSoftLaunch(void) {
-    configPage6.launchEnabled = 1;
-    configPage6.flatSArm = 20;
-    configPage6.lnchSoftLim = 40;
-    configPage10.lnchCtrlTPS = 80;
+struct soft_launch_data_t {
+    statuses current;
+    config6 page6;
+    config10 page10;
+};
+
+static void setup_correctionSoftLaunch(soft_launch_data_t &testData) {
+    testData.page6.launchEnabled = 1;
+    testData.page6.flatSArm = 20;
+    testData.page6.lnchSoftLim = 40;
+    testData.page10.lnchCtrlTPS = 80;
     
-    currentStatus.clutchTrigger = 1;
-    currentStatus.clutchEngagedRPM = ((configPage6.flatSArm) * 100) - 100;
-    currentStatus.RPM = ((configPage6.lnchSoftLim) * 100) + 100;
-    currentStatus.TPS = configPage10.lnchCtrlTPS + 1;
+    testData.current.clutchTrigger = 1;
+    testData.current.clutchEngagedRPM = ((testData.page6.flatSArm) * 100) - 100;
+    testData.current.RPM = ((testData.page6.lnchSoftLim) * 100) + 100;
+    testData.current.TPS = testData.page10.lnchCtrlTPS + 1;
 }
 
 static void test_correctionSoftLaunch_on(void) {
-    setup_correctionSoftLaunch();
+    soft_launch_data_t testData;
+    setup_correctionSoftLaunch(testData);
 
-    configPage6.lnchRetard = -3;
-    TEST_ASSERT_EQUAL(configPage6.lnchRetard, correctionSoftLaunch(-8));
-    TEST_ASSERT_BIT_HIGH(BIT_STATUS2_SLAUNCH, currentStatus.status2);
+    testData.page6.lnchRetard = -3;
+    TEST_ASSERT_EQUAL(testData.page6.lnchRetard, correctionSoftLaunch(-8, testData.current, testData.page6, testData.page10));
+    TEST_ASSERT_BIT_HIGH(BIT_STATUS2_SLAUNCH, testData.current.status2);
 
-    configPage6.lnchRetard = 3;
-    BIT_CLEAR(currentStatus.status2, BIT_STATUS2_SLAUNCH);
-    TEST_ASSERT_EQUAL(configPage6.lnchRetard, correctionSoftLaunch(8));
-    TEST_ASSERT_BIT_HIGH(BIT_STATUS2_SLAUNCH, currentStatus.status2);
+    testData.page6.lnchRetard = 3;
+    BIT_CLEAR(testData.current.status2, BIT_STATUS2_SLAUNCH);
+    TEST_ASSERT_EQUAL(testData.page6.lnchRetard, correctionSoftLaunch(8, testData.current, testData.page6, testData.page10));
+    TEST_ASSERT_BIT_HIGH(BIT_STATUS2_SLAUNCH, testData.current.status2);
 }
 
 static void test_correctionSoftLaunch_off_disabled(void) {
-    setup_correctionSoftLaunch();
-    configPage6.launchEnabled = 0;
-    configPage6.lnchRetard = -3;
+    soft_launch_data_t testData;
+    setup_correctionSoftLaunch(testData);
+    testData.page6.launchEnabled = 0;
+    testData.page6.lnchRetard = -3;
 
-    TEST_ASSERT_EQUAL(-8, correctionSoftLaunch(-8));
-    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SLAUNCH, currentStatus.status2);
+    TEST_ASSERT_EQUAL(-8, correctionSoftLaunch(-8, testData.current, testData.page6, testData.page10));
+    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SLAUNCH, testData.current.status2);
 }
 
 static void test_correctionSoftLaunch_off_noclutchtrigger(void) {
-    setup_correctionSoftLaunch();
-    currentStatus.clutchTrigger = 0;
-    configPage6.lnchRetard = -3;
+    soft_launch_data_t testData;
+    setup_correctionSoftLaunch(testData);
+    testData.current.clutchTrigger = 0;
+    testData.page6.lnchRetard = -3;
 
-    TEST_ASSERT_EQUAL(-8, correctionSoftLaunch(-8));
-    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SLAUNCH, currentStatus.status2);
+    TEST_ASSERT_EQUAL(-8, correctionSoftLaunch(-8, testData.current, testData.page6, testData.page10));
+    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SLAUNCH, testData.current.status2);
 }
 
 static void test_correctionSoftLaunch_off_clutchrpmlow(void) {
-    setup_correctionSoftLaunch();
-    currentStatus.clutchEngagedRPM = (configPage6.flatSArm * 100) + 1;
-    configPage6.lnchRetard = -3;
+    soft_launch_data_t testData;
+    setup_correctionSoftLaunch(testData);
+    testData.current.clutchEngagedRPM = (testData.page6.flatSArm * 100) + 1;
+    testData.page6.lnchRetard = -3;
 
-    TEST_ASSERT_EQUAL(-8, correctionSoftLaunch(-8));
-    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SLAUNCH, currentStatus.status2);
+    TEST_ASSERT_EQUAL(-8, correctionSoftLaunch(-8, testData.current, testData.page6, testData.page10));
+    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SLAUNCH, testData.current.status2);
 }
 
 static void test_correctionSoftLaunch_off_rpmlimit(void) {
-    setup_correctionSoftLaunch();
-    currentStatus.RPM = (configPage6.lnchSoftLim * 100) - 1;
-    configPage6.lnchRetard = -3;
+    soft_launch_data_t testData;
+    setup_correctionSoftLaunch(testData);
+    testData.current.RPM = (testData.page6.lnchSoftLim * 100) - 1;
+    testData.page6.lnchRetard = -3;
 
-    TEST_ASSERT_EQUAL(-8, correctionSoftLaunch(-8));
-    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SLAUNCH, currentStatus.status2);
+    TEST_ASSERT_EQUAL(-8, correctionSoftLaunch(-8, testData.current, testData.page6, testData.page10));
+    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SLAUNCH, testData.current.status2);
 }
 
 static void test_correctionSoftLaunch_off_tpslow(void) {
-    setup_correctionSoftLaunch();
-    currentStatus.TPS = configPage10.lnchCtrlTPS - 1;
-    configPage6.lnchRetard = -3;
+    soft_launch_data_t testData;
+    setup_correctionSoftLaunch(testData);
+    testData.current.TPS = testData.page10.lnchCtrlTPS - 1;
+    testData.page6.lnchRetard = -3;
 
-    TEST_ASSERT_EQUAL(-8, correctionSoftLaunch(-8));
-    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SLAUNCH, currentStatus.status2);
+    TEST_ASSERT_EQUAL(-8, correctionSoftLaunch(-8, testData.current, testData.page6, testData.page10));
+    TEST_ASSERT_BIT_LOW(BIT_STATUS2_SLAUNCH, testData.current.status2);
 }
 
 static void test_correctionSoftLaunch(void) {
@@ -628,70 +715,80 @@ static void test_correctionSoftLaunch(void) {
     RUN_TEST_P(test_correctionSoftLaunch_off_tpslow);
 }
 
-extern int8_t correctionSoftFlatShift(int8_t advance);
+extern int8_t correctionSoftFlatShift(int8_t advance, statuses &current, const config6 &page6);
 
-static void setup_correctionSoftFlatShift(void) {
-    configPage6.flatSEnable = 1;
-    configPage6.flatSArm = 10;
-    configPage6.flatSSoftWin = 10;
+struct soft_flatshift_data_t {
+    statuses current;
+    config6 page6;
+};
+
+static void setup_correctionSoftFlatShift(soft_flatshift_data_t &testData) {
+    testData.page6.flatSEnable = 1;
+    testData.page6.flatSArm = 10;
+    testData.page6.flatSSoftWin = 10;
     
-    currentStatus.clutchTrigger = 1;
-    currentStatus.clutchEngagedRPM = ((configPage6.flatSArm) * 100) + 500;
-    currentStatus.RPM = currentStatus.clutchEngagedRPM + 600;
+    testData.current.clutchTrigger = 1;
+    testData.current.clutchEngagedRPM = ((testData.page6.flatSArm) * 100) + 500;
+    testData.current.RPM = testData.current.clutchEngagedRPM + 600;
 
-    BIT_CLEAR(currentStatus.status5, BIT_STATUS5_FLATSS);
+    BIT_CLEAR(testData.current.status5, BIT_STATUS5_FLATSS);
 }
 
 static void test_correctionSoftFlatShift_on(void) {
-    setup_correctionSoftFlatShift();
-    configPage6.flatSRetard = -3;
+    soft_flatshift_data_t testData;
+    setup_correctionSoftFlatShift(testData);
+    testData.page6.flatSRetard = -3;
 
-    TEST_ASSERT_EQUAL(configPage6.flatSRetard, correctionSoftFlatShift(-8));
-    TEST_ASSERT_BIT_HIGH(BIT_STATUS5_FLATSS, currentStatus.status5);
+    TEST_ASSERT_EQUAL(testData.page6.flatSRetard, correctionSoftFlatShift(-8, testData.current, testData.page6));
+    TEST_ASSERT_BIT_HIGH(BIT_STATUS5_FLATSS, testData.current.status5);
 
-    BIT_CLEAR(currentStatus.status5, BIT_STATUS5_FLATSS);
-    TEST_ASSERT_EQUAL(configPage6.flatSRetard, correctionSoftFlatShift(3));
-    TEST_ASSERT_BIT_HIGH(BIT_STATUS5_FLATSS, currentStatus.status5);
+    BIT_CLEAR(testData.current.status5, BIT_STATUS5_FLATSS);
+    TEST_ASSERT_EQUAL(testData.page6.flatSRetard, correctionSoftFlatShift(3, testData.current, testData.page6));
+    TEST_ASSERT_BIT_HIGH(BIT_STATUS5_FLATSS, testData.current.status5);
 }
 
 static void test_correctionSoftFlatShift_off_disabled(void) {
-    setup_correctionSoftFlatShift();
-    configPage6.flatSRetard = -3;
-    configPage6.flatSEnable = 0;
+    soft_flatshift_data_t testData;
+    setup_correctionSoftFlatShift(testData);
+    testData.page6.flatSRetard = -3;
+    testData.page6.flatSEnable = 0;
 
-    BIT_SET(currentStatus.status5, BIT_STATUS5_FLATSS);
-    TEST_ASSERT_EQUAL(-8, correctionSoftFlatShift(-8));
-    TEST_ASSERT_BIT_LOW(BIT_STATUS5_FLATSS, currentStatus.status5);
+    BIT_SET(testData.current.status5, BIT_STATUS5_FLATSS);
+    TEST_ASSERT_EQUAL(-8, correctionSoftFlatShift(-8, testData.current, testData.page6));
+    TEST_ASSERT_BIT_LOW(BIT_STATUS5_FLATSS, testData.current.status5);
 }
 
 static void test_correctionSoftFlatShift_off_noclutchtrigger(void) {
-    setup_correctionSoftFlatShift();
-    configPage6.flatSRetard = -3;
-    currentStatus.clutchTrigger = 0;
+    soft_flatshift_data_t testData;
+    setup_correctionSoftFlatShift(testData);
+    testData.page6.flatSRetard = -3;
+    testData.current.clutchTrigger = 0;
 
-    BIT_SET(currentStatus.status5, BIT_STATUS5_FLATSS);
-    TEST_ASSERT_EQUAL(-8, correctionSoftFlatShift(-8));
-    TEST_ASSERT_BIT_LOW(BIT_STATUS5_FLATSS, currentStatus.status5);
+    BIT_SET(testData.current.status5, BIT_STATUS5_FLATSS);
+    TEST_ASSERT_EQUAL(-8, correctionSoftFlatShift(-8, testData.current, testData.page6));
+    TEST_ASSERT_BIT_LOW(BIT_STATUS5_FLATSS, testData.current.status5);
 }
 
 static void test_correctionSoftFlatShift_off_clutchrpmtoolow(void) {
-    setup_correctionSoftFlatShift();
-    configPage6.flatSRetard = -3;
-    currentStatus.clutchEngagedRPM = ((configPage6.flatSArm) * 100) - 500;
+    soft_flatshift_data_t testData;
+    setup_correctionSoftFlatShift(testData);
+    testData.page6.flatSRetard = -3;
+    testData.current.clutchEngagedRPM = ((testData.page6.flatSArm) * 100) - 500;
 
-    BIT_SET(currentStatus.status5, BIT_STATUS5_FLATSS);
-    TEST_ASSERT_EQUAL(-8, correctionSoftFlatShift(-8));
-    TEST_ASSERT_BIT_LOW(BIT_STATUS5_FLATSS, currentStatus.status5);
+    BIT_SET(testData.current.status5, BIT_STATUS5_FLATSS);
+    TEST_ASSERT_EQUAL(-8, correctionSoftFlatShift(-8, testData.current, testData.page6));
+    TEST_ASSERT_BIT_LOW(BIT_STATUS5_FLATSS, testData.current.status5);
 }
 
 static void test_correctionSoftFlatShift_off_rpmnotinwindow(void) {
-    setup_correctionSoftFlatShift();
-    configPage6.flatSRetard = -3;
-    currentStatus.RPM = (currentStatus.clutchEngagedRPM - (configPage6.flatSSoftWin * 100) ) - 100;
+    soft_flatshift_data_t testData;
+    setup_correctionSoftFlatShift(testData);
+    testData.page6.flatSRetard = -3;
+    testData.current.RPM = (testData.current.clutchEngagedRPM - (testData.page6.flatSSoftWin * 100) ) - 100;
 
-    BIT_SET(currentStatus.status5, BIT_STATUS5_FLATSS);
-    TEST_ASSERT_EQUAL(-8, correctionSoftFlatShift(-8));
-    TEST_ASSERT_BIT_LOW(BIT_STATUS5_FLATSS, currentStatus.status5);
+    BIT_SET(testData.current.status5, BIT_STATUS5_FLATSS);
+    TEST_ASSERT_EQUAL(-8, correctionSoftFlatShift(-8, testData.current, testData.page6));
+    TEST_ASSERT_BIT_LOW(BIT_STATUS5_FLATSS, testData.current.status5);
 }
 
 static void test_correctionSoftFlatShift(void) {
@@ -747,89 +844,101 @@ static void test_correctionKnock_disabled_knockactive(void) {
 static void test_correctionKnock(void) {
 }
 
-static void setup_correctionsDwell(void) {
-    construct2dTables();
-    initialiseIgnCorrections(currentStatus);
+struct dwell_correction_data_t {
+    statuses current;
+    config2 page2;
+    config4 page4;
+    config10 page10;
+    test_2dtable_t<6> lookupTable;
+};
+
+static void setup_correctionsDwell(dwell_correction_data_t &testData) {
+    initialiseIgnCorrections(testData.current);
     BIT_SET(LOOP_TIMER, BIT_TIMER_4HZ);
 
-    configPage4.sparkDur = 10;
-    configPage2.perToothIgn = false;
-    configPage4.dwellErrCorrect = 0;
-    configPage4.sparkMode = IGN_MODE_WASTED;
+    testData.page4.sparkDur = 10;
+    testData.page2.perToothIgn = false;
+    testData.page4.dwellErrCorrect = 0;
+    testData.page4.sparkMode = IGN_MODE_WASTED;
 
-    currentStatus.actualDwell = 770;
-    currentStatus.battery10 = 95;
+    testData.current.actualDwell = 770;
+    testData.current.battery10 = 95;
 
     revolutionTime = 666;
 
     TEST_DATA_P uint8_t bins[] = { 60,  70,  80,  90,  100, 110 };
     TEST_DATA_P uint8_t values[] = { 130, 125, 120, 115, 110, 90 };
-    populate_2dtable_P(&dwellVCorrectionTable, values, bins);   
+    populate_2dtable_P(&testData.lookupTable.lookupTable, values, bins);   
 }
 
 static void test_correctionsDwell_nopertooth(void) {
-    setup_correctionsDwell();
+    dwell_correction_data_t testData;
+    setup_correctionsDwell(testData);
 
-    currentStatus.battery10 = 105;
-    configPage2.nCylinders = 8;
+    testData.current.battery10 = 105;
+    testData.page2.nCylinders = 8;
 
-    configPage4.sparkMode = IGN_MODE_WASTED;
-    TEST_ASSERT_EQUAL(296, correctionsDwell(800));
+    testData.page4.sparkMode = IGN_MODE_WASTED;
+    TEST_ASSERT_EQUAL(296, correctionsDwell(800, testData.current, testData.page2, testData.page4, testData.page10, testData.lookupTable.lookupTable));
 
-    configPage4.sparkMode = IGN_MODE_SINGLE;
-    TEST_ASSERT_EQUAL(74, correctionsDwell(800));
+    testData.page4.sparkMode = IGN_MODE_SINGLE;
+    TEST_ASSERT_EQUAL(74, correctionsDwell(800, testData.current, testData.page2, testData.page4, testData.page10, testData.lookupTable.lookupTable));
 
-    configPage4.sparkMode = IGN_MODE_ROTARY;
-    configPage10.rotaryType = ROTARY_IGN_RX8;
-    TEST_ASSERT_EQUAL(296, correctionsDwell(800));
+    testData.page4.sparkMode = IGN_MODE_ROTARY;
+    testData.page10.rotaryType = ROTARY_IGN_RX8;
+    TEST_ASSERT_EQUAL(296, correctionsDwell(800, testData.current, testData.page2, testData.page4, testData.page10, testData.lookupTable.lookupTable));
 
-    configPage4.sparkMode = IGN_MODE_ROTARY;
-    configPage10.rotaryType = ROTARY_IGN_FC;
-    TEST_ASSERT_EQUAL(74, correctionsDwell(800));
+    testData.page4.sparkMode = IGN_MODE_ROTARY;
+    testData.page10.rotaryType = ROTARY_IGN_FC;
+    TEST_ASSERT_EQUAL(74, correctionsDwell(800, testData.current, testData.page2, testData.page4, testData.page10, testData.lookupTable.lookupTable));
 }
 
 static void test_correctionsDwell_pertooth(void) {
-    setup_correctionsDwell();
+    dwell_correction_data_t testData;
+    setup_correctionsDwell(testData);
 
-    currentStatus.battery10 = 105;
-    configPage2.perToothIgn = true;
-    configPage4.dwellErrCorrect = 1;
-    configPage4.sparkMode = IGN_MODE_WASTED;
+    testData.current.battery10 = 105;
+    testData.page2.perToothIgn = true;
+    testData.page4.dwellErrCorrect = 1;
+    testData.page4.sparkMode = IGN_MODE_WASTED;
 
-    currentStatus.actualDwell = 200;
-    TEST_ASSERT_EQUAL(444, correctionsDwell(800));
+    testData.current.actualDwell = 200;
+    TEST_ASSERT_EQUAL(444, correctionsDwell(800, testData.current, testData.page2, testData.page4, testData.page10, testData.lookupTable.lookupTable));
 
-    currentStatus.actualDwell = 1400;
-    TEST_ASSERT_EQUAL(296, correctionsDwell(800));
+    testData.current.actualDwell = 1400;
+    TEST_ASSERT_EQUAL(296, correctionsDwell(800, testData.current, testData.page2, testData.page4, testData.page10, testData.lookupTable.lookupTable));
 }
 
 static void test_correctionsDwell_wasted_nopertooth_largerevolutiontime(void) {
-    setup_correctionsDwell();
+    dwell_correction_data_t testData;
+    setup_correctionsDwell(testData);
 
-    currentStatus.battery10 = 105;
+    testData.current.battery10 = 105;
     revolutionTime = 5000;
-    TEST_ASSERT_EQUAL(800, correctionsDwell(800));
+    TEST_ASSERT_EQUAL(800, correctionsDwell(800, testData.current, testData.page2, testData.page4, testData.page10, testData.lookupTable.lookupTable));
 }
 
 static void test_correctionsDwell_initialises_current_actualDwell(void) {
-    setup_correctionsDwell();
+    dwell_correction_data_t testData;
+    setup_correctionsDwell(testData);
 
-    currentStatus.actualDwell = 0;
-    correctionsDwell(777);
-    TEST_ASSERT_EQUAL(777, currentStatus.actualDwell);
+    testData.current.actualDwell = 0;
+    correctionsDwell(777, testData.current, testData.page2, testData.page4, testData.page10, testData.lookupTable.lookupTable);
+    TEST_ASSERT_EQUAL(777, testData.current.actualDwell);
 }
 
 static void test_correctionsDwell_uses_batvcorrection(void) {
-    setup_correctionsDwell();
+    dwell_correction_data_t testData;
+    setup_correctionsDwell(testData);
 
-    configPage2.nCylinders = 8;
-    configPage4.sparkMode = IGN_MODE_WASTED;
+    testData.page2.nCylinders = 8;
+    testData.page4.sparkMode = IGN_MODE_WASTED;
 
-    currentStatus.battery10 = 105;
-    TEST_ASSERT_EQUAL(296, correctionsDwell(800));
+    testData.current.battery10 = 105;
+    TEST_ASSERT_EQUAL(296, correctionsDwell(800, testData.current, testData.page2, testData.page4, testData.page10, testData.lookupTable.lookupTable));
 
-    currentStatus.battery10 = 65;
-    TEST_ASSERT_EQUAL(337, correctionsDwell(800));
+    testData.current.battery10 = 65;
+    TEST_ASSERT_EQUAL(337, correctionsDwell(800, testData.current, testData.page2, testData.page4, testData.page10, testData.lookupTable.lookupTable));
 }
 
 static void test_correctionsDwell(void) {

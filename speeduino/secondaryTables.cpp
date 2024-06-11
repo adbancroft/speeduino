@@ -154,8 +154,8 @@ void calculateSecondarySpark(void)
     }
 
     //Apply the fixed timing correction manually. This has to be done again here if any of the above conditions are met to prevent any of the seconadary calculations applying instead of fixec timing
-    currentStatus.advance = correctionFixedTiming(currentStatus.advance);
-    currentStatus.advance = correctionCrankingFixedTiming(currentStatus.advance); //This overrides the regular fixed timing, must come last
+    currentStatus.advance = correctionFixedTiming(currentStatus.advance, configPage2, configPage4);
+    currentStatus.advance = correctionCrankingFixedTiming(currentStatus.advance, currentStatus, configPage2, configPage4, CLTAdvanceTable); //This overrides the regular fixed timing, must come last
   }
 }
 

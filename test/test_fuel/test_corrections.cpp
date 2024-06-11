@@ -15,17 +15,6 @@ extern void construct2dTable(table2D &table, uint8_t length, uint8_t *values, ui
 
 extern uint8_t correctionWUE(statuses &current, const table2D &lookUpTable);
 
-template <uint8_t length>
-struct test_2dtable_t {
-  table2D lookupTable;
-  uint8_t bins[length];
-  uint8_t values[length];  
-
-  test_2dtable_t() {
-    construct2dTable(lookupTable, length, values, bins);
-  }
-};
-
 struct wue_test_data_t : public test_2dtable_t<10> {
   statuses current;
 };
@@ -235,12 +224,8 @@ static void test_corrections_ASE_inactive_cranking(void)
 
 struct ase_testdata_t {
   statuses current;
-  table2D durationTable;
-  uint8_t durationBins[4];
-  uint8_t durationValues[4];  
-  table2D amountTable;
-  uint8_t amountBins[4];
-  uint8_t amountValues[4];  
+  test_2dtable_t<4> duration;
+  test_2dtable_t<4> amount;
   config2 page2;
 };
 
@@ -253,7 +238,6 @@ static inline void setup_correctionASE(ase_testdata_t &testData) {
   testData.current.runSecs = 3;
 
   {
-    construct2dTable(testData.durationTable, _countof(testData.durationBins), testData.durationValues, testData.durationBins);
     TEST_DATA_P uint8_t values[] = { 10, 8, 6, 4 };
     TEST_DATA_P uint8_t bins[] = { 
       toStorageTemperature(COOLANT_INITIAL) - 10U,
@@ -261,11 +245,10 @@ static inline void setup_correctionASE(ase_testdata_t &testData) {
       toStorageTemperature(COOLANT_INITIAL) + 20U,
       toStorageTemperature(COOLANT_INITIAL) + 30U
     };
-    populate_2dtable_P(&testData.durationTable, values, bins);
+    populate_2dtable_P(&testData.duration.lookupTable, values, bins);
   }
 
   {
-    construct2dTable(testData.amountTable, _countof(testData.amountBins), testData.amountValues, testData.amountBins);
     TEST_DATA_P uint8_t values[] = { 20, 30, 40, 50 };
     TEST_DATA_P uint8_t bins[] = { 
       toStorageTemperature(COOLANT_INITIAL) - 10U,
@@ -273,7 +256,7 @@ static inline void setup_correctionASE(ase_testdata_t &testData) {
       toStorageTemperature(COOLANT_INITIAL) + 20U,
       toStorageTemperature(COOLANT_INITIAL) + 30U
     };
-    populate_2dtable_P(&testData.amountTable, values, bins);
+    populate_2dtable_P(&testData.amount.lookupTable, values, bins);
   } 
 }
 
@@ -283,7 +266,7 @@ static void test_corrections_ASE_initial(void)
   setup_correctionASE(testData);
 
   // Should be half way between the 2 table values.
-  TEST_ASSERT_EQUAL(125, correctionASE(testData.current, testData.durationTable, testData.amountTable, testData.page2));
+  TEST_ASSERT_EQUAL(125, correctionASE(testData.current, testData.duration.lookupTable, testData.amount.lookupTable, testData.page2));
   TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ASE, testData.current.engine);
 }
 
@@ -297,22 +280,22 @@ static void test_corrections_ASE_taper(void) {
   // Advance taper to halfway
   BIT_CLEAR(testData.current.engine, BIT_ENGINE_CRANK);
   for (uint8_t index=0; index<testData.page2.aseTaperTime/2U; ++index) {
-    (void)correctionASE(testData.current, testData.durationTable, testData.amountTable, testData.page2);
+    (void)correctionASE(testData.current, testData.duration.lookupTable, testData.amount.lookupTable, testData.page2);
   }
 
   // Should be half way between the interpolated table value and 100%.
-  TEST_ASSERT_INT_WITHIN(1, 113, correctionASE(testData.current, testData.durationTable, testData.amountTable, testData.page2));
+  TEST_ASSERT_INT_WITHIN(1, 113, correctionASE(testData.current, testData.duration.lookupTable, testData.amount.lookupTable, testData.page2));
   TEST_ASSERT_BIT_HIGH(BIT_ENGINE_ASE, testData.current.engine);
   
   // Final taper step
   for (uint8_t index=testData.page2.aseTaperTime/2U; index<testData.page2.aseTaperTime-2U; ++index) {
-    (void)correctionASE(testData.current, testData.durationTable, testData.amountTable, testData.page2);
+    (void)correctionASE(testData.current, testData.duration.lookupTable, testData.amount.lookupTable, testData.page2);
   }
-  TEST_ASSERT_INT_WITHIN(1, 103U, correctionASE(testData.current, testData.durationTable, testData.amountTable, testData.page2) );
+  TEST_ASSERT_INT_WITHIN(1, 103U, correctionASE(testData.current, testData.duration.lookupTable, testData.amount.lookupTable, testData.page2) );
 
   // Taper finished
-  TEST_ASSERT_EQUAL(100U, correctionASE(testData.current, testData.durationTable, testData.amountTable, testData.page2));  
-  TEST_ASSERT_EQUAL(100U, correctionASE(testData.current, testData.durationTable, testData.amountTable, testData.page2));  
+  TEST_ASSERT_EQUAL(100U, correctionASE(testData.current, testData.duration.lookupTable, testData.amount.lookupTable, testData.page2));  
+  TEST_ASSERT_EQUAL(100U, correctionASE(testData.current, testData.duration.lookupTable, testData.amount.lookupTable, testData.page2));  
 }
 
 static void test_corrections_ASE(void)

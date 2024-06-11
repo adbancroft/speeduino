@@ -740,7 +740,7 @@ void loop(void)
           currentStatus.dwell =  (configPage4.dwellRun * 100U); //use fixed running dwell
         }
       }
-      currentStatus.dwell = correctionsDwell(currentStatus.dwell);
+      currentStatus.dwell = correctionsDwell(currentStatus.dwell, currentStatus, configPage2, configPage4, configPage10, dwellVCorrectionTable);
 
       // Convert the dwell time to dwell angle based on the current engine speed
       calculateIgnitionAngles(timeToAngleDegPerMicroSec(currentStatus.dwell));

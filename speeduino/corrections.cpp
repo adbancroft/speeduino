@@ -852,19 +852,19 @@ void initialiseFuelCorrections(statuses &current)
 /** Correct ignition timing to configured fixed value.
  * Must be called near end to override all other corrections.
  */
-int8_t correctionFixedTiming(int8_t advance)
+int8_t correctionFixedTiming(int8_t advance, const config2 &page2, const config4 &page4)
 {
-  return (configPage2.fixAngEnable == 1U) ? configPage4.FixAng : advance; //Check whether the user has set a fixed timing angle
+  return (page2.fixAngEnable == 1U) ? page4.FixAng : advance; //Check whether the user has set a fixed timing angle
 }
 
 /** Ignition correction for coolant temperature (CLT).
  */
-TESTABLE_INLINE_STATIC int8_t correctionCLTadvance(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionCLTadvance(int8_t advance, const statuses &current, const table2D &cltAdvanceLUT)
 {
   static int8_t cachedValue = 0U;  // Setting this to non-zero will use additional RAM for static initialisation
   // Performance: only update as fast as the sensor is read
   if( BIT_CHECK(LOOP_TIMER, CLT_READ_TIMER_BIT) ) { 
-    cachedValue = (int8_t)toWorkingU8S16(IGNITION_ADVANCE_SMALL,  (uint8_t)(table2D_getValue(&CLTAdvanceTable, toStorageTemperature(currentStatus.coolant))));
+    cachedValue = (int8_t)toWorkingU8S16(IGNITION_ADVANCE_SMALL,  (uint8_t)(table2D_getValue(&cltAdvanceLUT, toStorageTemperature(current.coolant))));
   }
   return advance + cachedValue;
 }
@@ -872,48 +872,48 @@ TESTABLE_INLINE_STATIC int8_t correctionCLTadvance(int8_t advance)
 /** Correct ignition timing to configured fixed value to use during craning.
  * Must be called near end to override all other corrections.
  */
-int8_t correctionCrankingFixedTiming(int8_t advance)
+int8_t correctionCrankingFixedTiming(int8_t advance, const statuses &current, const config2 &page2, const config4 &page4, const table2D &cltAdvanceLUT)
 {
-  if ( BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) )
+  if ( BIT_CHECK(current.engine, BIT_ENGINE_CRANK) )
   { 
-    if ( configPage2.crkngAddCLTAdv == 0U ) { 
-      advance = configPage4.CrankAng; //Use the fixed cranking ignition angle
+    if ( page2.crkngAddCLTAdv == 0U ) { 
+      advance = page4.CrankAng; //Use the fixed cranking ignition angle
     } else { 
-      advance = correctionCLTadvance(configPage4.CrankAng); //Use the CLT compensated cranking ignition angle
+      advance = correctionCLTadvance(page4.CrankAng, current, cltAdvanceLUT); //Use the CLT compensated cranking ignition angle
     }
   }
   return advance;
 }
 
-TESTABLE_INLINE_STATIC int8_t correctionFlexTiming(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionFlexTiming(int8_t advance, statuses &current, const config2 &page2, const table2D &lookupTable)
 {
-  if( configPage2.flexEnabled == 1U ) //Check for flex being enabled
+  if( page2.flexEnabled == 1U ) //Check for flex being enabled
   {
     //This gets cast to a signed 8 bit value to allows for negative advance (ie retard) values here.
-    currentStatus.flexIgnCorrection = (int8_t)toWorkingU8S16(IGNITION_ADVANCE_LARGE, table2D_getValue(&flexAdvTable, currentStatus.ethanolPct));
-    advance = advance + currentStatus.flexIgnCorrection;
+    current.flexIgnCorrection = (int8_t)toWorkingU8S16(IGNITION_ADVANCE_LARGE, table2D_getValue(&lookupTable, current.ethanolPct));
+    advance = advance + current.flexIgnCorrection;
   }
   return advance;
 }
 
-static inline bool isWMIAdvanceEnabled(void) {
-  return (configPage10.wmiEnabled == 1U) 
-      && (configPage10.wmiAdvEnabled == 1U) 
-      && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_WMI_EMPTY)==false);
+static inline bool isWMIAdvanceEnabled(const statuses &current, const config10 &page10) {
+  return (page10.wmiEnabled == 1U) 
+      && (page10.wmiAdvEnabled == 1U) 
+      && (BIT_CHECK(current.status4, BIT_STATUS4_WMI_EMPTY)==false);
 }
 
-static inline bool isWMIAdvanceOperational(void) {
-  return (currentStatus.TPS >= configPage10.wmiTPS) 
-      && (currentStatus.RPM >= configPage10.wmiRPM) 
-      && (currentStatus.MAP >= (int32_t)toWorkingU8S16(MAP, configPage10.wmiMAP)) 
-      && (toStorageTemperature(currentStatus.IAT) >= configPage10.wmiIAT);
+static inline bool isWMIAdvanceOperational(const statuses &current, const config10 &page10) {
+  return (current.TPS >= page10.wmiTPS) 
+      && (current.RPM >= page10.wmiRPM) 
+      && (current.MAP >= (int32_t)toWorkingU8S16(MAP, page10.wmiMAP)) 
+      && (toStorageTemperature(current.IAT) >= page10.wmiIAT);
 }
 
-TESTABLE_INLINE_STATIC int8_t correctionWMITiming(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionWMITiming(int8_t advance, const statuses &current, const config10 &page10, const table2D &lookupTable)
 {
     // TODO: limit rate to MAP update
-  if(isWMIAdvanceEnabled() && isWMIAdvanceOperational()) {
-    advance = advance + (int8_t)toWorkingU8S16(IGNITION_ADVANCE_LARGE, table2D_getValue(&wmiAdvTable, toRawS8(MAP, currentStatus.MAP)));
+  if(isWMIAdvanceEnabled(current, page10) && isWMIAdvanceOperational(current, page10)) {
+    advance = advance + (int8_t)toWorkingU8S16(IGNITION_ADVANCE_LARGE, table2D_getValue(&lookupTable, toRawS8(MAP, current.MAP)));
   }
 
   return advance;
@@ -922,12 +922,12 @@ TESTABLE_INLINE_STATIC int8_t correctionWMITiming(int8_t advance)
 /** 
  * Ignition correction for inlet air temperature (IAT).
  */
-TESTABLE_INLINE_STATIC int8_t correctionIATretard(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionIATretard(int8_t advance, const statuses &current, table2D &lookupTable)
 {
   static uint8_t cachedValue = 0U; // Setting this to non-zero will use additional RAM for static initialisation
   // Performance: only update as fast as the sensor is read
   if( BIT_CHECK(LOOP_TIMER, IAT_READ_TIMER_BIT) ) { 
-    cachedValue = (uint8_t)table2D_getValue(&IATRetardTable, currentStatus.IAT);// TODO: check this if should be converted
+    cachedValue = (uint8_t)table2D_getValue(&lookupTable, current.IAT);// TODO: check this if should be converted
   }
   return (int16_t)advance - (int16_t)cachedValue;
 }
@@ -937,18 +937,18 @@ TESTABLE_INLINE_STATIC int8_t correctionIATretard(int8_t advance)
  */
 static constexpr uint16_t IGN_IDLE_THRESHOLD = 200U; //RPM threshold (below CL idle target) for when ign based idle control will engage
 
-static inline uint8_t computeIdleAdvanceRpmDelta(void) {
+static inline uint8_t computeIdleAdvanceRpmDelta(const statuses &current) {
   static constexpr int16_t DELTA_HYSTERISIS = (int16_t)toRawU8(RPM_MEDIUM, 500);
-  int16_t idleRPMdelta = ((int16_t)currentStatus.CLIdleTarget - (int16_t)toRawU8(RPM_MEDIUM, currentStatus.RPM) ) + DELTA_HYSTERISIS;
+  int16_t idleRPMdelta = ((int16_t)current.CLIdleTarget - (int16_t)toRawU8(RPM_MEDIUM, current.RPM) ) + DELTA_HYSTERISIS;
   // Limit idle rpm delta between 0rpm - 1000rpm
   static constexpr int16_t DELTA_RPM_MAX = (int16_t)toRawU8(RPM_MEDIUM, 1000);
   return (uint8_t)constrain(idleRPMdelta, 0, DELTA_RPM_MAX);
 }
 
-static inline int8_t applyIdleAdvanceAdjust(int8_t advance, int8_t adjustment) {
-  if(configPage2.idleAdvEnabled == IDLEADVANCE_MODE_ADDED) { 
+static inline int8_t applyIdleAdvanceAdjust(int8_t advance, int8_t adjustment, const config2 &page2) {
+  if(page2.idleAdvEnabled == IDLEADVANCE_MODE_ADDED) { 
     return (advance + adjustment); 
-  } else if(configPage2.idleAdvEnabled == IDLEADVANCE_MODE_SWITCHED) { 
+  } else if(page2.idleAdvEnabled == IDLEADVANCE_MODE_SWITCHED) { 
     return adjustment;
   } else {
     // Unknown idle advance mode - do nothing
@@ -956,40 +956,40 @@ static inline int8_t applyIdleAdvanceAdjust(int8_t advance, int8_t adjustment) {
   }
 }
 
-static inline bool isIdleAdvanceOn(void) {
-  return (configPage2.idleAdvEnabled != IDLEADVANCE_MODE_OFF) 
-      && (runSecsX10 >= toWorkingU8U16(TIME_TWENTY_MILLIS, configPage2.idleAdvDelay ))
-      && (BIT_CHECK(currentStatus.engine, BIT_ENGINE_RUN))
+static inline bool isIdleAdvanceOn(const statuses &current, const config2 &page2, const config6 &page6) {
+  return (page2.idleAdvEnabled != IDLEADVANCE_MODE_OFF) 
+      && (runSecsX10 >= toWorkingU8U16(TIME_TWENTY_MILLIS, page2.idleAdvDelay ))
+      && (BIT_CHECK(current.engine, BIT_ENGINE_RUN))
       /* When Idle advance is the only idle speed control mechanism, activate as soon as not cranking. 
       When some other mechanism is also present, wait until the engine is no more than 200 RPM below idle target speed on first time
       */
-      && ((configPage6.iacAlgorithm == IAC_ALGORITHM_NONE) 
-        || (currentStatus.RPM > (toWorkingU8U16(RPM_MEDIUM, currentStatus.CLIdleTarget) - IGN_IDLE_THRESHOLD)));
+      && ((page6.iacAlgorithm == IAC_ALGORITHM_NONE) 
+        || (current.RPM > (toWorkingU8U16(RPM_MEDIUM, current.CLIdleTarget) - IGN_IDLE_THRESHOLD)));
 }
 
-static inline bool isIdleAdvanceOperational(void) {
-  return (currentStatus.RPM < toWorkingU8U16(RPM_COARSE, configPage2.idleAdvRPM))
-      && ((configPage2.vssMode == VSS_MODE_OFF) || (currentStatus.vss < configPage2.idleAdvVss))
-      && (((configPage2.idleAdvAlgorithm == IDLEADVANCE_ALGO_TPS) && (currentStatus.TPS < configPage2.idleAdvTPS)) 
-        || ((configPage2.idleAdvAlgorithm == IDLEADVANCE_ALGO_CTPS) && (currentStatus.CTPSActive == true)));// closed throttle position sensor (CTPS) based idle state
+static inline bool isIdleAdvanceOperational(const statuses &current, const config2 &page2) {
+  return (current.RPM < toWorkingU8U16(RPM_COARSE, page2.idleAdvRPM))
+      && ((page2.vssMode == VSS_MODE_OFF) || (current.vss < page2.idleAdvVss))
+      && (((page2.idleAdvAlgorithm == IDLEADVANCE_ALGO_TPS) && (current.TPS < page2.idleAdvTPS)) 
+        || ((page2.idleAdvAlgorithm == IDLEADVANCE_ALGO_CTPS) && (current.CTPSActive == true)));// closed throttle position sensor (CTPS) based idle state
 }
 
-TESTABLE_INLINE_STATIC int8_t correctionIdleAdvance(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionIdleAdvance(int8_t advance, const statuses &current, const config2 &page2, const config6 &page6, const config9 &page9, table2D &lookupTable)
 {
   //Adjust the advance based on idle target rpm.
-  if (isIdleAdvanceOn())
+  if (isIdleAdvanceOn(current, page2, page6))
   {
     static uint8_t idleAdvDelayCount;
-    if(isIdleAdvanceOperational())
+    if(isIdleAdvanceOperational(current, page2))
     {
-      if( idleAdvDelayCount < configPage9.idleAdvStartDelay )
+      if( idleAdvDelayCount < page9.idleAdvStartDelay )
       {
         if( BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ) ) { ++idleAdvDelayCount; }
       }
       else
       {
-        int16_t advanceIdleAdjust = toWorkingU8S16(IGNITION_ADVANCE_SMALL, (uint8_t)table2D_getValue(&idleAdvanceTable, computeIdleAdvanceRpmDelta()));
-        advance = applyIdleAdvanceAdjust(advance, (int8_t)advanceIdleAdjust); 
+        int16_t advanceIdleAdjust = toWorkingU8S16(IGNITION_ADVANCE_SMALL, (uint8_t)table2D_getValue(&lookupTable, computeIdleAdvanceRpmDelta(current)));
+        advance = applyIdleAdvanceAdjust(advance, (int8_t)advanceIdleAdjust, page2); 
       }
     }
     else { idleAdvDelayCount = 0; }
@@ -1000,29 +1000,29 @@ TESTABLE_INLINE_STATIC int8_t correctionIdleAdvance(int8_t advance)
 
 /** Ignition soft revlimit correction.
  */
-static inline int8_t calculateSoftRevLimitAdvance(int8_t advance) {
-  if (configPage2.SoftLimitMode == SOFT_LIMIT_RELATIVE) { 
-    return advance - (int8_t)configPage4.SoftLimRetard; //delay timing by configured number of degrees in relative mode
-  } else if (configPage2.SoftLimitMode == SOFT_LIMIT_FIXED) { 
-    return (int8_t)configPage4.SoftLimRetard; //delay timing to configured number of degrees in fixed mode
+static inline int8_t calculateSoftRevLimitAdvance(int8_t advance, const config2 &page2, const config4 &page4) {
+  if (page2.SoftLimitMode == SOFT_LIMIT_RELATIVE) { 
+    return advance - (int8_t)page4.SoftLimRetard; //delay timing by configured number of degrees in relative mode
+  } else if (page2.SoftLimitMode == SOFT_LIMIT_FIXED) { 
+    return (int8_t)page4.SoftLimRetard; //delay timing to configured number of degrees in fixed mode
   } else {
     // Unknown limit mode - do nothing, keep MISRA checker happy
     return advance;
   }
 }
 
-TESTABLE_INLINE_STATIC int8_t correctionSoftRevLimit(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionSoftRevLimit(int8_t advance, statuses &current, const config2 &page2, const config4 &page4, const config6 &page6)
 {
-  BIT_CLEAR(currentStatus.status2, BIT_STATUS2_SFTLIM);
+  BIT_CLEAR(current.status2, BIT_STATUS2_SFTLIM);
 
-  if (configPage6.engineProtectType == PROTECT_CUT_IGN || configPage6.engineProtectType == PROTECT_CUT_BOTH) 
+  if (page6.engineProtectType == PROTECT_CUT_IGN || page6.engineProtectType == PROTECT_CUT_BOTH) 
   {
-    if (currentStatus.RPMdiv100 >= configPage4.SoftRevLim) //Softcut RPM limit
+    if (current.RPMdiv100 >= page4.SoftRevLim) //Softcut RPM limit
     {
-      BIT_SET(currentStatus.status2, BIT_STATUS2_SFTLIM);
-      if( softLimitTime < configPage4.SoftLimMax )
+      BIT_SET(current.status2, BIT_STATUS2_SFTLIM);
+      if( softLimitTime < page4.SoftLimMax )
       {
-        advance = calculateSoftRevLimitAdvance(advance);
+        advance = calculateSoftRevLimitAdvance(advance, page2, page4);
         if( BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ) ) { 
           ++softLimitTime; 
         }
@@ -1040,19 +1040,19 @@ TESTABLE_INLINE_STATIC int8_t correctionSoftRevLimit(int8_t advance)
 
 /** Ignition Nitrous oxide correction.
  */
-TESTABLE_INLINE_STATIC int8_t correctionNitrous(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionNitrous(int8_t advance, const statuses &current, const config10 &page10)
 {
   //Check if nitrous is currently active
-  if(configPage10.n2o_enable != NITROUS_OFF)
+  if(page10.n2o_enable != NITROUS_OFF)
   {
     //Check which stage is running (if any)
-    if( (currentStatus.nitrous_status == NITROUS_STAGE1) || (currentStatus.nitrous_status == NITROUS_BOTH) )
+    if( (current.nitrous_status == NITROUS_STAGE1) || (current.nitrous_status == NITROUS_BOTH) )
     {
-      advance -= (int8_t)configPage10.n2o_stage1_retard;
+      advance -= (int8_t)page10.n2o_stage1_retard;
     }
-    if( (currentStatus.nitrous_status == NITROUS_STAGE2) || (currentStatus.nitrous_status == NITROUS_BOTH) )
+    if( (current.nitrous_status == NITROUS_STAGE2) || (current.nitrous_status == NITROUS_BOTH) )
     {
-      advance -= (int8_t)configPage10.n2o_stage2_retard;
+      advance -= (int8_t)page10.n2o_stage2_retard;
     }
   }
 
@@ -1060,38 +1060,38 @@ TESTABLE_INLINE_STATIC int8_t correctionNitrous(int8_t advance)
 }
 /** Ignition soft launch correction.
  */
-TESTABLE_INLINE_STATIC int8_t correctionSoftLaunch(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionSoftLaunch(int8_t advance, statuses &current, const config6 &page6, const config10 &page10)
 {
   //SoftCut rev limit for 2-step launch control.
-  if (configPage6.launchEnabled 
-  && currentStatus.clutchTrigger 
-  && (currentStatus.clutchEngagedRPM < toWorkingU8U16(RPM_COARSE, configPage6.flatSArm)) 
-  && (currentStatus.RPM > toWorkingU8U16(RPM_COARSE, configPage6.lnchSoftLim))
-  && (currentStatus.TPS >= configPage10.lnchCtrlTPS) )
+  if (page6.launchEnabled 
+  && current.clutchTrigger 
+  && (current.clutchEngagedRPM < toWorkingU8U16(RPM_COARSE, page6.flatSArm)) 
+  && (current.RPM > toWorkingU8U16(RPM_COARSE, page6.lnchSoftLim))
+  && (current.TPS >= page10.lnchCtrlTPS) )
   {
-    BIT_SET(currentStatus.status2, BIT_STATUS2_SLAUNCH);
-    advance = configPage6.lnchRetard;
+    BIT_SET(current.status2, BIT_STATUS2_SLAUNCH);
+    advance = page6.lnchRetard;
   }
   else
   {
-    BIT_CLEAR(currentStatus.status2, BIT_STATUS2_SLAUNCH);
+    BIT_CLEAR(current.status2, BIT_STATUS2_SLAUNCH);
   }
 
   return advance;
 }
 /** Ignition correction for soft flat shift.
  */
-TESTABLE_INLINE_STATIC int8_t correctionSoftFlatShift(int8_t advance)
+TESTABLE_INLINE_STATIC int8_t correctionSoftFlatShift(int8_t advance, statuses &current, const config6 &page6)
 {
-  if(configPage6.flatSEnable 
-  && currentStatus.clutchTrigger 
-  && (currentStatus.clutchEngagedRPM > toWorkingU8U16(RPM_COARSE, configPage6.flatSArm))
-  && (currentStatus.RPM > (currentStatus.clutchEngagedRPM - toWorkingU8U16(RPM_COARSE, configPage6.flatSSoftWin) ) ) )
+  if(page6.flatSEnable 
+  && current.clutchTrigger 
+  && (current.clutchEngagedRPM > toWorkingU8U16(RPM_COARSE, page6.flatSArm))
+  && (current.RPM > (current.clutchEngagedRPM - toWorkingU8U16(RPM_COARSE, page6.flatSSoftWin) ) ) )
   {
-    BIT_SET(currentStatus.status5, BIT_STATUS5_FLATSS);
-    advance = configPage6.flatSRetard;
+    BIT_SET(current.status5, BIT_STATUS5_FLATSS);
+    advance = page6.flatSRetard;
   }
-  else { BIT_CLEAR(currentStatus.status5, BIT_STATUS5_FLATSS); }
+  else { BIT_CLEAR(current.status5, BIT_STATUS5_FLATSS); }
 
   return advance;
 }
@@ -1242,18 +1242,18 @@ TESTABLE_INLINE_STATIC int8_t correctionDFCOignition(int8_t advance, const statu
 
 /** Ignition Dwell Correction.
  */
-static inline uint8_t getPulsesPerRev(void) {
-  if( ( (configPage4.sparkMode == IGN_MODE_SINGLE) || 
-     ((configPage4.sparkMode == IGN_MODE_ROTARY) && (configPage10.rotaryType != ROTARY_IGN_RX8)) ) 
+static inline uint8_t getPulsesPerRev(const config2 &page2, const config4 &page4, const config10 &page10) {
+  if( ( (page4.sparkMode == IGN_MODE_SINGLE) || 
+     ((page4.sparkMode == IGN_MODE_ROTARY) && (page10.rotaryType != ROTARY_IGN_RX8)) ) 
      //No point in running this for 1 cylinder engines
-     && (configPage2.nCylinders > 1U) )  {
-    return configPage2.nCylinders >> 1U;
+     && (page2.nCylinders > 1U) )  {
+    return page2.nCylinders >> 1U;
   }
   return 1U;
 }
 
-static inline uint16_t adjustDwellClosedLoop(uint16_t dwell) {
-    int16_t error = dwell - currentStatus.actualDwell;
+static inline uint16_t adjustDwellClosedLoop(uint16_t dwell, const statuses &current) {
+    int16_t error = dwell - current.actualDwell;
     if(dwell > (uint16_t)INT16_MAX) { dwell = (uint16_t)INT16_MAX; } //Prevent overflow when casting to signed int
     if(error > ((int16_t)dwell / 2)) { error += error; } //Double correction amount if actual dwell is less than 50% of the requested dwell
     if(error > 0) { 
@@ -1262,18 +1262,18 @@ static inline uint16_t adjustDwellClosedLoop(uint16_t dwell) {
     return dwell;
 }
 
-uint16_t correctionsDwell(uint16_t dwell)
+uint16_t correctionsDwell(uint16_t dwell, statuses &current, const config2 &page2, const config4 &page4, const config10 &page10, const table2D &lookupTable)
 {
   //Initialise the actualDwell value if this is the first time being called
-  if(currentStatus.actualDwell == 0U) { 
-    currentStatus.actualDwell = dwell; 
+  if(current.actualDwell == 0U) { 
+    current.actualDwell = dwell; 
   } 
 
   //**************************************************************************************************************************
   //Pull battery voltage based dwell correction and apply if needed
   static uint8_t dwellCorrection = ONE_HUNDRED_PCT;
   if (BIT_CHECK(LOOP_TIMER, BAT_READ_TIMER_BIT)) { // Performance: only update as fast as the sensor is read
-    dwellCorrection = (uint8_t)table2D_getValue(&dwellVCorrectionTable, currentStatus.battery10);
+    dwellCorrection = (uint8_t)table2D_getValue(&lookupTable, current.battery10);
   }
   if (dwellCorrection != ONE_HUNDRED_PCT) { 
     dwell = div100(dwell) * dwellCorrection; 
@@ -1282,8 +1282,8 @@ uint16_t correctionsDwell(uint16_t dwell)
   //**************************************************************************************************************************
   //Dwell error correction is a basic closed loop to keep the dwell time consistent even when adjusting its end time for the per tooth timing.
   //This is mostly of benefit to low resolution triggers at low rpm (<1500)
-  if( (configPage2.perToothIgn  == true) && (configPage4.dwellErrCorrect == 1U) ) {
-    dwell = adjustDwellClosedLoop(dwell);
+  if( (page2.perToothIgn  == true) && (page4.dwellErrCorrect == 1U) ) {
+    dwell = adjustDwellClosedLoop(dwell, current);
   }
 
   //**************************************************************************************************************************
@@ -1293,8 +1293,8 @@ uint16_t correctionsDwell(uint16_t dwell)
   1. Single channel spark mode where there will be nCylinders/2 sparks per revolution
   2. Rotary ignition in wasted spark configuration (FC/FD), results in 2 pulses per rev. RX-8 is fully sequential resulting in 1 pulse, so not required
   */
-  uint16_t sparkDur_uS = toWorkingU8U16(TIME_TEN_MILLIS, configPage4.sparkDur);
-  uint8_t pulsesPerRevolution = getPulsesPerRev();
+  uint16_t sparkDur_uS = toWorkingU8U16(TIME_TEN_MILLIS, page4.sparkDur);
+  uint8_t pulsesPerRevolution = getPulsesPerRev(page2, page4, page10);
   uint16_t dwellPerRevolution = (dwell + sparkDur_uS) * pulsesPerRevolution;
   if(dwellPerRevolution > revolutionTime)
   {
@@ -1313,22 +1313,22 @@ uint16_t correctionsDwell(uint16_t dwell)
 int8_t correctionsIgn(int8_t base_advance)
 {
   int8_t advance;
-  advance = correctionFlexTiming(base_advance);
-  advance = correctionWMITiming(advance);
-  advance = correctionIATretard(advance);
-  advance = correctionCLTadvance(advance);
-  advance = correctionIdleAdvance(advance);
-  advance = correctionSoftRevLimit(advance);
-  advance = correctionNitrous(advance);
-  advance = correctionSoftLaunch(advance);
-  advance = correctionSoftFlatShift(advance);
+  advance = correctionFlexTiming(base_advance, currentStatus, configPage2, flexAdvTable);
+  advance = correctionWMITiming(advance, currentStatus, configPage10, wmiAdvTable);
+  advance = correctionIATretard(advance, currentStatus, IATRetardTable);
+  advance = correctionCLTadvance(advance, currentStatus, CLTAdvanceTable);
+  advance = correctionIdleAdvance(advance, currentStatus, configPage2, configPage6, configPage9, idleAdvanceTable);
+  advance = correctionSoftRevLimit(advance, currentStatus, configPage2, configPage4, configPage6);
+  advance = correctionNitrous(advance, currentStatus, configPage10);
+  advance = correctionSoftLaunch(advance, currentStatus, configPage6, configPage10);
+  advance = correctionSoftFlatShift(advance, currentStatus, configPage6);
   advance = correctionKnockTiming(advance);
 
   advance = correctionDFCOignition(advance, currentStatus, configPage9);
 
   //Fixed timing check must go last
-  advance = correctionFixedTiming(advance);
-  advance = correctionCrankingFixedTiming(advance); //This overrides the regular fixed timing, must come last
+  advance = correctionFixedTiming(advance, configPage2, configPage4);
+  advance = correctionCrankingFixedTiming(advance, currentStatus, configPage2, configPage4, CLTAdvanceTable); //This overrides the regular fixed timing, must come last
 
   return advance;
 }
