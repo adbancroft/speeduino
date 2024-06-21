@@ -267,7 +267,7 @@ void refreshIgnitionSchedule1(unsigned long timeToEnd)
   {
     noInterrupts();
     ignitionSchedule1.Duration = uS_TO_TIMER_COMPARE(timeToEnd);
-    SET_COMPARE(ignitionSchedule1._compare, ignitionSchedule1._counter + ignitionSchedule1.Duration);
+    ignitionSchedule1._compare = ignitionSchedule1._counter + ignitionSchedule1.Duration;
     interrupts();
   }
 }
@@ -318,7 +318,7 @@ static inline __attribute__((always_inline)) void fuelScheduleISR(FuelSchedule &
   {
     schedule.pStartCallback();
     schedule.Status = RUNNING; //Set the status to be in progress (ie The start callback has been called, but not the end callback)
-    SET_COMPARE(schedule._compare, schedule._counter + schedule.Duration); //Doing this here prevents a potential overflow on restarts
+    schedule._compare = schedule._counter + schedule.Duration; //Doing this here prevents a potential overflow on restarts
   }
   else if (isRunning(schedule))
   {
@@ -326,7 +326,7 @@ static inline __attribute__((always_inline)) void fuelScheduleISR(FuelSchedule &
       //If there is a next schedule queued up, activate it
       if(hasNextSchedule(schedule))
       {
-        SET_COMPARE(schedule._compare, schedule.nextStartCompare);
+        schedule._compare = schedule.nextStartCompare;
         schedule.Status = PENDING;
       } else {
         schedule.Status = OFF; //Turn off the schedule
@@ -442,7 +442,7 @@ static inline __attribute__((always_inline)) void ignitionScheduleISR(IgnitionSc
     schedule.pStartCallback();
     schedule.Status = RUNNING; //Set the status to be in progress (ie The start callback has been called, but not the end callback)
     schedule.startTime = micros();
-    SET_COMPARE(schedule._compare, schedule._counter + schedule.Duration);
+    schedule._compare = schedule._counter + schedule.Duration;
   }
   else if (isRunning(schedule))
   {
@@ -454,7 +454,7 @@ static inline __attribute__((always_inline)) void ignitionScheduleISR(IgnitionSc
     //If there is a next schedule queued up, activate it
     if(hasNextSchedule(schedule))
     {
-        SET_COMPARE(schedule._compare, schedule.nextStartCompare);
+        schedule._compare = schedule.nextStartCompare;
         schedule.Status = PENDING;
     } else {
       schedule.Status = OFF; //Turn off the schedule
