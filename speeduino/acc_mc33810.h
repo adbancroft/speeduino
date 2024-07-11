@@ -7,6 +7,7 @@
 
 #include <SPI.h>
 #include "port_pin.h"
+#include "bit_manip.h"
 
 extern byte pinMC33810_1_CS;
 extern byte pinMC33810_2_CS;
