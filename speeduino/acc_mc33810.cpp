@@ -24,6 +24,13 @@ byte pinMC33810_1_CS;
 byte pinMC33810_2_CS;
 ioPort portMC33810_1_CS;
 ioPort portMC33810_2_CS;
+volatile uint8_t mc33810_1_requestedState; //Current binary state of the 1st ICs IGN and INJ values
+volatile uint8_t mc33810_2_requestedState; //Current binary state of the 2nd ICs IGN and INJ values
+
+#define MC33810_1_ACTIVE() setPin_Low(portMC33810_1_CS);
+#define MC33810_1_INACTIVE() setPin_High(portMC33810_1_CS);
+#define MC33810_2_ACTIVE() setPin_Low(portMC33810_2_CS);
+#define MC33810_2_INACTIVE() setPin_High(portMC33810_2_CS);
 
 void initMC33810(void)
 {
