@@ -12,16 +12,61 @@
 extern byte pinMC33810_1_CS;
 extern byte pinMC33810_2_CS;
 
-static constexpr uint8_t MC33810_ONOFF_CMD = 0x30; //48 in decimal
-static volatile uint8_t mc33810_1_requestedState; //Current binary state of the 1st ICs IGN and INJ values
-static volatile uint8_t mc33810_2_requestedState; //Current binary state of the 2nd ICs IGN and INJ values
-
 void initMC33810(void);
 
-#define MC33810_1_ACTIVE() { extern ioPort portMC33810_1_CS; setPin_Low(portMC33810_1_CS); }
-#define MC33810_1_INACTIVE() { extern ioPort portMC33810_1_CS; setPin_High(portMC33810_1_CS); }
-#define MC33810_2_ACTIVE() { extern ioPort portMC33810_2_CS; setPin_Low(portMC33810_2_CS); }
-#define MC33810_2_INACTIVE() { extern ioPort portMC33810_2_CS; setPin_High(portMC33810_2_CS); }
+/// @cond
+// Implementation details - ignore
+
+static inline void mc33810TransferState(ioPort pin, byte stateFlags) {
+    static constexpr uint8_t MC33810_ONOFF_CMD = 0x30; //48 in decimal
+    
+    setPin_Low(pin);
+    (void)SPI.transfer16(word(MC33810_ONOFF_CMD, stateFlags));
+    setPin_High(pin);
+}
+
+static inline void mc33810TransferStateIC1(void) {
+    extern ioPort portMC33810_1_CS;
+    extern volatile uint8_t mc33810_1_requestedState;
+    mc33810TransferState(portMC33810_1_CS, mc33810_1_requestedState);
+}
+
+static inline void setIC1StateBit(uint8_t bitIndex) {
+    extern volatile uint8_t mc33810_1_requestedState;
+    BIT_SET(mc33810_1_requestedState, bitIndex);
+}
+
+static inline void clearIC1StateBit(uint8_t bitIndex) {
+    extern volatile uint8_t mc33810_1_requestedState;
+    BIT_CLEAR(mc33810_1_requestedState, bitIndex);
+}
+
+static inline void toggleIC1StateBit(uint8_t bitIndex) {
+    extern volatile uint8_t mc33810_1_requestedState;
+    BIT_TOGGLE(mc33810_1_requestedState, bitIndex);
+}
+
+static inline void mc33810TransferStateIC2(void) {
+    extern ioPort portMC33810_2_CS;
+    extern volatile uint8_t mc33810_2_requestedState;
+    mc33810TransferState(portMC33810_2_CS, mc33810_2_requestedState);
+}
+
+static inline void setIC2StateBit(uint8_t bitIndex) {
+    extern volatile uint8_t mc33810_2_requestedState;
+    BIT_SET(mc33810_2_requestedState, bitIndex);
+}
+
+static inline void clearIC2StateBit(uint8_t bitIndex) {
+    extern volatile uint8_t mc33810_2_requestedState;
+    BIT_CLEAR(mc33810_2_requestedState, bitIndex);
+}
+
+static inline void toggleIC2StateBit(uint8_t bitIndex) {
+    extern volatile uint8_t mc33810_2_requestedState;
+    BIT_TOGGLE(mc33810_2_requestedState, bitIndex);
+}
+///@endcond 
 
 //These are default values for which injector is attached to which output on the IC. 
 //They may (Probably will) be changed during init by the board specific config in init.ino
@@ -43,50 +88,50 @@ extern uint8_t MC33810_BIT_IGN6;
 extern uint8_t MC33810_BIT_IGN7;
 extern uint8_t MC33810_BIT_IGN8;
 
-#define openInjector1_MC33810() MC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_INJ1); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define openInjector2_MC33810() MC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_INJ2); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define openInjector3_MC33810() MC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_INJ3); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define openInjector4_MC33810() MC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_INJ4); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define openInjector5_MC33810() MC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_INJ5); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
-#define openInjector6_MC33810() MC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_INJ6); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
-#define openInjector7_MC33810() MC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_INJ7); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
-#define openInjector8_MC33810() MC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_INJ8); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
+#define openInjector1_MC33810() { setIC1StateBit(MC33810_BIT_INJ1); mc33810TransferStateIC1(); }
+#define openInjector2_MC33810() { setIC1StateBit(MC33810_BIT_INJ2); mc33810TransferStateIC1(); }
+#define openInjector3_MC33810() { setIC1StateBit(MC33810_BIT_INJ3); mc33810TransferStateIC1(); }
+#define openInjector4_MC33810() { setIC1StateBit(MC33810_BIT_INJ4); mc33810TransferStateIC1(); }
+#define openInjector5_MC33810() { setIC2StateBit(MC33810_BIT_INJ5); mc33810TransferStateIC2(); }
+#define openInjector6_MC33810() { setIC2StateBit(MC33810_BIT_INJ6); mc33810TransferStateIC2(); }
+#define openInjector7_MC33810() { setIC2StateBit(MC33810_BIT_INJ7); mc33810TransferStateIC2(); }
+#define openInjector8_MC33810() { setIC2StateBit(MC33810_BIT_INJ8); mc33810TransferStateIC2(); }
 
-#define closeInjector1_MC33810() MC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_INJ1); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define closeInjector2_MC33810() MC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_INJ2); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define closeInjector3_MC33810() MC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_INJ3); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define closeInjector4_MC33810() MC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_INJ4); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define closeInjector5_MC33810() MC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_INJ5); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
-#define closeInjector6_MC33810() MC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_INJ6); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
-#define closeInjector7_MC33810() MC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_INJ7); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
-#define closeInjector8_MC33810() MC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_INJ8); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
+#define closeInjector1_MC33810() { clearIC1StateBit(MC33810_BIT_INJ1); mc33810TransferStateIC1(); }
+#define closeInjector2_MC33810() { clearIC1StateBit(MC33810_BIT_INJ2); mc33810TransferStateIC1(); }
+#define closeInjector3_MC33810() { clearIC1StateBit(MC33810_BIT_INJ3); mc33810TransferStateIC1(); }
+#define closeInjector4_MC33810() { clearIC1StateBit(MC33810_BIT_INJ4); mc33810TransferStateIC1(); }
+#define closeInjector5_MC33810() { clearIC2StateBit(MC33810_BIT_INJ5); mc33810TransferStateIC2(); }
+#define closeInjector6_MC33810() { clearIC2StateBit(MC33810_BIT_INJ6); mc33810TransferStateIC2(); }
+#define closeInjector7_MC33810() { clearIC2StateBit(MC33810_BIT_INJ7); mc33810TransferStateIC2(); }
+#define closeInjector8_MC33810() { clearIC2StateBit(MC33810_BIT_INJ8); mc33810TransferStateIC2(); }
 
-#define injector1Toggle_MC33810() MC33810_1_ACTIVE(); BIT_TOGGLE(mc33810_1_requestedState, MC33810_BIT_INJ1); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define injector2Toggle_MC33810() MC33810_1_ACTIVE(); BIT_TOGGLE(mc33810_1_requestedState, MC33810_BIT_INJ2); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define injector3Toggle_MC33810() MC33810_1_ACTIVE(); BIT_TOGGLE(mc33810_1_requestedState, MC33810_BIT_INJ3); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define injector4Toggle_MC33810() MC33810_1_ACTIVE(); BIT_TOGGLE(mc33810_1_requestedState, MC33810_BIT_INJ4); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define injector5Toggle_MC33810() MC33810_2_ACTIVE(); BIT_TOGGLE(mc33810_2_requestedState, MC33810_BIT_INJ5); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
-#define injector6Toggle_MC33810() MC33810_2_ACTIVE(); BIT_TOGGLE(mc33810_2_requestedState, MC33810_BIT_INJ6); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
-#define injector7Toggle_MC33810() MC33810_2_ACTIVE(); BIT_TOGGLE(mc33810_2_requestedState, MC33810_BIT_INJ7); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
-#define injector8Toggle_MC33810() MC33810_2_ACTIVE(); BIT_TOGGLE(mc33810_2_requestedState, MC33810_BIT_INJ8); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
+#define injector1Toggle_MC33810() { toggleIC1StateBit(MC33810_BIT_INJ1); mc33810TransferStateIC1(); }
+#define injector2Toggle_MC33810() { toggleIC1StateBit(MC33810_BIT_INJ2); mc33810TransferStateIC1(); }
+#define injector3Toggle_MC33810() { toggleIC1StateBit(MC33810_BIT_INJ3); mc33810TransferStateIC1(); }
+#define injector4Toggle_MC33810() { toggleIC1StateBit(MC33810_BIT_INJ4); mc33810TransferStateIC1(); }
+#define injector5Toggle_MC33810() { toggleIC2StateBit(MC33810_BIT_INJ5); mc33810TransferStateIC2(); }
+#define injector6Toggle_MC33810() { toggleIC2StateBit(MC33810_BIT_INJ6); mc33810TransferStateIC2(); }
+#define injector7Toggle_MC33810() { toggleIC2StateBit(MC33810_BIT_INJ7); mc33810TransferStateIC2(); }
+#define injector8Toggle_MC33810() { toggleIC2StateBit(MC33810_BIT_INJ8); mc33810TransferStateIC2(); }
 
-#define coil1High_MC33810() MC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_IGN1); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define coil2High_MC33810() MC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_IGN2); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define coil3High_MC33810() MC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_IGN3); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define coil4High_MC33810() MC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_IGN4); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define coil5High_MC33810() MC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_IGN5); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
-#define coil6High_MC33810() MC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_IGN6); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
-#define coil7High_MC33810() MC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_IGN7); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
-#define coil8High_MC33810() MC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_IGN8); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
+#define coil1High_MC33810() { setIC1StateBit(MC33810_BIT_IGN1); mc33810TransferStateIC1(); }
+#define coil2High_MC33810() { setIC1StateBit(MC33810_BIT_IGN2); mc33810TransferStateIC1(); }
+#define coil3High_MC33810() { setIC1StateBit(MC33810_BIT_IGN3); mc33810TransferStateIC1(); }
+#define coil4High_MC33810() { setIC1StateBit(MC33810_BIT_IGN4); mc33810TransferStateIC1(); }
+#define coil5High_MC33810() { setIC2StateBit(MC33810_BIT_IGN5); mc33810TransferStateIC2(); }
+#define coil6High_MC33810() { setIC2StateBit(MC33810_BIT_IGN6); mc33810TransferStateIC2(); }
+#define coil7High_MC33810() { setIC2StateBit(MC33810_BIT_IGN7); mc33810TransferStateIC2(); }
+#define coil8High_MC33810() { setIC2StateBit(MC33810_BIT_IGN8); mc33810TransferStateIC2(); }
 
-#define coil1Low_MC33810() MC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_IGN1); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define coil2Low_MC33810() MC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_IGN2); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define coil3Low_MC33810() MC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_IGN3); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define coil4Low_MC33810() MC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_IGN4); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); MC33810_1_INACTIVE()
-#define coil5Low_MC33810() MC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_IGN5); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
-#define coil6Low_MC33810() MC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_IGN6); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
-#define coil7Low_MC33810() MC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_IGN7); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
-#define coil8Low_MC33810() MC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_IGN8); (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); MC33810_2_INACTIVE()
+#define coil1Low_MC33810() { clearIC1StateBit(MC33810_BIT_IGN1); mc33810TransferStateIC1(); }
+#define coil2Low_MC33810() { clearIC1StateBit(MC33810_BIT_IGN2); mc33810TransferStateIC1(); }
+#define coil3Low_MC33810() { clearIC1StateBit(MC33810_BIT_IGN3); mc33810TransferStateIC1(); }
+#define coil4Low_MC33810() { clearIC1StateBit(MC33810_BIT_IGN4); mc33810TransferStateIC1(); }
+#define coil5Low_MC33810() { clearIC2StateBit(MC33810_BIT_IGN5); mc33810TransferStateIC2(); }
+#define coil6Low_MC33810() { clearIC2StateBit(MC33810_BIT_IGN6); mc33810TransferStateIC2(); }
+#define coil7Low_MC33810() { clearIC2StateBit(MC33810_BIT_IGN7); mc33810TransferStateIC2(); }
+#define coil8Low_MC33810() { clearIC2StateBit(MC33810_BIT_IGN8); mc33810TransferStateIC2(); }
 
 #endif
 
