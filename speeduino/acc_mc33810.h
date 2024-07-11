@@ -17,106 +17,73 @@ void initMC33810(void);
 /// @cond
 // Implementation details - ignore
 
-static inline void mc33810TransferState(ioPort pin, byte stateFlags) {
+// *one* MC33810
+// 8 total channels: 4 injectors, 4 coils
+// We expect 2 of these to be connected via 2 pins on the Speeduino board
+struct mc33810_IC_t {
+    ioPort pin;              ///< The Speeduino pin that connects to the MC33810
+    volatile byte stateBits; ///< The MC33810 channel states, 1 per bit (on or off)
+};
+
+static inline void mc33810TransferState(mc33810_IC_t &mc33810) {
     static constexpr uint8_t MC33810_ONOFF_CMD = 0x30; //48 in decimal
     
-    setPin_Low(pin);
-    (void)SPI.transfer16(word(MC33810_ONOFF_CMD, stateFlags));
-    setPin_High(pin);
+    setPin_Low(mc33810.pin);
+    (void)SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810.stateBits));
+    setPin_High(mc33810.pin);
 }
 
-static inline void mc33810TransferStateIC1(void) {
-    extern ioPort portMC33810_1_CS;
-    extern volatile uint8_t mc33810_1_requestedState;
-    mc33810TransferState(portMC33810_1_CS, mc33810_1_requestedState);
+static inline mc33810_IC_t& mc33810ICFromChannel(uint8_t channelIndex) {
+    if (channelIndex<5) {
+        // The lower 4 fuel & ignition channels are assigned to IC1/pin1
+        extern mc33810_IC_t mc33810_1;
+        return mc33810_1;
+    } else {
+        // The upper 4 fuel & ignition channels are assigned to IC2/pin2
+        extern mc33810_IC_t mc33810_2;
+        return mc33810_2;        
+    }
 }
 
-static inline void setIC1StateBit(uint8_t bitIndex) {
-    extern volatile uint8_t mc33810_1_requestedState;
-    BIT_SET(mc33810_1_requestedState, bitIndex);
-}
-
-static inline void clearIC1StateBit(uint8_t bitIndex) {
-    extern volatile uint8_t mc33810_1_requestedState;
-    BIT_CLEAR(mc33810_1_requestedState, bitIndex);
-}
-
-static inline void toggleIC1StateBit(uint8_t bitIndex) {
-    extern volatile uint8_t mc33810_1_requestedState;
-    BIT_TOGGLE(mc33810_1_requestedState, bitIndex);
-}
-
-static inline void mc33810TransferStateIC2(void) {
-    extern ioPort portMC33810_2_CS;
-    extern volatile uint8_t mc33810_2_requestedState;
-    mc33810TransferState(portMC33810_2_CS, mc33810_2_requestedState);
-}
-
-static inline void setIC2StateBit(uint8_t bitIndex) {
-    extern volatile uint8_t mc33810_2_requestedState;
-    BIT_SET(mc33810_2_requestedState, bitIndex);
-}
-
-static inline void clearIC2StateBit(uint8_t bitIndex) {
-    extern volatile uint8_t mc33810_2_requestedState;
-    BIT_CLEAR(mc33810_2_requestedState, bitIndex);
-}
-
-static inline void toggleIC2StateBit(uint8_t bitIndex) {
-    extern volatile uint8_t mc33810_2_requestedState;
-    BIT_TOGGLE(mc33810_2_requestedState, bitIndex);
-}
 ///@endcond 
 
-//These are default values for which injector is attached to which output on the IC. 
-//They may (Probably will) be changed during init by the board specific config in init.ino
 extern uint8_t MC33810_BIT_INJ[INJ_CHANNELS];
 extern uint8_t MC33810_BIT_IGN[IGN_CHANNELS];
 
-#define openInjector1_MC33810() { setIC1StateBit(MC33810_BIT_INJ[0]); mc33810TransferStateIC1(); }
-#define openInjector2_MC33810() { setIC1StateBit(MC33810_BIT_INJ[1]); mc33810TransferStateIC1(); }
-#define openInjector3_MC33810() { setIC1StateBit(MC33810_BIT_INJ[2]); mc33810TransferStateIC1(); }
-#define openInjector4_MC33810() { setIC1StateBit(MC33810_BIT_INJ[3]); mc33810TransferStateIC1(); }
-#define openInjector5_MC33810() { setIC2StateBit(MC33810_BIT_INJ[4]); mc33810TransferStateIC2(); }
-#define openInjector6_MC33810() { setIC2StateBit(MC33810_BIT_INJ[5]); mc33810TransferStateIC2(); }
-#define openInjector7_MC33810() { setIC2StateBit(MC33810_BIT_INJ[6]); mc33810TransferStateIC2(); }
-#define openInjector8_MC33810() { setIC2StateBit(MC33810_BIT_INJ[7]); mc33810TransferStateIC2(); }
+static inline void openInjector_MC33810(uint8_t channelIndex) {
+    mc33810_IC_t& ic = mc33810ICFromChannel(channelIndex);
+    BIT_SET(ic.stateBits, MC33810_BIT_INJ[channelIndex-1]);
 
-#define closeInjector1_MC33810() { clearIC1StateBit(MC33810_BIT_INJ[0]); mc33810TransferStateIC1(); }
-#define closeInjector2_MC33810() { clearIC1StateBit(MC33810_BIT_INJ[1]); mc33810TransferStateIC1(); }
-#define closeInjector3_MC33810() { clearIC1StateBit(MC33810_BIT_INJ[2]); mc33810TransferStateIC1(); }
-#define closeInjector4_MC33810() { clearIC1StateBit(MC33810_BIT_INJ[3]); mc33810TransferStateIC1(); }
-#define closeInjector5_MC33810() { clearIC2StateBit(MC33810_BIT_INJ[4]); mc33810TransferStateIC2(); }
-#define closeInjector6_MC33810() { clearIC2StateBit(MC33810_BIT_INJ[5]); mc33810TransferStateIC2(); }
-#define closeInjector7_MC33810() { clearIC2StateBit(MC33810_BIT_INJ[6]); mc33810TransferStateIC2(); }
-#define closeInjector8_MC33810() { clearIC2StateBit(MC33810_BIT_INJ[7]); mc33810TransferStateIC2(); }
+    mc33810TransferState(ic);
+}
 
-#define injector1Toggle_MC33810() { toggleIC1StateBit(MC33810_BIT_INJ[0]); mc33810TransferStateIC1(); }
-#define injector2Toggle_MC33810() { toggleIC1StateBit(MC33810_BIT_INJ[1]); mc33810TransferStateIC1(); }
-#define injector3Toggle_MC33810() { toggleIC1StateBit(MC33810_BIT_INJ[2]); mc33810TransferStateIC1(); }
-#define injector4Toggle_MC33810() { toggleIC1StateBit(MC33810_BIT_INJ[3]); mc33810TransferStateIC1(); }
-#define injector5Toggle_MC33810() { toggleIC2StateBit(MC33810_BIT_INJ[4]); mc33810TransferStateIC2(); }
-#define injector6Toggle_MC33810() { toggleIC2StateBit(MC33810_BIT_INJ[5]); mc33810TransferStateIC2(); }
-#define injector7Toggle_MC33810() { toggleIC2StateBit(MC33810_BIT_INJ[6]); mc33810TransferStateIC2(); }
-#define injector8Toggle_MC33810() { toggleIC2StateBit(MC33810_BIT_INJ[7]); mc33810TransferStateIC2(); }
+static inline void closeInjector_MC33810(uint8_t channelIndex) {
+    mc33810_IC_t& ic = mc33810ICFromChannel(channelIndex);
+    BIT_CLEAR(ic.stateBits, MC33810_BIT_INJ[channelIndex-1]);
 
-#define coil1High_MC33810() { setIC1StateBit(MC33810_BIT_INJ[0]); mc33810TransferStateIC1(); }
-#define coil2High_MC33810() { setIC1StateBit(MC33810_BIT_INJ[1]); mc33810TransferStateIC1(); }
-#define coil3High_MC33810() { setIC1StateBit(MC33810_BIT_INJ[2]); mc33810TransferStateIC1(); }
-#define coil4High_MC33810() { setIC1StateBit(MC33810_BIT_INJ[3]); mc33810TransferStateIC1(); }
-#define coil5High_MC33810() { setIC2StateBit(MC33810_BIT_INJ[4]); mc33810TransferStateIC2(); }
-#define coil6High_MC33810() { setIC2StateBit(MC33810_BIT_INJ[5]); mc33810TransferStateIC2(); }
-#define coil7High_MC33810() { setIC2StateBit(MC33810_BIT_INJ[6]); mc33810TransferStateIC2(); }
-#define coil8High_MC33810() { setIC2StateBit(MC33810_BIT_INJ[7]); mc33810TransferStateIC2(); }
+    mc33810TransferState(ic);
+}
 
-#define coil1Low_MC33810() { clearIC1StateBit(MC33810_BIT_INJ[0]); mc33810TransferStateIC1(); }
-#define coil2Low_MC33810() { clearIC1StateBit(MC33810_BIT_INJ[1]); mc33810TransferStateIC1(); }
-#define coil3Low_MC33810() { clearIC1StateBit(MC33810_BIT_INJ[2]); mc33810TransferStateIC1(); }
-#define coil4Low_MC33810() { clearIC1StateBit(MC33810_BIT_INJ[3]); mc33810TransferStateIC1(); }
-#define coil5Low_MC33810() { clearIC2StateBit(MC33810_BIT_INJ[4]); mc33810TransferStateIC2(); }
-#define coil6Low_MC33810() { clearIC2StateBit(MC33810_BIT_INJ[5]); mc33810TransferStateIC2(); }
-#define coil7Low_MC33810() { clearIC2StateBit(MC33810_BIT_INJ[6]); mc33810TransferStateIC2(); }
-#define coil8Low_MC33810() { clearIC2StateBit(MC33810_BIT_INJ[7]); mc33810TransferStateIC2(); }
+static inline void toggleInjector_MC33810(uint8_t channelIndex) {
+    mc33810_IC_t& ic = mc33810ICFromChannel(channelIndex);
+    BIT_TOGGLE(ic.stateBits, MC33810_BIT_INJ[channelIndex-1]);
+
+    mc33810TransferState(ic);
+}
+
+static inline void coilStartCharging_MC33810(uint8_t channelIndex) {
+    mc33810_IC_t& ic = mc33810ICFromChannel(channelIndex);
+    BIT_SET(ic.stateBits, MC33810_BIT_IGN[channelIndex-1]);
+
+    mc33810TransferState(ic);
+}
+
+static inline void coilStopCharging_MC33810(uint8_t channelIndex) {
+    mc33810_IC_t& ic = mc33810ICFromChannel(channelIndex);
+    BIT_CLEAR(ic.stateBits, MC33810_BIT_IGN[channelIndex-1]);
+
+    mc33810TransferState(ic);
+}
 
 #endif
 

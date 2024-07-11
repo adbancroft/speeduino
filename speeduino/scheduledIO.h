@@ -8,7 +8,7 @@
 
 #include "board_definition.h"
 #include "scheduledIO_direct.h"
-#include "scheduledIO_MC33810.h"
+#include "acc_MC33810.h"
 #include "timers.h"
 
 /** \enum ScheduleOutputControl
