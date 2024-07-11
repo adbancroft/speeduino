@@ -2,28 +2,30 @@
 
 #if defined(OUTPUT_CONTROL_SUPPORTED)
 
+//These are default values for which injector is attached to which output on the IC. 
+//They may (Probably will) be changed during init by the board specific config in init.ino
 uint8_t MC33810_BIT_INJ[INJ_CHANNELS] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 uint8_t MC33810_BIT_IGN[IGN_CHANNELS] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
+// TODO: these are transient & should be removed.
 byte pinMC33810_1_CS;
 byte pinMC33810_2_CS;
-ioPort portMC33810_1_CS;
-ioPort portMC33810_2_CS;
-volatile uint8_t mc33810_1_requestedState; //Current binary state of the 1st ICs IGN and INJ values
-volatile uint8_t mc33810_2_requestedState; //Current binary state of the 2nd ICs IGN and INJ values
 
-#define MC33810_1_ACTIVE() setPin_Low(portMC33810_1_CS);
-#define MC33810_1_INACTIVE() setPin_High(portMC33810_1_CS);
-#define MC33810_2_ACTIVE() setPin_Low(portMC33810_2_CS);
-#define MC33810_2_INACTIVE() setPin_High(portMC33810_2_CS);
+mc33810_IC_t mc33810_1;
+mc33810_IC_t mc33810_2;
+
+#define MC33810_1_ACTIVE() setPin_Low(mc33810_1.pin);
+#define MC33810_1_INACTIVE() setPin_High(mc33810_1.pin);
+#define MC33810_2_ACTIVE() setPin_Low(mc33810_2.pin);
+#define MC33810_2_INACTIVE() setPin_High(mc33810_2.pin);
 
 void initMC33810(void)
 {
     //Set the output states of both ICs to be off to fuel and ignition
-    mc33810_1_requestedState = 0;
-    mc33810_2_requestedState = 0;
-
-    portMC33810_1_CS = pinToOutputPort(pinMC33810_1_CS);
-    portMC33810_2_CS = pinToOutputPort(pinMC33810_2_CS);
+    mc33810_1.stateBits = 0U;
+    mc33810_1.pin = pinToOutputPort(pinMC33810_1_CS);
+    mc33810_2.stateBits = 0U;
+    mc33810_2.pin = pinToOutputPort(pinMC33810_2_CS);
 
     SPI.begin();
     //These are the SPI settings per the datasheet
