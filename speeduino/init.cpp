@@ -19,6 +19,7 @@
 #include "corrections.h"
 #include "idle.h"
 #include "table2d.h"
+#include "scheduledIO_direct.h"
 #include "acc_mc33810.h"
 #include "board_definition.h"
 #include "unit_testing.h"
@@ -316,6 +317,12 @@ void initialiseAll(void)
     digitalWrite(LED_BUILTIN, HIGH);
 }
 
+// This saves a couple of bytes of RAM versus using static constexpr statements
+static inline void useDirectChannelControl(void) {
+  setInjectorControlActions({ openInjector_DIRECT, closeInjector_DIRECT, toggleInjector_DIRECT });
+  setIgnitionControlActions({ coilStartCharging_DIRECT, coilStopCharging_DIRECT });    
+}
+
 #ifndef SMALL_FLASH_MODE //No support for bluepill here anyway
 
 static void setPinMappingsV2_0Shield(void) {
@@ -346,6 +353,8 @@ static void setPinMappingsV2_0Shield(void) {
   pinFuelPump = 4; //Fuel pump output
   pinFlex = 2; // Flex sensor (Must be external interrupt enabled)
   pinResetControl = 43; //Reset control output
+
+  useDirectChannelControl();
 }
 
 static void setPinMappingsV3_0Shield(void) {
@@ -397,6 +406,8 @@ static void setPinMappingsV3_0Shield(void) {
     pinFan = 27;
     pinO2 = A22;
   #endif
+
+  useDirectChannelControl();
 }
 
 static void setPinMappingsMx5Nb2Shield(void) {
@@ -450,6 +461,8 @@ static void setPinMappingsMx5Nb2Shield(void) {
     pinFan = 50; //Won't work (No mapping for pin 35)
     pinTachOut = 28; //Done
 #endif
+
+  useDirectChannelControl();
 }
 
 static void setPinMappingsMx5Na18Shield(void) {
@@ -500,6 +513,8 @@ static void setPinMappingsMx5Na18Shield(void) {
   pinFan = 50; //Won't work (No mapping for pin 35)
   pinTachOut = 28; //Done
 #endif
+
+  useDirectChannelControl();
 }
 
 static void setPinMappingsMx5Na16Shield(void) {
@@ -552,6 +567,8 @@ static void setPinMappingsMx5Na16Shield(void) {
   pinFan = 50; //Won't work (No mapping for pin 35)
   pinTachOut = 28; //Done
 #endif
+
+  useDirectChannelControl();
 }
 
 static void setPinMappingsTurtanasPcb(void) {
@@ -586,6 +603,8 @@ static void setPinMappingsTurtanasPcb(void) {
   pinTachOut = 49; //Tacho output pin
   pinFlex = 2; // Flex sensor (Must be external interrupt enabled)
   pinResetControl = 26; //Reset control  
+
+  useDirectChannelControl();
 }
 
 static void setPinMappingsDazV6Shield(void) {
@@ -627,6 +646,8 @@ static void setPinMappingsDazV6Shield(void) {
   pinSpareLOut5 = 53;
 #endif
   pinFan = 47; //Pin for the fan output
+
+  useDirectChannelControl();
 }
 
 static void setPinMappingsNO2CShield(void) {
@@ -672,6 +693,8 @@ static void setPinMappingsNO2CShield(void) {
   pinSpareLOut3 = 36; //low current output spare3 - ONLY WITH DB
 #endif
   pinResetControl = 26; //Reset control output
+
+  useDirectChannelControl();
 }
 
 static void setPinMappingsUA4CShield(void) {
@@ -718,6 +741,8 @@ static void setPinMappingsUA4CShield(void) {
 #endif
   pinFan = 24; //Pin for the fan output
   pinResetControl = 46; //Reset control output PLACEHOLDER value for now
+
+  useDirectChannelControl();
 }
 
 static void setPinMappingsBlitzboxBL49sp(void) {
@@ -756,6 +781,8 @@ static void setPinMappingsBlitzboxBL49sp(void) {
 #endif
   pinFan = 12; //Pin for the fan output
   pinResetControl = 46; //Reset control output PLACEHOLDER value for now
+
+  useDirectChannelControl();
 }
 
 static void setPinMappingsDiyEfiCore4Shield(void) {
@@ -803,6 +830,8 @@ static void setPinMappingsDiyEfiCore4Shield(void) {
   pinFan = 40; //Pin for the fan output
   pinResetControl = 46; //Reset control output PLACEHOLDER value for now
 #endif // CORE_AVR
+
+  useDirectChannelControl();
 }
 
 static void setPinMappingsPlazomatV0_1Shield(void) {
@@ -839,6 +868,8 @@ static void setPinMappingsPlazomatV0_1Shield(void) {
   pinTachOut = 49; //Tacho output pin
   pinResetControl = 26; //Reset control output
 #endif // CORE_AVR
+
+  useDirectChannelControl();
 }
 
 #endif // SMALL_FLASH_MODE
@@ -1059,6 +1090,8 @@ static void setPinMappingsV4_0Shield(void) {
   pinTrigger = PC13; //The CAS pin also led pin so bad idea
   pinTrigger2 = PC15; //The Cam Sensor pin
 #endif
+
+  useDirectChannelControl();
 }
 
 static void setPinMappingBmwPnP(void) {
@@ -1143,6 +1176,8 @@ static void setPinMappingBmwPnP(void) {
   pinIdleUp = PE14; //(placeholder)
   pinCTPS = PA6; //(placeholder)
   #endif
+
+  useDirectChannelControl();
 }
 
 static void setPinMappingsTeensyRevA(void) {
@@ -1179,6 +1214,8 @@ static void setPinMappingsTeensyRevA(void) {
   pinSpareLOut1 = 21; //low current output spare1
 #endif
 #endif
+
+  useDirectChannelControl();
 }
 
 static void setPinMappingsTeensyRevB(void) {
@@ -1215,6 +1252,8 @@ static void setPinMappingsTeensyRevB(void) {
   pinSpareLOut1 = 21; //low current output spare1
 #endif
 #endif
+
+  useDirectChannelControl();
 }
 
 
@@ -1252,6 +1291,8 @@ static void setPinMappingsJuiceBox(void) {
   pinSpareLOut1 = 55; //low current output spare1 - NOT USED
 #endif
 #endif
+
+  useDirectChannelControl();
 }
 
 static void setPinMappingsDropBear(void) {
@@ -1356,6 +1397,10 @@ static void setPinMappingsDropBear(void) {
   MC33810_BIT_INJ[5] = 5;
   MC33810_BIT_INJ[6] = 6;
   MC33810_BIT_INJ[7] = 7;
+
+  initMC33810();
+  setInjectorControlActions({ openInjector_MC33810, closeInjector_MC33810, toggleInjector_MC33810 });
+  setIgnitionControlActions({ coilStartCharging_MC33810, coilStopCharging_MC33810 });  
 #endif
 }
 
@@ -1400,6 +1445,8 @@ static void setPinMappingBearCub(void) {
   pinFan = 25; //Pin for the fan output
   pinResetControl = 46; //Reset control output PLACEHOLDER value for now
 #endif
+
+  useDirectChannelControl();
 }
  
 static void setPinMappingsSTM32(void) {
@@ -1580,6 +1627,8 @@ static void setPinMappingsSTM32(void) {
   pinTrigger = PA10; //The CAS pin
   pinTrigger2 = PA13; //The Cam Sensor pin
 #endif
+
+  useDirectChannelControl();
 }
 
 /** Set board / microcontroller specific pin mappings / assignments.

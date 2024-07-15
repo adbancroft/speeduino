@@ -1,5 +1,5 @@
 #include "scheduledIO.h"
-
+#include "scheduledIO_direct.h"
 /** @file
  * Injector and Coil (toggle/open/close) control (under various situations, eg with particular cylinder count, rotary engine type or wasted spark ign, etc.).
  * Also accounts for presence of MC33810 injector/ignition (dwell, etc.) control circuit.
@@ -7,48 +7,35 @@
  * form where they are called (by scheduler.ino).
  */
 
-#if defined(OUTPUT_CONTROL_SUPPORTED)
-ScheduleOutputControl ignitionOutputControl;
-#endif
-
-#if defined(OUTPUT_CONTROL_SUPPORTED)
-ScheduleOutputControl injectorOutputControl;
-#endif
-
-static inline ioPort registerIOPin(uint8_t pin, ScheduleOutputControl ioType) {
-    if(ioType == OUTPUT_CONTROL_DIRECT) {
-        return pinToOutputPort(pin);
-    } else {
-        return nullIoPort();
-    }
-}
-
-static inline void registerPins(ioPort toRegister[], uint8_t toRegisterSize, const uint8_t pins[], ScheduleOutputControl ioType) {
+static inline void registerPins(ioPort toRegister[], uint8_t toRegisterSize, const uint8_t pins[]) {
     for (uint8_t index=0U; index<toRegisterSize; ++index) {
-        toRegister[index] = registerIOPin(pins[index], ioType);
+        toRegister[index] = pinToOutputPort(pins[index]);
     }
-#if defined(OUTPUT_CONTROL_SUPPORTED)
-    if (ioType==OUTPUT_CONTROL_MC33810) {
-        initMC33810();
-    }
-#endif
 }
 
 void initialiseInjectorPins(const uint8_t pins[]) {
-#if defined(OUTPUT_CONTROL_SUPPORTED)
-    injectorOutputControl = isValidPin(pinMC33810_1_CS) ? OUTPUT_CONTROL_MC33810 : OUTPUT_CONTROL_DIRECT;
-    registerPins(injectorPins, _countof(injectorPins), pins, injectorOutputControl);
-#else
-    registerPins(injectorPins, _countof(injectorPins), pins, OUTPUT_CONTROL_DIRECT);
-#endif
+    registerPins(injectorPins, _countof(injectorPins), pins);
 }
 
 void initialiseIgnitionPins(const uint8_t pins[]) {
-#if defined(OUTPUT_CONTROL_SUPPORTED)
-    ignitionOutputControl = isValidPin(pinMC33810_2_CS) ? OUTPUT_CONTROL_MC33810 : OUTPUT_CONTROL_DIRECT;
-    registerPins(ignitionPins, _countof(ignitionPins), pins, ignitionOutputControl);
-#else
-    registerPins(ignitionPins, _countof(ignitionPins), pins, OUTPUT_CONTROL_DIRECT);
-#endif
+    registerPins(ignitionPins, _countof(ignitionPins), pins);
 }
 
+static inline void nullAction(uint8_t index) {
+    UNUSED(index);
+    // Do nothing
+}
+
+// cppcheck-suppress misra-c2012-8.4
+injector_control_t injectorControl = { nullAction, nullAction, nullAction };
+
+void setInjectorControlActions(const injector_control_t &control) {
+    injectorControl = control;
+}
+
+// cppcheck-suppress misra-c2012-8.4
+coil_control_t coilControl = { nullAction, nullAction };
+
+void setIgnitionControlActions(const coil_control_t &control) {
+    coilControl = control;
+}
