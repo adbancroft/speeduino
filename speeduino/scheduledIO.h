@@ -7,25 +7,30 @@
 #define SCHEDULEDIO_H
 
 #include "board_definition.h"
-#include "scheduledIO_direct.h"
-#include "acc_MC33810.h"
 #include "timers.h"
-
-/** \enum ScheduleOutputControl
- * @brief Controls how coil & injection pins are controlled
- * */
-enum ScheduleOutputControl {
-    /** Directly via an IO pin */
-    OUTPUT_CONTROL_DIRECT = 0U,
-    /** Via an external MC33810 module */
-    OUTPUT_CONTROL_MC33810 = 10U
-};
 
 // ================================= Injection ================================= 
 
-#if defined(OUTPUT_CONTROL_SUPPORTED)
-extern ScheduleOutputControl injectorOutputControl;
-#endif
+/** @brief An injector action. The parameter is **one** based index of the injector. I.e. the injector channel number */
+using injectorAction = void(*)(uint8_t);
+
+/**
+ * @brief Injector controller function pack.
+ * 
+ * Some boards use an injector control system other than board pins directly controlling the injectors. 
+ */
+struct injector_control_t {
+    injectorAction openInjector;    ///< Open the injector
+    injectorAction closeInjector;   ///< Close the injector
+    injectorAction toggleInjector;  ///< Opne to Close, Close to Open the injector
+};
+
+/**
+ * @brief Inject the injector control functions
+ * 
+ * @param control 
+ */
+void setInjectorControlActions(const injector_control_t &control);
 
 /**
  * @brief Setup the injector (fuel) pins and output control method
@@ -40,15 +45,8 @@ void initialiseInjectorPins(const uint8_t pins[]);
  * @param channelIndex **One** based index of the injector. I.e. the injector channel number
  */
 static inline void openInjector(uint8_t channelIndex) {
-#if defined(OUTPUT_CONTROL_SUPPORTED)
-    if(injectorOutputControl != OUTPUT_CONTROL_MC33810) {
-        openInjector_DIRECT(channelIndex);
-    } else {
-        openInjector_MC33810(channelIndex);
-    }
-#else
-    openInjector_DIRECT(channelIndex);
-#endif
+    extern injector_control_t injectorControl;
+    injectorControl.openInjector(channelIndex);
     if (channelIndex-1U<=BIT_STATUS1_INJ4) { 
         BIT_SET(currentStatus.status1, BIT_STATUS1_INJ1+(channelIndex)-1U); 
     }
@@ -60,15 +58,8 @@ static inline void openInjector(uint8_t channelIndex) {
  * @param channelIndex **One** based index of the injector. I.e. the injector channel number
  */
 static inline void closeInjector(uint8_t channelIndex) {
-#if defined(OUTPUT_CONTROL_SUPPORTED)
-    if(injectorOutputControl != OUTPUT_CONTROL_MC33810) {
-        closeInjector_DIRECT(channelIndex);
-    } else {
-        closeInjector_MC33810(channelIndex);
-    }
-#else
-    closeInjector_DIRECT(channelIndex);
-#endif
+    extern injector_control_t injectorControl;
+    injectorControl.closeInjector(channelIndex);
     if (channelIndex-1U<=BIT_STATUS1_INJ4) { 
         BIT_CLEAR(currentStatus.status1, BIT_STATUS1_INJ1+(channelIndex)-1U);
     }
@@ -80,23 +71,32 @@ static inline void closeInjector(uint8_t channelIndex) {
  * @param channelIndex **One** based index of the injector. I.e. the injector channel number
  */
 static inline void toggleInjector(uint8_t channelIndex) {
-#if defined(OUTPUT_CONTROL_SUPPORTED)
-    if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { 
-        toggleInjector_DIRECT(channelIndex);
-    } else {
-        toggleInjector_MC33810(channelIndex);
-    }
-#else
-    toggleInjector_DIRECT(channelIndex);
-#endif
+    extern injector_control_t injectorControl;
+    injectorControl.toggleInjector(channelIndex);
 }
 
 
 // ================================= Ignition ================================= 
 
-#if defined(OUTPUT_CONTROL_SUPPORTED)
-extern ScheduleOutputControl ignitionOutputControl; //Specifies whether the coils are controlled directly (Via an IO pin) or using something like the MC33810
-#endif
+/** @brief An ignition coil action. The parameter is **one** based index of the coil. I.e. the coil channel number */
+using coilAction = void(*)(uint8_t);
+
+/**
+ * @brief Ignition coil function pack.
+ * 
+ * Some boards use a coil control system other than board pins directly controlling the coils. 
+ */
+struct coil_control_t {
+    coilAction beginCoilCharge; ///< Start charging the coil
+    coilAction endCoilCharge;   ///< Discharge the coil. I.e.spark 
+};
+
+/**
+ * @brief Inject the coil control functions
+ * 
+ * @param control 
+ */
+void setIgnitionControlActions(const coil_control_t &control);
 
 /**
  * @brief Setup the ignition (coil) pins and output control method
@@ -111,15 +111,8 @@ void initialiseIgnitionPins(const uint8_t pins[]);
  * @param channelIndex **One** based index of the coil. I.e. the coil channel number
  */
 static inline void beginCoilCharge(uint8_t channelIndex) {
-#if defined(OUTPUT_CONTROL_SUPPORTED)
-    if(ignitionOutputControl != OUTPUT_CONTROL_MC33810) { 
-        coilStartCharging_DIRECT(channelIndex);
-    } else { 
-        coilStartCharging_MC33810(channelIndex);
-    }
-#else
-    coilStartCharging_DIRECT(channelIndex); 
-#endif
+    extern coil_control_t coilControl;
+    coilControl.beginCoilCharge(channelIndex);
     if(configPage6.tachoMode) { 
         TACHO_PULSE_LOW(); 
     } else { 
@@ -133,15 +126,8 @@ static inline void beginCoilCharge(uint8_t channelIndex) {
  * @param channelIndex **One** based index of the coil. I.e. the coil channel number
  */
 static inline void endCoilCharge(uint8_t channelIndex) {
-#if defined(OUTPUT_CONTROL_SUPPORTED)
-    if(ignitionOutputControl != OUTPUT_CONTROL_MC33810) { 
-        coilStopCharging_DIRECT(channelIndex);
-    } else { 
-        coilStopCharging_MC33810(channelIndex); 
-    }
-#else
-    coilStopCharging_DIRECT(channelIndex);
-#endif
+    extern coil_control_t coilControl;
+    coilControl.endCoilCharge(channelIndex);
     if(configPage6.tachoMode) { 
         TACHO_PULSE_HIGH(); 
     }
