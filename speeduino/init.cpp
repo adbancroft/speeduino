@@ -1376,29 +1376,10 @@ static void setPinMappingsDropBear(void) {
   pinResetControl = 49; //PLaceholder only. Cannot use 42-47 as these are the SD card
 #endif
 
-  pinMC33810_1_CS = 10;
-  pinMC33810_2_CS = 9;
-
   //Pin alignment to the MC33810 outputs
-  MC33810_BIT_INJ[0] = 3;
-  MC33810_BIT_INJ[1] = 1;
-  MC33810_BIT_INJ[2] = 0;
-  MC33810_BIT_INJ[3] = 2;
-  MC33810_BIT_INJ[0] = 4;
-  MC33810_BIT_INJ[1] = 5;
-  MC33810_BIT_INJ[2] = 6;
-  MC33810_BIT_INJ[3] = 7;
-
-  MC33810_BIT_INJ[4] = 3;
-  MC33810_BIT_INJ[5] = 1;
-  MC33810_BIT_INJ[6] = 0;
-  MC33810_BIT_INJ[7] = 2;
-  MC33810_BIT_INJ[4] = 4;
-  MC33810_BIT_INJ[5] = 5;
-  MC33810_BIT_INJ[6] = 6;
-  MC33810_BIT_INJ[7] = 7;
-
-  initMC33810();
+  initMC33810(
+    { 10U, { 3, 1, 0, 2 }, { 3, 1, 0, 2 }  }, 
+    { 9U,  { 4, 5, 6, 7 }, { 4, 5, 6, 7 }  });
   setInjectorControlActions({ openInjector_MC33810, closeInjector_MC33810, toggleInjector_MC33810 });
   setIgnitionControlActions({ coilStartCharging_MC33810, coilStopCharging_MC33810 });  
 #endif
