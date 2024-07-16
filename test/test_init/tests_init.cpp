@@ -46,6 +46,9 @@ void test_initialisation_complete(void)
   TEST_ASSERT_EQUAL(true, currentStatus.initialisationComplete);
 }
 
+extern ioPort injectorPins[INJ_CHANNELS];
+extern ioPort ignitionPins[INJ_CHANNELS];
+
 void test_initialisation_ports(void)
 {
 #if defined(CORE_AVR) || defined(ARDUINO_ARCH_AVR)

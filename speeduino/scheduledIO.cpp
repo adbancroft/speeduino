@@ -1,25 +1,11 @@
 #include "scheduledIO.h"
-#include "scheduledIO_direct.h"
+
 /** @file
  * Injector and Coil (toggle/open/close) control (under various situations, eg with particular cylinder count, rotary engine type or wasted spark ign, etc.).
  * Also accounts for presence of MC33810 injector/ignition (dwell, etc.) control circuit.
  * Functions here are typically assigned (at initialisation) to callback function variables (e.g. inj1StartFunction or inj1EndFunction) 
  * form where they are called (by scheduler.ino).
  */
-
-static inline void registerPins(ioPort toRegister[], uint8_t toRegisterSize, const uint8_t pins[]) {
-    for (uint8_t index=0U; index<toRegisterSize; ++index) {
-        toRegister[index] = pinToOutputPort(pins[index]);
-    }
-}
-
-void initialiseInjectorPins(const uint8_t pins[]) {
-    registerPins(injectorPins, _countof(injectorPins), pins);
-}
-
-void initialiseIgnitionPins(const uint8_t pins[]) {
-    registerPins(ignitionPins, _countof(ignitionPins), pins);
-}
 
 static inline void nullAction(uint8_t index) {
     UNUSED(index);

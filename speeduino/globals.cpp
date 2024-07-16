@@ -201,11 +201,11 @@ bool pinIsOutput(byte pin)
   bool isIdlePWM = (configPage6.iacAlgorithm > 0) && ((configPage6.iacAlgorithm <= 3) || (configPage6.iacAlgorithm == 6));
   bool isIdleSteper = (configPage6.iacAlgorithm > 3) && (configPage6.iacAlgorithm != 6);
   //Injector?
-  for (uint8_t index=0U; index<_countof(injectorPins); ++index) {
+  for (uint8_t index=0U; index<_countof(pinInjectors); ++index) {
     used = used || (pin == pinInjectors[index]);
   }
   //Ignition?
-  for (uint8_t index=0U; index<_countof(ignitionPins); ++index) {
+  for (uint8_t index=0U; index<_countof(pinCoils); ++index) {
     used = used || (pin == pinCoils[index]);
   }
 

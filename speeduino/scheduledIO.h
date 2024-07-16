@@ -33,18 +33,11 @@ struct injector_control_t {
 void setInjectorControlActions(const injector_control_t &control);
 
 /**
- * @brief Setup the injector (fuel) pins and output control method
- * 
- * @param pins Pin numbers in cylinder order. *Assumption is that the array has at least IGN_CHANNELS elements*
- */
-void initialiseInjectorPins(const uint8_t pins[]);
-
-/**
  * @brief Open an injector
  * 
  * @param channelIndex **One** based index of the injector. I.e. the injector channel number
  */
-static inline void openInjector(uint8_t channelIndex) {
+static CRITICAL_INLINE void openInjector(uint8_t channelIndex) {
     extern injector_control_t injectorControl;
     injectorControl.openInjector(channelIndex);
     if (channelIndex-1U<=BIT_STATUS1_INJ4) { 
@@ -57,7 +50,7 @@ static inline void openInjector(uint8_t channelIndex) {
  * 
  * @param channelIndex **One** based index of the injector. I.e. the injector channel number
  */
-static inline void closeInjector(uint8_t channelIndex) {
+static CRITICAL_INLINE void closeInjector(uint8_t channelIndex) {
     extern injector_control_t injectorControl;
     injectorControl.closeInjector(channelIndex);
     if (channelIndex-1U<=BIT_STATUS1_INJ4) { 
@@ -99,18 +92,11 @@ struct coil_control_t {
 void setIgnitionControlActions(const coil_control_t &control);
 
 /**
- * @brief Setup the ignition (coil) pins and output control method
- * 
- * @param pins Pin numbers in cylinder order. *Assumption is that the array has at least IGN_CHANNELS elements*
- */
-void initialiseIgnitionPins(const uint8_t pins[]);
-
-/**
  * @brief Start charging a coil
  * 
  * @param channelIndex **One** based index of the coil. I.e. the coil channel number
  */
-static inline void beginCoilCharge(uint8_t channelIndex) {
+static CRITICAL_INLINE void beginCoilCharge(uint8_t channelIndex) {
     extern coil_control_t coilControl;
     coilControl.beginCoilCharge(channelIndex);
     if(configPage6.tachoMode) { 
@@ -125,7 +111,7 @@ static inline void beginCoilCharge(uint8_t channelIndex) {
  * 
  * @param channelIndex **One** based index of the coil. I.e. the coil channel number
  */
-static inline void endCoilCharge(uint8_t channelIndex) {
+static CRITICAL_INLINE void endCoilCharge(uint8_t channelIndex) {
     extern coil_control_t coilControl;
     coilControl.endCoilCharge(channelIndex);
     if(configPage6.tachoMode) { 
