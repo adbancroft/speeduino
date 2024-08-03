@@ -9,6 +9,7 @@ Because the size of the table is dynamic, this function is required to reallocat
 Note that this may clear some of the existing values of the table
 */
 #include "table2d.h"
+#include "maths.h"
 #if !defined(UNIT_TEST)
 #include "globals.h"
 #endif
@@ -64,7 +65,10 @@ struct bin_t {
   int16_t lowerValue;
 };
 
-static inline int16_t range(const bin_t &bin) {
+static inline uint16_t range(const bin_t &bin) {
+  if (bin.upperValue<bin.lowerValue) {
+    return bin.lowerValue - bin.upperValue;
+  }
   return bin.upperValue - bin.lowerValue;
 }
 
@@ -111,6 +115,29 @@ static inline bin_t findAxisBin(const struct table2D *fromTable, const int16_t X
   return xBin;
 }
 
+// The Arduino map() function operates on long values so it requires signed
+// 32-bit division: very slow on ATMega.
+//
+// This implementation is about twice as fast
+static inline int16_t map(const int16_t in, const bin_t &inRange, const bin_t &outRange) {
+  // We assume the x-axis is in increasing order, so m & n will be >0.
+  uint16_t m = in - inRange.lowerValue;
+  uint16_t n = range(inRange);
+
+  /* Float version (if m, yMax, yMin and n were float's)
+      int yVal = (m * (yMax - yMin)) / n;
+  */
+
+  // Note that this is all unsigned math....
+  uint16_t yRange = range(outRange); 
+  uint16_t scaled = udiv_32_16((uint32_t)m * (uint32_t)yRange, n);
+  // ....so if the out range is descending we need to invert the offset.  
+  if (outRange.upperValue<outRange.lowerValue) {
+    return outRange.lowerValue - (int16_t)scaled;
+  }
+  return outRange.lowerValue + (int16_t)scaled;
+}
+
 /*
 This function pulls a 1D linear interpolated (ie averaged) value from a 2D table
 ie: Given a value on the X axis, it returns a Y value that corresponds to the point on the curve between the nearest two defined X values
@@ -153,20 +180,7 @@ int16_t table2D_getValue(const struct table2D *fromTable, const int16_t X_in)
       fromTable->cache.lastOutput = table2D_getRawValue(fromTable, xBin.upperIndex);
       fromTable->cache.lastBinUpperIndex = xBin.upperIndex;
     } else if (isInBin(X_in, xBin)) {
-      // We assume the x-axis is in increasing order, so m & n will be >0.
-      uint16_t m = X_in - xBin.lowerValue;
-      uint16_t n = range(xBin);
-
-      bin_t valueBin = getValueBin(fromTable, xBin.upperIndex);
-      int32_t yRange = (int32_t)range(valueBin);
-
-      /* Float version (if m, yMax, yMin and n were float's)
-        int yVal = (m * (yMax - yMin)) / n;
-      */
-      
-      //Non-Float version
-      int16_t yVal = (int16_t)(( m * yRange ) / n);
-      fromTable->cache.lastOutput = valueBin.lowerValue + yVal;
+      fromTable->cache.lastOutput = map(X_in, xBin, getValueBin(fromTable, xBin.upperIndex));
       fromTable->cache.lastBinUpperIndex = xBin.upperIndex;
     } else {
       // This should never happen, but if it does, return the last output
