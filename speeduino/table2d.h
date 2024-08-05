@@ -41,7 +41,7 @@ struct opaque_array_t {
  *  * The axis and values can be any integral type up to 16-bits wide.
  *    * Signed or unsigned.
  */
-struct table2D {
+struct table2D { // cppcheck-suppress ctuOneDefinitionRuleViolation; false positive
   uint8_t length;
 
   opaque_array_t values;

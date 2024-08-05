@@ -17,6 +17,7 @@ Note that this may clear some of the existing values of the table
 #define TYPE_INT8    1U
 #define TYPE_UINT8   2U
 #define TYPE_UINT16  3U
+#define TYPE_INT16   4U
 
 static void _construct2dTable(table2D &table, uint8_t valueType, uint8_t axisType, uint8_t length, const void *values, const void *bins) {
   table.values = { valueType, values };
@@ -42,7 +43,7 @@ void _construct2dTable(table2D &table, uint8_t length, const uint16_t *values, c
   _construct2dTable(table, TYPE_UINT16, TYPE_UINT8, length, values, bins);
 }
 void _construct2dTable(table2D &table, uint8_t length, const int16_t *values, const uint8_t *bins) {
-  _construct2dTable(table, TYPE_UINT16, TYPE_UINT8, length, values, bins);
+  _construct2dTable(table, TYPE_INT16, TYPE_UINT8, length, values, bins);
 }
 
 static inline uint8_t getCacheTime(void) {
@@ -57,15 +58,18 @@ static inline bool cacheExpired(const table2DCache &cache) {
   return (cache.cacheTime != getCacheTime());
 }
 
+// opaque_array_t support: conveniently access the underlying array. 
+// Ideally this should be the one and only place where the array type is known.
 #define DISPATCH_OPAQUE_ARRAY(array, action, defaultAction, ...) \
-  if(array.typeIndicator == TYPE_UINT8) return action((const uint8_t*)(array.data), __VA_ARGS__); \
-  if(array.typeIndicator == TYPE_UINT16) return action((const uint16_t*)(array.data), __VA_ARGS__); \
-  if(array.typeIndicator == TYPE_INT8) return action((const int8_t*)(array.data), __VA_ARGS__); \
+  if(array.typeIndicator == TYPE_UINT8) { return action((const uint8_t*)(array.data), __VA_ARGS__); } \
+  if(array.typeIndicator == TYPE_UINT16) { return action((const uint16_t*)(array.data), __VA_ARGS__); } \
+  if(array.typeIndicator == TYPE_INT8) { return action((const int8_t*)(array.data), __VA_ARGS__); } \
+  if(array.typeIndicator == TYPE_INT16) { return action((const int16_t*)(array.data), __VA_ARGS__); } \
   return defaultAction(__VA_ARGS__); 
 
 template <typename TArray>
-static inline TArray getValue(const TArray *axis, uint8_t index) {
-  return axis[index];
+static inline TArray getValue(const TArray *array, uint8_t index) {
+  return array[index];
 }
  
 static inline int16_t getValue(const opaque_array_t &array, uint8_t index) {
@@ -168,7 +172,7 @@ int16_t table2D_getValue(const struct table2D *fromTable, const int16_t X_in)
     xBin = findAxisBin(fromTable, X_in);
   }
 
-  // We are exactly at the bin upper bound, so need to interpolate
+  // We are exactly at the bin upper bound, so no need to interpolate
   if (X_in==xBin.upperValue) {
     fromTable->cache.lastOutput = getValue(fromTable->values, xBin.upperIndex);
     fromTable->cache.lastBinUpperIndex = xBin.upperIndex;
