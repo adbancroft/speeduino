@@ -18,11 +18,9 @@ Note that this may clear some of the existing values of the table
 #define TYPE_UINT16  3U
 
 static void _construct2dTable(table2D &table, uint8_t valueType, uint8_t axisType, uint8_t length, const void *values, const void *bins) {
-  table.valueType = valueType;
-  table.axisType = axisType;
+  table.values = { valueType, values };
+  table.axis = { axisType, bins };
   table.length = length;
-  table.values = values;
-  table.axisX = bins;
   table.cache.lastInput = INT16_MAX;
   table.cache.lastBinUpperIndex = 1U;
 }
@@ -58,6 +56,22 @@ static inline bool cacheExpired(const table2DCache &cache) {
   return (cache.cacheTime != getCacheTime());
 }
 
+#define DISPATCH_OPAQUE_ARRAY(array, action, defaultAction, ...) \
+  if(array.typeIndicator == TYPE_UINT8) return action((const uint8_t*)(array.data), __VA_ARGS__); \
+  if(array.typeIndicator == TYPE_UINT16) return action((const uint16_t*)(array.data), __VA_ARGS__); \
+  if(array.typeIndicator == TYPE_INT8) return action((const int8_t*)(array.data), __VA_ARGS__); \
+  return defaultAction(__VA_ARGS__); 
+
+template <typename TArray>
+static inline TArray getValue(const TArray *axis, uint8_t index) {
+  return axis[index];
+}
+ 
+static inline int16_t getValue(const opaque_array_t &array, uint8_t index) {
+  auto defaultAction = [](uint8_t) { return 0; };
+  DISPATCH_OPAQUE_ARRAY(array, getValue, defaultAction, index);
+}
+
 struct bin_t {
   uint8_t upperIndex;
   int16_t upperValue;
@@ -72,33 +86,24 @@ static inline bool isInBin(int16_t value, const bin_t &bin) {
   return (value <= bin.upperValue) && (value > bin.lowerValue);
 }
 
-template <typename TAxis>
-static inline bin_t constructBin(const TAxis *axis, uint8_t binUpperIndex) {
+template <typename TArray>
+static inline bin_t constructBin(const TArray *axis, uint8_t binUpperIndex) {
   return { .upperIndex = binUpperIndex , .upperValue = (int16_t)axis[binUpperIndex], .lowerValue = (int16_t)axis[binUpperIndex-1U] }; 
 }
 
-static inline bin_t constructBin(const void* pArray, uint8_t typeFlag, uint8_t binUpperIndex) {
-  if(typeFlag == TYPE_UINT16) { 
-    return constructBin((const uint16_t*)pArray, binUpperIndex);
-  }
-  if(typeFlag == TYPE_UINT8) { 
-    return constructBin((const uint8_t*)pArray, binUpperIndex);
-  }
-  if(typeFlag == TYPE_INT8) { 
-    return constructBin((const int8_t*)pArray, binUpperIndex);
-  }
-
-  return bin_t();
+static inline bin_t constructBin(const opaque_array_t &array, uint8_t binUpperIndex) {
+  auto defaultAction = [](uint8_t) { return bin_t(); };
+  DISPATCH_OPAQUE_ARRAY(array, constructBin, defaultAction, binUpperIndex);
 }  
 
 static inline bin_t getAxisBin(const struct table2D *fromTable, uint8_t binUpperIndex)
 {
-  return constructBin(fromTable->axisX, fromTable->axisType, binUpperIndex);
+  return constructBin(fromTable->axis, binUpperIndex);
 }
 
 static inline bin_t getValueBin(const struct table2D *fromTable, uint8_t binUpperIndex)
 {
-  return constructBin(fromTable->values, fromTable->valueType, binUpperIndex);
+  return constructBin(fromTable->values, binUpperIndex);
 }
 
 static inline bin_t findAxisBin(const struct table2D *fromTable, const int16_t X_in) {
@@ -129,13 +134,13 @@ int16_t table2D_getValue(const struct table2D *fromTable, const int16_t X_in)
   const uint8_t xMax = fromTable->length-1U;
 
   //If the requested X value is greater/small than the maximum/minimum bin, simply return that value
-  if(X_in >= table2D_getAxisValue(fromTable, xMax))
+  if(X_in >= getValue(fromTable->axis, xMax))
   {
-    fromTable->cache.lastOutput = table2D_getRawValue(fromTable, xMax);
+    fromTable->cache.lastOutput = getValue(fromTable->values, xMax);
   }
-  else if(X_in <= table2D_getAxisValue(fromTable, 0U))
+  else if(X_in <= getValue(fromTable->axis, 0U))
   {
-    fromTable->cache.lastOutput = table2D_getRawValue(fromTable, 0U);
+    fromTable->cache.lastOutput = getValue(fromTable->values, 0U);
   }
   //Finally if none of that is found
   else
@@ -150,7 +155,7 @@ int16_t table2D_getValue(const struct table2D *fromTable, const int16_t X_in)
 
     //Checks the case where the X value is exactly what was requested
     if (X_in==xBin.upperValue) {
-      fromTable->cache.lastOutput = table2D_getRawValue(fromTable, xBin.upperIndex);
+      fromTable->cache.lastOutput = getValue(fromTable->values, xBin.upperIndex);
       fromTable->cache.lastBinUpperIndex = xBin.upperIndex;
     } else if (isInBin(X_in, xBin)) {
       // We assume the x-axis is in increasing order, so m & n will be >0.
@@ -180,6 +185,8 @@ int16_t table2D_getValue(const struct table2D *fromTable, const int16_t X_in)
   return fromTable->cache.lastOutput;
 }
 
+
+
 /**
  * @brief Returns an axis (bin) value from the 2D table. This works regardless of whether that axis is bytes or int16_ts
  * 
@@ -189,14 +196,7 @@ int16_t table2D_getValue(const struct table2D *fromTable, const int16_t X_in)
  */
 int16_t table2D_getAxisValue(const struct table2D *fromTable, uint8_t index)
 {
-  int returnValue = 0;
-
-  if(fromTable->axisType == TYPE_UINT16) { returnValue = ((int16_t*)fromTable->axisX)[index]; }
-  else if(fromTable->axisType == TYPE_UINT8) { returnValue = ((uint8_t*)fromTable->axisX)[index]; }
-  else if(fromTable->axisType == TYPE_INT8) { returnValue = ((int8_t*)fromTable->axisX)[index]; }
-  else { /* Keep MISRA checker happy*/ }  
-
-  return returnValue;
+  return getValue(fromTable->axis, index);
 }
 
 /**
@@ -208,12 +208,5 @@ int16_t table2D_getAxisValue(const struct table2D *fromTable, uint8_t index)
  */
 int16_t table2D_getRawValue(const struct table2D *fromTable, uint8_t index)
 {
-  int returnValue = 0;
-
-  if(fromTable->valueType == TYPE_UINT16) { returnValue = ((int16_t*)fromTable->values)[index]; }
-  else if(fromTable->valueType == TYPE_UINT8) { returnValue = ((uint8_t*)fromTable->values)[index]; }
-  else if(fromTable->valueType == TYPE_INT8) { returnValue = ((int8_t*)fromTable->values)[index]; }
-  else { /* Keep MISRA checker happy*/ }  
-
-  return returnValue;
+  return getValue(fromTable->values, index);
 }
