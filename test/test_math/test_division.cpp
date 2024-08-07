@@ -153,7 +153,7 @@ void test_maths_udiv_32_16_closest(void)
 }
 
 #if defined(ARDUINO_ARCH_AVR)
-static uint32_t indexToDividend(int16_t index) {
+static uint32_t indexToDividend(uint16_t index) {
   return (UINT16_MAX*index)-(uint32_t)index;
 }
 #endif
@@ -163,7 +163,7 @@ void test_maths_udiv_32_16_perf(void)
 #if defined(ARDUINO_ARCH_AVR)
     uint16_t iters = 32;
     uint16_t start_index = UINT16_MAX/3;
-    uint16_t end_index = UINT16_MAX/3*2;
+    uint16_t end_index = (UINT16_MAX/2)*3;
     uint16_t step = 111;
 
     auto nativeTest = [] (uint16_t index, uint32_t &checkSum) { checkSum += (uint32_t)indexToDividend(index) / (uint32_t)index; };
@@ -277,17 +277,70 @@ void test_maths_udiv_16_8_perf(void)
   uint8_t end_index = 255;
   uint8_t step = 1;
 
-  auto nativeTest = [] (uint8_t index, uint32_t &checkSum) { checkSum += (uint16_t)indexToDividend(index) / (uint16_t)index; };
   auto optimizedTest = [] (uint8_t index, uint32_t &checkSum) { checkSum += udiv_16_8(indexToDividend(index), index); };
-  auto comparison = compare_executiontime<uint8_t, uint32_t>(iters, start_index, end_index, step, nativeTest, optimizedTest);
-  
-  // The checksums will be different due to rounding. This is only
-  // here to force the compiler to run the loops above
-  TEST_ASSERT_INT32_WITHIN(UINT32_MAX/2, comparison.timeA.result, comparison.timeB.result);
+  // Raw 16/16
+  {
+    auto nativeTest = [] (uint8_t index, uint32_t &checkSum) { checkSum += (uint16_t)indexToDividend(index) / (uint16_t)index; };
+    auto comparison = compare_executiontime<uint8_t, uint32_t>(iters, start_index, end_index, step, nativeTest, optimizedTest);
+    
+    // This also forces the compiler to run the loops above
+    TEST_ASSERT_EQUAL(comparison.timeA.result, comparison.timeB.result);
 
-  TEST_ASSERT_LESS_THAN(comparison.timeA.durationMicros, comparison.timeB.durationMicros);
+    TEST_ASSERT_LESS_THAN(comparison.timeA.durationMicros, comparison.timeB.durationMicros);
+  }
+  // vs. udiv_32_16
+  {
+    auto nativeTest = [] (uint8_t index, uint32_t &checkSum) { checkSum += udiv_32_16(indexToDividend(index), index); };
+    auto comparison = compare_executiontime<uint8_t, uint32_t>(iters, start_index, end_index, step, nativeTest, optimizedTest);
+    
+    // This also forces the compiler to run the loops above
+    TEST_ASSERT_EQUAL(comparison.timeA.result, comparison.timeB.result);
+
+    TEST_ASSERT_LESS_THAN(comparison.timeA.durationMicros, comparison.timeB.durationMicros);
+  }
 #endif
 }
+
+void test_maths_uFastDiv32_mixed_perf(void)
+{
+#if defined(ARDUINO_ARCH_AVR)
+    uint16_t iters = 64;
+    uint16_t start_index = UINT8_MAX/3;
+    uint16_t end_index = (UINT16_MAX/2)*3;
+    uint16_t step = 793;
+
+    auto nativeTest = [] (uint16_t index, uint32_t &checkSum) { checkSum += (uint32_t)indexToDividend(index) / (uint32_t)index; };
+    auto optimizedTest = [] (uint16_t index, uint32_t &checkSum) { checkSum += uFastDiv(indexToDividend(index), index); };
+    auto comparison = compare_executiontime<uint16_t, uint32_t>(iters, start_index, end_index, step, nativeTest, optimizedTest);
+    
+    // This also forces the compiler to run the loops above
+    TEST_ASSERT_EQUAL(comparison.timeA.result, comparison.timeB.result);
+
+    TEST_ASSERT_LESS_THAN(comparison.timeA.durationMicros, comparison.timeB.durationMicros);
+
+#endif
+}
+
+void test_maths_uFastDiv16_mixed_perf(void)
+{
+#if defined(ARDUINO_ARCH_AVR)
+    uint16_t iters = 12;
+    uint16_t start_index = 3;
+    uint16_t end_index = (UINT16_MAX/3)*2;
+    uint16_t step = 77;
+
+    auto nativeTest = [] (uint16_t index, uint32_t &checkSum) { checkSum += (uint32_t)indexToDividend(index) / (uint32_t)index; };
+    auto optimizedTest = [] (uint16_t index, uint32_t &checkSum) { checkSum += uFastDiv(indexToDividend(index), index); };
+    auto comparison = compare_executiontime<uint16_t, uint32_t>(iters, start_index, end_index, step, nativeTest, optimizedTest);
+    
+    // This also forces the compiler to run the loops above
+    TEST_ASSERT_EQUAL(comparison.timeA.result, comparison.timeB.result);
+
+    TEST_ASSERT_LESS_THAN(comparison.timeA.durationMicros, comparison.timeB.durationMicros);
+
+#endif
+}
+
 
 void testDivision(void) {
   SET_UNITY_FILENAME() {
@@ -296,14 +349,16 @@ void testDivision(void) {
   RUN_TEST(test_maths_div100_U32);
   RUN_TEST(test_maths_div100_S16);
   RUN_TEST(test_maths_div100_S32);
+  RUN_TEST(test_maths_div360);
   RUN_TEST(test_maths_udiv_32_16);
+  RUN_TEST(test_maths_udiv_16_8);
   RUN_TEST(test_maths_udiv_32_16_closest);
   RUN_TEST(test_maths_udiv_32_16_perf);
-  RUN_TEST(test_maths_div360);
+  RUN_TEST(test_maths_udiv_16_8_perf);  
+  RUN_TEST(test_maths_uFastDiv32_mixed_perf);
+  RUN_TEST(test_maths_uFastDiv16_mixed_perf);
   RUN_TEST(test_maths_div100_s16_perf);
   RUN_TEST(test_maths_div10_s16_perf);
   RUN_TEST(test_maths_div100_s32_perf);
-  RUN_TEST(test_maths_udiv_16_8);
-  RUN_TEST(test_maths_udiv_16_8_perf);  
   }
 }

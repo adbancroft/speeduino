@@ -359,4 +359,74 @@ static inline uint8_t udiv_16_8 (uint16_t dividend, uint8_t divisor)
 #endif
 }
 
+/**
+ * @defgroup group-uFastDiv Fast unsigned integer division
+ * 
+ * @brief A division function (uFastDiv), overloaded by operand types, which are optimized by value
+ * and width
+ * 
+ * @{
+ */
+
+/**
+ * @brief Fast division of an uint16_t by either uint16_t or uint8_t
+ * 
+ * @tparam TDivisor Type of the divisor (either uint16_t or uint8_t)
+ * @param dividend The dividend (numerator)
+ * @param divisor The divisor (denominator)
+ * @return uint16_t Result of dividend / divisor
+ */
+template <typename TDivisor>
+static inline uint16_t uFastDiv(uint16_t dividend, TDivisor divisor) {
+    // static_assert(std::isunsigned<TDivisor>)
+
+    // Fast path if result fits in uint8_t
+    if (divisor<(TDivisor)UINT8_MAX && udivDivResultFitsInDivisor(dividend, (uint8_t)divisor)) {
+        return udiv_16_8(dividend, divisor);
+    }
+    return dividend / divisor;
+}
+
+/**
+ * @brief Fast division of an uint32_t by uint8_t
+ * 
+ * @param dividend The dividend (numerator)
+ * @param divisor The divisor (denominator)
+ * @return uint32_t Result of dividend / divisor
+ */
+static inline uint32_t uFastDiv(uint32_t dividend, uint8_t divisor) {
+    // Defer to uFastDiv(uint16_t, ...) if possible (faster path)
+    if (dividend<(uint32_t)UINT16_MAX) {
+        return uFastDiv((uint16_t)dividend, divisor);
+    }
+    // Fast path if result fits in uint16_t
+    if (udivDivResultFitsInDivisor(dividend, (uint16_t)divisor)) {
+        return udiv_32_16(dividend, divisor);
+    }
+    return dividend / divisor;
+ }
+
+/**
+ * @brief Fast division of an uint32_t by either uint32_t or uint16_t
+ * 
+ * @tparam TDivisor Type of the divisor (either uint32_t or uint16_t)
+ * @param dividend The dividend (numerator)
+ * @param divisor The divisor (denominator)
+ * @return uint32_t Result of dividend / divisor
+ */
+template <typename TDivisor>
+static inline uint32_t uFastDiv(uint32_t dividend, TDivisor divisor) {
+    // static_assert(std::isunsigned<TDivisor>)
+
+    // This should be faster, but uUnit testing doesn't show a speed improvement
+    // if (divisor<(TDivisor)UINT8_MAX) {
+    //     return uFastDiv(dividend, (uint8_t)divisor);
+    // }
+    if (divisor<(TDivisor)UINT16_MAX && udivDivResultFitsInDivisor(dividend, (uint16_t)divisor)) {
+        return udiv_32_16(dividend, divisor);
+    }
+    return dividend / divisor;
+}
+///@}
+
 #endif
