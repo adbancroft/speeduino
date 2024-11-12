@@ -582,7 +582,7 @@ struct statuses {
   volatile bool injPrimed : 1; //Tracks whether or not the injector priming has been completed yet
   volatile bool tachoSweepEnabled : 1;
   volatile bool tachoAlt : 1;
-    
+
   uint16_t RPM;   ///< RPM - Current Revs per minute
   byte RPMdiv100; ///< RPM value scaled (divided by 100) to fit a byte (0-255, e.g. 12000 => 120)
   long longRPM;   ///< RPM as long int (gets assigned to / maintained in statuses.RPM as well)
