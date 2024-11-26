@@ -19,7 +19,6 @@ void setup(void);
 void loop(void);
 byte getVE1(void);
 byte getAdvance1(void);
-void calculateStaging(uint32_t);
 void calculateIgnitionAngles(uint16_t dwellAngle);
 void checkLaunchAndFlatShift();
 
