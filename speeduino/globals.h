@@ -40,10 +40,10 @@
   #define CORE_AVR
   #define BOARD_H "board_avr2560.h"
   #ifndef INJ_CHANNELS
-    #define INJ_CHANNELS 4
+    #define INJ_CHANNELS 4U
   #endif
   #ifndef IGN_CHANNELS
-    #define IGN_CHANNELS 5
+    #define IGN_CHANNELS 5U
   #endif
 
   #if defined(__AVR_ATmega2561__)
@@ -115,8 +115,6 @@
 #define BIT_WRITE(var, pos, bitvalue) ((bitvalue) ? BIT_SET((var), (pos)) : bitClear((var), (pos)))
 
 #define CRANK_ANGLE_MAX (max(CRANK_ANGLE_MAX_IGN, CRANK_ANGLE_MAX_INJ))
-
-#define interruptSafe(c) (noInterrupts(); {c} interrupts();) //Wraps any code between nointerrupt and interrupt calls
 
 #define MICROS_PER_SEC INT32_C(1000000)
 #define MICROS_PER_MIN INT32_C(MICROS_PER_SEC*60U)
@@ -225,17 +223,17 @@ static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check all uses of TOOTH_LOG_SIZE");
 #define COMPOSITE_LOG_SYNC 4
 #define COMPOSITE_ENGINE_CYCLE 5
 
-#define EGO_TYPE_OFF      0
-#define EGO_TYPE_NARROW   1
-#define EGO_TYPE_WIDE     2
+#define EGO_TYPE_OFF      0U
+#define EGO_TYPE_NARROW   1U
+#define EGO_TYPE_WIDE     2U
 
-#define INJ_TYPE_PORT 0
-#define INJ_TYPE_TBODY 1
+#define INJ_TYPE_PORT  0U
+#define INJ_TYPE_TBODY 1U
 
-#define INJ_PAIRED 0
-#define INJ_SEMISEQUENTIAL 1
-#define INJ_BANKED          2
-#define INJ_SEQUENTIAL      3
+#define INJ_PAIRED          0U
+#define INJ_SEMISEQUENTIAL  1U
+#define INJ_BANKED          2U
+#define INJ_SEQUENTIAL      3U
 
 #define INJ_PAIR_13_24      0
 #define INJ_PAIR_14_23      1
@@ -281,13 +279,13 @@ static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check all uses of TOOTH_LOG_SIZE");
 #define EGO_ALGORITHM_PID      2U
 #define EGO_ALGORITHM_NONE     3U
 
-#define STAGING_MODE_TABLE  0
-#define STAGING_MODE_AUTO   1
+#define STAGING_MODE_TABLE  0U
+#define STAGING_MODE_AUTO   1U
 
-#define NITROUS_OFF         0
-#define NITROUS_STAGE1      1
-#define NITROUS_STAGE2      2
-#define NITROUS_BOTH        3
+#define NITROUS_OFF         0U
+#define NITROUS_STAGE1      1U
+#define NITROUS_STAGE2      2U
+#define NITROUS_BOTH        3U
 
 #define PROTECT_CUT_OFF     0
 #define PROTECT_CUT_IGN     1
@@ -298,8 +296,8 @@ static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check all uses of TOOTH_LOG_SIZE");
 #define AE_MODE_TPS         0
 #define AE_MODE_MAP         1
 
-#define AE_MODE_MULTIPLIER  0
-#define AE_MODE_ADDER       1
+#define AE_MODE_MULTIPLIER  0U
+#define AE_MODE_ADDER       1U
 
 #define KNOCK_MODE_OFF      0U
 #define KNOCK_MODE_DIGITAL  1U
@@ -347,9 +345,9 @@ static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check all uses of TOOTH_LOG_SIZE");
 #define VVT_LOAD_MAP      0
 #define VVT_LOAD_TPS      1
 
-#define MULTIPLY_MAP_MODE_OFF   0
-#define MULTIPLY_MAP_MODE_BARO  1
-#define MULTIPLY_MAP_MODE_100   2
+#define MULTIPLY_MAP_MODE_OFF   0U
+#define MULTIPLY_MAP_MODE_BARO  1U
+#define MULTIPLY_MAP_MODE_100   2U
 
 #define FOUR_STROKE         0U
 #define TWO_STROKE          1U
@@ -357,8 +355,8 @@ static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check all uses of TOOTH_LOG_SIZE");
 #define GOING_LOW         0
 #define GOING_HIGH        1
 
-#define BATTV_COR_MODE_WHOLE 0
-#define BATTV_COR_MODE_OPENTIME 1
+#define BATTV_COR_MODE_WHOLE    0U
+#define BATTV_COR_MODE_OPENTIME 1U
 
 #define INJ1_CMD_BIT      0
 #define INJ2_CMD_BIT      1
@@ -635,14 +633,14 @@ struct statuses {
   volatile byte status4; ///< Status bits (See BIT_STATUS4_* defines on top of this file)
   volatile byte status5;  ///< Status 5 ... (See also @ref config10 Status 5* members and BIT_STATU5_* defines)
   uint8_t engine; ///< Engine status bits (See BIT_ENGINE_* defines on top of this file)
-  unsigned int PW1; ///< In uS
-  unsigned int PW2; ///< In uS
-  unsigned int PW3; ///< In uS
-  unsigned int PW4; ///< In uS
-  unsigned int PW5; ///< In uS
-  unsigned int PW6; ///< In uS
-  unsigned int PW7; ///< In uS
-  unsigned int PW8; ///< In uS
+  uint16_t PW1; ///< In uS
+  uint16_t PW2; ///< In uS
+  uint16_t PW3; ///< In uS
+  uint16_t PW4; ///< In uS
+  uint16_t PW5; ///< In uS
+  uint16_t PW6; ///< In uS
+  uint16_t PW7; ///< In uS
+  uint16_t PW8; ///< In uS
   volatile byte runSecs; /**< Counter of seconds since cranking commenced (Maxes out at 255 to prevent overflow) */
   volatile byte secl; /**< Counter incrementing once per second. Will overflow after 255 and begin again. This is used by TunerStudio to maintain comms sync */
   volatile uint16_t loopsPerSecond; /**< A performance indicator showing the number of main loops that are being executed each second */ 
