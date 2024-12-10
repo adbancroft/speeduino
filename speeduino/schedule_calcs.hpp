@@ -1,3 +1,5 @@
+#pragma once
+
 // Note that all functions with an underscore prefix are NOT part 
 // of the public API. They are only here so we can inline them.
 
@@ -23,7 +25,31 @@ static inline void setOpenAngle(FuelSchedule &schedule, uint16_t pwDegrees, uint
   while (schedule.openAngle>(uint16_t)CRANK_ANGLE_MAX_INJ) { schedule.openAngle = schedule.openAngle - (uint16_t)CRANK_ANGLE_MAX_INJ; }
 }
 
-static inline __attribute__((always_inline)) uint32_t _calculateAngularTime(const Schedule &schedule, uint16_t eventAngle, uint16_t crankAngle, uint16_t maxAngle) {
+struct injectorAngleCalcCache {
+  uint16_t pw = 0U;
+  uint16_t pwDegrees = 0U;
+};
+
+static inline uint16_t updatePwAngleCache(uint16_t pw, injectorAngleCalcCache *pCache) {
+  // We can afford to be a bit loose updating the cache since injection timing doesn't 
+  // need to be precise (the PW calcs liberally use approximations)
+  //
+  // 1% of a revolution at max RPM should be plenty accurate.
+  constexpr int16_t PW_DELTA_THRESHOLD = MIN_REVOLUTION_TIME/100U; // in µS
+  if (abs((int16_t)pCache->pw-(int16_t)pw)>PW_DELTA_THRESHOLD) {
+    pCache->pwDegrees = timeToAngleDegPerMicroSec(pw);
+    pCache->pw = pw;
+  }
+  return pCache->pwDegrees;
+}
+
+static inline void setOpenAngle(FuelSchedule &schedule, uint16_t injAngle, injectorAngleCalcCache *pCache) {
+  if (schedule.pw!=0U) {
+    return setOpenAngle(schedule, updatePwAngleCache(schedule.pw, pCache), injAngle);
+  }
+}
+
+static inline uint32_t _calculateAngularTime(const Schedule &schedule, uint16_t eventAngle, uint16_t crankAngle, uint16_t maxAngle) {
   int16_t delta = eventAngle - crankAngle;
   if ( (isRunning(schedule)) || (schedule._status == OFF)) {
     while(delta < 0) { delta += (int16_t)maxAngle; }

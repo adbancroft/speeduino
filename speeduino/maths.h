@@ -16,6 +16,10 @@
 
 uint8_t random1to100(void);
 
+static constexpr uint32_t MICROS_PER_SEC = UINT32_C(1000000);
+static constexpr uint32_t MICROS_PER_MIN = MICROS_PER_SEC*60U;
+static constexpr uint32_t MICROS_PER_HOUR = MICROS_PER_MIN*60U;
+
 /**
  * @defgroup group-rounded-div Rounding integer division
  * 
@@ -91,6 +95,9 @@ uint8_t random1to100(void);
  * @param t The type of the result. E.g. uint16_t
  */
 #define UDIV_ROUND_CLOSEST(n, d, t) ((t)((n) + DIV_ROUND_CORRECT(d, t))/(t)(d))
+
+/** @brief Rounding up \em unsigned integer division */
+#define UDIV_ROUND_UP(n, d, t) ((t)((n) + (t)((d)+1U))/(t)(d))
 
 ///@}
 

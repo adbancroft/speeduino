@@ -382,8 +382,6 @@ static inline __attribute__((always_inline)) void setFuelSchedule(FuelSchedule &
  */
 void moveToNextState(FuelSchedule &schedule);
 
-static inline void setOpenAngle(FuelSchedule &schedule, uint16_t pwDegrees, uint16_t injAngle);
-
 extern FuelSchedule fuelSchedule1;
 extern FuelSchedule fuelSchedule2;
 extern FuelSchedule fuelSchedule3;
