@@ -362,15 +362,6 @@ static SCHEDULE_INLINE void setFuelSchedule(FuelSchedule &schedule, int16_t cran
  */
 void moveToNextState(FuelSchedule &schedule);
 
-/**
- * @brief Compute the injector open angle (FuelSchedule::openAngle) for an injection channel
- * 
- * @param schedule The fuel channel
- * @param pwDegrees How many crank degrees the calculated PW will take at the current speed
- * @param injAngle The requested injection angle
-  */
-static SCHEDULE_INLINE void setOpenAngle(FuelSchedule &schedule, uint16_t pwDegrees, uint16_t injAngle);
-
 extern FuelSchedule fuelSchedule1;
 extern FuelSchedule fuelSchedule2;
 extern FuelSchedule fuelSchedule3;

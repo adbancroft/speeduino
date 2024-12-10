@@ -728,9 +728,8 @@ void __attribute__((always_inline)) loop(void)
       currentStatus.injAngle = table2D_getValue(&injectorAngleTable, currentStatus.RPMdiv100);
       if(currentStatus.injAngle > uint16_t(CRANK_ANGLE_MAX_INJ)) { currentStatus.injAngle = uint16_t(CRANK_ANGLE_MAX_INJ); }
 
-      unsigned int PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule1.pw); //How many crank degrees the calculated PW will take at the current speed
-
-      setOpenAngle(fuelSchedule1, PWdivTimerPerDegree, currentStatus.injAngle);
+      injectorAngleCalcCache angleCalcCache;
+      setOpenAngle(fuelSchedule1, currentStatus.injAngle, &angleCalcCache);
 
       //Repeat the above for each cylinder
       switch (configPage2.nCylinders)
@@ -740,14 +739,12 @@ void __attribute__((always_inline)) loop(void)
           //The only thing that needs to be done for single cylinder is to check for staging. 
           if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
           {
-            PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule2.pw); //Need to redo this for PW2 as it will be dramatically different to PW1 when staging
-            setOpenAngle(fuelSchedule2, PWdivTimerPerDegree, currentStatus.injAngle);
+            setOpenAngle(fuelSchedule2, currentStatus.injAngle, &angleCalcCache);
           }
           break;
         //2 cylinders
         case 2:
-          //injector2StartAngle = calculateInjector2StartAngle(PWdivTimerPerDegree);
-          setOpenAngle(fuelSchedule2, PWdivTimerPerDegree, currentStatus.injAngle);
+          setOpenAngle(fuelSchedule2, currentStatus.injAngle, &angleCalcCache);
           
           if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0U) )
           {
@@ -756,18 +753,15 @@ void __attribute__((always_inline)) loop(void)
           }
           else if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
           {
-            PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule3.pw); //Need to redo this for PW3 as it will be dramatically different to PW1 when staging
-            setOpenAngle(fuelSchedule3, PWdivTimerPerDegree, currentStatus.injAngle);
+            setOpenAngle(fuelSchedule3, currentStatus.injAngle, &angleCalcCache);
             fuelSchedule4.openAngle = fuelSchedule3.openAngle + (uint16_t)(CRANK_ANGLE_MAX_INJ / 2); //Phase this either 180 or 360 degrees out from inj3 (In reality this will always be 180 as you can't have sequential and staged currently)
             if(fuelSchedule4.openAngle > (uint16_t)CRANK_ANGLE_MAX_INJ) { fuelSchedule4.openAngle -= (uint16_t)CRANK_ANGLE_MAX_INJ; }
           }
           break;
         //3 cylinders
         case 3:
-          //injector2StartAngle = calculateInjector2StartAngle(PWdivTimerPerDegree);
-          //injector3StartAngle = calculateInjector3StartAngle(PWdivTimerPerDegree);
-          setOpenAngle(fuelSchedule2, PWdivTimerPerDegree, currentStatus.injAngle);
-          setOpenAngle(fuelSchedule3, PWdivTimerPerDegree, currentStatus.injAngle);
+          setOpenAngle(fuelSchedule2, currentStatus.injAngle, &angleCalcCache);
+          setOpenAngle(fuelSchedule3, currentStatus.injAngle, &angleCalcCache);
           
           if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0U) )
           {
@@ -778,42 +772,38 @@ void __attribute__((always_inline)) loop(void)
             #if INJ_CHANNELS >= 6
               if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
               {
-                PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule6.pw); //Need to redo this for PW4 as it will be dramatically different to PW1 when staging
-                setOpenAngle(fuelSchedule4, PWdivTimerPerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedule5, PWdivTimerPerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedule6, PWdivTimerPerDegree, currentStatus.injAngle);
+                setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
+                setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
+                setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
               }
             #endif
           }
           else if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
           {
-            PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule4.pw); //Need to redo this for PW4 as it will be dramatically different to PW1 when staging
-            setOpenAngle(fuelSchedule4, PWdivTimerPerDegree, currentStatus.injAngle);
+            setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
             #if INJ_CHANNELS >= 6
-              setOpenAngle(fuelSchedule5, PWdivTimerPerDegree, currentStatus.injAngle);
-              setOpenAngle(fuelSchedule6, PWdivTimerPerDegree, currentStatus.injAngle);
+              setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
+              setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
             #endif
           }
           break;
         //4 cylinders
         case 4:
-          //injector2StartAngle = calculateInjector2StartAngle(PWdivTimerPerDegree);
-          setOpenAngle(fuelSchedule2, PWdivTimerPerDegree, currentStatus.injAngle);
+          setOpenAngle(fuelSchedule2, currentStatus.injAngle, &angleCalcCache);
 
           if((configPage2.injLayout == INJ_SEQUENTIAL) && currentStatus.hasSync)
           {
             if( CRANK_ANGLE_MAX_INJ != 720 ) { changeHalfToFullSync(); }
 
-            setOpenAngle(fuelSchedule3, PWdivTimerPerDegree, currentStatus.injAngle);
-            setOpenAngle(fuelSchedule4, PWdivTimerPerDegree, currentStatus.injAngle);
+            setOpenAngle(fuelSchedule3, currentStatus.injAngle, &angleCalcCache);
+            setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
             #if INJ_CHANNELS >= 8
               if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
               {
-                PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule5.pw); //Need to redo this for PW3 as it will be dramatically different to PW1 when staging
-                setOpenAngle(fuelSchedule5, PWdivTimerPerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedule6, PWdivTimerPerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedule7, PWdivTimerPerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedule8, PWdivTimerPerDegree, currentStatus.injAngle);
+                setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
+                setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
+                setOpenAngle(fuelSchedule7, currentStatus.injAngle, &angleCalcCache);
+                setOpenAngle(fuelSchedule8, currentStatus.injAngle, &angleCalcCache);
               }
             #endif
 
@@ -827,9 +817,8 @@ void __attribute__((always_inline)) loop(void)
           }
           else if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
           {
-            PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule3.pw); //Need to redo this for PW3 as it will be dramatically different to PW1 when staging
-            setOpenAngle(fuelSchedule3, PWdivTimerPerDegree, currentStatus.injAngle);
-            setOpenAngle(fuelSchedule4, PWdivTimerPerDegree, currentStatus.injAngle);
+            setOpenAngle(fuelSchedule3, currentStatus.injAngle, &angleCalcCache);
+            setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
           }
           else
           {
@@ -838,36 +827,35 @@ void __attribute__((always_inline)) loop(void)
           break;
         //5 cylinders
         case 5:
-          setOpenAngle(fuelSchedule2, PWdivTimerPerDegree, currentStatus.injAngle);
-          setOpenAngle(fuelSchedule3, PWdivTimerPerDegree, currentStatus.injAngle);
-          setOpenAngle(fuelSchedule4, PWdivTimerPerDegree, currentStatus.injAngle);
+          setOpenAngle(fuelSchedule2, currentStatus.injAngle, &angleCalcCache);
+          setOpenAngle(fuelSchedule3, currentStatus.injAngle, &angleCalcCache);
+          setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
           #if INJ_CHANNELS >= 5
-            setOpenAngle(fuelSchedule5, PWdivTimerPerDegree, currentStatus.injAngle);
+            setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
           #endif
 
           //Staging is possible by using the 6th channel if available
           #if INJ_CHANNELS >= 6
             if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
             {
-              PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule6.pw); //Need to redo this for PW3 as it will be dramatically different to PW1 when staging
-              setOpenAngle(fuelSchedule6, PWdivTimerPerDegree, currentStatus.injAngle);
+              setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
             }
           #endif
 
           break;
         //6 cylinders
         case 6:
-          setOpenAngle(fuelSchedule2, PWdivTimerPerDegree, currentStatus.injAngle);
-          setOpenAngle(fuelSchedule3, PWdivTimerPerDegree, currentStatus.injAngle);
+          setOpenAngle(fuelSchedule2, currentStatus.injAngle, &angleCalcCache);
+          setOpenAngle(fuelSchedule3, currentStatus.injAngle, &angleCalcCache);
           
           #if INJ_CHANNELS >= 6
             if((configPage2.injLayout == INJ_SEQUENTIAL) && currentStatus.hasSync)
             {
               if( CRANK_ANGLE_MAX_INJ != 720 ) { changeHalfToFullSync(); }
 
-              setOpenAngle(fuelSchedule4, PWdivTimerPerDegree, currentStatus.injAngle);
-              setOpenAngle(fuelSchedule5, PWdivTimerPerDegree, currentStatus.injAngle);
-              setOpenAngle(fuelSchedule6, PWdivTimerPerDegree, currentStatus.injAngle);
+              setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
+              setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
+              setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
 
               if(configPage6.fuelTrimEnabled > 0)
               {
@@ -883,10 +871,9 @@ void __attribute__((always_inline)) loop(void)
               #if INJ_CHANNELS >= 8
                 if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
                 {
-                  PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule6.pw); //Need to redo this for staging PW as it will be dramatically different to PW1 when staging
-                  setOpenAngle(fuelSchedule4, PWdivTimerPerDegree, currentStatus.injAngle);
-                  setOpenAngle(fuelSchedule5, PWdivTimerPerDegree, currentStatus.injAngle);
-                  setOpenAngle(fuelSchedule6, PWdivTimerPerDegree, currentStatus.injAngle);
+                  setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
+                  setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
+                  setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
                 }
               #endif
             }
@@ -896,29 +883,28 @@ void __attribute__((always_inline)) loop(void)
 
               if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
               {
-                PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule6.pw); //Need to redo this for staging PW as it will be dramatically different to PW1 when staging
-                setOpenAngle(fuelSchedule4, PWdivTimerPerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedule5, PWdivTimerPerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedule6, PWdivTimerPerDegree, currentStatus.injAngle);
+                setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
+                setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
+                setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
               }
             }
           #endif
           break;
         //8 cylinders
         case 8:
-          setOpenAngle(fuelSchedule2, PWdivTimerPerDegree, currentStatus.injAngle);
-          setOpenAngle(fuelSchedule3, PWdivTimerPerDegree, currentStatus.injAngle);
-          setOpenAngle(fuelSchedule4, PWdivTimerPerDegree, currentStatus.injAngle);
+          setOpenAngle(fuelSchedule2, currentStatus.injAngle, &angleCalcCache);
+          setOpenAngle(fuelSchedule3, currentStatus.injAngle, &angleCalcCache);
+          setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
 
           #if INJ_CHANNELS >= 8
             if((configPage2.injLayout == INJ_SEQUENTIAL) && currentStatus.hasSync)
             {
               if( CRANK_ANGLE_MAX_INJ != 720 ) { changeHalfToFullSync(); }
 
-              setOpenAngle(fuelSchedule5, PWdivTimerPerDegree, currentStatus.injAngle);
-              setOpenAngle(fuelSchedule6, PWdivTimerPerDegree, currentStatus.injAngle);
-              setOpenAngle(fuelSchedule7, PWdivTimerPerDegree, currentStatus.injAngle);
-              setOpenAngle(fuelSchedule8, PWdivTimerPerDegree, currentStatus.injAngle);
+              setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
+              setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
+              setOpenAngle(fuelSchedule7, currentStatus.injAngle, &angleCalcCache);
+              setOpenAngle(fuelSchedule8, currentStatus.injAngle, &angleCalcCache);
 
               if(configPage6.fuelTrimEnabled > 0)
               {
@@ -938,11 +924,10 @@ void __attribute__((always_inline)) loop(void)
 
               if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
               {
-                PWdivTimerPerDegree = timeToAngleDegPerMicroSec(fuelSchedule6.pw); //Need to redo this for staging PW as it will be dramatically different to PW1 when staging
-                setOpenAngle(fuelSchedule5, PWdivTimerPerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedule6, PWdivTimerPerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedule7, PWdivTimerPerDegree, currentStatus.injAngle);
-                setOpenAngle(fuelSchedule8, PWdivTimerPerDegree, currentStatus.injAngle);
+                setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
+                setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
+                setOpenAngle(fuelSchedule7, currentStatus.injAngle, &angleCalcCache);
+                setOpenAngle(fuelSchedule8, currentStatus.injAngle, &angleCalcCache);
               }
             }
 
