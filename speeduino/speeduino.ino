@@ -1246,6 +1246,29 @@ uint16_t calculatePWLimit()
 
 void calculateStaging(uint32_t pwLimit)
 {
+  // Later code relies on pw==0 indicating an excluded/unused channel
+#if INJ_CHANNELS >= 2
+  fuelSchedule2.pw = 0U;
+#endif
+#if INJ_CHANNELS >= 3
+  fuelSchedule3.pw = 0U;
+#endif
+#if INJ_CHANNELS >= 4
+  fuelSchedule4.pw = 0U;
+#endif
+#if INJ_CHANNELS >= 5
+  fuelSchedule5.pw = 0U;
+#endif
+#if INJ_CHANNELS >= 6
+  fuelSchedule6.pw = 0U;
+#endif
+#if INJ_CHANNELS >= 7
+  fuelSchedule7.pw = 0U;
+#endif
+#if INJ_CHANNELS >= 8
+  fuelSchedule8.pw = 0U;
+#endif
+
   //Calculate staging pulsewidths if used
   //To run staged injection, the number of cylinders must be less than or equal to the injector channels (ie Assuming you're running paired injection, you need at least as many injector channels as you have cylinders, half for the primaries and half for the secondaries)
   if( (configPage10.stagingEnabled == true) && (configPage2.nCylinders <= (uint8_t)INJ_CHANNELS || configPage2.injType == INJ_TYPE_TBODY) && (fuelSchedule1.pw > inj_opentime_uS) ) //Final check is to ensure that DFCO isn't active, which would cause an overflow below (See #267)
@@ -1422,26 +1445,19 @@ void calculateStaging(uint32_t pwLimit)
   else 
   { 
     if(maxInjOutputs >= 2) { fuelSchedule2.pw = fuelSchedule1.pw; }
-    else { fuelSchedule2.pw = 0; }
     if(maxInjOutputs >= 3) { fuelSchedule3.pw = fuelSchedule1.pw; }
-    else { fuelSchedule3.pw = 0; }
     if(maxInjOutputs >= 4) { fuelSchedule4.pw = fuelSchedule1.pw; }
-    else { fuelSchedule4.pw = 0; }
 #if INJ_CHANNELS >= 5
     if(maxInjOutputs >= 5) { fuelSchedule5.pw = fuelSchedule1.pw; }
-    else { fuelSchedule5.pw = 0; }
 #endif
 #if INJ_CHANNELS >= 6
     if(maxInjOutputs >= 6) { fuelSchedule6.pw = fuelSchedule1.pw; }
-    else { fuelSchedule6.pw = 0; }
 #endif
 #if INJ_CHANNELS >= 7
-      if(maxInjOutputs >= 7) { fuelSchedule7.pw = fuelSchedule1.pw; }
-    else { fuelSchedule7.pw = 0; }
+    if(maxInjOutputs >= 7) { fuelSchedule7.pw = fuelSchedule1.pw; }
 #endif
 #if INJ_CHANNELS >= 5
-      if(maxInjOutputs >= 8) { fuelSchedule8.pw = fuelSchedule1.pw; }
-    else { fuelSchedule8.pw = 0; }
+    if(maxInjOutputs >= 8) { fuelSchedule8.pw = fuelSchedule1.pw; }
 #endif
     BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE); //Clear the staging active flag
     
