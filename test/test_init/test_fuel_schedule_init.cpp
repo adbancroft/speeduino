@@ -183,7 +183,7 @@ static void cylinder2_stroke4_seq_nostage(void)
   configPage10.stagingEnabled = false;
   initialiseAll(); //Run the main initialise function
 	const bool enabled[] = {true, true, false, false, false, false, false, false};
-	const uint16_t angle[] = {0,180,0,0,0,0,0,0};
+	const uint16_t angle[] = {0,360,0,0,0,0,0,0};
   assert_fuel_schedules(720U, reqFuel * 100U, enabled, angle);
 }
 
@@ -205,7 +205,7 @@ static void cylinder2_stroke4_seq_staged(void)
   configPage10.stagingEnabled = true;
   initialiseAll(); //Run the main initialise function
 	const bool enabled[] = {true, true, true, true, false, false, false, false};
-	const uint16_t angle[] = {0,180,0,180,0,0,0,0};
+	const uint16_t angle[] = {0,360,0,360,0,0,0,0};
   assert_fuel_schedules(720U, reqFuel * 100U, enabled, angle);
 }
 
@@ -243,7 +243,7 @@ static void cylinder2_stroke2_seq_nostage(void)
   configPage10.stagingEnabled = false;
   initialiseAll(); //Run the main initialise function
 	const bool enabled[] = {true, true, false, false, false, false, false, false};
-	const uint16_t angle[] = {0,180,0,0,0,0,0,0};
+	const uint16_t angle[] = {0,90,0,0,0,0,0,0};
   assert_fuel_schedules(180U, reqFuel * 100U, enabled, angle);
 }
 
@@ -254,7 +254,7 @@ static void cylinder2_stroke2_semiseq_nostage(void)
   configPage10.stagingEnabled = false;
   initialiseAll(); //Run the main initialise function
 	const bool enabled[] = {true, true, false, false, false, false, false, false};
-	const uint16_t angle[] = {0,180,0,0,0,0,0,0};
+	const uint16_t angle[] = {0,90,0,0,0,0,0,0};
   assert_fuel_schedules(180U, reqFuel * 100U, enabled, angle);
 }
 
@@ -265,7 +265,7 @@ static void cylinder2_stroke2_seq_staged(void)
   configPage10.stagingEnabled = true;
   initialiseAll(); //Run the main initialise function
 	const bool enabled[] = {true, true, true, true, false, false, false, false};
-	const uint16_t angle[] = {0,180,0,180,0,0,0,0};
+	const uint16_t angle[] = {0,90,0,90,0,0,0,0};
   assert_fuel_schedules(180U, reqFuel * 100U, enabled, angle);
 }
 
@@ -276,7 +276,7 @@ static void cylinder2_stroke2_semiseq_staged(void)
   configPage10.stagingEnabled = true;
   initialiseAll(); //Run the main initialise function
 	const bool enabled[] = {true, true, true, true, false, false, false, false};
-	const uint16_t angle[] = {0,180,0,180,0,0,0,0};
+	const uint16_t angle[] = {0,90,0,90,0,0,0,0};
   assert_fuel_schedules(180U, reqFuel * 100U, enabled, angle);
 }
 

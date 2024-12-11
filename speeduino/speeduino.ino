@@ -602,8 +602,7 @@ void __attribute__((always_inline)) loop(void)
 
       //***********************************************************************************************
       //BEGIN INJECTION TIMING
-      currentStatus.injAngle = table2D_getValue(&injectorAngleTable, currentStatus.RPMdiv100);
-      if(currentStatus.injAngle > uint16_t(CRANK_ANGLE_MAX_INJ)) { currentStatus.injAngle = uint16_t(CRANK_ANGLE_MAX_INJ); }
+      currentStatus.injAngle = injectorLimits(table2D_getValue(&injectorAngleTable, currentStatus.RPMdiv100));
 
       matchSyncState(configPage2, currentStatus);
       applyFuelTrims(configPage2, configPage6, currentStatus);
@@ -617,14 +616,7 @@ void __attribute__((always_inline)) loop(void)
       setOpenAngle(fuelSchedule3, currentStatus, &angleCalcCache);
 #endif
 #if INJ_CHANNELS >= 4
-      if ((configPage2.nCylinders)==2U && (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-      {
-        fuelSchedule4.openAngle = fuelSchedule3.openAngle + (uint16_t)(CRANK_ANGLE_MAX_INJ / 2); //Phase this either 180 or 360 degrees out from inj3 (In reality this will always be 180 as you can't have sequential and staged currently)
-        if(fuelSchedule4.openAngle > (uint16_t)CRANK_ANGLE_MAX_INJ) { fuelSchedule4.openAngle -= (uint16_t)CRANK_ANGLE_MAX_INJ; }
-      }
-      else {
-        setOpenAngle(fuelSchedule4, currentStatus, &angleCalcCache);
-      }
+      setOpenAngle(fuelSchedule4, currentStatus, &angleCalcCache);
 #endif
 #if INJ_CHANNELS >= 5
       setOpenAngle(fuelSchedule5, currentStatus, &angleCalcCache);
