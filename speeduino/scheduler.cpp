@@ -193,7 +193,7 @@ static void setFuelChannelAngles(void)
       fuelSchedule1.channelDegrees = 0;
       maxInjOutputs = 2;
       //The below are true regardless of whether this is running sequential or not
-      if (configPage2.engineType == EVEN_FIRE ) { fuelSchedule2.channelDegrees = 180; }
+      if (configPage2.engineType == EVEN_FIRE ) { fuelSchedule2.channelDegrees = CRANK_ANGLE_MAX_INJ / 2U; }
       else { fuelSchedule2.channelDegrees = configPage2.oddfire2; }
 
       if (!configPage2.injTiming) 
@@ -209,7 +209,9 @@ static void setFuelChannelAngles(void)
         maxInjOutputs = 4;
 
         fuelSchedule3.channelDegrees = fuelSchedule1.channelDegrees;
-        fuelSchedule4.channelDegrees = fuelSchedule2.channelDegrees;
+        //Phase this either 180 or 360 degrees out from inj3 (In reality this will always be 180 as you can't have sequential and staged currently)
+        fuelSchedule4.channelDegrees = fuelSchedule3.channelDegrees + (uint16_t)(CRANK_ANGLE_MAX_INJ / 2U); 
+        if (fuelSchedule4.channelDegrees>=(uint16_t)CRANK_ANGLE_MAX_INJ) { fuelSchedule4.channelDegrees -= (uint16_t)CRANK_ANGLE_MAX_INJ; }
       }
       break;
 
