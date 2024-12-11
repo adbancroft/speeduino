@@ -69,9 +69,11 @@ void setup(void)
 
 static inline void applyFuelTrimToPW(FuelSchedule &schedule, int16_t fuelLoad, int16_t RPM)
 {
+  if (schedule.pw!=0U) {
     int16_t offset = (int16_t)get3DTableValue(&schedule.trimTable, fuelLoad, RPM) - (int16_t)OFFSET_FUELTRIM;
     uint8_t pw1percent = (uint8_t)(100U + (uint8_t)offset);
     if (pw1percent != 100U) { schedule.pw = percentage(pw1percent, schedule.pw); }
+  }
 }
 
 static inline void setIgnitionSchedule(IgnitionSchedule &schedule, uint8_t index, uint16_t crankAngle, uint16_t totalDwell) {
@@ -136,6 +138,30 @@ static inline void matchSyncState(const config2 &page2, const statuses &current)
     } else {
       // Injection layout matches current sync - nothing to do but keep MISRA checker happy
     }
+  }
+}
+
+static inline void applyFuelTrims(const config2 &page2, const config6 &page6, const statuses &current) {
+  if ( (page2.injLayout == INJ_SEQUENTIAL) && (page6.fuelTrimEnabled > 0U) )
+  {
+    uint8_t trimInjChannels = min(configPage2.nCylinders, maxInjOutputs);
+
+    if (trimInjChannels>=1) { applyFuelTrimToPW(fuelSchedule1, current.fuelLoad, current.RPM); }
+    if (trimInjChannels>=2) { applyFuelTrimToPW(fuelSchedule2, current.fuelLoad, current.RPM); }
+    if (trimInjChannels>=3) { applyFuelTrimToPW(fuelSchedule3, current.fuelLoad, current.RPM); }
+    if (trimInjChannels>=4) { applyFuelTrimToPW(fuelSchedule4, current.fuelLoad, current.RPM); }
+#if (INJ_CHANNELS >= 5)
+    if (trimInjChannels>=5) { applyFuelTrimToPW(fuelSchedule5, current.fuelLoad, current.RPM); }
+#endif
+#if (INJ_CHANNELS >= 6)
+    if (trimInjChannels>=6) { applyFuelTrimToPW(fuelSchedule6, current.fuelLoad, current.RPM); }
+#endif
+#if (INJ_CHANNELS >= 7)
+    if (trimInjChannels>=7) { applyFuelTrimToPW(fuelSchedule7, current.fuelLoad, current.RPM); }
+#endif
+#if (INJ_CHANNELS >= 8)
+    if (trimInjChannels>=8) { applyFuelTrimToPW(fuelSchedule8, current.fuelLoad, current.RPM); }
+#endif
   }
 }
 
@@ -580,6 +606,7 @@ void __attribute__((always_inline)) loop(void)
       if(currentStatus.injAngle > uint16_t(CRANK_ANGLE_MAX_INJ)) { currentStatus.injAngle = uint16_t(CRANK_ANGLE_MAX_INJ); }
 
       matchSyncState(configPage2, currentStatus);
+      applyFuelTrims(configPage2, configPage6, currentStatus);
 
       injectorAngleCalcCache angleCalcCache;
       setOpenAngle(fuelSchedule1, currentStatus.injAngle, &angleCalcCache);
@@ -590,7 +617,14 @@ void __attribute__((always_inline)) loop(void)
       setOpenAngle(fuelSchedule3, currentStatus, &angleCalcCache);
 #endif
 #if INJ_CHANNELS >= 4
-      setOpenAngle(fuelSchedule4, currentStatus, &angleCalcCache);
+      if ((configPage2.nCylinders)==2U && (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
+      {
+        fuelSchedule4.openAngle = fuelSchedule3.openAngle + (uint16_t)(CRANK_ANGLE_MAX_INJ / 2); //Phase this either 180 or 360 degrees out from inj3 (In reality this will always be 180 as you can't have sequential and staged currently)
+        if(fuelSchedule4.openAngle > (uint16_t)CRANK_ANGLE_MAX_INJ) { fuelSchedule4.openAngle -= (uint16_t)CRANK_ANGLE_MAX_INJ; }
+      }
+      else {
+        setOpenAngle(fuelSchedule4, currentStatus, &angleCalcCache);
+      }
 #endif
 #if INJ_CHANNELS >= 5
       setOpenAngle(fuelSchedule5, currentStatus, &angleCalcCache);
@@ -604,78 +638,6 @@ void __attribute__((always_inline)) loop(void)
 #if INJ_CHANNELS >= 8
       setOpenAngle(fuelSchedule8, currentStatus, &angleCalcCache);
 #endif
-
-      //Repeat the above for each cylinder
-      switch (configPage2.nCylinders)
-      {
-        //2 cylinders
-        case 2:
-          if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0U) )
-          {
-            applyFuelTrimToPW(fuelSchedule1, currentStatus.fuelLoad, currentStatus.RPM);
-            applyFuelTrimToPW(fuelSchedule2, currentStatus.fuelLoad, currentStatus.RPM);
-          }
-          else if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-          {
-            fuelSchedule4.openAngle = fuelSchedule3.openAngle + (uint16_t)(CRANK_ANGLE_MAX_INJ / 2); //Phase this either 180 or 360 degrees out from inj3 (In reality this will always be 180 as you can't have sequential and staged currently)
-            if(fuelSchedule4.openAngle > (uint16_t)CRANK_ANGLE_MAX_INJ) { fuelSchedule4.openAngle -= (uint16_t)CRANK_ANGLE_MAX_INJ; }
-          }
-          break;
-        //3 cylinders
-        case 3:
-         
-          if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0U) )
-          {
-            applyFuelTrimToPW(fuelSchedule1, currentStatus.fuelLoad, currentStatus.RPM);
-            applyFuelTrimToPW(fuelSchedule2, currentStatus.fuelLoad, currentStatus.RPM);
-            applyFuelTrimToPW(fuelSchedule3, currentStatus.fuelLoad, currentStatus.RPM);
-         }
-          break;
-        //4 cylinders
-        case 4:
-          if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0U) )
-          {
-            applyFuelTrimToPW(fuelSchedule1, currentStatus.fuelLoad, currentStatus.RPM);
-            applyFuelTrimToPW(fuelSchedule2, currentStatus.fuelLoad, currentStatus.RPM);
-            applyFuelTrimToPW(fuelSchedule3, currentStatus.fuelLoad, currentStatus.RPM);
-            applyFuelTrimToPW(fuelSchedule4, currentStatus.fuelLoad, currentStatus.RPM);
-          }
-          break;
-        //6 cylinders
-        case 6:
-          #if INJ_CHANNELS >= 6
-          if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0U) )
-          {
-            applyFuelTrimToPW(fuelSchedule1, currentStatus.fuelLoad, currentStatus.RPM);
-            applyFuelTrimToPW(fuelSchedule2, currentStatus.fuelLoad, currentStatus.RPM);
-            applyFuelTrimToPW(fuelSchedule3, currentStatus.fuelLoad, currentStatus.RPM);
-            applyFuelTrimToPW(fuelSchedule4, currentStatus.fuelLoad, currentStatus.RPM);
-            applyFuelTrimToPW(fuelSchedule5, currentStatus.fuelLoad, currentStatus.RPM);
-            applyFuelTrimToPW(fuelSchedule6, currentStatus.fuelLoad, currentStatus.RPM);
-          }
-          #endif
-          break;
-        //8 cylinders
-        case 8:
-          #if INJ_CHANNELS >= 8
-          if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0U) )
-            {
-              applyFuelTrimToPW(fuelSchedule1, currentStatus.fuelLoad, currentStatus.RPM);
-              applyFuelTrimToPW(fuelSchedule2, currentStatus.fuelLoad, currentStatus.RPM);
-              applyFuelTrimToPW(fuelSchedule3, currentStatus.fuelLoad, currentStatus.RPM);
-              applyFuelTrimToPW(fuelSchedule4, currentStatus.fuelLoad, currentStatus.RPM);
-              applyFuelTrimToPW(fuelSchedule5, currentStatus.fuelLoad, currentStatus.RPM);
-              applyFuelTrimToPW(fuelSchedule6, currentStatus.fuelLoad, currentStatus.RPM);
-              applyFuelTrimToPW(fuelSchedule7, currentStatus.fuelLoad, currentStatus.RPM);
-              applyFuelTrimToPW(fuelSchedule8, currentStatus.fuelLoad, currentStatus.RPM);
-            }
-          #endif
-          break;
-
-        //Will hit the default case on 1 cylinder or >8 cylinders. Do nothing in these cases
-        default:
-          break;
-      }
 
       //***********************************************************************************************
       //| BEGIN IGNITION CALCULATIONS
