@@ -288,9 +288,22 @@ static inline __attribute__((flatten, always_inline)) void setIgnitionSchedules(
 #endif
 } 
 
-static void setFuelSchedule(FuelSchedule &schedule, uint8_t index, uint16_t crankAngle) {
+static inline void setFuelSchedule(FuelSchedule &schedule, uint8_t index, uint16_t crankAngle) {
   if( (maxInjOutputs > index) && (schedule.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, (INJ1_CMD_BIT+index))) ) {
     setFuelSchedule(schedule, crankAngle);
+  }
+}
+
+static inline void matchSyncState(const config2 &page2, const statuses &current) {
+  if ((page2.injLayout == INJ_SEQUENTIAL) && ((page2.nCylinders==4) || (page2.nCylinders==6) || (page2.nCylinders==8)))
+  {
+    if ((current.hasSync) && ( CRANK_ANGLE_MAX_INJ != 720 )) {
+      changeHalfToFullSync();
+    } else if( BIT_CHECK(current.status3, BIT_STATUS3_HALFSYNC) && (CRANK_ANGLE_MAX_INJ != 360) ) { 
+      changeFullToHalfSync();
+    } else {
+      // Injection layout matches current sync - nothing to do but keep MISRA checker happy
+    }
   }
 }
 
@@ -312,6 +325,12 @@ static inline __attribute__((flatten)) void setFuelSchedules(uint16_t crankAngle
   setFuelSchedule(fuelSchedule8, 7, crankAngle);
 #endif        
 }
+
+static inline void setOpenAngle(FuelSchedule &schedule, const statuses &current, injectorAngleCalcCache *pCache) {
+  if (schedule.pw!=0U) {
+    setOpenAngle(schedule, current.injAngle, pCache);
+  }
+} 
 
 /** Speeduino main loop.
  * 
@@ -728,24 +747,37 @@ void __attribute__((always_inline)) loop(void)
       currentStatus.injAngle = table2D_getValue(&injectorAngleTable, currentStatus.RPMdiv100);
       if(currentStatus.injAngle > uint16_t(CRANK_ANGLE_MAX_INJ)) { currentStatus.injAngle = uint16_t(CRANK_ANGLE_MAX_INJ); }
 
+      matchSyncState(configPage2, currentStatus);
+
       injectorAngleCalcCache angleCalcCache;
       setOpenAngle(fuelSchedule1, currentStatus.injAngle, &angleCalcCache);
+#if INJ_CHANNELS >= 2
+      setOpenAngle(fuelSchedule2, currentStatus, &angleCalcCache);
+#endif
+#if INJ_CHANNELS >= 3
+      setOpenAngle(fuelSchedule3, currentStatus, &angleCalcCache);
+#endif
+#if INJ_CHANNELS >= 4
+      setOpenAngle(fuelSchedule4, currentStatus, &angleCalcCache);
+#endif
+#if INJ_CHANNELS >= 5
+      setOpenAngle(fuelSchedule5, currentStatus, &angleCalcCache);
+#endif
+#if INJ_CHANNELS >= 6
+      setOpenAngle(fuelSchedule6, currentStatus, &angleCalcCache);
+#endif
+#if INJ_CHANNELS >= 7
+      setOpenAngle(fuelSchedule7, currentStatus, &angleCalcCache);
+#endif
+#if INJ_CHANNELS >= 8
+      setOpenAngle(fuelSchedule8, currentStatus, &angleCalcCache);
+#endif
 
       //Repeat the above for each cylinder
       switch (configPage2.nCylinders)
       {
-        //Single cylinder
-        case 1:
-          //The only thing that needs to be done for single cylinder is to check for staging. 
-          if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-          {
-            setOpenAngle(fuelSchedule2, currentStatus.injAngle, &angleCalcCache);
-          }
-          break;
         //2 cylinders
         case 2:
-          setOpenAngle(fuelSchedule2, currentStatus.injAngle, &angleCalcCache);
-          
           if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0U) )
           {
             applyFuelTrimToPW(fuelSchedule1, currentStatus.fuelLoad, currentStatus.RPM);
@@ -753,184 +785,58 @@ void __attribute__((always_inline)) loop(void)
           }
           else if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
           {
-            setOpenAngle(fuelSchedule3, currentStatus.injAngle, &angleCalcCache);
             fuelSchedule4.openAngle = fuelSchedule3.openAngle + (uint16_t)(CRANK_ANGLE_MAX_INJ / 2); //Phase this either 180 or 360 degrees out from inj3 (In reality this will always be 180 as you can't have sequential and staged currently)
             if(fuelSchedule4.openAngle > (uint16_t)CRANK_ANGLE_MAX_INJ) { fuelSchedule4.openAngle -= (uint16_t)CRANK_ANGLE_MAX_INJ; }
           }
           break;
         //3 cylinders
         case 3:
-          setOpenAngle(fuelSchedule2, currentStatus.injAngle, &angleCalcCache);
-          setOpenAngle(fuelSchedule3, currentStatus.injAngle, &angleCalcCache);
-          
+         
           if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0U) )
           {
             applyFuelTrimToPW(fuelSchedule1, currentStatus.fuelLoad, currentStatus.RPM);
             applyFuelTrimToPW(fuelSchedule2, currentStatus.fuelLoad, currentStatus.RPM);
             applyFuelTrimToPW(fuelSchedule3, currentStatus.fuelLoad, currentStatus.RPM);
-
-            #if INJ_CHANNELS >= 6
-              if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-              {
-                setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
-                setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
-                setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
-              }
-            #endif
-          }
-          else if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-          {
-            setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
-            #if INJ_CHANNELS >= 6
-              setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
-              setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
-            #endif
-          }
+         }
           break;
         //4 cylinders
         case 4:
-          setOpenAngle(fuelSchedule2, currentStatus.injAngle, &angleCalcCache);
-
-          if((configPage2.injLayout == INJ_SEQUENTIAL) && currentStatus.hasSync)
+          if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0U) )
           {
-            if( CRANK_ANGLE_MAX_INJ != 720 ) { changeHalfToFullSync(); }
-
-            setOpenAngle(fuelSchedule3, currentStatus.injAngle, &angleCalcCache);
-            setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
-            #if INJ_CHANNELS >= 8
-              if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-              {
-                setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
-                setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
-                setOpenAngle(fuelSchedule7, currentStatus.injAngle, &angleCalcCache);
-                setOpenAngle(fuelSchedule8, currentStatus.injAngle, &angleCalcCache);
-              }
-            #endif
-
-            if(configPage6.fuelTrimEnabled > 0U)
+            applyFuelTrimToPW(fuelSchedule1, currentStatus.fuelLoad, currentStatus.RPM);
+            applyFuelTrimToPW(fuelSchedule2, currentStatus.fuelLoad, currentStatus.RPM);
+            applyFuelTrimToPW(fuelSchedule3, currentStatus.fuelLoad, currentStatus.RPM);
+            applyFuelTrimToPW(fuelSchedule4, currentStatus.fuelLoad, currentStatus.RPM);
+          }
+          break;
+        //6 cylinders
+        case 6:
+          #if INJ_CHANNELS >= 6
+          if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0U) )
+          {
+            applyFuelTrimToPW(fuelSchedule1, currentStatus.fuelLoad, currentStatus.RPM);
+            applyFuelTrimToPW(fuelSchedule2, currentStatus.fuelLoad, currentStatus.RPM);
+            applyFuelTrimToPW(fuelSchedule3, currentStatus.fuelLoad, currentStatus.RPM);
+            applyFuelTrimToPW(fuelSchedule4, currentStatus.fuelLoad, currentStatus.RPM);
+            applyFuelTrimToPW(fuelSchedule5, currentStatus.fuelLoad, currentStatus.RPM);
+            applyFuelTrimToPW(fuelSchedule6, currentStatus.fuelLoad, currentStatus.RPM);
+          }
+          #endif
+          break;
+        //8 cylinders
+        case 8:
+          #if INJ_CHANNELS >= 8
+          if ( (configPage2.injLayout == INJ_SEQUENTIAL) && (configPage6.fuelTrimEnabled > 0U) )
             {
               applyFuelTrimToPW(fuelSchedule1, currentStatus.fuelLoad, currentStatus.RPM);
               applyFuelTrimToPW(fuelSchedule2, currentStatus.fuelLoad, currentStatus.RPM);
               applyFuelTrimToPW(fuelSchedule3, currentStatus.fuelLoad, currentStatus.RPM);
               applyFuelTrimToPW(fuelSchedule4, currentStatus.fuelLoad, currentStatus.RPM);
+              applyFuelTrimToPW(fuelSchedule5, currentStatus.fuelLoad, currentStatus.RPM);
+              applyFuelTrimToPW(fuelSchedule6, currentStatus.fuelLoad, currentStatus.RPM);
+              applyFuelTrimToPW(fuelSchedule7, currentStatus.fuelLoad, currentStatus.RPM);
+              applyFuelTrimToPW(fuelSchedule8, currentStatus.fuelLoad, currentStatus.RPM);
             }
-          }
-          else if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-          {
-            setOpenAngle(fuelSchedule3, currentStatus.injAngle, &angleCalcCache);
-            setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
-          }
-          else
-          {
-            if( BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC) && (CRANK_ANGLE_MAX_INJ != 360) ) { changeFullToHalfSync(); }
-          }
-          break;
-        //5 cylinders
-        case 5:
-          setOpenAngle(fuelSchedule2, currentStatus.injAngle, &angleCalcCache);
-          setOpenAngle(fuelSchedule3, currentStatus.injAngle, &angleCalcCache);
-          setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
-          #if INJ_CHANNELS >= 5
-            setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
-          #endif
-
-          //Staging is possible by using the 6th channel if available
-          #if INJ_CHANNELS >= 6
-            if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-            {
-              setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
-            }
-          #endif
-
-          break;
-        //6 cylinders
-        case 6:
-          setOpenAngle(fuelSchedule2, currentStatus.injAngle, &angleCalcCache);
-          setOpenAngle(fuelSchedule3, currentStatus.injAngle, &angleCalcCache);
-          
-          #if INJ_CHANNELS >= 6
-            if((configPage2.injLayout == INJ_SEQUENTIAL) && currentStatus.hasSync)
-            {
-              if( CRANK_ANGLE_MAX_INJ != 720 ) { changeHalfToFullSync(); }
-
-              setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
-              setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
-              setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
-
-              if(configPage6.fuelTrimEnabled > 0)
-              {
-                applyFuelTrimToPW(fuelSchedule1, currentStatus.fuelLoad, currentStatus.RPM);
-                applyFuelTrimToPW(fuelSchedule2, currentStatus.fuelLoad, currentStatus.RPM);
-                applyFuelTrimToPW(fuelSchedule3, currentStatus.fuelLoad, currentStatus.RPM);
-                applyFuelTrimToPW(fuelSchedule4, currentStatus.fuelLoad, currentStatus.RPM);
-                applyFuelTrimToPW(fuelSchedule5, currentStatus.fuelLoad, currentStatus.RPM);
-                applyFuelTrimToPW(fuelSchedule6, currentStatus.fuelLoad, currentStatus.RPM);
-              }
-
-              //Staging is possible with sequential on 8 channel boards by using outputs 7 + 8 for the staged injectors
-              #if INJ_CHANNELS >= 8
-                if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-                {
-                  setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
-                  setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
-                  setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
-                }
-              #endif
-            }
-            else
-            {
-              if( BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC) && (CRANK_ANGLE_MAX_INJ != 360) ) { changeFullToHalfSync(); }
-
-              if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-              {
-                setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
-                setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
-                setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
-              }
-            }
-          #endif
-          break;
-        //8 cylinders
-        case 8:
-          setOpenAngle(fuelSchedule2, currentStatus.injAngle, &angleCalcCache);
-          setOpenAngle(fuelSchedule3, currentStatus.injAngle, &angleCalcCache);
-          setOpenAngle(fuelSchedule4, currentStatus.injAngle, &angleCalcCache);
-
-          #if INJ_CHANNELS >= 8
-            if((configPage2.injLayout == INJ_SEQUENTIAL) && currentStatus.hasSync)
-            {
-              if( CRANK_ANGLE_MAX_INJ != 720 ) { changeHalfToFullSync(); }
-
-              setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
-              setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
-              setOpenAngle(fuelSchedule7, currentStatus.injAngle, &angleCalcCache);
-              setOpenAngle(fuelSchedule8, currentStatus.injAngle, &angleCalcCache);
-
-              if(configPage6.fuelTrimEnabled > 0)
-              {
-                applyFuelTrimToPW(fuelSchedule1, currentStatus.fuelLoad, currentStatus.RPM);
-                applyFuelTrimToPW(fuelSchedule2, currentStatus.fuelLoad, currentStatus.RPM);
-                applyFuelTrimToPW(fuelSchedule3, currentStatus.fuelLoad, currentStatus.RPM);
-                applyFuelTrimToPW(fuelSchedule4, currentStatus.fuelLoad, currentStatus.RPM);
-                applyFuelTrimToPW(fuelSchedule5, currentStatus.fuelLoad, currentStatus.RPM);
-                applyFuelTrimToPW(fuelSchedule6, currentStatus.fuelLoad, currentStatus.RPM);
-                applyFuelTrimToPW(fuelSchedule7, currentStatus.fuelLoad, currentStatus.RPM);
-                applyFuelTrimToPW(fuelSchedule8, currentStatus.fuelLoad, currentStatus.RPM);
-              }
-            }
-            else
-            {
-              if( BIT_CHECK(currentStatus.status3, BIT_STATUS3_HALFSYNC) && (CRANK_ANGLE_MAX_INJ != 360) ) { changeFullToHalfSync(); }
-
-              if( (configPage10.stagingEnabled == true) && (BIT_CHECK(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE) == true) )
-              {
-                setOpenAngle(fuelSchedule5, currentStatus.injAngle, &angleCalcCache);
-                setOpenAngle(fuelSchedule6, currentStatus.injAngle, &angleCalcCache);
-                setOpenAngle(fuelSchedule7, currentStatus.injAngle, &angleCalcCache);
-                setOpenAngle(fuelSchedule8, currentStatus.injAngle, &angleCalcCache);
-              }
-            }
-
           #endif
           break;
 
