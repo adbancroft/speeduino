@@ -27,20 +27,20 @@ static void test_calc_inj_timeout(const inj_test_parameters &parameters)
 {
     static constexpr uint16_t injAngle = 355;
     char msg[150];
-    uint16_t PWdivTimerPerDegree = timeToAngleDegPerMicroSec(parameters.pw);
 
     FuelSchedule schedule(FUEL2_COUNTER, FUEL2_COMPARE);
 
-    schedule._status = PENDING;
+    injectorAngleCalcCache calcCache;
+    schedule.pw = parameters.pw;
     schedule.channelDegrees = parameters.channelAngle;
-    setOpenAngle(schedule, PWdivTimerPerDegree, injAngle);
-    sprintf_P(msg, PSTR("PENDING channelAngle: %" PRIu16 ", pw: %" PRIu16 ", crankAngle: %" PRIu16 ", startAngle: %" PRIu16), parameters.channelAngle, parameters.pw, parameters.crankAngle, schedule.openAngle);
-    TEST_ASSERT_INT32_WITHIN_MESSAGE(1, parameters.pending, _calculateInjectorTimeout(schedule, parameters.crankAngle), msg);
+
+    schedule._status = PENDING;
+    sprintf_P(msg, PSTR("PENDING New channelAngle: %" PRIu16 ", pw: %" PRIu16 ", crankAngle: %" PRIu16), parameters.channelAngle, parameters.pw, parameters.crankAngle);
+    TEST_ASSERT_INT32_WITHIN_MESSAGE(1, parameters.pending, _calculateInjOpenTime(schedule, injAngle, parameters.crankAngle, &calcCache), msg);
     
     schedule._status = RUNNING;
-    setOpenAngle(schedule, PWdivTimerPerDegree, injAngle);
-    sprintf_P(msg, PSTR("RUNNING channelAngle: %" PRIu16 ", pw: %" PRIu16 ", crankAngle: %" PRIu16 ", startAngle: %" PRIu16), parameters.channelAngle, parameters.pw, parameters.crankAngle, schedule.openAngle);
-    TEST_ASSERT_INT32_WITHIN_MESSAGE(1, parameters.running, _calculateInjectorTimeout(schedule, parameters.crankAngle), msg);
+    sprintf_P(msg, PSTR("RUNNING New channelAngle: %" PRIu16 ", pw: %" PRIu16 ", crankAngle: %" PRIu16), parameters.channelAngle, parameters.pw, parameters.crankAngle);
+    TEST_ASSERT_INT32_WITHIN_MESSAGE(1, parameters.running, _calculateInjOpenTime(schedule, injAngle, parameters.crankAngle, &calcCache), msg);
 }
 
 static void test_calc_inj_timeout(const inj_test_parameters *pStart, const inj_test_parameters *pEnd)

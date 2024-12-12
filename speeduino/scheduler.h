@@ -330,13 +330,18 @@ struct FuelSchedule : public Schedule {
   uint16_t channelDegrees;    ///< The number of crank degrees until cylinder is at TDC  
   uint16_t pw;                ///< Pulse width in uS
   table3d6RpmLoad trimTable;  ///< 6x6 Fuel trim map
-  uint16_t openAngle;         ///< Future crank angle at which this injector will be opened
+};
+
+struct injectorAngleCalcCache {
+  uint16_t pw = 0U;
+  uint16_t pwDegrees = 0U;
 };
 
 /// @cond
 // Private function - not for use external to the scheduler code
-static SCHEDULE_INLINE uint32_t _calculateInjectorTimeout(const FuelSchedule &schedule, int16_t crankAngle);
+static inline uint32_t _calculateInjOpenTime(const FuelSchedule &schedule, uint16_t injAngle, uint16_t crankAngle, injectorAngleCalcCache *pCache);
 /// @endcond
+
 
 /** @brief Set the next schedule for the fuel channel. 
  * Pulse width is determined by the pw field.
@@ -344,8 +349,8 @@ static SCHEDULE_INLINE uint32_t _calculateInjectorTimeout(const FuelSchedule &sc
  * @param schedule The fuel channel
  * @param crankAngle The current crank angle
  */
-static SCHEDULE_INLINE void setFuelSchedule(FuelSchedule &schedule, int16_t crankAngle) {
-  uint32_t delay = _calculateInjectorTimeout(schedule, crankAngle);  
+static SCHEDULE_INLINE void setFuelSchedule(FuelSchedule &schedule, uint16_t injAngle, uint16_t crankAngle, injectorAngleCalcCache *pCache) {
+  uint32_t delay = _calculateInjOpenTime(schedule, injAngle, crankAngle, pCache);  
 
   ATOMIC() {
     if (delay > 0U) {
