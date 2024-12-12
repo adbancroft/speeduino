@@ -82,7 +82,7 @@ static inline void setIgnitionSchedule(IgnitionSchedule &schedule, uint8_t index
   }
 }
 
-static inline __attribute__((flatten)) void setIgnitionSchedules(uint16_t crankAngle, uint16_t totalDwell) {
+static inline __attribute__((always_inline, flatten)) void setIgnitionSchedules(uint16_t crankAngle, uint16_t totalDwell) {
   setIgnitionSchedule(ignitionSchedule1, 0, crankAngle, totalDwell);
 #if defined(USE_IGN_REFRESH)
   if( isRunning(ignitionSchedule1) && (ignitionSchedule1.dischargeAngle > (int16_t)crankAngle) && (configPage4.StgCycles == 0) && (configPage2.perToothIgn != true) )
@@ -122,9 +122,9 @@ static inline __attribute__((flatten)) void setIgnitionSchedules(uint16_t crankA
 #endif
 } 
 
-static inline void setFuelSchedule(FuelSchedule &schedule, uint8_t index, uint16_t crankAngle) {
-  if( (maxInjOutputs > index) && (schedule.pw >= inj_opentime_uS) && (BIT_CHECK(fuelChannelsOn, (INJ1_CMD_BIT+index))) ) {
-    setFuelSchedule(schedule, crankAngle);
+static inline void setFuelSchedule(FuelSchedule &schedule, uint8_t index, uint16_t injAngle, uint16_t crankAngle, injectorAngleCalcCache *pCache) {
+  if((schedule.pw!=0U) && (BIT_CHECK(fuelChannelsOn, (INJ1_CMD_BIT+index))) ) {
+    setFuelSchedule(schedule, injAngle, crankAngle, pCache);
   }
 }
 
@@ -165,30 +165,26 @@ static inline void applyFuelTrims(const config2 &page2, const config6 &page6, co
   }
 }
 
-static inline __attribute__((flatten)) void setFuelSchedules(uint16_t crankAngle) {
-  setFuelSchedule(fuelSchedule1, 0, crankAngle);
-  setFuelSchedule(fuelSchedule2, 1, crankAngle);
-  setFuelSchedule(fuelSchedule3, 2, crankAngle);
-  setFuelSchedule(fuelSchedule4, 3, crankAngle);
+static inline __attribute__((always_inline, flatten)) void setFuelSchedules(uint16_t injAngle, uint16_t crankAngle) {
+  injectorAngleCalcCache calcCache;
+
+  setFuelSchedule(fuelSchedule1, 0, injAngle, crankAngle, &calcCache);
+  setFuelSchedule(fuelSchedule2, 1, injAngle, crankAngle, &calcCache);
+  setFuelSchedule(fuelSchedule3, 2, injAngle, crankAngle, &calcCache);
+  setFuelSchedule(fuelSchedule4, 3, injAngle, crankAngle, &calcCache);
 #if (INJ_CHANNELS >= 5)
-  setFuelSchedule(fuelSchedule5, 4, crankAngle);
+  setFuelSchedule(fuelSchedule5, 4, injAngle, crankAngle, &calcCache);
 #endif
 #if (INJ_CHANNELS >= 6)
-  setFuelSchedule(fuelSchedule6, 5, crankAngle);
+  setFuelSchedule(fuelSchedule6, 5, injAngle, crankAngle, &calcCache);
 #endif
 #if (INJ_CHANNELS >= 7)
-  setFuelSchedule(fuelSchedule7, 6, crankAngle);
+  setFuelSchedule(fuelSchedule7, 6, injAngle, crankAngle, &calcCache);
 #endif
 #if (INJ_CHANNELS >= 8)
-  setFuelSchedule(fuelSchedule8, 7, crankAngle);
+  setFuelSchedule(fuelSchedule8, 7, injAngle, crankAngle, &calcCache);
 #endif        
 }
-
-static inline void setOpenAngle(FuelSchedule &schedule, const statuses &current, injectorAngleCalcCache *pCache) {
-  if (schedule.pw!=0U) {
-    setOpenAngle(schedule, current.injAngle, pCache);
-  }
-} 
 
 /** Speeduino main loop.
  * 
@@ -607,30 +603,6 @@ void __attribute__((always_inline)) loop(void)
       matchSyncState(configPage2, currentStatus);
       applyFuelTrims(configPage2, configPage6, currentStatus);
 
-      injectorAngleCalcCache angleCalcCache;
-      setOpenAngle(fuelSchedule1, currentStatus.injAngle, &angleCalcCache);
-#if INJ_CHANNELS >= 2
-      setOpenAngle(fuelSchedule2, currentStatus, &angleCalcCache);
-#endif
-#if INJ_CHANNELS >= 3
-      setOpenAngle(fuelSchedule3, currentStatus, &angleCalcCache);
-#endif
-#if INJ_CHANNELS >= 4
-      setOpenAngle(fuelSchedule4, currentStatus, &angleCalcCache);
-#endif
-#if INJ_CHANNELS >= 5
-      setOpenAngle(fuelSchedule5, currentStatus, &angleCalcCache);
-#endif
-#if INJ_CHANNELS >= 6
-      setOpenAngle(fuelSchedule6, currentStatus, &angleCalcCache);
-#endif
-#if INJ_CHANNELS >= 7
-      setOpenAngle(fuelSchedule7, currentStatus, &angleCalcCache);
-#endif
-#if INJ_CHANNELS >= 8
-      setOpenAngle(fuelSchedule8, currentStatus, &angleCalcCache);
-#endif
-
       //***********************************************************************************************
       //| BEGIN IGNITION CALCULATIONS
 
@@ -805,7 +777,8 @@ void __attribute__((always_inline)) loop(void)
 
       if (!BIT_CHECK(currentStatus.status1, BIT_STATUS1_BOOSTCUT))
       {
-        setFuelSchedules(injectorLimits(getCrankAngle()));
+      //***********************************************************************************************
+        setFuelSchedules(currentStatus.injAngle, injectorLimits(getCrankAngle()));
       }
 
       //***********************************************************************************************

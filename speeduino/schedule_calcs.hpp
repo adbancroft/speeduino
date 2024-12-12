@@ -8,46 +8,35 @@
 #include "maths.h"
 #include "timers.h"
 
-static inline void setOpenAngle(FuelSchedule &schedule, uint16_t pwDegrees, uint16_t injAngle)
-{
+static uint16_t _calculateOpenAngle(const FuelSchedule &schedule, uint16_t pwDegrees, uint16_t injAngle) {
   // 0<=injAngle<=720°
   // 0<=injChannelDegrees<=720°
   // 0<pwDegrees<=??? (could be many crank rotations in the worst case!)
   // 45<=CRANK_ANGLE_MAX_INJ<=720
   // (CRANK_ANGLE_MAX_INJ can be as small as 360/nCylinders. E.g. 45° for 8 cylinder)
 
-  schedule.openAngle = (uint16_t)injAngle + (uint16_t)schedule.channelDegrees;
+  uint16_t openAngle = (uint16_t)injAngle + (uint16_t)schedule.channelDegrees;
   // Avoid underflow
-  while (schedule.openAngle<pwDegrees) { schedule.openAngle = schedule.openAngle + (uint16_t)CRANK_ANGLE_MAX_INJ; }
+  while (openAngle<pwDegrees) { openAngle = openAngle + (uint16_t)CRANK_ANGLE_MAX_INJ; }
+
   // Guaranteed to be >=0.
-  schedule.openAngle = schedule.openAngle - pwDegrees;
-  // Clamp to 0<=schedule.openAngle<=CRANK_ANGLE_MAX_INJ
-  while (schedule.openAngle>(uint16_t)CRANK_ANGLE_MAX_INJ) { schedule.openAngle = schedule.openAngle - (uint16_t)CRANK_ANGLE_MAX_INJ; }
+  return injectorLimits(openAngle - pwDegrees);
 }
 
-struct injectorAngleCalcCache {
-  uint16_t pw = 0U;
-  uint16_t pwDegrees = 0U;
-};
-
-static inline uint16_t updatePwAngleCache(uint16_t pw, injectorAngleCalcCache *pCache) {
+static inline uint16_t _updatePwAngleCache(uint16_t pw, injectorAngleCalcCache *pCache) {
   // We can afford to be a bit loose updating the cache since injection timing doesn't 
   // need to be precise (the PW calcs liberally use approximations)
   //
   // 1% of a revolution at max RPM should be plenty accurate.
   constexpr int16_t PW_DELTA_THRESHOLD = MIN_REVOLUTION_TIME/100U; // in µS
-  if (abs((int16_t)pCache->pw-(int16_t)pw)>PW_DELTA_THRESHOLD) {
+  int16_t pwDelta =  (int16_t)pCache->pw-(int16_t)pw;
+  if (abs(pwDelta)>PW_DELTA_THRESHOLD) {
     pCache->pwDegrees = timeToAngleDegPerMicroSec(pw);
     pCache->pw = pw;
   }
   return pCache->pwDegrees;
 }
 
-static inline void setOpenAngle(FuelSchedule &schedule, uint16_t injAngle, injectorAngleCalcCache *pCache) {
-  if (schedule.pw!=0U) {
-    return setOpenAngle(schedule, updatePwAngleCache(schedule.pw, pCache), injAngle);
-  }
-}
 
 static inline uint32_t _calculateAngularTime(const Schedule &schedule, uint16_t eventAngle, uint16_t crankAngle, uint16_t maxAngle) {
   int16_t delta = eventAngle - crankAngle;
@@ -58,13 +47,13 @@ static inline uint32_t _calculateAngularTime(const Schedule &schedule, uint16_t 
   return delta > 0 ? angleToTimeMicroSecPerDegree((uint16_t)delta) : 0U;
 }
 
-static inline __attribute__((always_inline)) uint16_t _adjustToTDC(int16_t angle, uint16_t angleOffset, uint16_t maxAngle) {
+static inline uint16_t _adjustToTDC(int16_t angle, uint16_t angleOffset, uint16_t maxAngle) {
   angle = angle - (int)angleOffset;
   if( angle < 0) { return angle + (int)maxAngle; }
   return angle;
 }
 
-static inline __attribute__((always_inline)) uint32_t _calculateAngularTime(const Schedule &schedule, uint16_t angleOffset, uint16_t eventAngle, uint16_t crankAngle, uint16_t maxAngle) {
+static inline uint32_t _calculateAngularTime(const Schedule &schedule, uint16_t angleOffset, uint16_t eventAngle, uint16_t crankAngle, uint16_t maxAngle) {
   if (angleOffset==0U) { // Optimize for zero channel angle - no need to adjust start & crank angles
     return _calculateAngularTime(schedule, eventAngle, crankAngle, maxAngle);
   }
@@ -80,9 +69,16 @@ static inline __attribute__((always_inline)) uint32_t _calculateAngularTime(cons
             maxAngle);
 }
 
-static inline uint32_t _calculateInjectorTimeout(const FuelSchedule &schedule, int16_t crankAngle)
-{
-  return _calculateAngularTime(schedule, schedule.channelDegrees, schedule.openAngle, crankAngle, CRANK_ANGLE_MAX_INJ);
+
+static inline uint32_t _calculateInjOpenTime(const FuelSchedule &schedule, uint16_t injAngle, uint16_t crankAngle, injectorAngleCalcCache *pCache) {
+  if (schedule.pw!=0U) {
+    return _calculateAngularTime( schedule, 
+                                  schedule.channelDegrees, 
+                                  _calculateOpenAngle(schedule, _updatePwAngleCache(schedule.pw, pCache), injAngle), 
+                                  crankAngle, 
+                                  CRANK_ANGLE_MAX_INJ);
+  }
+  return 0U;
 }
 
 static inline int16_t _calculateSparkAngle(const IgnitionSchedule &schedule, int8_t advance) {

@@ -255,7 +255,7 @@ struct IgnitionSchedule : public Schedule {
  * @param delay The time to wait in µS until starting to charge the coil
  * @param dwellDuration The coil dwell time in µS
  */
-static inline  __attribute__((always_inline)) void _setIgnitionScheduleDuration(IgnitionSchedule &schedule, uint32_t timeout, uint32_t duration) 
+static inline __attribute__((always_inline)) void _setIgnitionScheduleDuration(IgnitionSchedule &schedule, uint32_t timeout, uint32_t duration) 
 {
   _setSchedule(schedule, timeout, duration, CRANK_ANGLE_MAX_IGN);
 }
@@ -277,10 +277,12 @@ static inline uint32_t _calculateIgnitionTimeout(const IgnitionSchedule &schedul
  * @param dwellDuration The coil dwell time in µS
  */
 static inline void setIgnitionSchedule(IgnitionSchedule &schedule, int16_t crankAngle, uint32_t dwellDuration) {
-  uint32_t delay = _calculateIgnitionTimeout(schedule, crankAngle);
+  if (dwellDuration!=0U) {
+    uint32_t delay = _calculateIgnitionTimeout(schedule, crankAngle);
 
-  if (delay > 0U) {
-    _setIgnitionScheduleDuration(schedule, delay, dwellDuration);
+    if (delay > 0U) {
+      _setIgnitionScheduleDuration(schedule, delay, dwellDuration);
+    }
   }
 }
 
@@ -347,18 +349,24 @@ struct FuelSchedule : public Schedule {
   uint16_t channelDegrees;    ///< The number of crank degrees until cylinder is at TDC  
   uint16_t pw;                ///< Pulse width in uS
   table3d6RpmLoad trimTable;  ///< 6x6 Fuel trim map
-  uint16_t openAngle;         ///< Future crank angle at which this injector will be opened
+};
+
+struct injectorAngleCalcCache {
+  uint16_t pw = 0U;
+  uint16_t pwDegrees = 0U;
 };
 
 /// @cond
 // Private function - not for use external to the scheduler code
-static inline uint32_t _calculateInjectorTimeout(const FuelSchedule &schedule, int16_t crankAngle);
 
-static inline void _setFuelScheduleDuration(FuelSchedule &schedule, uint32_t timeout, uint32_t duration)
+static inline __attribute__((always_inline)) void _setFuelScheduleDuration(FuelSchedule &schedule, uint32_t timeout, uint32_t duration)
 {
   _setSchedule(schedule, timeout, duration, CRANK_ANGLE_MAX_INJ);
 }
+
+static inline uint32_t _calculateInjOpenTime(const FuelSchedule &schedule, uint16_t injAngle, uint16_t crankAngle, injectorAngleCalcCache *pCache);
 /// @endcond
+
 
 /** @brief Set the next schedule for the fuel channel. 
  * Pulse width is determined by the pw field.
@@ -366,11 +374,13 @@ static inline void _setFuelScheduleDuration(FuelSchedule &schedule, uint32_t tim
  * @param schedule The fuel channel
  * @param crankAngle The current crank angle
  */
-static inline __attribute__((always_inline)) void setFuelSchedule(FuelSchedule &schedule, int16_t crankAngle) {
-  uint32_t delay = _calculateInjectorTimeout(schedule, crankAngle);  
+static inline void setFuelSchedule(FuelSchedule &schedule, uint16_t injAngle, uint16_t crankAngle, injectorAngleCalcCache *pCache) {
+  if (schedule.pw!=0U) {
+    uint32_t delay = _calculateInjOpenTime(schedule, injAngle, crankAngle, pCache);  
 
-  if (delay > 0U) {
-    _setFuelScheduleDuration(schedule, delay, schedule.pw);
+    if (delay > 0U) {
+      _setFuelScheduleDuration(schedule, delay, schedule.pw);
+    }
   }
 }
 
