@@ -138,7 +138,51 @@ static inline bool isRunning(const Schedule &schedule) {
   return (bool)(schedule.Status & flags);
 }
 
-void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration);
+
+static inline void _setScheduleRunning(Schedule &schedule, uint32_t timeout, uint32_t duration)
+{
+  //The following must be enclosed in the noInterupts block to avoid contention caused if the relevant interrupt fires before the state is fully set
+  schedule.Duration = uS_TO_TIMER_COMPARE(duration);
+  schedule._compare = schedule._counter + uS_TO_TIMER_COMPARE(timeout);
+  schedule.Status = PENDING; //Turn this schedule on
+}
+
+static inline void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration)
+{
+   //If the schedule is already running, we can set the next schedule so it is ready to go
+  //This is required in cases of high rpm and high DC where there otherwise would not be enough time to set the schedule
+  schedule.nextStartCompare = schedule._counter + uS_TO_TIMER_COMPARE(timeout);
+  // Schedule must already be running, so safe to reuse this.
+  schedule.Duration = uS_TO_TIMER_COMPARE(duration);
+  schedule.Status = RUNNING_WITHNEXT;
+}
+
+static inline  __attribute__((always_inline)) void _setSchedule(Schedule &schedule, uint32_t timeout, uint32_t duration, uint16_t maxAngle)
+{
+  if(likely(timeout < MAX_TIMER_PERIOD))
+  {
+    if (unlikely(duration > MAX_TIMER_PERIOD)) 
+    {
+      duration = MAX_TIMER_PERIOD - 1UL; //Safety check to ensure the duration is not longer than the maximum timer period
+    }
+    ATOMIC() 
+    {
+      if(!isRunning(schedule)) 
+      { //Check that we're not already part way through a schedule
+        _setScheduleRunning(schedule, timeout, duration);
+      }
+      // Check whether timeout exceeds the maximum future time. This can potentially occur on sequential setups when below ~115rpm
+      else if(angleToTimeMicroSecPerDegree(maxAngle) < MAX_TIMER_PERIOD)
+      {
+        _setScheduleNext(schedule, timeout, duration);
+      }
+      else 
+      {
+        // Keep MISRA checker happy
+      }
+    }
+  }
+}
 
 void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback);
 
@@ -152,33 +196,9 @@ struct IgnitionSchedule : public Schedule {
   volatile unsigned long startTime; /**< The system time (in uS) that the schedule started, used by the overdwell protection in timers.ino */
 };
 
-void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, unsigned long timeout, unsigned long duration);
-
-static inline __attribute__((always_inline)) void setIgnitionSchedule(IgnitionSchedule &schedule, unsigned long timeout, unsigned long duration) 
+static inline  __attribute__((always_inline)) void setIgnitionSchedule(IgnitionSchedule &schedule, uint32_t timeout, uint32_t duration) 
 {
-  if(likely(timeout < MAX_TIMER_PERIOD))
-  {
-    ATOMIC() 
-    {
-      if (unlikely(duration > MAX_TIMER_PERIOD)) 
-      {
-        duration = MAX_TIMER_PERIOD - 1UL; //Safety check to ensure the duration is not longer than the maximum timer period
-      }
-      if(!isRunning(schedule)) 
-      { //Check that we're not already part way through a schedule
-        _setIgnitionScheduleRunning(schedule, timeout, duration);
-      }
-      // Check whether timeout exceeds the maximum future time. This can potentially occur on sequential setups when below ~115rpm
-      else if(angleToTimeMicroSecPerDegree(CRANK_ANGLE_MAX_IGN) < MAX_TIMER_PERIOD)
-      {
-        _setScheduleNext(schedule, timeout, duration);
-      }
-      else 
-      {
-        // Keep MISRA checker happy
-      }
-    }
-  }
+  _setSchedule(schedule, timeout, duration, CRANK_ANGLE_MAX_IGN);
 }
 
 /**
@@ -214,32 +234,9 @@ struct FuelSchedule : public Schedule {
 
 };
 
-void _setFuelScheduleRunning(FuelSchedule &schedule, unsigned long timeout, unsigned long duration);
-
-static inline __attribute__((always_inline)) void setFuelSchedule(FuelSchedule &schedule, unsigned long timeout, unsigned long duration) 
+static inline  __attribute__((always_inline)) void setFuelSchedule(FuelSchedule &schedule, uint32_t timeout, uint32_t duration) 
 {
-  if(likely(timeout < MAX_TIMER_PERIOD))
-  {
-    ATOMIC() {
-      if (unlikely(duration > MAX_TIMER_PERIOD)) 
-      {
-        duration = MAX_TIMER_PERIOD - 1UL; //Safety check to ensure the duration is not longer than the maximum timer period
-      }      
-      if(!isRunning(schedule)) 
-      { //Check that we're not already part way through a schedule
-        _setFuelScheduleRunning(schedule, timeout, duration);
-      }
-      //If the schedule is already running, we can queue up the next pulse. Only do this however if the maximum time between pulses (Based on CRANK_ANGLE_MAX_INJ) is less than the max timer period
-      else if(angleToTimeMicroSecPerDegree(CRANK_ANGLE_MAX_INJ) < MAX_TIMER_PERIOD) 
-      {
-        _setScheduleNext(schedule, timeout, duration);
-      }
-      else
-      {
-        // Keep MISRA checker happy
-      }
-    }
-  }
+  _setSchedule(schedule, timeout, duration, CRANK_ANGLE_MAX_INJ);
 }
 
 /**
