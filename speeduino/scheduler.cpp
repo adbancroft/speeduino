@@ -230,31 +230,6 @@ void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidC
   schedule.pEndCallback = pEndCallback;
 }
 
-void _setFuelScheduleRunning(FuelSchedule &schedule, unsigned long timeout, unsigned long duration)
-{
-  //The following must be enclosed in the noInterupts block to avoid contention caused if the relevant interrupt fires before the state is fully set
-  schedule.Duration = uS_TO_TIMER_COMPARE(duration);
-  schedule._compare = schedule._counter + uS_TO_TIMER_COMPARE(timeout);
-  schedule.Status = PENDING; //Turn this schedule on
-}
-
-void _setScheduleNext(Schedule &schedule, uint32_t timeout, uint32_t duration)
-{
-   //If the schedule is already running, we can set the next schedule so it is ready to go
-  //This is required in cases of high rpm and high DC where there otherwise would not be enough time to set the schedule
-  schedule.nextStartCompare = schedule._counter + uS_TO_TIMER_COMPARE(timeout);
-  // Schedule must already be running, so safe to reuse this.
-  schedule.Duration = uS_TO_TIMER_COMPARE(duration);
-  schedule.Status = RUNNING_WITHNEXT;
-}
-
-void _setIgnitionScheduleRunning(IgnitionSchedule &schedule, unsigned long timeout, unsigned long duration)
-{
-  schedule.Duration = uS_TO_TIMER_COMPARE(duration);
-  schedule._compare = schedule._counter + uS_TO_TIMER_COMPARE(timeout);
-  schedule.Status = PENDING; //Turn this schedule on
-}
-
 void refreshIgnitionSchedule1(unsigned long timeToEnd)
 {
   if( isRunning(ignitionSchedule1) && (uS_TO_TIMER_COMPARE(timeToEnd) < ignitionSchedule1.Duration) )
