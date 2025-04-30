@@ -6,6 +6,7 @@
 #include "test_schedules.h"
 
 extern void testScheduleStateMachine(void);
+extern void test_overdwell(void);
 
 void setup()
 {
@@ -25,7 +26,7 @@ void setup()
   test_accuracy_timeout();
   test_accuracy_duration();
   testScheduleStateMachine();
-
+  test_overdwell();
   
   UNITY_END(); // stop unit testing
 
