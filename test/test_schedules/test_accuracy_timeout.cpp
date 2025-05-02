@@ -135,38 +135,38 @@ void test_accuracy_timeout(void)
 {
   SET_UNITY_FILENAME() {
 
-    RUN_TEST(test_accuracy_timeout_inj1);
-    RUN_TEST(test_accuracy_timeout_inj2);
-    RUN_TEST(test_accuracy_timeout_inj3);
-    RUN_TEST(test_accuracy_timeout_inj4);
+    RUN_TEST_P(test_accuracy_timeout_inj1);
+    RUN_TEST_P(test_accuracy_timeout_inj2);
+    RUN_TEST_P(test_accuracy_timeout_inj3);
+    RUN_TEST_P(test_accuracy_timeout_inj4);
 #if INJ_CHANNELS >= 5
-    RUN_TEST(test_accuracy_timeout_inj5);
+    RUN_TEST_P(test_accuracy_timeout_inj5);
 #endif
 #if INJ_CHANNELS >= 6
-    RUN_TEST(test_accuracy_timeout_inj6);
+    RUN_TEST_P(test_accuracy_timeout_inj6);
 #endif
 #if INJ_CHANNELS >= 7
-    RUN_TEST(test_accuracy_timeout_inj7);
+    RUN_TEST_P(test_accuracy_timeout_inj7);
 #endif
 #if INJ_CHANNELS >= 8
-    RUN_TEST(test_accuracy_timeout_inj8);
+    RUN_TEST_P(test_accuracy_timeout_inj8);
 #endif
 
-    RUN_TEST(test_accuracy_timeout_ign1);
-    RUN_TEST(test_accuracy_timeout_ign2);
-    RUN_TEST(test_accuracy_timeout_ign3);
-    RUN_TEST(test_accuracy_timeout_ign4);
+    RUN_TEST_P(test_accuracy_timeout_ign1);
+    RUN_TEST_P(test_accuracy_timeout_ign2);
+    RUN_TEST_P(test_accuracy_timeout_ign3);
+    RUN_TEST_P(test_accuracy_timeout_ign4);
 #if IGN_CHANNELS >= 5
-    RUN_TEST(test_accuracy_timeout_ign5);
+    RUN_TEST_P(test_accuracy_timeout_ign5);
 #endif
 #if IGN_CHANNELS >= 6
-    RUN_TEST(test_accuracy_timeout_ign6);
+    RUN_TEST_P(test_accuracy_timeout_ign6);
 #endif
 #if IGN_CHANNELS >= 7
-    RUN_TEST(test_accuracy_timeout_ign7);
+    RUN_TEST_P(test_accuracy_timeout_ign7);
 #endif
 #if IGN_CHANNELS >= 8
-    RUN_TEST(test_accuracy_timeout_ign8);
+    RUN_TEST_P(test_accuracy_timeout_ign8);
 #endif
   }
 }

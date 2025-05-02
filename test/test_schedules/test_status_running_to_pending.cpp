@@ -13,7 +13,7 @@ static void test_status_running_to_pending(FuelSchedule &schedule)
     _setFuelScheduleDuration(schedule, TIMEOUT, DURATION);
     while(schedule._status == PENDING) /*Wait*/ ;
     _setFuelScheduleDuration(schedule, 2*TIMEOUT, DURATION);
-    while(schedule._status == RUNNING) /*Wait*/ ;
+    while(isRunning(schedule)) /*Wait*/ ;
     TEST_ASSERT_EQUAL(PENDING, schedule._status);
 }
 
@@ -71,7 +71,7 @@ static void test_status_running_to_pending(IgnitionSchedule &schedule)
     _setIgnitionScheduleDuration(schedule, TIMEOUT, DURATION);
     while(schedule._status == PENDING) /*Wait*/ ;
     _setIgnitionScheduleDuration(schedule, 2*TIMEOUT, DURATION);
-    while(schedule._status == RUNNING) /*Wait*/ ;
+    while(isRunning(schedule)) /*Wait*/ ;
     TEST_ASSERT_EQUAL(PENDING, schedule._status);
 }
 
@@ -127,22 +127,22 @@ void test_status_running_to_pending(void)
 {
   SET_UNITY_FILENAME() {
 
-    RUN_TEST(test_status_running_to_pending_inj1);
-    RUN_TEST(test_status_running_to_pending_inj2);
-    RUN_TEST(test_status_running_to_pending_inj3);
-    RUN_TEST(test_status_running_to_pending_inj4);
-    RUN_TEST(test_status_running_to_pending_inj5);
-    RUN_TEST(test_status_running_to_pending_inj6);
-    RUN_TEST(test_status_running_to_pending_inj7);
-    RUN_TEST(test_status_running_to_pending_inj8);
+    RUN_TEST_P(test_status_running_to_pending_inj1);
+    RUN_TEST_P(test_status_running_to_pending_inj2);
+    RUN_TEST_P(test_status_running_to_pending_inj3);
+    RUN_TEST_P(test_status_running_to_pending_inj4);
+    RUN_TEST_P(test_status_running_to_pending_inj5);
+    RUN_TEST_P(test_status_running_to_pending_inj6);
+    RUN_TEST_P(test_status_running_to_pending_inj7);
+    RUN_TEST_P(test_status_running_to_pending_inj8);
 
-    RUN_TEST(test_status_running_to_pending_ign1);
-    RUN_TEST(test_status_running_to_pending_ign2);
-    RUN_TEST(test_status_running_to_pending_ign3);
-    RUN_TEST(test_status_running_to_pending_ign4);
-    RUN_TEST(test_status_running_to_pending_ign5);
-    RUN_TEST(test_status_running_to_pending_ign6);
-    RUN_TEST(test_status_running_to_pending_ign7);
-    RUN_TEST(test_status_running_to_pending_ign8);
+    RUN_TEST_P(test_status_running_to_pending_ign1);
+    RUN_TEST_P(test_status_running_to_pending_ign2);
+    RUN_TEST_P(test_status_running_to_pending_ign3);
+    RUN_TEST_P(test_status_running_to_pending_ign4);
+    RUN_TEST_P(test_status_running_to_pending_ign5);
+    RUN_TEST_P(test_status_running_to_pending_ign6);
+    RUN_TEST_P(test_status_running_to_pending_ign7);
+    RUN_TEST_P(test_status_running_to_pending_ign8);
   }
 }

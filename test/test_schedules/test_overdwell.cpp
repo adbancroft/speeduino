@@ -85,11 +85,11 @@ static void test_applyChannelOverDwellProtection_running_timeout(void) {
 void test_overdwell(void)
 {
   SET_UNITY_FILENAME() {
-    RUN_TEST(test_isOverDwellActive_rpmAboveLimit);
-    RUN_TEST(test_isOverDwellActive_rpmBelowLimit);
-    RUN_TEST(test_isOverDwellActive_NoCrankLock);
-    RUN_TEST(test_applyChannelOverDwellProtection_notRunning);
-    RUN_TEST(test_applyChannelOverDwellProtection_running_notimeout);
-    RUN_TEST(test_applyChannelOverDwellProtection_running_timeout);
+    RUN_TEST_P(test_isOverDwellActive_rpmAboveLimit);
+    RUN_TEST_P(test_isOverDwellActive_rpmBelowLimit);
+    RUN_TEST_P(test_isOverDwellActive_NoCrankLock);
+    RUN_TEST_P(test_applyChannelOverDwellProtection_notRunning);
+    RUN_TEST_P(test_applyChannelOverDwellProtection_running_notimeout);
+    RUN_TEST_P(test_applyChannelOverDwellProtection_running_timeout);
   }
 }

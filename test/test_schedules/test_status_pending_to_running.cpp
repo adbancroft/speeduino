@@ -123,22 +123,22 @@ void test_status_pending_to_running(void)
 {
   SET_UNITY_FILENAME() {
 
-    RUN_TEST(test_status_pending_to_running_inj1);
-    RUN_TEST(test_status_pending_to_running_inj2);
-    RUN_TEST(test_status_pending_to_running_inj3);
-    RUN_TEST(test_status_pending_to_running_inj4);
-    RUN_TEST(test_status_pending_to_running_inj5);
-    RUN_TEST(test_status_pending_to_running_inj6);
-    RUN_TEST(test_status_pending_to_running_inj7);
-    RUN_TEST(test_status_pending_to_running_inj8);
+    RUN_TEST_P(test_status_pending_to_running_inj1);
+    RUN_TEST_P(test_status_pending_to_running_inj2);
+    RUN_TEST_P(test_status_pending_to_running_inj3);
+    RUN_TEST_P(test_status_pending_to_running_inj4);
+    RUN_TEST_P(test_status_pending_to_running_inj5);
+    RUN_TEST_P(test_status_pending_to_running_inj6);
+    RUN_TEST_P(test_status_pending_to_running_inj7);
+    RUN_TEST_P(test_status_pending_to_running_inj8);
 
-    RUN_TEST(test_status_pending_to_running_ign1);
-    RUN_TEST(test_status_pending_to_running_ign2);
-    RUN_TEST(test_status_pending_to_running_ign3);
-    RUN_TEST(test_status_pending_to_running_ign4);
-    RUN_TEST(test_status_pending_to_running_ign5);
-    RUN_TEST(test_status_pending_to_running_ign6);
-    RUN_TEST(test_status_pending_to_running_ign7);
-    RUN_TEST(test_status_pending_to_running_ign8);
+    RUN_TEST_P(test_status_pending_to_running_ign1);
+    RUN_TEST_P(test_status_pending_to_running_ign2);
+    RUN_TEST_P(test_status_pending_to_running_ign3);
+    RUN_TEST_P(test_status_pending_to_running_ign4);
+    RUN_TEST_P(test_status_pending_to_running_ign5);
+    RUN_TEST_P(test_status_pending_to_running_ign6);
+    RUN_TEST_P(test_status_pending_to_running_ign7);
+    RUN_TEST_P(test_status_pending_to_running_ign8);
   }
 }
