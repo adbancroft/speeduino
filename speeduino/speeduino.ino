@@ -46,6 +46,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "auxiliaries.h"
 #include "load_source.h"
 #include "board_definition.h"
+#include "static_for.hpp"
 #include RTC_LIB_H //Defined in each boards .h file
 
 
@@ -89,19 +90,20 @@ static inline uint16_t refreshIgnition1(uint16_t crankAngle) {
 }
 #endif
 
-static void setIgnitionSchedules(uint16_t crankAngle, uint16_t totalDwell) {
+static inline __attribute__((always_inline, flatten)) void masterSetIgnitionSchedule(uint8_t index, uint16_t crankAngle, uint16_t totalDwell) {
+  if ((index<maxIgnOutputs) && BIT_CHECK(ignitionChannelsOn, (IGN1_CMD_BIT+index))) {
+    setIgnitionSchedule(ignitionSchedules[index], crankAngle, totalDwell);
+  }
+}
+
+static inline __attribute__((always_inline, flatten)) void setIgnitionSchedules(uint16_t crankAngle, uint16_t totalDwell) {
 #if defined(USE_IGN_REFRESH)
   setIgnitionSchedule(ignitionSchedules[0], crankAngle, totalDwell);
   crankAngle = refreshIgnition1(crankAngle);
-  uint8_t index = 1;
+  static_for<1U, _countof(ignitionSchedules)>::repeat_n(masterSetIgnitionSchedule, crankAngle, totalDwell);
 #else
-  uint8_t index = 0;
+  static_for<0U, _countof(ignitionSchedules)>::repeat_n(masterSetIgnitionSchedule, crankAngle, totalDwell);
 #endif
-  for (; index < maxIgnOutputs; ++index) {
-    if (BIT_CHECK(ignitionChannelsOn, (IGN1_CMD_BIT+index))) {
-      setIgnitionSchedule(ignitionSchedules[index], crankAngle, totalDwell);
-    }
-  }
 } 
 
 static inline void matchSyncState(const config2 &page2, const statuses &current) {
@@ -127,13 +129,16 @@ static inline void applyFuelTrims(const config2 &page2, const config6 &page6, co
   }
 }
 
+static inline __attribute__((always_inline, flatten)) void masterSetFuelSchedule(uint8_t index, uint16_t injAngle, uint16_t crankAngle, injectorAngleCalcCache *pCalcCache) {
+  if((index<maxInjOutputs) && BIT_CHECK(fuelChannelsOn, (INJ1_CMD_BIT+index))) {
+    setFuelSchedule(fuelSchedules[index], injAngle, crankAngle, pCalcCache);
+  }
+}
+  
+
 static inline __attribute__((always_inline, flatten)) void setFuelSchedules(uint16_t injAngle, uint16_t crankAngle) {
   injectorAngleCalcCache calcCache;
-  for (uint8_t index=0; index<maxInjOutputs; ++index) {
-    if(BIT_CHECK(fuelChannelsOn, (INJ1_CMD_BIT+index))) {
-      setFuelSchedule(fuelSchedules[index], injAngle, crankAngle, &calcCache);
-    }
-  }
+  static_for<0U, _countof(fuelSchedules)>::repeat_n(masterSetFuelSchedule, injAngle, crankAngle, &calcCache);
 }
 
 /** Speeduino main loop.
@@ -1017,9 +1022,10 @@ uint16_t calculatePWLimit()
 void calculateStaging(uint32_t pwLimit)
 {
   // Later code relies on pw==0 indicating an excluded/unused channel
-  for (uint8_t index=1; index<_countof(fuelSchedules); ++index) {
+  auto resetPW = [](uint8_t index) {
     fuelSchedules[index].pw = 0U;
-  }
+  };
+  static_for<1U, _countof(fuelSchedules)>::repeat_n(resetPW);
 
   //Calculate staging pulsewidths if used
   //To run staged injection, the number of cylinders must be less than or equal to the injector channels (ie Assuming you're running paired injection, you need at least as many injector channels as you have cylinders, half for the primaries and half for the secondaries)

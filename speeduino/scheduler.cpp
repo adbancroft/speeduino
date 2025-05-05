@@ -32,6 +32,7 @@ A full copy of the license may be found in the projects root directory
 #include "unit_testing.h"
 #include "speeduino.h"
 #include "utilities.h"
+#include "static_for.hpp"
 
 // cppcheck-suppress misra-c2012-9.3
 FuelSchedule fuelSchedules[INJ_CHANNELS] = {
@@ -1124,6 +1125,10 @@ TESTABLE_INLINE_STATIC void applyChannelOverDwellProtection(IgnitionSchedule &sc
   }
 }
 
+static inline void applyChannelOverDwellProtectionIndex(uint8_t index, uint32_t targetOverdwellTime) {
+  applyChannelOverDwellProtection(ignitionSchedules[index], targetOverdwellTime);
+}
+
 TESTABLE_INLINE_STATIC bool isOverDwellActive(const config4 &page4, const statuses &current){
   bool isCrankLocked = page4.ignCranklock && (current.RPM < current.crankRPM); //Dwell limiter is disabled during cranking on setups using the locked cranking timing. WE HAVE to do the RPM check here as relying on the engine cranking bit can be potentially too slow in updating
   return (page4.useDwellLim) && likely(!isCrankLocked);
@@ -1134,8 +1139,8 @@ void applyOverDwellProtection(void)
   if (likely(isOverDwellActive(configPage4, currentStatus))) {
     uint32_t targetOverdwellTime = micros() - (configPage4.dwellLimit * 1000U); //Convert to uS
 
-    for (uint8_t index=0U; index<_countof(ignitionSchedules); ++index) {
-      applyChannelOverDwellProtection(ignitionSchedules[index], targetOverdwellTime);
+    ATOMIC() {
+      static_for<0U, _countof(ignitionSchedules)>::repeat_n(applyChannelOverDwellProtectionIndex, targetOverdwellTime);
     }
   }
 }
