@@ -376,7 +376,7 @@ static void cylinder3_stroke2_semiseq_nostage_tb(void)
   configPage10.stagingEnabled = false;
   configPage2.injType = INJ_TYPE_TBODY;
   initialiseAll(); //Run the main initialise function
-	const uint16_t angle[] = {0,80,160,0,0,0,0,0};
+	const uint16_t angle[] = {0,40,80,0,0,0,0,0};
   assert_fuel_schedules(360U/3U, reqFuel * 100U, 3U, 0U, angle);
 }
 
@@ -386,7 +386,7 @@ static void cylinder3_stroke2_semiseq_nostage_port(void)
   configPage10.stagingEnabled = false;
   configPage2.injType = INJ_TYPE_PORT;
   initialiseAll(); //Run the main initialise function
-	const uint16_t angle[] = {0,120,240,0,0,0,0,0};
+	const uint16_t angle[] = {0,60,120,0,0,0,0,0};
   assert_fuel_schedules(360U/2U, reqFuel * 100U, 3U, 0U, angle);
 }
 
@@ -411,9 +411,9 @@ static void cylinder3_stroke2_semiseq_staged_tb(void)
   configPage2.injType = INJ_TYPE_TBODY;
   initialiseAll(); //Run the main initialise function
 #if INJ_CHANNELS>=6
-	const uint16_t angle[] = {0,80,160,0,80,160,0,0};
+	const uint16_t angle[] = {0,40,80,0,40,80,0,0};
 #else
-	const uint16_t angle[] = {0,80,160,0,0,0,0,0};
+	const uint16_t angle[] = {0,40,80,0,0,0,0,0};
 #endif
   assert_fuel_schedules(360U/3U, reqFuel * 100U, 3U, 1U, angle);
 }
@@ -425,10 +425,10 @@ static void cylinder3_stroke2_semiseq_staged_port(void)
   configPage2.injType = INJ_TYPE_PORT;
   initialiseAll(); //Run the main initialise function
 #if INJ_CHANNELS>=6
-	const uint16_t angle[] = {0,120,240,0,120,240,0,0};
+	const uint16_t angle[] = {0,60,120,0,60,120,0,0};
 #eassert_fuel_schedules(360U/2U, reqFuel * 100U, 3U, 3U, angle);
 #else
-	const uint16_t angle[] = {0,120,240,0,0,0,0,0};
+	const uint16_t angle[] = {0,60,120,0,0,0,0,0};
   assert_fuel_schedules(360U/2U, reqFuel * 100U, 3U, 1U, angle);
 #endif
 }
@@ -521,7 +521,7 @@ static void cylinder4_stroke2_seq_nostage(void)
   configPage2.injLayout = INJ_SEQUENTIAL;
   configPage10.stagingEnabled = false;
   initialiseAll(); //Run the main initialise function
-	const uint16_t angle[] = {0,180,0,0,0,0,0,0};
+	const uint16_t angle[] = {0,90,0,0,0,0,0,0};
   assert_fuel_schedules(180U, reqFuel * 100U, 2U, 0U, angle);
   }
 
@@ -530,7 +530,7 @@ static void cylinder4_stroke2_semiseq_nostage(void)
   configPage2.injLayout = INJ_SEMISEQUENTIAL;
   configPage10.stagingEnabled = false;
   initialiseAll(); //Run the main initialise function
-	const uint16_t angle[] = {0,180,0,0,0,0,0,0};
+	const uint16_t angle[] = {0,90,0,0,0,0,0,0};
   assert_fuel_schedules(180U, reqFuel * 100U, 2U, 0U, angle);
   }
 
@@ -546,7 +546,7 @@ static void cylinder4_stroke2_seq_staged(void)
 	const uint16_t angle[] = {0,180,0,0,0,0,0,0};
   assert_fuel_schedules(180U, reqFuel * 100U, 4U, 1U, angle);
 #else
-	const uint16_t angle[] = {0,180,0,180,0,0,0,0};
+	const uint16_t angle[] = {0,90,0,90,0,0,0,0};
   assert_fuel_schedules(180U, reqFuel * 100U, 2U, 2U, angle);
 #endif
   }
@@ -556,7 +556,7 @@ static void cylinder4_stroke2_semiseq_staged(void)
   configPage2.injLayout = INJ_PAIRED;
   configPage10.stagingEnabled = true;
   initialiseAll(); //Run the main initialise function
-	const uint16_t angle[] = {0,180,0,180,0,0,0,0};
+	const uint16_t angle[] = {0,90,0,90,0,0,0,0};
   assert_fuel_schedules(180U, reqFuel * 100U, 2U, 2U,angle);
 }
 
@@ -585,10 +585,10 @@ static void cylinder5_stroke4_seq_nostage(void)
 	const uint16_t angle[] = {0,144,288,432,576,0,0,0};
   assert_fuel_schedules(720U, reqFuel * 100U, 5U, 0U, angle);
 #else
-	const uint16_t angle[] = {0,0,0,0,0,0,0,0};
+  const uint16_t angle[] = {0,144,288,432,0,0,0,0};
   assert_fuel_schedules(720U, reqFuel * 50U, 4U, 0U, angle);
 #endif
-  }
+}
 
 
 static void cylinder5_stroke4_semiseq_nostage(void)
@@ -596,9 +596,14 @@ static void cylinder5_stroke4_semiseq_nostage(void)
   configPage2.injLayout = INJ_SEMISEQUENTIAL;
   configPage10.stagingEnabled = false;
   initialiseAll(); //Run the main initialise function
-	const uint16_t angle[] = {0,72,144,216,288,0,0,0};
+#if INJ_CHANNELS >= 5
+	const uint16_t angle[] = {0,144,288,432,576,0,0,0};
+  assert_fuel_schedules(720U, reqFuel * 100U, 5U, 0U, angle);
+#else
+  const uint16_t angle[] = {0,144,288,432,0,0,0,0};
   assert_fuel_schedules(720U, reqFuel * 50U, 4U, 0U, angle);
-  }
+#endif
+}
 
 static void cylinder5_stroke4_seq_staged(void)
 {
@@ -609,10 +614,10 @@ static void cylinder5_stroke4_seq_staged(void)
 	const uint16_t angle[] = {0,144,288,432,576,0,0,0};
   assert_fuel_schedules(720U, reqFuel * 100U, 3U, 3U, angle);
 #else
-	const uint16_t angle[] = {0,0,0,0,0,0,0,0};
+  const uint16_t angle[] = {0,144,288,432,0,0,0,0};
   assert_fuel_schedules(720U, reqFuel * 50U, 4U, 0U, angle);
 #endif
-  }
+}
 
 static void cylinder5_stroke4_semiseq_staged(void) 
 {
@@ -653,19 +658,19 @@ static void cylinder6_stroke4_seq_nostage(void)
 	const uint16_t angle[] = {0,120,240,360,480,600,0,0};
   assert_fuel_schedules(720U, reqFuel * 100U, 6U, 0U, angle);
 #else
-	const uint16_t angle[] = {0,0,0,0,0,0,0,0};
+  const uint16_t angle[] = {0,120,240,0,0,0,0,0};
   assert_fuel_schedules(720U, reqFuel * 50U, 3U, 0U, angle);
 #endif
-  }
+}
 
 static void cylinder6_stroke4_semiseq_nostage(void)
 {
   configPage2.injLayout = INJ_SEMISEQUENTIAL;
   configPage10.stagingEnabled = false;
   initialiseAll(); //Run the main initialise function
-	const uint16_t angle[] = {0,120,240,0,0,0,0,0};
+	const uint16_t angle[] = {0,240,480,0,0,0,0,0};
   assert_fuel_schedules(720U, reqFuel * 50U, 3U, 0U, angle);
-  }
+}
 
 static void cylinder6_stroke4_seq_staged(void)
 {
@@ -676,11 +681,10 @@ static void cylinder6_stroke4_seq_staged(void)
 	const uint16_t angle[] = {0,120,240,360,480,600,0,0};
   assert_fuel_schedules(720U, reqFuel * 100U, 6U, 0U, angle);
 #else
-	const uint16_t angle[] = {0,0,0,0,0,0,0,0};
+  const uint16_t angle[] = {0,120,240,0,0,0,0,0};
   assert_fuel_schedules(720U, reqFuel * 50U, 3U, 0U, angle);
 #endif
-  }
-
+}
 
 static void cylinder6_stroke4_semiseq_staged(void)
 {
@@ -688,10 +692,10 @@ static void cylinder6_stroke4_semiseq_staged(void)
   configPage10.stagingEnabled = true;
   initialiseAll(); //Run the main initialise function
 #if INJ_CHANNELS >= 8
-	const uint16_t angle[] = {0,120,240,0,0,120,240,0};
+	const uint16_t angle[] = {0,240,480,0,240,480,0,0};
   assert_fuel_schedules(720U, reqFuel * 50U, 3U, 0U, angle);
 #else
-	const uint16_t angle[] = {0,120,240,0,0,0,0,0};
+	const uint16_t angle[] = {0,240,480,0,0,0,0,0};
   assert_fuel_schedules(720U, reqFuel * 50U, 3U, 0U, angle);
 #endif
 }
@@ -718,13 +722,22 @@ static void cylinder8_stroke4_seq_nostage(void)
   configPage10.stagingEnabled = false;
   initialiseAll(); //Run the main initialise function
 #if INJ_CHANNELS >= 8
-	const uint16_t angle[] = {0,90,180,270,360,450,540,630};
+  const uint16_t angle[] = {0,90,180,270,360,450,540,630};
   assert_fuel_schedules(720U, reqFuel * 100U, 8U, 0U, angle);
 #else
-	const uint16_t angle[] = {0,0,0,0,0,0,0,0};
+  const uint16_t angle[] = {0,90,180,270,0,0,0,0};
   assert_fuel_schedules(720U, reqFuel * 50U, 4U, 0U, angle);
 #endif
-  }
+}
+
+static void cylinder8_stroke4_paired_nostage(void)
+{
+  configPage2.injLayout = INJ_PAIRED;
+  configPage10.stagingEnabled = false;
+  initialiseAll(); //Run the main initialise function
+  const uint16_t angle[] = {0,180,360,540,0,0,0,0};
+  assert_fuel_schedules(720U, reqFuel * 50U, 4U, 0U, angle);
+}
 
 void run_8_cylinder_4stroke_tests(void)
 {
@@ -739,6 +752,7 @@ void run_8_cylinder_4stroke_tests(void)
   // Staging not supported on 8 cylinders
 
   RUN_TEST_P(cylinder8_stroke4_seq_nostage);
+  RUN_TEST_P(cylinder8_stroke4_paired_nostage);
 }
 
 static constexpr uint16_t zeroAngles[] = {0,0,0,0,0,0,0,0};

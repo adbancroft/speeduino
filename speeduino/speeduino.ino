@@ -248,10 +248,10 @@ TESTABLE_INLINE_STATIC void applyPWToSchedules(uint16_t primaryPW, uint16_t seco
   for (uint8_t index=0U; index<maxInjPrimaryOutputs; ++index) {
     fuelSchedules[index].pw = primaryPW;
   }
-  for (uint8_t index=maxInjPrimaryOutputs; index<maxInjPrimaryOutputs+maxInjSecondaryOutputs; ++index) {
+  for (uint8_t index=maxInjPrimaryOutputs; index<totalInjOutputs(); ++index) {
     fuelSchedules[index].pw = secondaryPW;
   }
-  for (uint8_t index=maxInjPrimaryOutputs+maxInjSecondaryOutputs; index<_countof(fuelSchedules); ++index) {
+  for (uint8_t index=totalInjOutputs(); index<_countof(fuelSchedules); ++index) {
     fuelSchedules[index].pw = 0U;
   }
 }
