@@ -65,17 +65,17 @@ void test_Staging_4cyl_Auto_Inactive(void)
   configPage2.injLayout = INJ_PAIRED;
   configPage10.stagingEnabled = true;
   configPage10.stagingMode = STAGING_MODE_AUTO;
-  fuelSchedule1.pw = testPW; //Over open time but below the pwLimit set below
+  fuelSchedules[0].pw = testPW; //Over open time but below the pwLimit set below
 
 
   uint32_t pwLimit = 9000; //90% duty cycle at 6000rpm
   calculateStaging(pwLimit);
   //PW 1 and 2 should be normal, 3 and 4 should be 0 as that testPW is below the pwLimit
   //PW1/2 should be ((PW - openTime) * staged_req_fuel_mult_pri) + openTime = ((3000 - 1000) * 3.0) + 1000 = 7000
-  TEST_ASSERT_EQUAL(7000, fuelSchedule1.pw);
-  TEST_ASSERT_EQUAL(7000, fuelSchedule2.pw);
-  TEST_ASSERT_EQUAL(0, fuelSchedule3.pw);
-  TEST_ASSERT_EQUAL(0, fuelSchedule4.pw);
+  TEST_ASSERT_EQUAL(7000, fuelSchedules[0].pw);
+  TEST_ASSERT_EQUAL(7000, fuelSchedules[1].pw);
+  TEST_ASSERT_EQUAL(0, fuelSchedules[2].pw);
+  TEST_ASSERT_EQUAL(0, fuelSchedules[3].pw);
   TEST_ASSERT_BIT_LOW(BIT_STATUS4_STAGING_ACTIVE, currentStatus.status4);
 }
 
@@ -88,7 +88,7 @@ void test_Staging_4cyl_Table_Inactive(void)
   configPage2.injLayout = INJ_PAIRED;
   configPage10.stagingEnabled = true;
   configPage10.stagingMode = STAGING_MODE_TABLE;
-  fuelSchedule1.pw = testPW; //Over open time but below the pwLimit set below
+  fuelSchedules[0].pw = testPW; //Over open time but below the pwLimit set below
 
   //Load the staging table with all 0
   //For this test it doesn't matter what the X and Y axis are, as the table is all 0 values
@@ -99,10 +99,10 @@ void test_Staging_4cyl_Table_Inactive(void)
   calculateStaging(pwLimit);
   //PW 1 and 2 should be normal, 3 and 4 should be 0 as that testPW is below the pwLimit
   //PW1/2 should be (PW - openTime) * staged_req_fuel_mult_pri = (3000 - 1000) * 3.0 = 6000
-  TEST_ASSERT_EQUAL(7000, fuelSchedule1.pw);
-  TEST_ASSERT_EQUAL(7000, fuelSchedule2.pw);
-  TEST_ASSERT_EQUAL(0, fuelSchedule3.pw);
-  TEST_ASSERT_EQUAL(0, fuelSchedule4.pw);
+  TEST_ASSERT_EQUAL(7000, fuelSchedules[0].pw);
+  TEST_ASSERT_EQUAL(7000, fuelSchedules[1].pw);
+  TEST_ASSERT_EQUAL(0, fuelSchedules[2].pw);
+  TEST_ASSERT_EQUAL(0, fuelSchedules[3].pw);
   TEST_ASSERT_BIT_LOW(BIT_STATUS4_STAGING_ACTIVE, currentStatus.status4);
 }
 
@@ -115,16 +115,16 @@ void test_Staging_4cyl_Auto_50pct(void)
   configPage2.injLayout = INJ_PAIRED;
   configPage10.stagingEnabled = true;
   configPage10.stagingMode = STAGING_MODE_AUTO;
-  fuelSchedule1.pw = testPW; //Over open time but below the pwLimit set below
+  fuelSchedules[0].pw = testPW; //Over open time but below the pwLimit set below
 
 
   uint32_t pwLimit = 9000; //90% duty cycle at 6000rpm
   calculateStaging(pwLimit);
   //PW 1 and 2 should be maxed out at the pwLimit, 3 and 4 should be based on their relative size
-  TEST_ASSERT_EQUAL(pwLimit, fuelSchedule1.pw); //PW1/2 run at maximum available limit
-  TEST_ASSERT_EQUAL(pwLimit, fuelSchedule2.pw);
-  TEST_ASSERT_EQUAL(9000, fuelSchedule3.pw);
-  TEST_ASSERT_EQUAL(9000, fuelSchedule4.pw);
+  TEST_ASSERT_EQUAL(pwLimit, fuelSchedules[0].pw); //PW1/2 run at maximum available limit
+  TEST_ASSERT_EQUAL(pwLimit, fuelSchedules[1].pw);
+  TEST_ASSERT_EQUAL(9000, fuelSchedules[2].pw);
+  TEST_ASSERT_EQUAL(9000, fuelSchedules[3].pw);
   TEST_ASSERT_BIT_HIGH(BIT_STATUS4_STAGING_ACTIVE, currentStatus.status4);
 }
 
@@ -137,16 +137,16 @@ void test_Staging_4cyl_Auto_33pct(void)
   configPage2.injLayout = INJ_PAIRED;
   configPage10.stagingEnabled = true;
   configPage10.stagingMode = STAGING_MODE_AUTO;
-  fuelSchedule1.pw = testPW; //Over open time but below the pwLimit set below
+  fuelSchedules[0].pw = testPW; //Over open time but below the pwLimit set below
 
 
   uint32_t pwLimit = 9000; //90% duty cycle at 6000rpm
   calculateStaging(pwLimit);
   //PW 1 and 2 should be maxed out at the pwLimit, 3 and 4 should be based on their relative size
-  TEST_ASSERT_EQUAL(pwLimit, fuelSchedule1.pw); //PW1/2 run at maximum available limit
-  TEST_ASSERT_EQUAL(pwLimit, fuelSchedule2.pw);
-  TEST_ASSERT_EQUAL(6000, fuelSchedule3.pw);
-  TEST_ASSERT_EQUAL(6000, fuelSchedule4.pw);
+  TEST_ASSERT_EQUAL(pwLimit, fuelSchedules[0].pw); //PW1/2 run at maximum available limit
+  TEST_ASSERT_EQUAL(pwLimit, fuelSchedules[1].pw);
+  TEST_ASSERT_EQUAL(6000, fuelSchedules[2].pw);
+  TEST_ASSERT_EQUAL(6000, fuelSchedules[3].pw);
   TEST_ASSERT_BIT_HIGH(BIT_STATUS4_STAGING_ACTIVE, currentStatus.status4);
 }
 
@@ -159,7 +159,7 @@ void test_Staging_4cyl_Table_50pct(void)
   configPage2.injLayout = INJ_PAIRED;
   configPage10.stagingEnabled = true;
   configPage10.stagingMode = STAGING_MODE_TABLE;
-  fuelSchedule1.pw = testPW; //Over open time but below the pwLimit set below
+  fuelSchedules[0].pw = testPW; //Over open time but below the pwLimit set below
 
   //Load the staging table with all 0
   //For this test it doesn't matter what the X and Y axis are, as the table is all 50 values
@@ -173,9 +173,9 @@ void test_Staging_4cyl_Table_50pct(void)
 
   calculateStaging(pwLimit);
 
-  TEST_ASSERT_EQUAL(4000, fuelSchedule1.pw);
-  TEST_ASSERT_EQUAL(4000, fuelSchedule2.pw);
-  TEST_ASSERT_EQUAL(2500, fuelSchedule3.pw);
-  TEST_ASSERT_EQUAL(2500, fuelSchedule4.pw);
+  TEST_ASSERT_EQUAL(4000, fuelSchedules[0].pw);
+  TEST_ASSERT_EQUAL(4000, fuelSchedules[1].pw);
+  TEST_ASSERT_EQUAL(2500, fuelSchedules[2].pw);
+  TEST_ASSERT_EQUAL(2500, fuelSchedules[3].pw);
   TEST_ASSERT_BIT_HIGH(BIT_STATUS4_STAGING_ACTIVE, currentStatus.status4);
 }

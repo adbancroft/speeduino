@@ -17,51 +17,51 @@ static void test_status_running_to_pending(FuelSchedule &schedule)
     TEST_ASSERT_EQUAL(PENDING, schedule._status);
 }
 
-static void test_status_running_to_pending_inj1(void)
+static void test_status_running_to_pending_fuel1(void)
 {
-    test_status_running_to_pending(fuelSchedule1);
+    test_status_running_to_pending(fuelSchedules[0]);
 }
 
-static void test_status_running_to_pending_inj2(void)
+static void test_status_running_to_pending_fuel2(void)
 {
-    test_status_running_to_pending(fuelSchedule2);
+    test_status_running_to_pending(fuelSchedules[1]);
 }
 
-static void test_status_running_to_pending_inj3(void)
+static void test_status_running_to_pending_fuel3(void)
 {
-    test_status_running_to_pending(fuelSchedule3);
+    test_status_running_to_pending(fuelSchedules[2]);
 }
 
-static void test_status_running_to_pending_inj4(void)
+static void test_status_running_to_pending_fuel4(void)
 {
-    test_status_running_to_pending(fuelSchedule4);
+    test_status_running_to_pending(fuelSchedules[3]);
 }
 
-static void test_status_running_to_pending_inj5(void)
+static void test_status_running_to_pending_fuel5(void)
 {
 #if INJ_CHANNELS >= 5
-    test_status_running_to_pending(fuelSchedule5);
+    test_status_running_to_pending(fuelSchedules[4]);
 #endif
 }
 
-static void test_status_running_to_pending_inj6(void)
+static void test_status_running_to_pending_fuel6(void)
 {
 #if INJ_CHANNELS >= 6
-    test_status_running_to_pending(fuelSchedule6);
+    test_status_running_to_pending(fuelSchedules[5]);
 #endif
 }
 
-static void test_status_running_to_pending_inj7(void)
+static void test_status_running_to_pending_fuel7(void)
 {
 #if INJ_CHANNELS >= 7
-    test_status_running_to_pending(fuelSchedule7);
+    test_status_running_to_pending(fuelSchedules[6]);
 #endif
 }
 
-static void test_status_running_to_pending_inj8(void)
+static void test_status_running_to_pending_fuel8(void)
 {
 #if INJ_CHANNELS >= 8
-    test_status_running_to_pending(fuelSchedule8);
+    test_status_running_to_pending(fuelSchedules[7]);
 #endif
 }
 
@@ -77,49 +77,49 @@ static void test_status_running_to_pending(IgnitionSchedule &schedule)
 
 static void test_status_running_to_pending_ign1(void)
 {
-    test_status_running_to_pending(ignitionSchedule1);
+    test_status_running_to_pending(ignitionSchedules[0]);
 }
 
 static void test_status_running_to_pending_ign2(void)
 {
-    test_status_running_to_pending(ignitionSchedule2);
+    test_status_running_to_pending(ignitionSchedules[1]);
 }
 
 static void test_status_running_to_pending_ign3(void)
 {
-    test_status_running_to_pending(ignitionSchedule3);
+    test_status_running_to_pending(ignitionSchedules[2]);
 }
 
 static void test_status_running_to_pending_ign4(void)
 {
-    test_status_running_to_pending(ignitionSchedule4);
+    test_status_running_to_pending(ignitionSchedules[3]);
 }
 
 static void test_status_running_to_pending_ign5(void)
 {
 #if IGN_CHANNELS >= 5
-    test_status_running_to_pending(ignitionSchedule5);
+    test_status_running_to_pending(ignitionSchedules[4]);
 #endif
 }
 
 static void test_status_running_to_pending_ign6(void)
 {
 #if INJ_CHANNELS >= 6
-    test_status_running_to_pending(ignitionSchedule6);
+    test_status_running_to_pending(ignitionSchedules[5]);
 #endif
 }
 
 static void test_status_running_to_pending_ign7(void)
 {
 #if INJ_CHANNELS >= 7
-    test_status_running_to_pending(ignitionSchedule7);
+    test_status_running_to_pending(ignitionSchedules[6]);
 #endif
 }
 
 static void test_status_running_to_pending_ign8(void)
 {
 #if INJ_CHANNELS >= 8
-    test_status_running_to_pending(ignitionSchedule8);
+    test_status_running_to_pending(ignitionSchedules[7]);
 #endif
 }
 
@@ -127,14 +127,14 @@ void test_status_running_to_pending(void)
 {
   SET_UNITY_FILENAME() {
 
-    RUN_TEST_P(test_status_running_to_pending_inj1);
-    RUN_TEST_P(test_status_running_to_pending_inj2);
-    RUN_TEST_P(test_status_running_to_pending_inj3);
-    RUN_TEST_P(test_status_running_to_pending_inj4);
-    RUN_TEST_P(test_status_running_to_pending_inj5);
-    RUN_TEST_P(test_status_running_to_pending_inj6);
-    RUN_TEST_P(test_status_running_to_pending_inj7);
-    RUN_TEST_P(test_status_running_to_pending_inj8);
+    RUN_TEST_P(test_status_running_to_pending_fuel1);
+    RUN_TEST_P(test_status_running_to_pending_fuel2);
+    RUN_TEST_P(test_status_running_to_pending_fuel3);
+    RUN_TEST_P(test_status_running_to_pending_fuel4);
+    RUN_TEST_P(test_status_running_to_pending_fuel5);
+    RUN_TEST_P(test_status_running_to_pending_fuel6);
+    RUN_TEST_P(test_status_running_to_pending_fuel7);
+    RUN_TEST_P(test_status_running_to_pending_fuel8);
 
     RUN_TEST_P(test_status_running_to_pending_ign1);
     RUN_TEST_P(test_status_running_to_pending_ign2);

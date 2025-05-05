@@ -770,10 +770,10 @@ void sendValuesLegacy(void)
 
   bytestosend -= primarySerial.write(currentStatus.secl>>8);
   bytestosend -= primarySerial.write(currentStatus.secl);
-  bytestosend -= primarySerial.write(fuelSchedule1.pw>>8);
-  bytestosend -= primarySerial.write(fuelSchedule1.pw);
-  bytestosend -= primarySerial.write(fuelSchedule2.pw>>8);
-  bytestosend -= primarySerial.write(fuelSchedule2.pw);
+  bytestosend -= primarySerial.write(fuelSchedules[0].pw>>8);
+  bytestosend -= primarySerial.write(fuelSchedules[0].pw);
+  bytestosend -= primarySerial.write(fuelSchedules[1].pw>>8);
+  bytestosend -= primarySerial.write(fuelSchedules[1].pw);
   bytestosend -= primarySerial.write(currentStatus.RPM>>8);
   bytestosend -= primarySerial.write(currentStatus.RPM);
 
@@ -1138,7 +1138,7 @@ void sendPageASCII(void)
 
     case seqFuelPage:
       primarySerial.println(F("\nTrim 1 Table"));
-      serial_print_3dtable(&fuelSchedule1.trimTable, fuelSchedule1.trimTable.type_key);
+      serial_print_3dtable(&fuelSchedules[0].trimTable, fuelSchedules[0].trimTable.type_key);
       break;
 
     case canbusPage:

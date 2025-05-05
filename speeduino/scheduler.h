@@ -77,8 +77,8 @@ void initialiseIgnitionSchedulers(void);
 /** @brief Start fuel system  priming the fuel */
 void beginInjectorPriming(void);
 
-void disablePendingFuelSchedule(byte channel);
-void disablePendingIgnSchedule(byte channel);
+void disablePendingFuelSchedule(uint8_t channel);
+void disablePendingIgnSchedule(uint8_t channel);
 
 /** @brief ???? */
 void changeHalfToFullSync(void);
@@ -297,6 +297,9 @@ static inline void setIgnitionSchedule(IgnitionSchedule &schedule, int16_t crank
  */
 void applyOverDwellProtection(void);
 
+/** @brief Handy alias */
+using fuelTrimTable = table3d6RpmLoad;
+
 /**
  * @brief Shared ignition schedule timer ISR *implementation*. Should be called by the actual ignition timer ISRs
  * (as timed interrupts) when either the start time or the duration time are reached. See @ref schedule-state-machine
@@ -305,20 +308,7 @@ void applyOverDwellProtection(void);
  */
 void moveToNextState(IgnitionSchedule &schedule);
 
-extern IgnitionSchedule ignitionSchedule1;
-extern IgnitionSchedule ignitionSchedule2;
-extern IgnitionSchedule ignitionSchedule3;
-extern IgnitionSchedule ignitionSchedule4;
-extern IgnitionSchedule ignitionSchedule5;
-#if IGN_CHANNELS >= 6
-extern IgnitionSchedule ignitionSchedule6;
-#endif
-#if IGN_CHANNELS >= 7
-extern IgnitionSchedule ignitionSchedule7;
-#endif
-#if IGN_CHANNELS >= 8
-extern IgnitionSchedule ignitionSchedule8;
-#endif
+extern IgnitionSchedule ignitionSchedules[IGN_CHANNELS];
 
 /**
  * @brief Adjust the crank angle used to originally set the schedule.
@@ -392,22 +382,7 @@ static inline void setFuelSchedule(FuelSchedule &schedule, uint16_t injAngle, ui
  */
 void moveToNextState(FuelSchedule &schedule);
 
-extern FuelSchedule fuelSchedule1;
-extern FuelSchedule fuelSchedule2;
-extern FuelSchedule fuelSchedule3;
-extern FuelSchedule fuelSchedule4;
-#if INJ_CHANNELS >= 5
-extern FuelSchedule fuelSchedule5;
-#endif
-#if INJ_CHANNELS >= 6
-extern FuelSchedule fuelSchedule6;
-#endif
-#if INJ_CHANNELS >= 7
-extern FuelSchedule fuelSchedule7;
-#endif
-#if INJ_CHANNELS >= 8
-extern FuelSchedule fuelSchedule8;
-#endif
+extern FuelSchedule fuelSchedules[INJ_CHANNELS];
 
 #include "schedule_calcs.hpp"
 

@@ -6,6 +6,7 @@
 #include "scheduledIO.h"
 #include "../test_utils.h"
 #include "storage.h"
+#include "utilities.h"
 
 void prepareForInitialiseAll(uint8_t boardId);
 
@@ -30,22 +31,9 @@ static void assert_ignition_schedules(uint16_t crankAngle, uint16_t expectedOutp
   strcpy_P(msg, PSTR("maxIgnOutputs"));
   TEST_ASSERT_EQUAL_UINT16_MESSAGE(expectedOutputs, maxIgnOutputs, msg);
 
-  assert_ignition_channel(angle[0], 0, ignitionSchedule1);
-  assert_ignition_channel(angle[1], 1, ignitionSchedule2);
-  assert_ignition_channel(angle[2], 2, ignitionSchedule3);
-  assert_ignition_channel(angle[3], 3, ignitionSchedule4);
-#if IGN_CHANNELS>=5
-  assert_ignition_channel(angle[4], 4, ignitionSchedule5);
-#endif
-#if IGN_CHANNELS>=6
-  assert_ignition_channel(angle[5], 5, ignitionSchedule6);
-#endif
-#if IGN_CHANNELS>=7
-  assert_ignition_channel(angle[6], 6, ignitionSchedule7);
-#endif
-#if IGN_CHANNELS>=8
-  assert_ignition_channel(angle[7], 7, ignitionSchedule8);
-#endif 
+  for (uint8_t index=0; index<_countof(ignitionSchedules); ++index) {
+    assert_ignition_channel(angle[index], index, ignitionSchedules[index]);
+  }
 }
 
 static void cylinder1_stroke4_seq_even(void)

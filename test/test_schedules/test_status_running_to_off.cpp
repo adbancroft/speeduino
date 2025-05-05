@@ -15,51 +15,51 @@ static void test_status_running_to_off(FuelSchedule &schedule)
     TEST_ASSERT_EQUAL(OFF, schedule._status);
 }
 
-static void test_status_running_to_off_inj1(void)
+static void test_status_running_to_off_fuel1(void)
 {
-    test_status_running_to_off(fuelSchedule1);
+    test_status_running_to_off(fuelSchedules[0]);
 }
 
-static void test_status_running_to_off_inj2(void)
+static void test_status_running_to_off_fuel2(void)
 {
-    test_status_running_to_off(fuelSchedule2);
+    test_status_running_to_off(fuelSchedules[1]);
 }
 
-static void test_status_running_to_off_inj3(void)
+static void test_status_running_to_off_fuel3(void)
 {
-    test_status_running_to_off(fuelSchedule3);
+    test_status_running_to_off(fuelSchedules[2]);
 }
 
-static void test_status_running_to_off_inj4(void)
+static void test_status_running_to_off_fuel4(void)
 {
-    test_status_running_to_off(fuelSchedule4);
+    test_status_running_to_off(fuelSchedules[3]);
 }
 
-static void test_status_running_to_off_inj5(void)
+static void test_status_running_to_off_fuel5(void)
 {
 #if INJ_CHANNELS >= 5
-    test_status_running_to_off(fuelSchedule5);
+    test_status_running_to_off(fuelSchedules[4]);
 #endif
 }
 
-static void test_status_running_to_off_inj6(void)
+static void test_status_running_to_off_fuel6(void)
 {
 #if INJ_CHANNELS >= 6
-    test_status_running_to_off(fuelSchedule6);
+    test_status_running_to_off(fuelSchedules[5]);
 #endif
 }
 
-static void test_status_running_to_off_inj7(void)
+static void test_status_running_to_off_fuel7(void)
 {
 #if INJ_CHANNELS >= 7
-    test_status_running_to_off(fuelSchedule7);
+    test_status_running_to_off(fuelSchedules[6]);
 #endif
 }
 
-static void test_status_running_to_off_inj8(void)
+static void test_status_running_to_off_fuel8(void)
 {
 #if INJ_CHANNELS >= 8
-    test_status_running_to_off(fuelSchedule8);
+    test_status_running_to_off(fuelSchedules[7]);
 #endif
 }
 
@@ -75,49 +75,49 @@ static void test_status_running_to_off(IgnitionSchedule &schedule)
 
 static void test_status_running_to_off_ign1(void)
 {
-    test_status_running_to_off(ignitionSchedule1);
+    test_status_running_to_off(ignitionSchedules[0]);
 }
 
 static void test_status_running_to_off_ign2(void)
 {
-    test_status_running_to_off(ignitionSchedule2);
+    test_status_running_to_off(ignitionSchedules[1]);
 }
 
 static void test_status_running_to_off_ign3(void)
 {
-    test_status_running_to_off(ignitionSchedule3);
+    test_status_running_to_off(ignitionSchedules[2]);
 }
 
 static void test_status_running_to_off_ign4(void)
 {
-    test_status_running_to_off(ignitionSchedule4);
+    test_status_running_to_off(ignitionSchedules[3]);
 }
 
 static void test_status_running_to_off_ign5(void)
 {
 #if IGN_CHANNELS >= 5
-    test_status_running_to_off(ignitionSchedule5);
+    test_status_running_to_off(ignitionSchedules[4]);
 #endif
 }
 
 static void test_status_running_to_off_ign6(void)
 {
 #if IGN_CHANNELS >= 6
-    test_status_running_to_off(ignitionSchedule6);
+    test_status_running_to_off(ignitionSchedules[5]);
 #endif
 }
 
 static void test_status_running_to_off_ign7(void)
 {
 #if IGN_CHANNELS >= 7
-    test_status_running_to_off(ignitionSchedule7);
+    test_status_running_to_off(ignitionSchedules[6]);
 #endif
 }
 
 static void test_status_running_to_off_ign8(void)
 {
 #if IGN_CHANNELS >= 8
-    test_status_running_to_off(ignitionSchedule8);
+    test_status_running_to_off(ignitionSchedules[7]);
 #endif
 }
 
@@ -125,14 +125,14 @@ void test_status_running_to_off(void)
 {
   SET_UNITY_FILENAME() {
 
-    RUN_TEST_P(test_status_running_to_off_inj1);
-    RUN_TEST_P(test_status_running_to_off_inj2);
-    RUN_TEST_P(test_status_running_to_off_inj3);
-    RUN_TEST_P(test_status_running_to_off_inj4);
-    RUN_TEST_P(test_status_running_to_off_inj5);
-    RUN_TEST_P(test_status_running_to_off_inj6);
-    RUN_TEST_P(test_status_running_to_off_inj7);
-    RUN_TEST_P(test_status_running_to_off_inj8);
+    RUN_TEST_P(test_status_running_to_off_fuel1);
+    RUN_TEST_P(test_status_running_to_off_fuel2);
+    RUN_TEST_P(test_status_running_to_off_fuel3);
+    RUN_TEST_P(test_status_running_to_off_fuel4);
+    RUN_TEST_P(test_status_running_to_off_fuel5);
+    RUN_TEST_P(test_status_running_to_off_fuel6);
+    RUN_TEST_P(test_status_running_to_off_fuel7);
+    RUN_TEST_P(test_status_running_to_off_fuel8);
 
     RUN_TEST_P(test_status_running_to_off_ign1);
     RUN_TEST_P(test_status_running_to_off_ign2);

@@ -546,21 +546,21 @@ void doUpdates(void)
     {
       multiplyTableLoad(&fuelTable,  fuelTable.type_key,  4);
       multiplyTableLoad(&afrTable,   afrTable.type_key,   4);
-      multiplyTableLoad(&fuelSchedule1.trimTable, fuelSchedule1.trimTable.type_key, 4);
-      multiplyTableLoad(&fuelSchedule2.trimTable, fuelSchedule2.trimTable.type_key, 4);
-      multiplyTableLoad(&fuelSchedule3.trimTable, fuelSchedule3.trimTable.type_key, 4);
-      multiplyTableLoad(&fuelSchedule4.trimTable, fuelSchedule4.trimTable.type_key, 4);
+      multiplyTableLoad(&fuelSchedules[0].trimTable, fuelSchedules[0].trimTable.type_key, 4);
+      multiplyTableLoad(&fuelSchedules[1].trimTable, fuelSchedules[1].trimTable.type_key, 4);
+      multiplyTableLoad(&fuelSchedules[2].trimTable, fuelSchedules[2].trimTable.type_key, 4);
+      multiplyTableLoad(&fuelSchedules[3].trimTable, fuelSchedules[3].trimTable.type_key, 4);
 #if INJ_CHANNELS >= 5
-      multiplyTableLoad(&fuelSchedule5.trimTable, fuelSchedule5.trimTable.type_key, 4);
+      multiplyTableLoad(&fuelSchedules[4].trimTable, fuelSchedules[4].trimTable.type_key, 4);
 #endif
 #if INJ_CHANNELS >= 5
-      multiplyTableLoad(&fuelSchedule6.trimTable, fuelSchedule6.trimTable.type_key, 4);
+      multiplyTableLoad(&fuelSchedules[5].trimTable, fuelSchedules[5].trimTable.type_key, 4);
 #endif
 #if INJ_CHANNELS >= 5
-      multiplyTableLoad(&fuelSchedule7.trimTable, fuelSchedule7.trimTable.type_key, 4);
+      multiplyTableLoad(&fuelSchedules[6].trimTable, fuelSchedules[6].trimTable.type_key, 4);
 #endif
 #if INJ_CHANNELS >= 5
-      multiplyTableLoad(&fuelSchedule8.trimTable, fuelSchedule8.trimTable.type_key, 4);
+      multiplyTableLoad(&fuelSchedules[7].trimTable, fuelSchedules[7].trimTable.type_key, 4);
 #endif
       if(configPage4.sparkMode == IGN_MODE_ROTARY)
       { 
