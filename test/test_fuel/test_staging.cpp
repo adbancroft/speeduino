@@ -21,7 +21,8 @@ void test_Staging_setCommon()
 {
   // initialiseAll();
   
-  maxInjOutputs = 2;
+  maxInjPrimaryOutputs = 2;
+  maxInjSecondaryOutputs = 2;
   configPage2.nCylinders = 4;
   currentStatus.RPM = 3000;
   currentStatus.fuelLoad = 50;

@@ -119,12 +119,14 @@ int16_t CRANK_ANGLE_MAX_IGN = 360;
 int16_t CRANK_ANGLE_MAX_INJ = 360; ///< The number of crank degrees that the system track over. 360 for wasted / timed batch and 720 for sequential
 volatile uint32_t runSecsX10;
 volatile uint32_t seclx10;
-volatile byte HWTest_INJ = 0; /**< Each bit in this variable represents one of the injector channels and it's HW test status */
-volatile byte HWTest_INJ_Pulsed = 0; /**< Each bit in this variable represents one of the injector channels and it's pulsed HW test status */
-volatile byte HWTest_IGN = 0; /**< Each bit in this variable represents one of the ignition channels and it's HW test status */
-volatile byte HWTest_IGN_Pulsed = 0; 
-byte maxIgnOutputs = 1; /**< Number of ignition outputs being used by the current tune configuration */
-byte maxInjOutputs = 1; /**< Number of injection outputs being used by the current tune configuration */
+volatile byte HWTest_INJ; /**< Each bit in this variable represents one of the injector channels and it's HW test status */
+volatile byte HWTest_INJ_Pulsed; /**< Each bit in this variable represents one of the injector channels and it's pulsed HW test status */
+volatile byte HWTest_IGN; /**< Each bit in this variable represents one of the ignition channels and it's HW test status */
+volatile byte HWTest_IGN_Pulsed; 
+uint8_t maxIgnOutputs; /**< Used for rolling rev limiter to indicate how many total ignition channels should currently be firing */
+uint8_t maxInjPrimaryOutputs;
+uint8_t maxInjSecondaryOutputs;
+
 
 //This needs to be here because using the config page directly can prevent burning the setting
 byte resetControl = RESET_CONTROL_DISABLED;
