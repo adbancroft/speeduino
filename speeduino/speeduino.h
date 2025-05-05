@@ -22,8 +22,7 @@ uint8_t getVE1(void);
 int8_t getAdvance1(void);
 uint16_t calculatePWLimit();
 void calculateStaging(uint32_t);
-void calculateIgnitionAngles(uint16_t dwellAngle);
-void checkLaunchAndFlatShift(void);
+void checkLaunchAndFlatShift();
 
 extern uint16_t req_fuel_uS; /**< The required fuel variable (As calculated by TunerStudio) in uS */
 extern uint16_t inj_opentime_uS; /**< The injector opening time. This is set within Tuner Studio, but stored here in uS rather than mS */

@@ -94,7 +94,7 @@ static inline int16_t _calculateCoilChargeAngle(uint16_t dwellAngle, int16_t dis
   return dischargeAngle + CRANK_ANGLE_MAX_IGN - (int16_t)dwellAngle;
 }
 
-static inline void calculateIgnitionAngles(IgnitionSchedule &schedule, uint16_t dwellAngle, int8_t advance)
+static inline __attribute__((always_inline)) void calculateIgnitionAngles(IgnitionSchedule &schedule, uint16_t dwellAngle, int8_t advance)
 {
   schedule.dischargeAngle = _calculateSparkAngle(schedule,  advance);
   schedule.chargeAngle = _calculateCoilChargeAngle(dwellAngle, schedule.dischargeAngle);
