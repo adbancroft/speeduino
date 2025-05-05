@@ -21,6 +21,7 @@ void test_Staging_setCommon()
 {
   // initialiseAll();
   
+  maxInjOutputs = 2;
   configPage2.nCylinders = 4;
   currentStatus.RPM = 3000;
   currentStatus.fuelLoad = 50;
@@ -44,6 +45,8 @@ void test_Staging_setCommon()
   staged_req_fuel_mult_sec = (100 * totalInjector) / configPage10.stagedInjSizeSec;
 }
 
+extern void calculateStaging(uint16_t pwLimit, uint16_t pwPrimary);
+
 void test_Staging_Off(void)
 {
   test_Staging_setCommon();
@@ -51,25 +54,20 @@ void test_Staging_Off(void)
   BIT_SET(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE);
   configPage10.stagingEnabled = false;
 
-  uint32_t pwLimit = 9000; //90% duty cycle at 6000rpm
-  calculateStaging(pwLimit);
+  calculateStaging(9000U, 0U); //90% duty cycle at 6000rpm
   TEST_ASSERT_BIT_LOW(BIT_STATUS4_STAGING_ACTIVE, currentStatus.status4);
 }
 
 void test_Staging_4cyl_Auto_Inactive(void)
 {
   test_Staging_setCommon();
-  uint16_t testPW = 3000;
 
   BIT_SET(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE);
   configPage2.injLayout = INJ_PAIRED;
   configPage10.stagingEnabled = true;
   configPage10.stagingMode = STAGING_MODE_AUTO;
-  fuelSchedules[0].pw = testPW; //Over open time but below the pwLimit set below
 
-
-  uint32_t pwLimit = 9000; //90% duty cycle at 6000rpm
-  calculateStaging(pwLimit);
+  calculateStaging(9000U, 3000U); //90% duty cycle at 6000rpm
   //PW 1 and 2 should be normal, 3 and 4 should be 0 as that testPW is below the pwLimit
   //PW1/2 should be ((PW - openTime) * staged_req_fuel_mult_pri) + openTime = ((3000 - 1000) * 3.0) + 1000 = 7000
   TEST_ASSERT_EQUAL(7000, fuelSchedules[0].pw);
@@ -82,21 +80,18 @@ void test_Staging_4cyl_Auto_Inactive(void)
 void test_Staging_4cyl_Table_Inactive(void)
 {
   test_Staging_setCommon();
-  uint16_t testPW = 3000;
 
   BIT_SET(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE);
   configPage2.injLayout = INJ_PAIRED;
   configPage10.stagingEnabled = true;
   configPage10.stagingMode = STAGING_MODE_TABLE;
-  fuelSchedules[0].pw = testPW; //Over open time but below the pwLimit set below
 
   //Load the staging table with all 0
   //For this test it doesn't matter what the X and Y axis are, as the table is all 0 values
   for(byte x=0; x<64; x++) { stagingTable.values.values[x] = 0; }
 
 
-  uint32_t pwLimit = 9000; //90% duty cycle at 6000rpm
-  calculateStaging(pwLimit);
+  calculateStaging(9000U, 3000U); //90% duty cycle at 6000rpm
   //PW 1 and 2 should be normal, 3 and 4 should be 0 as that testPW is below the pwLimit
   //PW1/2 should be (PW - openTime) * staged_req_fuel_mult_pri = (3000 - 1000) * 3.0 = 6000
   TEST_ASSERT_EQUAL(7000, fuelSchedules[0].pw);
@@ -109,17 +104,15 @@ void test_Staging_4cyl_Table_Inactive(void)
 void test_Staging_4cyl_Auto_50pct(void)
 {
   test_Staging_setCommon();
-  uint16_t testPW = 9000;
 
   BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE);
   configPage2.injLayout = INJ_PAIRED;
   configPage10.stagingEnabled = true;
   configPage10.stagingMode = STAGING_MODE_AUTO;
-  fuelSchedules[0].pw = testPW; //Over open time but below the pwLimit set below
 
 
   uint32_t pwLimit = 9000; //90% duty cycle at 6000rpm
-  calculateStaging(pwLimit);
+  calculateStaging(pwLimit, 9000U); //90% duty cycle at 6000rpm
   //PW 1 and 2 should be maxed out at the pwLimit, 3 and 4 should be based on their relative size
   TEST_ASSERT_EQUAL(pwLimit, fuelSchedules[0].pw); //PW1/2 run at maximum available limit
   TEST_ASSERT_EQUAL(pwLimit, fuelSchedules[1].pw);
@@ -131,17 +124,14 @@ void test_Staging_4cyl_Auto_50pct(void)
 void test_Staging_4cyl_Auto_33pct(void)
 {
   test_Staging_setCommon();
-  uint16_t testPW = 7000;
 
   BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE);
   configPage2.injLayout = INJ_PAIRED;
   configPage10.stagingEnabled = true;
   configPage10.stagingMode = STAGING_MODE_AUTO;
-  fuelSchedules[0].pw = testPW; //Over open time but below the pwLimit set below
-
 
   uint32_t pwLimit = 9000; //90% duty cycle at 6000rpm
-  calculateStaging(pwLimit);
+  calculateStaging(9000U, 7000U); //90% duty cycle at 6000rpm
   //PW 1 and 2 should be maxed out at the pwLimit, 3 and 4 should be based on their relative size
   TEST_ASSERT_EQUAL(pwLimit, fuelSchedules[0].pw); //PW1/2 run at maximum available limit
   TEST_ASSERT_EQUAL(pwLimit, fuelSchedules[1].pw);
@@ -153,25 +143,20 @@ void test_Staging_4cyl_Auto_33pct(void)
 void test_Staging_4cyl_Table_50pct(void)
 {
   test_Staging_setCommon();
-  uint16_t testPW = 3000;
 
   BIT_CLEAR(currentStatus.status4, BIT_STATUS4_STAGING_ACTIVE);
   configPage2.injLayout = INJ_PAIRED;
   configPage10.stagingEnabled = true;
   configPage10.stagingMode = STAGING_MODE_TABLE;
-  fuelSchedules[0].pw = testPW; //Over open time but below the pwLimit set below
-
   //Load the staging table with all 0
   //For this test it doesn't matter what the X and Y axis are, as the table is all 50 values
   for(byte x=0; x<64; x++) { stagingTable.values.values[x] = 50; }
 
-
-  uint32_t pwLimit = 9000; //90% duty cycle at 6000rpm
   //Need to change the lookup values so we don't get a cached value
   currentStatus.RPM += 1;
   currentStatus.fuelLoad += 1;
 
-  calculateStaging(pwLimit);
+  calculateStaging(9000U, 3000U); //90% duty cycle at 6000rpm
 
   TEST_ASSERT_EQUAL(4000, fuelSchedules[0].pw);
   TEST_ASSERT_EQUAL(4000, fuelSchedules[1].pw);
