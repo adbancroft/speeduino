@@ -144,6 +144,22 @@ static inline __attribute__((always_inline, flatten)) void setFuelSchedules(uint
   static_for<0U, _countof(fuelSchedules)>::repeat_n(masterSetFuelSchedule, injAngle, crankAngle, &calcCache);
 }
 
+// FixedCrankingOverride is used to extend the dwell during cranking so that the decoder can trigger the spark upon seeing a certain tooth. Currently only available on the basic distributor and 4g63 decoders.
+inline uint16_t __attribute__((always_inline)) computeFixedCrankingOverride(void) {
+  if ( isFixedCrankLock() )
+  {
+    //This is a safety step to prevent the ignition start time occurring AFTER the target tooth pulse has already occurred. It simply moves the start time forward a little, which is compensated for by the increase in the dwell time
+    if(currentStatus.RPM < 250U)
+    {
+      for (uint8_t index=0U; index<maxIgnOutputs; ++index) {
+        ignitionSchedules[index].chargeAngle -= 5;
+      }
+    }
+    return currentStatus.dwell * 3;
+  }
+  return 0U;
+}
+
 /** Speeduino main loop.
  * 
  * Main loop chores (roughly in the order that they are performed):
@@ -736,24 +752,9 @@ void __attribute__((always_inline, hot)) loop(void)
       //***********************************************************************************************
       //| BEGIN IGNITION SCHEDULES
       //Same as above, except for ignition
-
-      //fixedCrankingOverride is used to extend the dwell during cranking so that the decoder can trigger the spark upon seeing a certain tooth. Currently only available on the basic distributor and 4g63 decoders.
-      if ( configPage4.ignCranklock && BIT_CHECK(currentStatus.engine, BIT_ENGINE_CRANK) && (BIT_CHECK(decoderState, BIT_DECODER_HAS_FIXED_CRANKING)) )
+      if(ignitionChannelsOn)
       {
-        fixedCrankingOverride = currentStatus.dwell * 3U;
-        //This is a safety step to prevent the ignition start time occurring AFTER the target tooth pulse has already occurred. It simply moves the start time forward a little, which is compensated for by the increase in the dwell time
-        if(currentStatus.RPM < 250U)
-        {
-          for (uint8_t index=0U; index<maxIgnOutputs; ++index) {
-            ignitionSchedules[index].chargeAngle -= 5;
-          }
-        }
-      }
-      else { fixedCrankingOverride = 0; }
-
-      if(ignitionChannelsOn != 0U)
-      {
-        setIgnitionSchedules(ignitionLimits(getCrankAngle()), currentStatus.dwell + fixedCrankingOverride);
+        setIgnitionSchedules(ignitionLimits(getCrankAngle()), currentStatus.dwell + computeFixedCrankingOverride());
       } //Ignition schedules on
 
       if ( (!BIT_CHECK(currentStatus.status3, BIT_STATUS3_RESET_PREVENT)) && (resetControl == RESET_CONTROL_PREVENT_WHEN_RUNNING) ) 

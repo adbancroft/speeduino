@@ -467,7 +467,7 @@ If it's the correct tooth, but the schedule is not yet started, calculate and an
 */
 static inline __attribute__((flatten, always_inline)) void checkPerToothTiming(int16_t crankAngle, uint16_t currentTooth, uint8_t maxChannels)
 {
-  if ( likely(fixedCrankingOverride == 0) && likely(currentStatus.RPM > 0) )
+  if ( likely(isFixedCrankLock()==false) && likely(currentStatus.RPM > 0) )
   {
     uint8_t index = 0;
     while ((index<maxChannels) && (currentTooth != ignitionEndTeeth[index]))
