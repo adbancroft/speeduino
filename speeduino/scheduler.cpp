@@ -31,6 +31,7 @@ A full copy of the license may be found in the projects root directory
 #include "schedule_state_machine.h"
 #include "unit_testing.h"
 #include "speeduino.h"
+#include "utilities.h"
 
 // cppcheck-suppress misra-c2012-9.3
 FuelSchedule fuelSchedules[INJ_CHANNELS] = {
@@ -94,6 +95,7 @@ Schedule::Schedule(counter_t &_counter, compare_t &_compare)
   , _compare(_compare) 
 {
 }
+
 TESTABLE_INLINE_STATIC void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, voidVoidCallback pEndCallback)
 {
   schedule._pStartCallback = pStartCallback;
@@ -122,42 +124,16 @@ static inline void reset(IgnitionSchedule &schedule)
 
 void resetFuelSchedulers(void)
 {
-  reset(fuelSchedules[0]);
-  reset(fuelSchedules[1]);
-  reset(fuelSchedules[2]);
-  reset(fuelSchedules[3]);
-#if INJ_CHANNELS >= 5
-  reset(fuelSchedules[4]);
-#endif
-#if INJ_CHANNELS >= 6
-  reset(fuelSchedules[5]);
-#endif
-#if INJ_CHANNELS >= 7
-  reset(fuelSchedules[6]);
-#endif
-#if INJ_CHANNELS >= 8
-  reset(fuelSchedules[7]);
-#endif
+  for (uint8_t index=0U; index<_countof(fuelSchedules); ++index) {
+    reset(fuelSchedules[index]);
+  }
 }
 
 void resetIgnitionSchedulers(void)
 {
-  reset(ignitionSchedules[0]);
-  reset(ignitionSchedules[1]);
-  reset(ignitionSchedules[2]);
-  reset(ignitionSchedules[3]);
-#if (IGN_CHANNELS >= 5)
-  reset(ignitionSchedules[4]);
-#endif
-#if IGN_CHANNELS >= 6
-  reset(ignitionSchedules[5]);
-#endif
-#if IGN_CHANNELS >= 7
-  reset(ignitionSchedules[6]);
-#endif
-#if IGN_CHANNELS >= 8
-  reset(ignitionSchedules[7]);
-#endif
+  for (uint8_t index=0U; index<_countof(ignitionSchedules); ++index) {
+    reset(ignitionSchedules[index]);
+  }
 }
 
 void startFuelSchedulers(void)
@@ -1065,28 +1041,9 @@ void beginInjectorPriming(void)
   if( (primingValue > UINT32_C(0)) && (currentStatus.TPS <= configPage4.floodClear) )
   {
     primingValue = primingValue * 100U * 5U; //to achieve long enough priming pulses, the values in tuner studio are divided by 0.5 instead of 0.1, so multiplier of 5 is required.
-    if ( maxInjOutputs >= 1U ) { _setFuelScheduleDuration(fuelSchedules[0], 100U, primingValue); }
-#if (INJ_CHANNELS >= 2)
-    if ( maxInjOutputs >= 2U ) { _setFuelScheduleDuration(fuelSchedules[1], 100U, primingValue); }
-#endif
-#if (INJ_CHANNELS >= 3)
-    if ( maxInjOutputs >= 3U ) { _setFuelScheduleDuration(fuelSchedules[2], 100U, primingValue); }
-#endif
-#if (INJ_CHANNELS >= 4)
-    if ( maxInjOutputs >= 4U ) { _setFuelScheduleDuration(fuelSchedules[3], 100U, primingValue); }
-#endif
-#if (INJ_CHANNELS >= 5)
-    if ( maxInjOutputs >= 5U ) { _setFuelScheduleDuration(fuelSchedules[4], 100U, primingValue); }
-#endif
-#if (INJ_CHANNELS >= 6)
-    if ( maxInjOutputs >= 6U ) { _setFuelScheduleDuration(fuelSchedules[5], 100U, primingValue); }
-#endif
-#if (INJ_CHANNELS >= 7)
-    if ( maxInjOutputs >= 7U ) { _setFuelScheduleDuration(fuelSchedules[6], 100U, primingValue); }
-#endif
-#if (INJ_CHANNELS >= 8)
-    if ( maxInjOutputs >= 8U ) { _setFuelScheduleDuration(fuelSchedules[7], 100U, primingValue); }
-#endif
+    for (uint8_t index=0U; index<maxInjOutputs; ++index) {
+      _setFuelScheduleDuration(fuelSchedules[index], 100U, primingValue); 
+    }
   }
 }
 
@@ -1157,21 +1114,6 @@ void moveToNextState(IgnitionSchedule &schedule)
 
 ///@}
 
-static void disableScheduleIfPending(Schedule &schedule) {
-  ATOMIC() {
-    if(schedule._status != RUNNING) { schedule._status = OFF; }  
-  }
-}
-
-void disablePendingFuelSchedule(uint8_t channel)
-{
-  disableScheduleIfPending(fuelSchedules[channel]);
-}
-
-void disablePendingIgnSchedule(uint8_t channel)
-{
-  disableScheduleIfPending(ignitionSchedules[channel]);
-}
 
 TESTABLE_INLINE_STATIC void applyChannelOverDwellProtection(IgnitionSchedule &schedule, uint32_t targetOverdwellTime) {
   //Check first whether each spark output is currently on. Only check it's dwell time if it is
@@ -1192,75 +1134,28 @@ void applyOverDwellProtection(void)
   if (likely(isOverDwellActive(configPage4, currentStatus))) {
     uint32_t targetOverdwellTime = micros() - (configPage4.dwellLimit * 1000U); //Convert to uS
 
-    applyChannelOverDwellProtection(ignitionSchedules[0], targetOverdwellTime);
-#if IGN_CHANNELS >= 2
-    applyChannelOverDwellProtection(ignitionSchedules[1], targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 3
-    applyChannelOverDwellProtection(ignitionSchedules[2], targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 4
-    applyChannelOverDwellProtection(ignitionSchedules[3], targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 5
-    applyChannelOverDwellProtection(ignitionSchedules[4], targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 6
-    applyChannelOverDwellProtection(ignitionSchedules[5], targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 7
-    applyChannelOverDwellProtection(ignitionSchedules[6], targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 8
-    applyChannelOverDwellProtection(ignitionSchedules[7], targetOverdwellTime);
-#endif
+    for (uint8_t index=0U; index<_countof(ignitionSchedules); ++index) {
+      applyChannelOverDwellProtection(ignitionSchedules[index], targetOverdwellTime);
+    }
   }
 }
 
 static inline bool isAnyFuelScheduleRunning(void) {
-  return isRunning(fuelSchedules[0])
-      || isRunning(fuelSchedules[1])
-      || isRunning(fuelSchedules[2])
-      || isRunning(fuelSchedules[3])
-#if INJ_CHANNELS >= 5      
-      || isRunning(fuelSchedules[4])
-#endif
-#if INJ_CHANNELS >= 6
-      || isRunning(fuelSchedules[5])
-#endif
-#if INJ_CHANNELS >= 7
-      || isRunning(fuelSchedules[6])
-#endif
-#if INJ_CHANNELS >= 8
-      || isRunning(fuelSchedules[7])
-#endif
-      ;
+  uint8_t index=0U;
+  while (index<_countof(fuelSchedules) && !isRunning(fuelSchedules[index])) {
+    ++index;
+  }
+   
+  return index<_countof(fuelSchedules);
 }
 
 static inline bool isAnyIgnScheduleRunning(void) {
-  return isRunning(ignitionSchedules[0])      
-#if IGN_CHANNELS >= 2 
-      || isRunning(ignitionSchedules[1])
-#endif      
-#if IGN_CHANNELS >= 3 
-      || isRunning(ignitionSchedules[2])
-#endif      
-#if IGN_CHANNELS >= 4       
-      || isRunning(ignitionSchedules[3])
-#endif      
-#if IGN_CHANNELS >= 5      
-      || isRunning(ignitionSchedules[4])
-#endif
-#if IGN_CHANNELS >= 6
-      || isRunning(ignitionSchedules[5])
-#endif
-#if IGN_CHANNELS >= 7
-      || isRunning(ignitionSchedules[6])
-#endif
-#if IGN_CHANNELS >= 8
-      || isRunning(ignitionSchedules[7])
-#endif
-      ;
+  uint8_t index=0U;
+  while (index<_countof(ignitionSchedules) && !isRunning(ignitionSchedules[index])) {
+    ++index;
+  }
+   
+  return index<_countof(ignitionSchedules);
 }
 
 /** Change injectors or/and ignition angles to 720deg.

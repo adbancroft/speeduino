@@ -77,9 +77,6 @@ void initialiseIgnitionSchedulers(void);
 /** @brief Start fuel system  priming the fuel */
 void beginInjectorPriming(void);
 
-void disablePendingFuelSchedule(uint8_t channel);
-void disablePendingIgnSchedule(uint8_t channel);
-
 /** @brief ???? */
 void changeHalfToFullSync(void);
 
@@ -218,6 +215,17 @@ static inline  __attribute__((always_inline)) void _setSchedule(Schedule &schedu
 }
 
 /// @endcond
+
+/**
+ * @brief Turn schedule off if it's not running
+ * 
+ * @param schedule Schedule to turn off.
+ */
+static inline void disableScheduleIfPending(Schedule &schedule) {
+  ATOMIC() {
+    if(!isRunning(schedule)) { schedule._status = OFF; }  
+  }
+}
 
 /** @brief An ignition schedule.
  *
