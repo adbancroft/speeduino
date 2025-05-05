@@ -6,7 +6,8 @@
 
 #include "test_corrections.h"
 #include "test_PW.h"
-#include "test_staging.h"
+
+extern void testStaging(void);
 
 #define UNITY_EXCLUDE_DETAILS
 

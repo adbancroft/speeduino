@@ -153,6 +153,8 @@ void test_PW_4Cyl_PW0(void)
   TEST_ASSERT_EQUAL(0, fuelSchedules[3].pw);
 }
 
+extern uint16_t calculatePWLimit(void);
+
 //Tests the PW Limit calculation for a normal scenario
 void test_PW_Limit_90pct(void)
 {

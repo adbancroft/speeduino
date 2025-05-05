@@ -15,11 +15,6 @@
 
 #define CRANK_RUN_HYSTER    15U
 
-void setup(void);
-void loop(void);
-uint8_t getVE1(void);
-int8_t getAdvance1(void);
-uint16_t calculatePWLimit();
 void checkLaunchAndFlatShift();
 
 extern uint16_t req_fuel_uS; /**< The required fuel variable (As calculated by TunerStudio) in uS */
@@ -41,6 +36,10 @@ extern uint16_t staged_req_fuel_mult_pri;
 extern uint16_t staged_req_fuel_mult_sec;
 ///@}
 
-
+// Has to be declared here to allow the ino to cpp mangling to work
+struct pulseWidths {
+    uint16_t primary;
+    uint16_t secondary;
+};
 
 #endif
