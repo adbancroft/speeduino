@@ -870,10 +870,10 @@ static void run_oddfire_tests()
   configPage2.injTiming = true;
   configPage2.reqFuel = reqFuel;
   configPage10.stagingEnabled = false;
-  configPage2.oddfire2 = 13;
-  configPage2.oddfire3 = 111;
-  configPage2.oddfire4 = 217;
-
+  configPage2.oddfire[0] = 13;
+  configPage2.oddfire[1] = 111;
+  configPage2.oddfire[2] = 217;
+  
   // Oddfire only affects 2 cylinder configurations
   configPage2.nCylinders = 1;
   configPage2.divider = 1;
