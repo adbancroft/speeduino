@@ -22,7 +22,7 @@ static void assert_ignition_channel(uint16_t angle, uint8_t channel, const Ignit
   TEST_ASSERT_TRUE_MESSAGE(channel>=maxIgnOutputs || (schedule._pEndCallback!=nullCallback), msg);
 }
 
-static void assert_ignition_schedules(uint16_t crankAngle, uint16_t expectedOutputs, const uint16_t angle[])
+static void assert_ignition_schedules(uint16_t crankAngle, uint16_t expectedOutputs, const uint16_t angle[], uint8_t expectedIgnitionMode)
 {
   char msg[48];
 
@@ -30,6 +30,8 @@ static void assert_ignition_schedules(uint16_t crankAngle, uint16_t expectedOutp
   TEST_ASSERT_EQUAL_INT16_MESSAGE(crankAngle, CRANK_ANGLE_MAX_IGN, msg);
   strcpy_P(msg, PSTR("maxIgnOutputs"));
   TEST_ASSERT_EQUAL_UINT16_MESSAGE(expectedOutputs, maxIgnOutputs, msg);
+  strcpy_P(msg, PSTR("ignitionMode"));
+  TEST_ASSERT_EQUAL_INT16_MESSAGE(expectedIgnitionMode, configPage4.sparkMode, msg);
 
   for (uint8_t index=0; index<_countof(ignitionSchedules); ++index) {
     assert_ignition_channel(angle[index], index, ignitionSchedules[index]);
@@ -42,7 +44,7 @@ static void cylinder1_stroke4_seq_even(void)
   configPage2.engineType = EVEN_FIRE;
   initialiseAll(); //Run the main initialise function
   const uint16_t angle[] = {0,0,0,0,0,0,0,0};
-  assert_ignition_schedules(720U, 1U, angle);
+  assert_ignition_schedules(720U, 1U, angle, IGN_MODE_SEQUENTIAL);
 }
 
 static void cylinder1_stroke4_wasted_even(void)
@@ -51,7 +53,7 @@ static void cylinder1_stroke4_wasted_even(void)
   configPage2.engineType = EVEN_FIRE;
   initialiseAll(); //Run the main initialise function
   const uint16_t angle[] = {0,0,0,0,0,0,0,0};
-  assert_ignition_schedules(360U, 1U, angle);
+  assert_ignition_schedules(360U, 1U, angle, IGN_MODE_WASTED);
 }  
 
 static void cylinder1_stroke4_seq_odd(void)
@@ -60,7 +62,7 @@ static void cylinder1_stroke4_seq_odd(void)
   configPage2.engineType = ODD_FIRE;
   initialiseAll(); //Run the main initialise function
   const uint16_t angle[] = {0,0,0,0,0,0,0,0};
-  assert_ignition_schedules(720U, 1U, angle);
+  assert_ignition_schedules(720U, 1U, angle, IGN_MODE_SEQUENTIAL);
 }
 
 static void run_1_cylinder_4stroke_tests(void)
@@ -80,7 +82,7 @@ static void cylinder2_stroke4_seq_even(void)
   configPage2.engineType = EVEN_FIRE;
   initialiseAll(); //Run the main initialise function
   const uint16_t angle[] = {0,180,0,0,0,0,0,0};
-  assert_ignition_schedules(720U, 2U, angle);
+  assert_ignition_schedules(720U, 2U, angle, IGN_MODE_SEQUENTIAL);
 }
 
 static void cylinder2_stroke4_wasted_even(void)
@@ -89,7 +91,7 @@ static void cylinder2_stroke4_wasted_even(void)
   configPage2.engineType = EVEN_FIRE;
   initialiseAll(); //Run the main initialise function
   const uint16_t angle[] = {0,180,0,0,0,0,0,0};
-  assert_ignition_schedules(360U, 2U, angle);
+  assert_ignition_schedules(360U, 2U, angle, IGN_MODE_WASTED);
 }  
 
 static void cylinder2_stroke4_seq_odd(void)
@@ -102,7 +104,7 @@ static void cylinder2_stroke4_seq_odd(void)
 
   initialiseAll(); //Run the main initialise function
   const uint16_t angle[] = {0,13,0,0,0,0,0,0};
-  assert_ignition_schedules(720U, 2U, angle);
+  assert_ignition_schedules(720U, 2U, angle, IGN_MODE_SEQUENTIAL);
 }
 
 static void run_2_cylinder_4stroke_tests(void)
@@ -122,7 +124,7 @@ static void cylinder3_stroke4_seq_even(void)
   configPage2.engineType = EVEN_FIRE;
   initialiseAll(); //Run the main initialise function
   const uint16_t angle[] = {0,240,480,0,0,0,0,0};
-  assert_ignition_schedules(720U, 3U, angle);
+  assert_ignition_schedules(720U, 3U, angle, IGN_MODE_SEQUENTIAL);
 }
 
 static void cylinder3_stroke4_wasted_even(void)
@@ -131,7 +133,7 @@ static void cylinder3_stroke4_wasted_even(void)
   configPage2.engineType = EVEN_FIRE;
   initialiseAll(); //Run the main initialise function
   const uint16_t angle[] = {0,120,240,0,0,0,0,0};
-  assert_ignition_schedules(360U, 3U, angle);
+  assert_ignition_schedules(360U, 3U, angle, IGN_MODE_WASTED);
 }  
 
 static void cylinder3_stroke4_wasted_odd(void)
@@ -143,7 +145,7 @@ static void cylinder3_stroke4_wasted_odd(void)
   configPage2.oddfire[2] = 217;
   initialiseAll(); //Run the main initialise function
   const uint16_t angle[] = {0,13,111,0,0,0,0,0};
-  assert_ignition_schedules(360U, 3U, angle);
+  assert_ignition_schedules(360U, 3U, angle, IGN_MODE_WASTED);
 }  
 
 static void run_3_cylinder_4stroke_tests(void)
@@ -160,7 +162,7 @@ static void run_3_cylinder_4stroke_tests(void)
 static void assert_cylinder4_stroke4_seq_even(void)
 {
   const uint16_t angle[] = {0,180,360,540,0,0,0,0};
-  assert_ignition_schedules(720U, 4U, angle);
+  assert_ignition_schedules(720U, 4U, angle, IGN_MODE_SEQUENTIAL);
 }
 
 static void cylinder4_stroke4_seq_even(void)
@@ -177,7 +179,7 @@ static void cylinder4_stroke4_wasted_even(void)
   configPage2.engineType = EVEN_FIRE;
   initialiseAll(); //Run the main initialise function
   const uint16_t angle[] = {0,180,0,0,0,0,0,0};
-  assert_ignition_schedules(360U, 2U, angle);
+  assert_ignition_schedules(360U, 2U, angle, IGN_MODE_WASTED);
 }  
 
 static void cylinder4_stroke4_seq_odd(void)
@@ -189,7 +191,7 @@ static void cylinder4_stroke4_seq_odd(void)
   configPage2.oddfire[2] = 217;
   initialiseAll(); //Run the main initialise function
   const uint16_t angle[] = {0,13,111,217,0,0,0,0};
-  assert_ignition_schedules(360U, 4U, angle);
+  assert_ignition_schedules(360U, 4U, angle, IGN_MODE_WASTED);
 }
 
 
@@ -210,7 +212,7 @@ static void cylinder5_stroke4_seq_even(void)
   configPage2.engineType = EVEN_FIRE;
   initialiseAll(); //Run the main initialise function
   const uint16_t angle[] = {0,144,288,432,576,0,0,0};
-  assert_ignition_schedules(720U, 5U, angle);
+  assert_ignition_schedules(720U, 5U, angle, IGN_MODE_SEQUENTIAL);
 }
 
 static void cylinder5_stroke4_wasted_even(void)
@@ -219,7 +221,7 @@ static void cylinder5_stroke4_wasted_even(void)
   configPage2.engineType = EVEN_FIRE;
   initialiseAll(); //Run the main initialise function
   const uint16_t angle[] = {0,72,144,216,288,0,0,0};
-  assert_ignition_schedules(360U, 5U, angle);
+  assert_ignition_schedules(360U, 5U, angle, IGN_MODE_WASTED);
 }  
 
 static void run_5_cylinder_4stroke_tests(void)
@@ -239,10 +241,10 @@ static void cylinder6_stroke4_seq_even(void)
   initialiseAll(); //Run the main initialise function
 #if IGN_CHANNELS >= 6
   const uint16_t angle[] = {0,120,240,360,480,600,0,0};
-  assert_ignition_schedules(720U, 6U, angle);
+  assert_ignition_schedules(720U, 6U, angle, IGN_MODE_SEQUENTIAL);
 #else
   const uint16_t angle[] = {0,120,240,0,0,0,0,0};
-  assert_ignition_schedules(360U, 3U, angle);
+  assert_ignition_schedules(360U, 3U, angle, IGN_MODE_WASTED);
 #endif
 }
 
@@ -252,7 +254,7 @@ static void cylinder6_stroke4_wasted_even(void)
   configPage2.engineType = EVEN_FIRE;
   initialiseAll(); //Run the main initialise function
   const uint16_t angle[] = {0,120,240,0,0,0,0,0};
-  assert_ignition_schedules(360U, 3U, angle);
+  assert_ignition_schedules(360U, 3U, angle, IGN_MODE_WASTED);
 } 
 
 static void run_6_cylinder_4stroke_tests(void)
@@ -273,10 +275,10 @@ static void cylinder8_stroke4_seq_even(void)
   initialiseAll(); //Run the main initialise function
 #if IGN_CHANNELS >= 8
   const uint16_t angle[] = {0,90,180,270,360,450,540,630};
-  assert_ignition_schedules(720U, 8U, angle);
+  assert_ignition_schedules(720U, 8U, angle, IGN_MODE_SEQUENTIAL);
 #else
   const uint16_t angle[] = {0,90,180,270,0,0,0,0};
-  assert_ignition_schedules(360U, 4U, angle);
+  assert_ignition_schedules(360U, 4U, angle, IGN_MODE_WASTED);
 #endif
 }
 
@@ -286,7 +288,7 @@ static void cylinder8_stroke4_wasted_even(void)
   configPage2.engineType = EVEN_FIRE;
   initialiseAll(); //Run the main initialise function
   const uint16_t angle[] = {0,90,180,270,0,0,0,0};
-  assert_ignition_schedules(360U, 4U, angle);
+  assert_ignition_schedules(360U, 4U, angle, IGN_MODE_WASTED);
 }  
 
 static void run_8_cylinder_4stroke_tests(void)
@@ -315,7 +317,7 @@ static void test_partial_sync(void)
   changeFullToHalfSync();
   {
     const uint16_t angle[] = {0,180,360,540,0,0,0,0};
-    assert_ignition_schedules(360U, 2U, angle);
+    assert_ignition_schedules(360U, 2U, angle, IGN_MODE_SEQUENTIAL);
   }
 
   changeHalfToFullSync();

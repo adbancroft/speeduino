@@ -18,16 +18,16 @@ using byte = uint8_t;
 #define EGO_TYPE_NARROW   1
 #define EGO_TYPE_WIDE     2
 
-#define INJ_TYPE_PORT 0
-#define INJ_TYPE_TBODY 1
+#define INJ_TYPE_PORT 0U
+#define INJ_TYPE_TBODY 1U
 
-#define INJ_PAIRED 0
-#define INJ_SEMISEQUENTIAL 1
-#define INJ_BANKED          2
-#define INJ_SEQUENTIAL      3
+#define INJ_PAIRED 0U
+#define INJ_SEMISEQUENTIAL 1U
+#define INJ_BANKED          2U
+#define INJ_SEQUENTIAL      3U
 
-#define INJ_PAIR_13_24      0
-#define INJ_PAIR_14_23      1
+#define INJ_PAIR_13_24      0U
+#define INJ_PAIR_14_23      1U
 
 #define IGN_MODE_WASTED     0U
 #define IGN_MODE_SINGLE     1U
@@ -41,9 +41,9 @@ using byte = uint8_t;
 #define SEC_TRIGGER_5_3_2   3
 #define SEC_TRIGGER_TOYOTA_3  4
 
-#define ROTARY_IGN_FC       0
-#define ROTARY_IGN_FD       1
-#define ROTARY_IGN_RX8      2
+#define ROTARY_IGN_FC       0U
+#define ROTARY_IGN_FD       1U
+#define ROTARY_IGN_RX8      2U
 
 #define BOOST_MODE_SIMPLE   0
 #define BOOST_MODE_FULL     1
@@ -59,94 +59,8 @@ using byte = uint8_t;
 #define HARD_CUT_FULL       0
 #define HARD_CUT_ROLLING    1
 
-#define EVEN_FIRE           0
-#define ODD_FIRE            1
-
-#define EGO_ALGORITHM_SIMPLE   0U
-#define EGO_ALGORITHM_INVALID1 1U
-#define EGO_ALGORITHM_PID      2U
-#define EGO_ALGORITHM_NONE     3U
-
-#define STAGING_MODE_TABLE  0
-#define STAGING_MODE_AUTO   1
-
-#define NITROUS_OFF         0
-#define NITROUS_STAGE1      1
-#define NITROUS_STAGE2      2
-#define NITROUS_BOTH        3
-
-#define PROTECT_CUT_OFF     0
-#define PROTECT_CUT_IGN     1
-#define PROTECT_CUT_FUEL    2
-#define PROTECT_CUT_BOTH    3
-#define PROTECT_IO_ERROR    7
-
-#define AE_MODE_TPS         0
-#define AE_MODE_MAP         1
-
-#define AE_MODE_MULTIPLIER  0
-#define AE_MODE_ADDER       1
-
-#define KNOCK_MODE_OFF      0U
-#define KNOCK_MODE_DIGITAL  1U
-#define KNOCK_MODE_ANALOG   2U
-
-#define KNOCK_TRIGGER_HIGH  0
-#define KNOCK_TRIGGER_LOW   1
-
-#define FUEL2_MODE_OFF      0U
-#define FUEL2_MODE_MULTIPLY 1U
-#define FUEL2_MODE_ADD      2U
-#define FUEL2_MODE_CONDITIONAL_SWITCH   3U
-#define FUEL2_MODE_INPUT_SWITCH 4U
-
-#define SPARK2_MODE_OFF      0U
-#define SPARK2_MODE_MULTIPLY 1U
-#define SPARK2_MODE_ADD      2U
-#define SPARK2_MODE_CONDITIONAL_SWITCH   3U
-#define SPARK2_MODE_INPUT_SWITCH 4U
-
-#define FUEL2_CONDITION_RPM 0U
-#define FUEL2_CONDITION_MAP 1U
-#define FUEL2_CONDITION_TPS 2U
-#define FUEL2_CONDITION_ETH 3U
-
-#define SPARK2_CONDITION_RPM 0U
-#define SPARK2_CONDITION_MAP 1U
-#define SPARK2_CONDITION_TPS 2U
-#define SPARK2_CONDITION_ETH 3U
-
-#define RESET_CONTROL_DISABLED             0U
-#define RESET_CONTROL_PREVENT_WHEN_RUNNING 1U
-#define RESET_CONTROL_PREVENT_ALWAYS       2U
-#define RESET_CONTROL_SERIAL_COMMAND       3U
-
-#define SEC_TRIGGER_SINGLE  0
-#define SEC_TRIGGER_4_1     1
-#define SEC_TRIGGER_POLL    2
-#define SEC_TRIGGER_5_3_2   3
-#define SEC_TRIGGER_TOYOTA_3  4
-
-#define ROTARY_IGN_FC       0
-#define ROTARY_IGN_FD       1
-#define ROTARY_IGN_RX8      2
-
-#define BOOST_MODE_SIMPLE   0
-#define BOOST_MODE_FULL     1
-
-#define EN_BOOST_CONTROL_BARO   0
-#define EN_BOOST_CONTROL_FIXED  1
-
-#define WMI_MODE_SIMPLE       0
-#define WMI_MODE_PROPORTIONAL 1
-#define WMI_MODE_OPENLOOP     2
-#define WMI_MODE_CLOSEDLOOP   3
-
-#define HARD_CUT_FULL       0
-#define HARD_CUT_ROLLING    1
-
-#define EVEN_FIRE           0
-#define ODD_FIRE            1
+#define EVEN_FIRE           0U
+#define ODD_FIRE            1U
 
 #define EGO_ALGORITHM_SIMPLE   0U
 #define EGO_ALGORITHM_INVALID1 1U
@@ -226,11 +140,11 @@ using byte = uint8_t;
 #define FOUR_STROKE         0U
 #define TWO_STROKE          1U
 
-#define GOING_LOW         0
-#define GOING_HIGH        1
+#define GOING_LOW         0U
+#define GOING_HIGH        1U
 
-#define BATTV_COR_MODE_WHOLE 0
-#define BATTV_COR_MODE_OPENTIME 1
+#define BATTV_COR_MODE_WHOLE 0U
+#define BATTV_COR_MODE_OPENTIME 1U
 
 enum MAPSamplingMethod {
   MAPSamplingInstantaneous = 0, 
@@ -238,6 +152,9 @@ enum MAPSamplingMethod {
   MAPSamplingCycleMinimum = 2,
   MAPSamplingIgnitionEventAverage= 3,
 };
+
+#define INJ_TIMING_SIMULTANEOUS 0U
+#define INJ_TIMING_ALTERNATING 1U
 
 /** Page 2 of the config - mostly variables that are required for fuel.
  * These are "non-live" EFI setting, engine and "system" variables that remain fixed once sent
