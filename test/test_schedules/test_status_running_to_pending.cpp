@@ -9,8 +9,12 @@
 
 static void test_status_running_to_pending(FuelSchedule &schedule)
 {
+    extern void resetFuelSchedulers(void); 
     resetFuelSchedulers();
+    TEST_ASSERT_EQUAL(OFF, schedule._status);
     _setFuelScheduleDuration(schedule, TIMEOUT, DURATION);
+    extern void startFuelSchedulers(void); 
+    startFuelSchedulers();    
     while(schedule._status == PENDING) /*Wait*/ ;
     _setFuelScheduleDuration(schedule, 2*TIMEOUT, DURATION);
     while(isRunning(schedule)) /*Wait*/ ;
@@ -67,10 +71,12 @@ static void test_status_running_to_pending_fuel8(void)
 
 static void test_status_running_to_pending(IgnitionSchedule &schedule)
 {
-    resetIgnitionSchedulers();  
+    extern void resetIgnitionSchedulers(void); 
+    resetIgnitionSchedulers();
+    TEST_ASSERT_EQUAL(OFF, schedule._status);
     _setIgnitionScheduleDuration(schedule, TIMEOUT, DURATION);
-    while(schedule._status == PENDING) /*Wait*/ ;
-    _setIgnitionScheduleDuration(schedule, 2*TIMEOUT, DURATION);
+    extern void startIgnitionSchedulers(void); 
+    startIgnitionSchedulers();    
     while(isRunning(schedule)) /*Wait*/ ;
     TEST_ASSERT_EQUAL(PENDING, schedule._status);
 }

@@ -106,7 +106,6 @@ IGNITION_INTERRUPT(7, TIMER3_COMPC_vect)
 IGNITION_INTERRUPT(8, TIMER3_COMPB_vect)
 #endif
 
-
 void initBoard(void)
 {
     /*
@@ -172,6 +171,7 @@ void initBoard(void)
     #if defined(TIMER5_MICROS)
       TIMSK5 |= (1 << TOIE5); //Enable the timer5 overflow interrupt (See timers.ino for ISR)
       TIMSK0 &= ~_BV(TOIE0); // disable timer0 overflow interrupt
+      timer5_overflow_count = 0;
     #endif
 
     //The remaining Schedules (Fuel schedule 4 and ignition schedules 4 and 5) use Timer4

@@ -17,10 +17,13 @@ extern void setCallbacks(Schedule &schedule, voidVoidCallback pStartCallback, vo
 
 void test_accuracy_timeout_inj(FuelSchedule &schedule)
 {
+    extern void resetFuelSchedulers(void); 
     resetFuelSchedulers();
     setCallbacks(schedule, startCallback, endCallback);
     start_time = micros();
     _setFuelScheduleDuration(schedule, TIMEOUT, DURATION);
+    extern void startFuelSchedulers(void); 
+    startFuelSchedulers();    
     while(schedule._status == PENDING) /*Wait*/ ;
     TEST_ASSERT_UINT32_WITHIN(DELTA, TIMEOUT, end_time - start_time);
 }
@@ -75,8 +78,11 @@ void test_accuracy_timeout_inj8(void)
 
 void test_accuracy_timeout_ign(IgnitionSchedule &schedule)
 {
+    extern void resetIgnitionSchedulers(void);
     resetIgnitionSchedulers();
     setCallbacks(schedule, startCallback, endCallback);
+    extern void startIgnitionSchedulers(void);
+    startIgnitionSchedulers();
     start_time = micros();
     _setIgnitionScheduleDuration(schedule, TIMEOUT, DURATION);
     while(schedule._status == PENDING) /*Wait*/ ;

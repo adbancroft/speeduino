@@ -9,8 +9,12 @@
 
 static void test_status_running_to_off(FuelSchedule &schedule)
 {
+    extern void resetFuelSchedulers(void); 
     resetFuelSchedulers();
+    TEST_ASSERT_EQUAL(OFF, schedule._status);
     _setFuelScheduleDuration(schedule, TIMEOUT, DURATION);
+    extern void startFuelSchedulers(void); 
+    startFuelSchedulers();    
     while( (schedule._status == PENDING) || (schedule._status == RUNNING) ) /*Wait*/ ;
     TEST_ASSERT_EQUAL(OFF, schedule._status);
 }
@@ -65,9 +69,12 @@ static void test_status_running_to_off_fuel8(void)
 
 static void test_status_running_to_off(IgnitionSchedule &schedule)
 {
+    extern void resetIgnitionSchedulers(void);
     resetIgnitionSchedulers();
-    
+    TEST_ASSERT_EQUAL(OFF, schedule._status);
     _setIgnitionScheduleDuration(schedule, TIMEOUT, DURATION);
+    extern void startIgnitionSchedulers(void);
+    startIgnitionSchedulers();
     while( (schedule._status == PENDING) || (schedule._status == RUNNING) ) /*Wait*/ ;
     TEST_ASSERT_EQUAL(OFF, schedule._status);
 }

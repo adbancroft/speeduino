@@ -77,11 +77,16 @@ void initialiseIgnitionSchedulers(void);
 /** @brief Start fuel system  priming the fuel */
 void beginInjectorPriming(void);
 
-/** @brief ???? */
-void changeHalfToFullSync(void);
+/** @brief Make sure the injector scheduler configuration matches the current sync status. 
+ * 
+ * In sequential mode, some decoders need both primary & secondary triggers to fully support
+ * sequential injection. So if one trigger isn't synced, we need to adjust the scheduler
+ * configuration.
+ * */
+void matchInjectionModeToSyncStatus(void);
 
-/** @brief ???? */
-void changeFullToHalfSync(void);
+/** @brief As per matchInjectionModeToSyncStatus(), but for the ignition schedulers. */
+void matchIgnitionModeToSyncStatus(void);
 
 /** \enum ScheduleStatus
  * @brief The current state of a schedule
@@ -246,7 +251,7 @@ static inline void disableScheduleIfPending(Schedule &schedule) {
  */
 struct IgnitionSchedule : public Schedule {
 
-  using Schedule::Schedule;
+  using Schedule::Schedule; // cppcheck-suppress misra-c2012-5.6 ; false positive
 
   volatile uint32_t _startTime; /**< The system time (in uS) that the schedule started, used by the overdwell protection in timers.ino */
   int16_t chargeAngle;        ///< Angle the coil should begin charging.
@@ -314,6 +319,7 @@ using fuelTrimTable = table3d6RpmLoad;
  * 
  * @param schedule The ignition schedule to move to the next state
  */
+// cppcheck-suppress misra-c2012-8.5 ; false positive
 void moveToNextState(IgnitionSchedule &schedule);
 
 extern IgnitionSchedule ignitionSchedules[IGN_CHANNELS];
@@ -342,7 +348,7 @@ static inline void adjustCrankAngle(IgnitionSchedule &schedule, int16_t crankAng
  */
 struct FuelSchedule : public Schedule {
 
-  using Schedule::Schedule;
+  using Schedule::Schedule; // cppcheck-suppress misra-c2012-5.6 ; false positive
 
   uint16_t channelDegrees;    ///< The number of crank degrees until cylinder is at TDC  
   uint16_t pw;                ///< Pulse width in uS
@@ -388,6 +394,7 @@ static inline void setFuelSchedule(FuelSchedule &schedule, uint16_t injAngle, ui
  * 
  * @param schedule The fuel schedule to move to the next state
  */
+// cppcheck-suppress misra-c2012-8.5 ; false positive
 void moveToNextState(FuelSchedule &schedule);
 
 extern FuelSchedule fuelSchedules[INJ_CHANNELS];
