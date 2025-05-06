@@ -2,8 +2,8 @@
 #define MATH_H
 
 #include <stdint.h>
-#include "globals.h"
 #include "bit_shifts.h"
+#include "utilities.h"
 
 #ifdef USE_LIBDIVIDE
 // We use pre-computed constant parameters with libdivide where possible. 
@@ -217,8 +217,8 @@ static inline uint16_t halfPercentage(uint8_t percent, uint16_t value) {
  */
 static inline int16_t nudge(int16_t min, int16_t max, int16_t value, int16_t nudgeAmount)
 {
-    if (value<min) { return value + nudgeAmount; }
-    if (value>max) { return value - nudgeAmount; }
+    if (unlikely(value<min)) { return value + nudgeAmount; }
+    if (unlikely(value>max)) { return value - nudgeAmount; }
     return value;
 }
 

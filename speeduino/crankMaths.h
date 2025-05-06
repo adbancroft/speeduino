@@ -2,6 +2,7 @@
 #define CRANKMATHS_H
 
 #include "maths.h"
+#include "bit_shifts.h"
 
 /**
  * @file
@@ -32,7 +33,7 @@ static constexpr uint16_t MIN_RPM = (uint16_t)UDIV_ROUND_UP(MICROS_PER_DEG_1_RPM
  * 
  * @note: many calculations are done over 2 revolutions (cycles), in which case this would be doubled 
  */
-static constexpr uint16_t MIN_REVOLUTION_TIME = MICROS_PER_MIN/MAX_RPM;
+static constexpr uint16_t MIN_REVOLUTION_TIME = (uint16_t)(MICROS_PER_MIN/MAX_RPM);
 
 /**
  * @brief Maximum time in µS that one crank revolution can take.
@@ -57,20 +58,39 @@ static inline int16_t ignitionLimits(int16_t angle) {
  * @param angle A crank angle in degrees
  * @return int16_t 
  */
-static inline int16_t injectorLimits(int16_t angle)
+static inline uint16_t injectorLimits(int16_t angle)
 {
-    int16_t tempAngle = angle;
-    if(tempAngle < 0) { tempAngle = tempAngle + CRANK_ANGLE_MAX_INJ; }
-    while(tempAngle > CRANK_ANGLE_MAX_INJ ) { tempAngle -= CRANK_ANGLE_MAX_INJ; }
-    return tempAngle;
+    if (unlikely(angle < 0)) { angle = angle + CRANK_ANGLE_MAX_INJ; }
+    while(angle > CRANK_ANGLE_MAX_INJ ) { angle -= CRANK_ANGLE_MAX_INJ; }
+    return angle;
 }
+
+/// @cond 
+// Private definitions - not for use external to the crank math code
+
+namespace _crank_math_detail {
+    typedef uint32_t UQ24X8_t;
+    static constexpr uint8_t UQ24X8_Shift = 8U;
+    static constexpr uint8_t microsPerDegree_Shift = UQ24X8_Shift;
+    extern UQ24X8_t microsPerDegree;
+
+    typedef uint16_t UQ1X15_t;
+    static constexpr uint8_t UQ1X15_Shift = 15U;
+    static constexpr uint8_t degreesPerMicro_Shift = UQ1X15_Shift;
+    extern UQ1X15_t degreesPerMicro;
+}
+
+/// @endcond
 
 /**
  * @brief Set the revolution time, from which some of the degree<-->angle conversions are derived
  * 
  * @param revolutionTime The crank revolution time in uS
  */
-void setAngleConverterRevolutionTime(uint32_t revolutionTime);
+static inline void setAngleConverterRevolutionTime(uint32_t revolutionTime) {
+    _crank_math_detail::microsPerDegree = div360(lshift<_crank_math_detail::microsPerDegree_Shift>(revolutionTime));
+    _crank_math_detail::degreesPerMicro = (uint16_t)UDIV_ROUND_CLOSEST(lshift<_crank_math_detail::degreesPerMicro_Shift>(UINT32_C(360)), revolutionTime, uint32_t);  
+}
 
 /**
  * @brief Converts angular degrees to the time interval that amount of rotation will take at current RPM.
@@ -80,7 +100,10 @@ void setAngleConverterRevolutionTime(uint32_t revolutionTime);
  * @param angle Angle in degrees
  * @return Time interval in uS
  */
-uint32_t angleToTimeMicroSecPerDegree(uint16_t angle);
+static inline uint32_t angleToTimeMicroSecPerDegree(uint16_t angle) {
+    _crank_math_detail::UQ24X8_t micros = (uint32_t)angle * (uint32_t)_crank_math_detail::microsPerDegree;
+    return rshift_round<_crank_math_detail::microsPerDegree_Shift>(micros);
+}
 
 /**
  * @brief Converts a time interval to the equivalent degrees of angular (crank) rotation at current RPM.
@@ -90,6 +113,9 @@ uint32_t angleToTimeMicroSecPerDegree(uint16_t angle);
  * @param time Time interval in uS
  * @return Angle in degrees
  */
-uint16_t timeToAngleDegPerMicroSec(uint32_t time);
+static inline uint16_t timeToAngleDegPerMicroSec(uint32_t time){
+    uint32_t degFixed = time * (uint32_t)_crank_math_detail::degreesPerMicro;
+    return rshift_round<_crank_math_detail::degreesPerMicro_Shift>(degFixed);
+}
 
 #endif
