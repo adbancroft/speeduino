@@ -3,7 +3,8 @@
 #if defined(CORE_TEENSY) && defined(CORE_TEENSY35)
 #include "auxiliaries.h"
 #include "idle.h"
-#include "scheduler.h"
+#include "schedule_state_machine_fuel.h"
+#include "schedule_state_machine_ignition.h"
 #include "timers.h"
 #include "comms_secondary.h"
 #include <InternalTemperature.h>

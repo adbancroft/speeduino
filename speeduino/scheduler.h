@@ -42,7 +42,6 @@ See page 136 of the processors datasheet: http://www.atmel.com/Images/doc2549.pd
 #define SCHEDULER_H
 
 #include <SimplyAtomic.h>
-#include "globals.h"
 #include "crankMaths.h"
 #include "utilities.h"
 #include "scheduledIO.h"
@@ -203,13 +202,6 @@ static inline  __attribute__((always_inline)) void setIgnitionSchedule(IgnitionS
   _setSchedule(schedule, timeout, duration, CRANK_ANGLE_MAX_IGN);
 }
 
-/**
- * @brief Shared ignition schedule timer ISR *implementation*. Should be called by the actual ignition timer ISRs
- * (as timed interrupts) when either the start time or the duration time are reached. See @ref schedule-state-machine
- * 
- * @param schedule The ignition schedule to move to the next state
- */
-void moveToNextState(IgnitionSchedule &schedule);
 
 extern IgnitionSchedule ignitionSchedule1;
 extern IgnitionSchedule ignitionSchedule2;
@@ -240,14 +232,6 @@ static inline  __attribute__((always_inline)) void setFuelSchedule(FuelSchedule 
 {
   _setSchedule(schedule, timeout, duration, CRANK_ANGLE_MAX_INJ);
 }
-
-/**
- * @brief Shared fuel schedule timer ISR implementation. Should be called by the actual timer ISRs
- * (as timed interrupts) when either the start time or the duration time are reached. See @ref schedule-state-machine
- * 
- * @param schedule The fuel schedule to move to the next state
- */
-void moveToNextState(FuelSchedule &schedule);
 
 extern FuelSchedule fuelSchedule1;
 extern FuelSchedule fuelSchedule2;

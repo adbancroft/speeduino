@@ -3,7 +3,8 @@
 #if defined(CORE_TEENSY) && defined(__IMXRT1062__)
 #include "auxiliaries.h"
 #include "idle.h"
-#include "scheduler.h"
+#include "schedule_state_machine_fuel.h"
+#include "schedule_state_machine_ignition.h"
 #include "timers.h"
 #include "comms_secondary.h"
 #include <InternalTemperature.h>
