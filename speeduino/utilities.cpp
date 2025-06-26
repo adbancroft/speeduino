@@ -18,10 +18,10 @@
 #include "speeduino.h"
 #include "units.h"
 
-uint8_t ioDelay[sizeof(configPage13.outputPin)];
-uint8_t ioOutDelay[sizeof(configPage13.outputPin)];
-uint8_t pinIsValid = 0;
-uint8_t currentRuleStatus = 0;
+static uint8_t ioDelay[sizeof(configPage13.outputPin)];
+static uint8_t ioOutDelay[sizeof(configPage13.outputPin)];
+static uint8_t pinIsValid = 0;
+static uint8_t currentRuleStatus = 0;
 
 
 /** Translate between the pin list that appears in TS and the actual pin numbers.
