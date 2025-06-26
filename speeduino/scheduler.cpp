@@ -29,7 +29,6 @@ A full copy of the license may be found in the projects root directory
 #include "scheduledIO.h"
 #include "timers.h"
 #include "schedule_calcs.h"
-#include "utilities.h"
 #include "units.h"
 #include "schedule_state_machine.h"
 

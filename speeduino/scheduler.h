@@ -43,7 +43,7 @@ See page 136 of the processors datasheet: http://www.atmel.com/Images/doc2549.pd
 
 #include <SimplyAtomic.h>
 #include "crankMaths.h"
-#include "utilities.h"
+#include "preprocessor.h"
 #include "scheduledIO.h"
 
 #define USE_IGN_REFRESH

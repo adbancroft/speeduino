@@ -6,7 +6,6 @@ A full copy of the license may be found in the projects root directory
 #include "idle.h"
 #include "maths.h"
 #include "timers.h"
-#include "utilities.h"
 #include "src/PID_v1/PID_v1.h"
 #include "units.h"
 
