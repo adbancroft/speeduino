@@ -3,7 +3,8 @@
 #if defined(STM32_CORE_VERSION_MAJOR)
 #include "auxiliaries.h"
 #include "idle.h"
-#include "scheduler.h"
+#include "schedule_state_machine_fuel.h"
+#include "schedule_state_machine_ignition.h"
 #include "HardwareTimer.h"
 #include "timers.h"
 #include "comms_secondary.h"
