@@ -2,7 +2,6 @@
 #include "globals.h"
 #include "engineProtection.h"
 #include "maths.h"
-#include "utilities.h"
 #include "units.h"
 #include "crankMaths.h"
 

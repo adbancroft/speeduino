@@ -6,7 +6,6 @@
 
 #include "globals.h"
 #include "TS_CommandButtonHandler.h"
-#include "utilities.h"
 #include "scheduledIO.h"
 #include "sensors.h"
 #include "storage.h"
