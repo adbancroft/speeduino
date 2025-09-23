@@ -201,7 +201,7 @@ static inline uint32_t div360(uint32_t n) {
  */
 template <uint8_t b> 
 static inline uint32_t rshift_round(uint32_t a) { 
-    return rshift<b>(a+(1UL<<((uint32_t)b-1UL))); 
+    return rshift<b>((uint32_t)(a+(1UL<<(b-1))));
 }
 
 /// @cond
