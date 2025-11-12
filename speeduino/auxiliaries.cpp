@@ -615,6 +615,16 @@ static uint16_t getOLBoostDuty(const statuses &current, const config2 &page2, co
   return clamp(duty, UINT16_C(0), UINT16_C(10000)); //Safety check  
 }
 
+static int16_t lookupFlexBoostCorrection(const statuses &current, const config2 &page2)
+{
+  //If flex fuel is enabled, there can be an adder to the boost target based on ethanol content
+  if( page2.flexEnabled == 1U )
+  {
+    return table2D_getValue(&flexBoostTable, current.ethanolPct);
+  }
+  return 0;  
+}
+
 void boostByGear(void)
 {
   if(configPage4.boostType == OPEN_LOOP_BOOST)
@@ -634,7 +644,7 @@ void boostControl(void)
     if(configPage4.boostType == OPEN_LOOP_BOOST)
     {
       currentStatus.boostDuty = getOLBoostDuty(currentStatus, configPage2, configPage9);
-      
+
       if(currentStatus.boostDuty == 0) { DISABLE_BOOST_TIMER(); BOOST_PIN_LOW(); } //If boost duty is 0, shut everything down
       else
       {
@@ -645,20 +655,13 @@ void boostControl(void)
     {
       if( (boostCounter & 7) == 1) 
       { 
+        currentStatus.flexBoostCorrection = lookupFlexBoostCorrection(currentStatus, configPage2);
+
         if ( isBoostByGear(configPage2, configPage9) ){ boostByGear(); }
         else{ currentStatus.boostTarget = lookupBoostTarget(currentStatus) << 1; } //Boost target table is in kpa and divided by 2
 
-        //If flex fuel is enabled, there can be an adder to the boost target based on ethanol content
-        if( configPage2.flexEnabled == 1 )
-        {
-          currentStatus.flexBoostCorrection = table2D_getValue(&flexBoostTable, currentStatus.ethanolPct);
-          currentStatus.boostTarget += currentStatus.flexBoostCorrection;
-          currentStatus.boostTarget = min(currentStatus.boostTarget, (uint16_t)511U);
-        }
-        else
-        {
-          currentStatus.flexBoostCorrection = 0;
-        }
+        currentStatus.boostTarget += currentStatus.flexBoostCorrection;
+        currentStatus.boostTarget = min(currentStatus.boostTarget, (uint16_t)511U);
       } 
 
       if(((configPage15.boostControlEnable == EN_BOOST_CONTROL_BARO) && (currentStatus.MAP >= currentStatus.baro)) || ((configPage15.boostControlEnable == EN_BOOST_CONTROL_FIXED) && (currentStatus.MAP >= configPage15.boostControlEnableThreshold))) //Only enables boost control above baro pressure or above user defined threshold (User defined level is usually set to boost with wastegate actuator only boost level)
