@@ -9,7 +9,6 @@
 void initialiseAuxPWM(void);
 void boostControl(void);
 void boostDisable(void);
-void boostByGear(void);
 void vvtControl(void);
 void initialiseFan(void);
 void initialiseAirCon(void);

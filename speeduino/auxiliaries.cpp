@@ -625,16 +625,17 @@ static int16_t lookupFlexBoostCorrection(const statuses &current, const config2 
   return 0;  
 }
 
-void boostByGear(void)
+static uint16_t getCLBoostTarget(const statuses &current, const config2 &page2, const config9 &page9)
 {
-  if(configPage4.boostType == OPEN_LOOP_BOOST)
-  {
-    currentStatus.boostDuty = calcBoostByGearDuty(currentStatus, configPage9);
+  uint16_t target = 0U;
+  if ( isBoostByGear(page2, page9) ) { 
+    target = calcBoostByGearTarget(current, page9); 
+  } else {       
+    target = lookupBoostTarget(current) << 1U; //Boost target table is in kpa and divided by 2
   }
-  else if (configPage4.boostType == CLOSED_LOOP_BOOST)
-  {
-    currentStatus.boostTarget = calcBoostByGearTarget(currentStatus, configPage9);
-  }
+
+  target += current.flexBoostCorrection;
+  return clamp(target, UINT16_C(0), UINT16_C(511));
 }
 
 void boostControl(void)
@@ -656,12 +657,7 @@ void boostControl(void)
       if( (boostCounter & 7) == 1) 
       { 
         currentStatus.flexBoostCorrection = lookupFlexBoostCorrection(currentStatus, configPage2);
-
-        if ( isBoostByGear(configPage2, configPage9) ){ boostByGear(); }
-        else{ currentStatus.boostTarget = lookupBoostTarget(currentStatus) << 1; } //Boost target table is in kpa and divided by 2
-
-        currentStatus.boostTarget += currentStatus.flexBoostCorrection;
-        currentStatus.boostTarget = min(currentStatus.boostTarget, (uint16_t)511U);
+        currentStatus.boostTarget = getCLBoostTarget(currentStatus, configPage2, configPage9);
       } 
 
       if(((configPage15.boostControlEnable == EN_BOOST_CONTROL_BARO) && (currentStatus.MAP >= currentStatus.baro)) || ((configPage15.boostControlEnable == EN_BOOST_CONTROL_FIXED) && (currentStatus.MAP >= configPage15.boostControlEnableThreshold))) //Only enables boost control above baro pressure or above user defined threshold (User defined level is usually set to boost with wastegate actuator only boost level)
