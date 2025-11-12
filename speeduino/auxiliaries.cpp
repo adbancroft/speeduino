@@ -589,6 +589,32 @@ static uint16_t calcBoostByGearDuty(const statuses &current, const config9 &page
   return 0U;
 }
 
+static uint16_t calcBoostByGearTarget(const statuses &current, const config9 &page9)
+{
+  if( page9.boostByGearEnabled == BOOST_BY_GEAR_MULTIPLIED )
+  {
+    return (((uint16_t)gearToBoostFactor(current.gear, page9) * (uint16_t)lookupBoostTarget(current)) / 100U ) * 4U;
+  }
+  if( page9.boostByGearEnabled == BOOST_BY_GEAR_CONSTANT ) 
+  {
+    return (uint16_t)gearToBoostFactor(current.gear, page9) * 2U;
+  }
+  return 0U;
+}
+
+static uint16_t getOLBoostDuty(const statuses &current, const config2 &page2, const config9 &page9)
+{
+  uint16_t duty = 0U;
+      
+  if ( isBoostByGear(page2, page9) ) { 
+    duty = calcBoostByGearDuty(current, page9); 
+  } else { 
+    duty = lookupBoostTarget(current) * 2U * 100U; 
+  }
+
+  return clamp(duty, UINT16_C(0), UINT16_C(10000)); //Safety check  
+}
+
 void boostByGear(void)
 {
   if(configPage4.boostType == OPEN_LOOP_BOOST)
@@ -597,17 +623,7 @@ void boostByGear(void)
   }
   else if (configPage4.boostType == CLOSED_LOOP_BOOST)
   {
-    if( configPage9.boostByGearEnabled == 1 )
-    {
-      uint16_t combinedBoost = 0;
-      combinedBoost = ( ((uint16_t)gearToBoostFactor(currentStatus.gear, configPage9) * (uint16_t)lookupBoostTarget(currentStatus)) / 100 ) << 2;
-      if( combinedBoost <= 511 ){ currentStatus.boostTarget = combinedBoost; }
-      else{ currentStatus.boostTarget = 511; }
-    }
-    else if( configPage9.boostByGearEnabled == 2 ) 
-    {
-      currentStatus.boostTarget = gearToBoostFactor(currentStatus.gear, configPage9) << 1;
-    }
+    currentStatus.boostTarget = calcBoostByGearTarget(currentStatus, configPage9);
   }
 }
 
@@ -617,11 +633,8 @@ void boostControl(void)
   {
     if(configPage4.boostType == OPEN_LOOP_BOOST)
     {
-      //Open loop
-      if ( isBoostByGear(configPage2, configPage9) ){ boostByGear(); }
-      else{ currentStatus.boostDuty = lookupBoostTarget(currentStatus) * 2 * 100; }
-
-      if(currentStatus.boostDuty > 10000) { currentStatus.boostDuty = 10000; } //Safety check
+      currentStatus.boostDuty = getOLBoostDuty(currentStatus, configPage2, configPage9);
+      
       if(currentStatus.boostDuty == 0) { DISABLE_BOOST_TIMER(); BOOST_PIN_LOW(); } //If boost duty is 0, shut everything down
       else
       {
