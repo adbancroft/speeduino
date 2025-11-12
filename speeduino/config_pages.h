@@ -46,8 +46,8 @@ using byte = uint8_t;
 #define ROTARY_IGN_FD       1
 #define ROTARY_IGN_RX8      2
 
-#define BOOST_MODE_SIMPLE   0
-#define BOOST_MODE_FULL     1
+#define BOOST_MODE_SIMPLE   0U
+#define BOOST_MODE_FULL     1U
 
 #define EN_BOOST_CONTROL_BARO   0
 #define EN_BOOST_CONTROL_FIXED  1
@@ -121,8 +121,12 @@ using byte = uint8_t;
 #define RESET_CONTROL_PREVENT_ALWAYS       2U
 #define RESET_CONTROL_SERIAL_COMMAND       3U
 
-#define OPEN_LOOP_BOOST     0
-#define CLOSED_LOOP_BOOST   1
+#define OPEN_LOOP_BOOST     0U
+#define CLOSED_LOOP_BOOST   1U
+
+#define BOOST_BY_GEAR_OFF        0U
+#define BOOST_BY_GEAR_MULTIPLIED 1U
+#define BOOST_BY_GEAR_CONSTANT   2U
 
 #define SOFT_LIMIT_FIXED        0
 #define SOFT_LIMIT_RELATIVE     1
