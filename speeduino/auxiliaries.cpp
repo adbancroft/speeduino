@@ -638,6 +638,21 @@ static uint16_t getCLBoostTarget(const statuses &current, const config2 &page2, 
   return clamp(target, UINT16_C(0), UINT16_C(511));
 }
 
+static uint32_t boostDutyToPwm(uint16_t duty)
+{
+  return ((uint32_t)(duty) * boost_pwm_max_count) / 10000UL; //Convert boost duty (Which is a % multiplied by 100) to a pwm count
+}
+
+static uint32_t processBoostDuty(uint32_t currentPwm, uint16_t duty)
+{
+  if(duty == 0U) { 
+    boostDisable();
+    return currentPwm;
+  }
+
+  return boostDutyToPwm(duty);
+}
+
 void boostControl(void)
 {
   if( configPage6.boostEnabled==1 )
@@ -645,12 +660,7 @@ void boostControl(void)
     if(configPage4.boostType == OPEN_LOOP_BOOST)
     {
       currentStatus.boostDuty = getOLBoostDuty(currentStatus, configPage2, configPage9);
-
-      if(currentStatus.boostDuty == 0) { DISABLE_BOOST_TIMER(); BOOST_PIN_LOW(); } //If boost duty is 0, shut everything down
-      else
-      {
-        boost_pwm_target_value = ((unsigned long)(currentStatus.boostDuty) * boost_pwm_max_count) / 10000; //Convert boost duty (Which is a % multiplied by 100) to a pwm count
-      }
+      boost_pwm_target_value = processBoostDuty(boost_pwm_target_value, currentStatus.boostDuty);
     }
     else if (configPage4.boostType == CLOSED_LOOP_BOOST)
     {
@@ -670,15 +680,8 @@ void boostControl(void)
             configureBoostPid(configPage2, configPage6);
           }
 
-          bool PIDcomputed = boostPID.Compute(get3DTableValue(&boostTableLookupDuty, currentStatus.boostTarget, currentStatus.RPM) * 100/2); //Compute() returns false if the required interval has not yet passed.
-          if(currentStatus.boostDuty == 0) { DISABLE_BOOST_TIMER(); BOOST_PIN_LOW(); } //If boost duty is 0, shut everything down
-          else
-          {
-            if(PIDcomputed == true)
-            {
-              boost_pwm_target_value = ((unsigned long)(currentStatus.boostDuty) * boost_pwm_max_count) / 10000; //Convert boost duty (Which is a % multiplied by 100) to a pwm count
-            }
-          }
+          (void)boostPID.Compute(get3DTableValue(&boostTableLookupDuty, currentStatus.boostTarget, currentStatus.RPM) * 100/2); //Compute() returns false if the required interval has not yet passed.
+          boost_pwm_target_value = processBoostDuty(boost_pwm_target_value, currentStatus.boostDuty);
         }
         else
         {
@@ -691,7 +694,7 @@ void boostControl(void)
         boostPID.Initialize(); //This resets the ITerm value to prevent rubber banding
         //Boost control needs to have a high duty cycle if control is below threshold (baro or fixed value). This ensures the waste gate is closed as much as possible, this build boost as fast as possible.
         currentStatus.boostDuty = configPage15.boostDCWhenDisabled*100;
-        boost_pwm_target_value = ((unsigned long)(currentStatus.boostDuty) * boost_pwm_max_count) / 10000; //Convert boost duty (Which is a % multiplied by 100) to a pwm count
+        boost_pwm_target_value = boostDutyToPwm(currentStatus.boostDuty);
         ENABLE_BOOST_TIMER(); //Turn on the compare unit (ie turn on the interrupt) if boost duty >0
         if(currentStatus.boostDuty == 0) { boostDisable(); } //If boost control does nothing disable PWM completely
       } //MAP above boost + hyster
