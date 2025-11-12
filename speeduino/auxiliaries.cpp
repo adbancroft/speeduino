@@ -25,7 +25,7 @@ volatile bool vvt2_pwm_state;
 volatile bool vvt1_max_pwm;
 volatile bool vvt2_max_pwm;
 volatile char nextVVT;
-byte boostCounter;
+static byte boostCounter;
 byte vvtCounter;
 
 PORT_TYPE boost_pin_port;
@@ -65,9 +65,9 @@ uint8_t acRPMLockoutDelay;
 uint8_t acAfterEngineStartDelay;
 bool waitedAfterCranking; // This starts false and prevents the A/C from running until a few seconds after cranking
 
-long boost_pwm_target_value;
-volatile bool boost_pwm_state;
-volatile unsigned int boost_pwm_cur_value = 0;
+static long boost_pwm_target_value;
+static volatile bool boost_pwm_state;
+static volatile unsigned int boost_pwm_cur_value = 0;
 
 uint32_t vvtWarmTime;
 bool vvtIsHot;
@@ -78,7 +78,19 @@ static table2D_u8_s16_6 flexBoostTable(&configPage10.flexBoostBins, &configPage1
 
 //Old PID method. Retained in case the new one has issues
 //integerPID boostPID(&MAPx100, &boost_pwm_target_value, &boostTargetx100, configPage6.boostKP, configPage6.boostKI, configPage6.boostKD, DIRECT);
-integerPID_ideal boostPID(&currentStatus.MAP, &currentStatus.boostDuty , &currentStatus.boostTarget, &configPage10.boostSens, &configPage10.boostIntv, configPage6.boostKP, configPage6.boostKI, configPage6.boostKD, DIRECT); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID_ideal boostPID(&currentStatus.MAP, &currentStatus.boostDuty , &currentStatus.boostTarget, &configPage10.boostSens, &configPage10.boostIntv, configPage6.boostKP, configPage6.boostKI, configPage6.boostKD, DIRECT); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+
+static void configureBoostPid(const config2 &page2, const config6 &page6)
+{
+  boostPID.SetOutputLimits(page2.boostMinDuty, page2.boostMaxDuty);
+
+  if(configPage6.boostMode == BOOST_MODE_SIMPLE) { 
+    boostPID.SetTunings(SIMPLE_BOOST_P, SIMPLE_BOOST_I, SIMPLE_BOOST_D); 
+  } else { 
+    boostPID.SetTunings(page6.boostKP, page6.boostKI, page6.boostKD); 
+  }
+}
+
 integerPID vvtPID(&vvt_pid_current_angle, &currentStatus.vvt1Duty, &vvt_pid_target_angle, configPage10.vvtCLKP, configPage10.vvtCLKI, configPage10.vvtCLKD, configPage6.vvtPWMdir); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
 integerPID vvt2PID(&vvt2_pid_current_angle, &currentStatus.vvt2Duty, &vvt2_pid_target_angle, configPage10.vvtCLKP, configPage10.vvtCLKI, configPage10.vvtCLKD, configPage4.vvt2PWMdir); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
 
@@ -472,9 +484,7 @@ void initialiseAuxPWM(void)
     else { pinMode(configPage10.n2o_arming_pin, INPUT); }
   }
 
-  boostPID.SetOutputLimits(configPage2.boostMinDuty, configPage2.boostMaxDuty);
-  if(configPage6.boostMode == BOOST_MODE_SIMPLE) { boostPID.SetTunings(SIMPLE_BOOST_P, SIMPLE_BOOST_I, SIMPLE_BOOST_D); }
-  else { boostPID.SetTunings(configPage6.boostKP, configPage6.boostKI, configPage6.boostKD); }
+  configureBoostPid(configPage2, configPage6);
 
   if( configPage6.vvtEnabled > 0)
   {
@@ -724,10 +734,7 @@ void boostControl(void)
           //This only needs to be run very infrequently, once every 16 calls to boostControl(). This is approx. once per second
           if( (boostCounter & 15) == 1)
           {
-            boostPID.SetOutputLimits(configPage2.boostMinDuty, configPage2.boostMaxDuty);
-
-            if(configPage6.boostMode == BOOST_MODE_SIMPLE) { boostPID.SetTunings(SIMPLE_BOOST_P, SIMPLE_BOOST_I, SIMPLE_BOOST_D); }
-            else { boostPID.SetTunings(configPage6.boostKP, configPage6.boostKI, configPage6.boostKD); }
+            configureBoostPid(configPage2, configPage6);
           }
 
           bool PIDcomputed = boostPID.Compute(get3DTableValue(&boostTableLookupDuty, currentStatus.boostTarget, currentStatus.RPM) * 100/2); //Compute() returns false if the required interval has not yet passed.
