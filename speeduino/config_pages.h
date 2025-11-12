@@ -49,8 +49,8 @@ using byte = uint8_t;
 #define BOOST_MODE_SIMPLE   0U
 #define BOOST_MODE_FULL     1U
 
-#define EN_BOOST_CONTROL_BARO   0
-#define EN_BOOST_CONTROL_FIXED  1
+#define EN_BOOST_CONTROL_BARO   0U
+#define EN_BOOST_CONTROL_FIXED  1U
 
 #define WMI_MODE_SIMPLE       0
 #define WMI_MODE_PROPORTIONAL 1

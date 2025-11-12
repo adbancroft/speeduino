@@ -653,6 +653,23 @@ static uint32_t processBoostDuty(uint32_t currentPwm, uint16_t duty)
   return boostDutyToPwm(duty);
 }
 
+static bool isBaroBoostControlEnabled(const statuses &current, const config15 &page15)
+{
+  return (page15.boostControlEnable == EN_BOOST_CONTROL_BARO) && (current.MAP >= (long)current.baro);
+}
+
+static bool isFixedBoostControlEnabled(const statuses &current, const config15 &page15)
+{
+  return (page15.boostControlEnable == EN_BOOST_CONTROL_FIXED) && (current.MAP >= (long)page15.boostControlEnableThreshold);
+}
+
+static bool isBoostControlEnabled(const statuses &current, const config15 &page15)
+{
+  //Only enables boost control above baro pressure or above user defined threshold (User defined level is usually set to boost with wastegate actuator only boost level)
+  return isBaroBoostControlEnabled(current, page15) 
+      || isFixedBoostControlEnabled(current, page15);
+}
+
 void boostControl(void)
 {
   if( configPage6.boostEnabled==1 )
@@ -670,7 +687,7 @@ void boostControl(void)
         currentStatus.boostTarget = getCLBoostTarget(currentStatus, configPage2, configPage9);
       } 
 
-      if(((configPage15.boostControlEnable == EN_BOOST_CONTROL_BARO) && (currentStatus.MAP >= currentStatus.baro)) || ((configPage15.boostControlEnable == EN_BOOST_CONTROL_FIXED) && (currentStatus.MAP >= configPage15.boostControlEnableThreshold))) //Only enables boost control above baro pressure or above user defined threshold (User defined level is usually set to boost with wastegate actuator only boost level)
+      if( isBoostControlEnabled(currentStatus, configPage15) )
       {
         if(currentStatus.boostTarget > 0)
         {
