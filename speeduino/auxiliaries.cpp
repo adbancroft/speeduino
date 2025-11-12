@@ -571,6 +571,11 @@ static uint8_t gearToBoostFactor(uint8_t gear, const config9 &page9)
   return 0U;
 }
 
+static uint8_t lookupBoostTarget(const statuses &current)
+{
+  return get3DTableValue(&boostTable, (current.TPS * 2U), current.RPM);
+}
+
 void boostByGear(void)
 {
   if(configPage4.boostType == OPEN_LOOP_BOOST)
@@ -578,7 +583,7 @@ void boostByGear(void)
     if( configPage9.boostByGearEnabled == 1 )
     {
       uint16_t combinedBoost = 0;
-      combinedBoost = ( ((uint16_t)gearToBoostFactor(currentStatus.gear, configPage9) * (uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM))  ) << 2;
+      combinedBoost = ( ((uint16_t)gearToBoostFactor(currentStatus.gear, configPage9) * (uint16_t)lookupBoostTarget(currentStatus))  ) << 2;
       if( combinedBoost <= 10000 ){ currentStatus.boostDuty = combinedBoost; }
       else{ currentStatus.boostDuty = 10000; }
     }
@@ -592,7 +597,7 @@ void boostByGear(void)
     if( configPage9.boostByGearEnabled == 1 )
     {
       uint16_t combinedBoost = 0;
-      combinedBoost = ( ((uint16_t)gearToBoostFactor(currentStatus.gear, configPage9) * (uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM)) / 100 ) << 2;
+      combinedBoost = ( ((uint16_t)gearToBoostFactor(currentStatus.gear, configPage9) * (uint16_t)lookupBoostTarget(currentStatus)) / 100 ) << 2;
       if( combinedBoost <= 511 ){ currentStatus.boostTarget = combinedBoost; }
       else{ currentStatus.boostTarget = 511; }
     }
@@ -611,7 +616,7 @@ void boostControl(void)
     {
       //Open loop
       if ( isBoostByGear(configPage2, configPage9) ){ boostByGear(); }
-      else{ currentStatus.boostDuty = get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM) * 2 * 100; }
+      else{ currentStatus.boostDuty = lookupBoostTarget(currentStatus) * 2 * 100; }
 
       if(currentStatus.boostDuty > 10000) { currentStatus.boostDuty = 10000; } //Safety check
       if(currentStatus.boostDuty == 0) { DISABLE_BOOST_TIMER(); BOOST_PIN_LOW(); } //If boost duty is 0, shut everything down
@@ -625,7 +630,7 @@ void boostControl(void)
       if( (boostCounter & 7) == 1) 
       { 
         if ( isBoostByGear(configPage2, configPage9) ){ boostByGear(); }
-        else{ currentStatus.boostTarget = get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM) << 1; } //Boost target table is in kpa and divided by 2
+        else{ currentStatus.boostTarget = lookupBoostTarget(currentStatus) << 1; } //Boost target table is in kpa and divided by 2
 
         //If flex fuel is enabled, there can be an adder to the boost target based on ethanol content
         if( configPage2.flexEnabled == 1 )
