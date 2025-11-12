@@ -576,21 +576,24 @@ static uint8_t lookupBoostTarget(const statuses &current)
   return get3DTableValue(&boostTable, (current.TPS * 2U), current.RPM);
 }
 
+static uint16_t calcBoostByGearDuty(const statuses &current, const config9 &page9)
+{
+  if( page9.boostByGearEnabled == BOOST_BY_GEAR_MULTIPLIED )
+  {
+    return (uint16_t)gearToBoostFactor(current.gear, page9) * (uint16_t)lookupBoostTarget(current) * 4U;
+  }
+  if( page9.boostByGearEnabled == BOOST_BY_GEAR_CONSTANT ) 
+  {
+    return (uint16_t)gearToBoostFactor(current.gear, page9) * 2U * 100U;
+  }
+  return 0U;
+}
+
 void boostByGear(void)
 {
   if(configPage4.boostType == OPEN_LOOP_BOOST)
   {
-    if( configPage9.boostByGearEnabled == 1 )
-    {
-      uint16_t combinedBoost = 0;
-      combinedBoost = ( ((uint16_t)gearToBoostFactor(currentStatus.gear, configPage9) * (uint16_t)lookupBoostTarget(currentStatus))  ) << 2;
-      if( combinedBoost <= 10000 ){ currentStatus.boostDuty = combinedBoost; }
-      else{ currentStatus.boostDuty = 10000; }
-    }
-    else if( configPage9.boostByGearEnabled == 2 ) 
-    {
-      currentStatus.boostDuty = gearToBoostFactor(currentStatus.gear, configPage9) * 2 * 100;
-    }
+    currentStatus.boostDuty = calcBoostByGearDuty(currentStatus, configPage9);
   }
   else if (configPage4.boostType == CLOSED_LOOP_BOOST)
   {
