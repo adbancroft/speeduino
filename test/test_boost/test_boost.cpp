@@ -10,6 +10,7 @@ extern uint16_t calcBoostByGearDuty(const statuses &current, const config9 &page
 extern uint16_t calcBoostByGearTarget(const statuses &current, const config9 &page9);
 extern uint16_t calcOLBoostDuty(const statuses &current, const config2 &page2, const config9 &page9);
 extern int16_t lookupFlexBoostCorrection(const statuses &current, const config2 &page2);
+extern uint16_t getCLBoostTarget(const statuses &current, const config2 &page2, const config9 &page9);
 
 static void test_isBoostByGear_disabled(void)
 {
@@ -203,6 +204,44 @@ static void test_lookupFlexBoostCorrection_enabled(void)
   TEST_ASSERT_EQUAL_INT16((int16_t)30, lookupFlexBoostCorrection(cur, p2));
 }
 
+
+static void test_getCLBoostTarget_boostByGear(void)
+{
+  statuses cur = {};
+  config2 p2 = {};
+  config9 p9 = {};
+
+  // Make boost-by-gear active
+  p2.vssMode = 2;
+  p9.boostByGearEnabled = BOOST_BY_GEAR_CONSTANT;
+  p9.boostByGear1 = 7; // factor
+
+  cur.gear = 1;
+
+  // For constant mode, calcBoostByGearTarget returns factor * 2
+  TEST_ASSERT_EQUAL(14, getCLBoostTarget(cur, p2, p9));
+}
+
+static void test_getCLBoostTarget_openLoop(void)
+{
+  statuses cur = {};
+  config2 p2 = {};
+  config9 p9 = {};
+
+  // Ensure boost-by-gear disabled
+  p2.vssMode = 0;
+  p9.boostByGearEnabled = BOOST_BY_GEAR_OFF;
+
+  // Populate boostTable lookup value
+  fill_table_values(boostTable, (table3d_value_t)9);
+
+  cur.TPS = 0;
+  cur.RPM = 0;
+
+  // Expect lookup << 1 = 9 * 2 = 18
+  TEST_ASSERT_EQUAL(18, getCLBoostTarget(cur, p2, p9));
+}
+
 void testBoost(void) {
   SET_UNITY_FILENAME() {
     RUN_TEST(test_isBoostByGear_disabled);
@@ -217,5 +256,7 @@ void testBoost(void) {
     RUN_TEST(test_calcOLBoostDuty_openLoop);
     RUN_TEST(test_lookupFlexBoostCorrection_disabled);
     RUN_TEST(test_lookupFlexBoostCorrection_enabled);
+    RUN_TEST(test_getCLBoostTarget_boostByGear);
+    RUN_TEST(test_getCLBoostTarget_openLoop);
   }
 }

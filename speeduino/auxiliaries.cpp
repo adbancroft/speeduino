@@ -623,7 +623,7 @@ TESTABLE_STATIC int16_t lookupFlexBoostCorrection(const statuses &current, const
   return 0;  
 }
 
-static uint16_t getCLBoostTarget(const statuses &current, const config2 &page2, const config9 &page9)
+TESTABLE_STATIC uint16_t getCLBoostTarget(const statuses &current, const config2 &page2, const config9 &page9)
 {
   if ( isBoostByGear(page2, page9) ) { 
     return calcBoostByGearTarget(current, page9); 
