@@ -1,9 +1,12 @@
 #include <unity.h>
 #include "../test_utils.h"
 #include "config_pages.h"
+#include "statuses.h"
+#include "globals.h"
 
 extern bool isBoostByGear(const config2 &page2, const config9 &page9);
 extern uint8_t gearToBoostFactor(uint8_t gear, const config9 &page9);
+extern uint16_t calcBoostByGearDuty(const statuses &current, const config9 &page9);
 
 static void test_isBoostByGear_disabled(void)
 {
@@ -45,15 +48,52 @@ static void test_gearToBoostFactor_basic(void)
   p9.boostByGear5 = 55;
   p9.boostByGear6 = 66;
 
-  TEST_ASSERT_EQUAL_UINT8(11, gearToBoostFactor(1, p9));
-  TEST_ASSERT_EQUAL_UINT8(22, gearToBoostFactor(2, p9));
-  TEST_ASSERT_EQUAL_UINT8(33, gearToBoostFactor(3, p9));
-  TEST_ASSERT_EQUAL_UINT8(44, gearToBoostFactor(4, p9));
-  TEST_ASSERT_EQUAL_UINT8(55, gearToBoostFactor(5, p9));
-  TEST_ASSERT_EQUAL_UINT8(66, gearToBoostFactor(6, p9));
+  TEST_ASSERT_EQUAL(11, gearToBoostFactor(1, p9));
+  TEST_ASSERT_EQUAL(22, gearToBoostFactor(2, p9));
+  TEST_ASSERT_EQUAL(33, gearToBoostFactor(3, p9));
+  TEST_ASSERT_EQUAL(44, gearToBoostFactor(4, p9));
+  TEST_ASSERT_EQUAL(55, gearToBoostFactor(5, p9));
+  TEST_ASSERT_EQUAL(66, gearToBoostFactor(6, p9));
   // out of range
-  TEST_ASSERT_EQUAL_UINT8(0, gearToBoostFactor(0, p9));
-  TEST_ASSERT_EQUAL_UINT8(0, gearToBoostFactor(7, p9));
+  TEST_ASSERT_EQUAL(0, gearToBoostFactor(0, p9));
+  TEST_ASSERT_EQUAL(0, gearToBoostFactor(7, p9));
+}
+
+static void test_calcBoostByGearDuty_constant(void)
+{
+  statuses cur = {};
+  config9 p9 = {};
+
+  p9.boostByGearEnabled = BOOST_BY_GEAR_CONSTANT;
+  p9.boostByGear1 = 5; // factor
+
+  cur.gear = 1;
+  TEST_ASSERT_EQUAL(1000, calcBoostByGearDuty(cur, p9)); // 5 * 2 * 100 = 1000
+
+  cur.gear = 7; // out of range
+  TEST_ASSERT_EQUAL(0, calcBoostByGearDuty(cur, p9));
+}
+
+static void test_calcBoostByGearDuty_multiplied(void)
+{
+    // Set table to known value and verify multiplied calculation
+    fill_table_values(boostTable, (table3d_value_t)7); // every cell = 7
+
+    statuses cur = {};
+    config9 p9 = {};
+    p9.boostByGearEnabled = BOOST_BY_GEAR_MULTIPLIED;
+    p9.boostByGear1 = 3; // factor
+
+    cur.gear = 1;
+    cur.TPS = 0; // lookup uses current.TPS * 2 -> 0
+    cur.RPM = 0;
+
+    // expected = gearFactor * lookupBoostTarget * 4 = 3 * 7 * 4 = 84
+    TEST_ASSERT_EQUAL(84, calcBoostByGearDuty(cur, p9));
+
+    // if lookup is zero, result should be zero as well
+    fill_table_values(boostTable, (table3d_value_t)0);
+    TEST_ASSERT_EQUAL(0, calcBoostByGearDuty(cur, p9));
 }
 
 void testBoost(void) {
@@ -62,5 +102,7 @@ void testBoost(void) {
     RUN_TEST(test_isBoostByGear_vssMode_too_low);
     RUN_TEST(test_isBoostByGear_enabled);
     RUN_TEST(test_gearToBoostFactor_basic);
+    RUN_TEST(test_calcBoostByGearDuty_constant);
+    RUN_TEST(test_calcBoostByGearDuty_multiplied);
   }
 }

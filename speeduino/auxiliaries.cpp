@@ -578,7 +578,7 @@ static uint8_t lookupBoostTarget(const statuses &current)
   return get3DTableValue(&boostTable, (current.TPS * 2U), current.RPM);
 }
 
-static uint16_t calcBoostByGearDuty(const statuses &current, const config9 &page9)
+TESTABLE_STATIC uint16_t calcBoostByGearDuty(const statuses &current, const config9 &page9)
 {
   if( page9.boostByGearEnabled == BOOST_BY_GEAR_MULTIPLIED )
   {
