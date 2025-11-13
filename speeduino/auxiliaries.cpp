@@ -681,7 +681,8 @@ static uint16_t calcCLBoostDuty(statuses &current, const config2 &page2, const c
   if( isBoostControlEnabled(current, page15) )
   {
     current.flexBoostCorrection = lookupFlexBoostCorrection(current, page2);
-    current.boostTarget = getCLBoostTarget(current, page2, page9) + current.flexBoostCorrection;
+    int16_t totalTarget = (int16_t)getCLBoostTarget(current, page2, page9) + current.flexBoostCorrection;
+    current.boostTarget = (uint16_t)clamp(totalTarget, (int16_t)0, (int16_t)INT16_MAX); 
     return boostTargetToDuty(current.boostTarget, current, page2, page6, page10);
   }
 
@@ -691,22 +692,26 @@ static uint16_t calcCLBoostDuty(statuses &current, const config2 &page2, const c
   return configPage15.boostDCWhenDisabled*100U;
 }
 
+static uint16_t calcBoostDuty(uint8_t boostType, statuses &current, const config2 &page2, const config6 &page6, const config9 &page9, const config10 &page10, const config15 &page15)
+{
+  if(boostType == OPEN_LOOP_BOOST)
+  {
+    return getOLBoostDuty(current, page2, page9);
+  }
+  
+  if (boostType == CLOSED_LOOP_BOOST)
+  {
+    return calcCLBoostDuty(current, page2, page6, page9, page10, page15);
+  } 
+
+  return 0;
+}
+
 void boostControl(void)
 {
   if( configPage6.boostEnabled==1U )
   {
-    if(configPage4.boostType == OPEN_LOOP_BOOST)
-    {
-      currentStatus.boostDuty = getOLBoostDuty(currentStatus, configPage2, configPage9);
-    }
-    else if (configPage4.boostType == CLOSED_LOOP_BOOST)
-    {
-      currentStatus.boostDuty = calcCLBoostDuty(currentStatus, configPage2, configPage6, configPage9, configPage10, configPage15);
-    } 
-    else // Unknown mode
-    {
-      currentStatus.boostDuty = 0.0;
-    }
+    currentStatus.boostDuty = calcBoostDuty(configPage4.boostType, currentStatus, configPage2, configPage6, configPage9, configPage10, configPage15);
 
     //Check for 100% duty cycle
     if(currentStatus.boostDuty >= 10000U)
