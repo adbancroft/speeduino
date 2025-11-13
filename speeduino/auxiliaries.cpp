@@ -625,15 +625,11 @@ static int16_t lookupFlexBoostCorrection(const statuses &current, const config2 
 
 static uint16_t getCLBoostTarget(const statuses &current, const config2 &page2, const config9 &page9)
 {
-  uint16_t target = 0U;
   if ( isBoostByGear(page2, page9) ) { 
-    target = calcBoostByGearTarget(current, page9); 
-  } else {       
-    target = lookupBoostTarget(current) << 1U; //Boost target table is in kpa and divided by 2
+    return calcBoostByGearTarget(current, page9); 
   }
-
-  target += current.flexBoostCorrection;
-  return clamp(target, UINT16_C(0), UINT16_C(511));
+  
+  return lookupBoostTarget(current) << 1U; //Boost target table is in kpa and divided by 2
 }
 
 static uint32_t boostDutyToPwm(uint16_t duty)
@@ -665,7 +661,7 @@ static uint16_t calcCLBoostDuty(statuses &current, const config2 &page2, const c
   if( isBoostControlEnabled(current, page15) )
   {
     current.flexBoostCorrection = lookupFlexBoostCorrection(current, page2);
-    current.boostTarget = getCLBoostTarget(current, page2, page9);
+    current.boostTarget = getCLBoostTarget(current, page2, page9) + current.flexBoostCorrection;
 
     if(current.boostTarget > 0U)
     {
