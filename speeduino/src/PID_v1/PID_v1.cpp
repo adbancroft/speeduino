@@ -539,7 +539,7 @@ integerPID_ideal::integerPID_ideal(void)
 
 void integerPID_ideal::SetSampleInterval(uint8_t interval)
 {
-    lastTime = millis() - interval;
+    lastTime = (millis() - interval) - 1U;
     mySampleInterval = interval;
 }
 
