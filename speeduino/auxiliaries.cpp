@@ -645,16 +645,6 @@ static uint32_t boostDutyToPwm(uint16_t duty)
   return ((uint32_t)(duty) * boost_pwm_max_count) / 10000UL; //Convert boost duty (Which is a % multiplied by 100) to a pwm count
 }
 
-static uint32_t processBoostDuty(uint32_t currentPwm, uint16_t duty)
-{
-  if(duty == 0U) { 
-    boostDisable();
-    return currentPwm;
-  }
-
-  return boostDutyToPwm(duty);
-}
-
 static bool isBaroBoostControlEnabled(const statuses &current, const config15 &page15)
 {
   return (page15.boostControlEnable == EN_BOOST_CONTROL_BARO) && (current.MAP >= (long)current.baro);
@@ -672,66 +662,73 @@ static bool isBoostControlEnabled(const statuses &current, const config15 &page1
       || isFixedBoostControlEnabled(current, page15);
 }
 
+static uint16_t calcCLBoostDuty(statuses &current, const config2 &page2, const config6 &page6, const config9 &page9, const config10 &page10, const config15 &page15)
+{
+  uint16_t boostDuty = 0U;
+
+  if( isBoostControlEnabled(current, page15) )
+  {
+    current.flexBoostCorrection = lookupFlexBoostCorrection(current, page2);
+    current.boostTarget = getCLBoostTarget(current, page2, page9);
+
+    if(current.boostTarget > 0U)
+    {
+      //This only needs to be run very infrequently, once every 16 calls to boostControl().
+      if( (boostCounter & 15U) == 1U)
+      {
+        configureBoostPid(page2, page6, page10);
+      }
+
+      if (!boostPID.Compute( current.MAP, current.boostTarget, page10.boostSens,
+                              get3DTableValue(&boostTableLookupDuty, current.boostTarget, current.RPM) * 100/2, 
+                              &boostDuty))
+      {
+        boostDuty = current.boostDuty;
+      }
+    }
+  }
+  else
+  {
+    boostPID.Initialize(current.MAP); //This resets the ITerm value to prevent rubber banding
+    //Boost control needs to have a high duty cycle if control is below threshold (baro or fixed value). This ensures the waste gate is closed as much as possible, this build boost as fast as possible.
+    boostDuty = configPage15.boostDCWhenDisabled*100U;
+  } //MAP above boost + hyster
+
+  return boostDuty;
+}
+
 void boostControl(void)
 {
-  if( configPage6.boostEnabled==1 )
+  if( configPage6.boostEnabled==1U )
   {
     if(configPage4.boostType == OPEN_LOOP_BOOST)
     {
       currentStatus.boostDuty = getOLBoostDuty(currentStatus, configPage2, configPage9);
-      boost_pwm_target_value = processBoostDuty(boost_pwm_target_value, currentStatus.boostDuty);
     }
     else if (configPage4.boostType == CLOSED_LOOP_BOOST)
     {
-      if( (boostCounter & 7) == 1) 
-      { 
-        currentStatus.flexBoostCorrection = lookupFlexBoostCorrection(currentStatus, configPage2);
-        currentStatus.boostTarget = getCLBoostTarget(currentStatus, configPage2, configPage9);
-      } 
-
-      if( isBoostControlEnabled(currentStatus, configPage15) )
-      {
-        if(currentStatus.boostTarget > 0)
-        {
-          //This only needs to be run very infrequently, once every 16 calls to boostControl(). This is approx. once per second
-          if( (boostCounter & 15) == 1)
-          {
-            configureBoostPid(configPage2, configPage6, configPage10);
-          }
-
-          (void)boostPID.Compute( currentStatus.MAP, currentStatus.boostTarget, configPage10.boostSens,
-                                  get3DTableValue(&boostTableLookupDuty, currentStatus.boostTarget, currentStatus.RPM) * 100/2, 
-                                  &currentStatus.boostDuty); //Compute() returns false if the required interval has not yet passed.
-          boost_pwm_target_value = processBoostDuty(boost_pwm_target_value, currentStatus.boostDuty);
-        }
-        else
-        {
-          //If boost target is 0, turn everything off
-          boostDisable();
-        }
-      }
-      else
-      {
-        boostPID.Initialize(currentStatus.MAP); //This resets the ITerm value to prevent rubber banding
-        //Boost control needs to have a high duty cycle if control is below threshold (baro or fixed value). This ensures the waste gate is closed as much as possible, this build boost as fast as possible.
-        currentStatus.boostDuty = configPage15.boostDCWhenDisabled*100;
-        boost_pwm_target_value = boostDutyToPwm(currentStatus.boostDuty);
-        ENABLE_BOOST_TIMER(); //Turn on the compare unit (ie turn on the interrupt) if boost duty >0
-        if(currentStatus.boostDuty == 0) { boostDisable(); } //If boost control does nothing disable PWM completely
-      } //MAP above boost + hyster
-    } //Open / Cloosed loop
+      currentStatus.boostDuty = calcCLBoostDuty(currentStatus, configPage2, configPage6, configPage9, configPage10, configPage15);
+    } 
+    else // Unknown mode
+    {
+      currentStatus.boostDuty = 0.0;
+    }
 
     //Check for 100% duty cycle
-    if(currentStatus.boostDuty >= 10000)
+    if(currentStatus.boostDuty >= 10000U)
     {
       DISABLE_BOOST_TIMER(); //Turn off the compare unit (ie turn off the interrupt) if boost duty is 100%
       BOOST_PIN_HIGH(); //Turn on boost pin if duty is 100%
     }
-    else if(currentStatus.boostDuty > 0)
+    else if(currentStatus.boostDuty > 0U)
     {
+      boost_pwm_target_value = boostDutyToPwm(currentStatus.boostDuty);
       ENABLE_BOOST_TIMER(); //Turn on the compare unit (ie turn on the interrupt) if boost duty is > 0
     }
-    
+    else // currentStatus.boostDuty == 0
+    {
+      boostDisable();
+    }
   }
   else { // Disable timer channel and zero the flex boost correction status
     DISABLE_BOOST_TIMER();
