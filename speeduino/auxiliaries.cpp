@@ -604,7 +604,7 @@ TESTABLE_STATIC uint16_t calcBoostByGearTarget(const statuses &current, const co
   return 0U;
 }
 
-static uint16_t calcOLBoostDuty(const statuses &current, const config2 &page2, const config9 &page9)
+TESTABLE_STATIC uint16_t calcOLBoostDuty(const statuses &current, const config2 &page2, const config9 &page9)
 {
   if ( isBoostByGear(page2, page9) ) { 
     return calcBoostByGearDuty(current, page9); 

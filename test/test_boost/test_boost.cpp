@@ -8,6 +8,7 @@ extern bool isBoostByGear(const config2 &page2, const config9 &page9);
 extern uint8_t gearToBoostFactor(uint8_t gear, const config9 &page9);
 extern uint16_t calcBoostByGearDuty(const statuses &current, const config9 &page9);
 extern uint16_t calcBoostByGearTarget(const statuses &current, const config9 &page9);
+extern uint16_t calcOLBoostDuty(const statuses &current, const config2 &page2, const config9 &page9);
 
 static void test_isBoostByGear_disabled(void)
 {
@@ -128,6 +129,46 @@ static void test_calcBoostByGearTarget_multiplied(void)
   TEST_ASSERT_EQUAL(4, calcBoostByGearTarget(cur, p9));
 }
 
+
+static void test_calcOLBoostDuty_boostByGear(void)
+{
+    statuses cur = {};
+    config2 p2 = {};
+    config9 p9 = {};
+
+    // make isBoostByGear() true
+    p2.vssMode = 2;
+    p9.boostByGearEnabled = BOOST_BY_GEAR_CONSTANT;
+    p9.boostByGear1 = 6;
+
+    cur.gear = 1;
+
+    // calcOLBoostDuty should delegate to calcBoostByGearDuty in this case
+    TEST_ASSERT_EQUAL(1200, calcOLBoostDuty(cur, p2, p9)); // 6 * 2 * 100 = 1200
+}
+
+static void test_calcOLBoostDuty_openLoop(void)
+{
+    statuses cur = {};
+    config2 p2 = {};
+    config9 p9 = {};
+
+    // make isBoostByGear() false
+    p2.vssMode = 0;
+    p9.boostByGearEnabled = BOOST_BY_GEAR_OFF;
+
+    // populate boostTable with known value
+    fill_table_values(boostTable, (table3d_value_t)9);
+
+    cur.TPS = 0;
+    cur.RPM = 0;
+
+    // expected = lookup * 2 * 100 = 9 * 2 * 100 = 1800
+    TEST_ASSERT_EQUAL(1800, calcOLBoostDuty(cur, p2, p9));
+}
+
+
+
 void testBoost(void) {
   SET_UNITY_FILENAME() {
     RUN_TEST(test_isBoostByGear_disabled);
@@ -138,6 +179,7 @@ void testBoost(void) {
     RUN_TEST(test_calcBoostByGearDuty_multiplied);
     RUN_TEST(test_calcBoostByGearTarget_constant);
     RUN_TEST(test_calcBoostByGearTarget_multiplied);
+    RUN_TEST(test_calcOLBoostDuty_boostByGear);
+    RUN_TEST(test_calcOLBoostDuty_openLoop);
   }
 }
-
