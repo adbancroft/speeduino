@@ -80,9 +80,8 @@ static table2D_u8_s16_6 flexBoostTable(&configPage10.flexBoostBins, &configPage1
 //integerPID boostPID(&MAPx100, &boost_pwm_target_value, &boostTargetx100, configPage6.boostKP, configPage6.boostKI, configPage6.boostKD, DIRECT);
 static integerPID_ideal boostPID; //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
 
-static void configureBoostPid(statuses &current, const config2 &page2, const config6 &page6, const config10 &page10)
+static void configureBoostPid(const config2 &page2, const config6 &page6, const config10 &page10)
 {
-  boostPID.SetControl(&current.MAP, &current.boostDuty , &current.boostTarget, &page10.boostSens);
   boostPID.SetSampleInterval(page10.boostIntv);
   boostPID.SetControllerDirection(DIRECT);
   boostPID.SetOutputLimits(page2.boostMinDuty, page2.boostMaxDuty);
@@ -487,7 +486,7 @@ void initialiseAuxPWM(void)
     else { pinMode(configPage10.n2o_arming_pin, INPUT); }
   }
 
-  configureBoostPid(currentStatus, configPage2, configPage6, configPage10);
+  configureBoostPid(configPage2, configPage6, configPage10);
 
   if( configPage6.vvtEnabled > 0)
   {
@@ -697,10 +696,12 @@ void boostControl(void)
           //This only needs to be run very infrequently, once every 16 calls to boostControl(). This is approx. once per second
           if( (boostCounter & 15) == 1)
           {
-            configureBoostPid(currentStatus, configPage2, configPage6, configPage10);
+            configureBoostPid(configPage2, configPage6, configPage10);
           }
 
-          (void)boostPID.Compute(get3DTableValue(&boostTableLookupDuty, currentStatus.boostTarget, currentStatus.RPM) * 100/2); //Compute() returns false if the required interval has not yet passed.
+          (void)boostPID.Compute( currentStatus.MAP, currentStatus.boostTarget, configPage10.boostSens,
+                                  get3DTableValue(&boostTableLookupDuty, currentStatus.boostTarget, currentStatus.RPM) * 100/2, 
+                                  &currentStatus.boostDuty); //Compute() returns false if the required interval has not yet passed.
           boost_pwm_target_value = processBoostDuty(boost_pwm_target_value, currentStatus.boostDuty);
         }
         else
@@ -711,7 +712,7 @@ void boostControl(void)
       }
       else
       {
-        boostPID.Initialize(); //This resets the ITerm value to prevent rubber banding
+        boostPID.Initialize(currentStatus.MAP); //This resets the ITerm value to prevent rubber banding
         //Boost control needs to have a high duty cycle if control is below threshold (baro or fixed value). This ensures the waste gate is closed as much as possible, this build boost as fast as possible.
         currentStatus.boostDuty = configPage15.boostDCWhenDisabled*100;
         boost_pwm_target_value = boostDutyToPwm(currentStatus.boostDuty);
@@ -1063,7 +1064,7 @@ void wmiControl(void)
 
 void boostDisable(void)
 {
-  boostPID.Initialize(); //This resets the ITerm value to prevent rubber banding
+  boostPID.Initialize(currentStatus.MAP); //This resets the ITerm value to prevent rubber banding
   currentStatus.boostDuty = 0;
   DISABLE_BOOST_TIMER(); //Turn off timer
   BOOST_PIN_LOW(); //Make sure solenoid is off (0% duty)

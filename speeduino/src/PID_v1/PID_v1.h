@@ -170,7 +170,7 @@ class integerPID_ideal
   //commonly used functions **************************************************************************
     integerPID_ideal(void);     //   Setpoint.  Initial tuning parameters are also set here
 
-    bool Compute(uint16_t);               // * performs the PID calculation.  it should be
+    bool Compute(long Input, uint16_t Setpoint, uint16_t Sensitivity, uint16_t FeedForwwardTerm, uint16_t* Output);               // * performs the PID calculation.  it should be
                                           //   called every time loop() cycles. ON/OFF and
                                           //   calculation frequency can be set using SetMode
                                           //   SetSampleTime respectively
@@ -179,7 +179,6 @@ class integerPID_ideal
 										  //it's likely the user will want to change this depending on
 										  //the application
 
-    void SetControl(const long* Input, uint16_t* Output, const uint16_t* Setpoint, const uint16_t* Sensitivity);
     void SetSampleInterval(uint8_t interval);
   //available but not commonly used functions ********************************************************
     void SetTunings(byte, byte,       // * While most users will set the tunings once in the
@@ -195,7 +194,7 @@ class integerPID_ideal
   //Display functions ****************************************************************
 	int GetMode();						  //  inside the PID.
 	int GetDirection();					  //
-	void Initialize();
+	void Initialize(long Input);
 
   private:
 
@@ -210,12 +209,7 @@ class integerPID_ideal
 
 	int controllerDirection;
 
-    const long *myInput;              //
-    uint16_t *myOutput;         //   This is a percentage figure multiplied by 100 (To give 2 points of precision)
-    const uint16_t *mySetpoint;       //
-    const uint16_t *mySensitivity;
-    uint8_t mySampleInterval;
-
+  uint8_t mySampleInterval;
 
 	unsigned long lastTime;
   long lastError;

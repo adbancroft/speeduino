@@ -537,21 +537,11 @@ integerPID_ideal::integerPID_ideal(void)
     lastError = 0;
 }
 
-void integerPID_ideal::SetControl(const long* Input, uint16_t* Output, const uint16_t* Setpoint, const uint16_t* Sensitivity)
-{
-   mySensitivity = Sensitivity;
-   myOutput = Output;
-   myInput = Input;
-   mySetpoint = Setpoint;
-}
-
 void integerPID_ideal::SetSampleInterval(uint8_t interval)
 {
-    lastTime = millis()- interval;
+    lastTime = millis() - interval;
     mySampleInterval = interval;
 }
-
-
 
 /* Compute() **********************************************************************
  *     This, as they say, is where the magic happens.  this function should be called
@@ -559,7 +549,7 @@ void integerPID_ideal::SetSampleInterval(uint8_t interval)
  *   pid Output needs to be computed.  returns true when the output is computed,
  *   false when nothing has been done.
  **********************************************************************************/
-bool integerPID_ideal::Compute(uint16_t FeedForward)
+bool integerPID_ideal::Compute(long Input, uint16_t Setpoint, uint16_t Sensitivity, uint16_t FeedForward, uint16_t* Output)
 {
    unsigned long now = millis();
    //SampleTime = (now - lastTime);
@@ -567,9 +557,9 @@ bool integerPID_ideal::Compute(uint16_t FeedForward)
    if(timeChange >= mySampleInterval)
    {
       /*Compute all the working error variables*/
-      uint16_t sensitivity = 10001 - (*mySensitivity * 2);
-      long unitless_setpoint = (((long)*mySetpoint - 0) * 10000L) / (sensitivity - 0);
-      long unitless_input = (((long)*myInput - 0) * 10000L) / (sensitivity - 0);
+      uint16_t sensitivity = 10001 - (Sensitivity * 2);
+      long unitless_setpoint = (((long)Setpoint - 0) * 10000L) / (sensitivity - 0);
+      long unitless_input = ((Input - 0) * 10000L) / (sensitivity - 0);
       long error = unitless_setpoint - unitless_input;
 
       ITerm += error;
@@ -610,7 +600,7 @@ bool integerPID_ideal::Compute(uint16_t FeedForward)
          ITerm -= error; //Prevent the ITerm from growing indefinitely whilst the output is being limited (error was added to ITerm above, so this is simply setting it back to it's original value)
       }
 
-	    *myOutput = output;
+	    *Output = output;
 
       /*Remember some variables for next time*/
       lastTime = now;
@@ -665,10 +655,10 @@ void integerPID_ideal::SetOutputLimits(long Min, long Max)
  *	does all the things that need to happen to ensure a bumpless transfer
  *  from manual to automatic mode.
  ******************************************************************************/
-void integerPID_ideal::Initialize()
+void integerPID_ideal::Initialize(long Input)
 {
    ITerm = 0;
-   lastInput = *myInput;
+   lastInput = Input;
    lastError = 0;
 }
 
