@@ -707,27 +707,31 @@ static uint16_t calcBoostDuty(uint8_t boostType, statuses &current, const config
   return 0;
 }
 
+static void applyBoostDuty(uint16_t duty)
+{
+  //Check for 100% duty cycle
+  if(duty >= 10000U)
+  {
+    DISABLE_BOOST_TIMER(); //Turn off the compare unit (ie turn off the interrupt) if boost duty is 100%
+    BOOST_PIN_HIGH(); //Turn on boost pin if duty is 100%
+  }
+  else if(duty> 0U)
+  {
+    boost_pwm_target_value = boostDutyToPwm(duty);
+    ENABLE_BOOST_TIMER(); //Turn on the compare unit (ie turn on the interrupt) if boost duty is > 0
+  }
+  else // duty== 0
+  {
+    boostDisable();
+  }
+}
+
 void boostControl(void)
 {
   if( configPage6.boostEnabled==1U )
   {
     currentStatus.boostDuty = calcBoostDuty(configPage4.boostType, currentStatus, configPage2, configPage6, configPage9, configPage10, configPage15);
-
-    //Check for 100% duty cycle
-    if(currentStatus.boostDuty >= 10000U)
-    {
-      DISABLE_BOOST_TIMER(); //Turn off the compare unit (ie turn off the interrupt) if boost duty is 100%
-      BOOST_PIN_HIGH(); //Turn on boost pin if duty is 100%
-    }
-    else if(currentStatus.boostDuty > 0U)
-    {
-      boost_pwm_target_value = boostDutyToPwm(currentStatus.boostDuty);
-      ENABLE_BOOST_TIMER(); //Turn on the compare unit (ie turn on the interrupt) if boost duty is > 0
-    }
-    else // currentStatus.boostDuty == 0
-    {
-      boostDisable();
-    }
+    applyBoostDuty(currentStatus.boostDuty);
   }
   else { // Disable timer channel and zero the flex boost correction status
     DISABLE_BOOST_TIMER();
