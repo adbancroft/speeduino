@@ -553,13 +553,12 @@ void initialiseAuxPWM(void)
 
 }
 
-
 TESTABLE_STATIC bool isBoostByGear(const config2 &page2, const config9 &page9)
 {
   return (page9.boostByGearEnabled!=BOOST_BY_GEAR_OFF) && (page2.vssMode > 1);
 }
 
-static uint8_t gearToBoostFactor(uint8_t gear, const config9 &page9)
+TESTABLE_STATIC uint8_t gearToBoostFactor(uint8_t gear, const config9 &page9)
 {
   switch (gear)
   {
