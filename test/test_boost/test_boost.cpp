@@ -7,6 +7,7 @@
 extern bool isBoostByGear(const config2 &page2, const config9 &page9);
 extern uint8_t gearToBoostFactor(uint8_t gear, const config9 &page9);
 extern uint16_t calcBoostByGearDuty(const statuses &current, const config9 &page9);
+extern uint16_t calcBoostByGearTarget(const statuses &current, const config9 &page9);
 
 static void test_isBoostByGear_disabled(void)
 {
@@ -96,6 +97,37 @@ static void test_calcBoostByGearDuty_multiplied(void)
     TEST_ASSERT_EQUAL(0, calcBoostByGearDuty(cur, p9));
 }
 
+
+static void test_calcBoostByGearTarget_constant(void)
+{
+  statuses cur = {};
+  config9 p9 = {};
+
+  p9.boostByGearEnabled = BOOST_BY_GEAR_CONSTANT;
+  p9.boostByGear1 = 5; // factor
+
+  cur.gear = 1;
+  TEST_ASSERT_EQUAL(10, calcBoostByGearTarget(cur, p9)); // 5 * 2 = 10
+}
+
+static void test_calcBoostByGearTarget_multiplied(void)
+{
+  // Choose values so (gearFactor * lookup) is divisible by 100 to avoid truncation
+  fill_table_values(boostTable, (table3d_value_t)25); // every cell = 25
+
+  statuses cur = {};
+  config9 p9 = {};
+  p9.boostByGearEnabled = BOOST_BY_GEAR_MULTIPLIED;
+  p9.boostByGear1 = 4; // factor
+
+  cur.gear = 1;
+  cur.TPS = 0;
+  cur.RPM = 0;
+
+  // expected = ((4*25)/100) * 4 = (100/100)*4 = 4
+  TEST_ASSERT_EQUAL(4, calcBoostByGearTarget(cur, p9));
+}
+
 void testBoost(void) {
   SET_UNITY_FILENAME() {
     RUN_TEST(test_isBoostByGear_disabled);
@@ -104,5 +136,8 @@ void testBoost(void) {
     RUN_TEST(test_gearToBoostFactor_basic);
     RUN_TEST(test_calcBoostByGearDuty_constant);
     RUN_TEST(test_calcBoostByGearDuty_multiplied);
+    RUN_TEST(test_calcBoostByGearTarget_constant);
+    RUN_TEST(test_calcBoostByGearTarget_multiplied);
   }
 }
+
