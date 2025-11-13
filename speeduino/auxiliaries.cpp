@@ -78,13 +78,16 @@ static table2D_u8_s16_6 flexBoostTable(&configPage10.flexBoostBins, &configPage1
 
 //Old PID method. Retained in case the new one has issues
 //integerPID boostPID(&MAPx100, &boost_pwm_target_value, &boostTargetx100, configPage6.boostKP, configPage6.boostKI, configPage6.boostKD, DIRECT);
-static integerPID_ideal boostPID(&currentStatus.MAP, &currentStatus.boostDuty , &currentStatus.boostTarget, &configPage10.boostSens, &configPage10.boostIntv, configPage6.boostKP, configPage6.boostKI, configPage6.boostKD, DIRECT); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID_ideal boostPID; //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
 
-static void configureBoostPid(const config2 &page2, const config6 &page6)
+static void configureBoostPid(statuses &current, const config2 &page2, const config6 &page6, const config10 &page10)
 {
+  boostPID.SetControl(&current.MAP, &current.boostDuty , &current.boostTarget, &page10.boostSens);
+  boostPID.SetSampleInterval(page10.boostIntv);
+  boostPID.SetControllerDirection(DIRECT);
   boostPID.SetOutputLimits(page2.boostMinDuty, page2.boostMaxDuty);
 
-  if(configPage6.boostMode == BOOST_MODE_SIMPLE) { 
+  if(page6.boostMode == BOOST_MODE_SIMPLE) { 
     boostPID.SetTunings(SIMPLE_BOOST_P, SIMPLE_BOOST_I, SIMPLE_BOOST_D); 
   } else { 
     boostPID.SetTunings(page6.boostKP, page6.boostKI, page6.boostKD); 
@@ -484,7 +487,7 @@ void initialiseAuxPWM(void)
     else { pinMode(configPage10.n2o_arming_pin, INPUT); }
   }
 
-  configureBoostPid(configPage2, configPage6);
+  configureBoostPid(currentStatus, configPage2, configPage6, configPage10);
 
   if( configPage6.vvtEnabled > 0)
   {
@@ -694,7 +697,7 @@ void boostControl(void)
           //This only needs to be run very infrequently, once every 16 calls to boostControl(). This is approx. once per second
           if( (boostCounter & 15) == 1)
           {
-            configureBoostPid(configPage2, configPage6);
+            configureBoostPid(currentStatus, configPage2, configPage6, configPage10);
           }
 
           (void)boostPID.Compute(get3DTableValue(&boostTableLookupDuty, currentStatus.boostTarget, currentStatus.RPM) * 100/2); //Compute() returns false if the required interval has not yet passed.

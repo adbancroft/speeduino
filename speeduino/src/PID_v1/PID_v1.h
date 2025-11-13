@@ -168,8 +168,7 @@ class integerPID_ideal
   #define REVERSE  1
 
   //commonly used functions **************************************************************************
-    integerPID_ideal(long*, uint16_t*, uint16_t*, uint16_t*, byte*,        // * constructor.  links the PID to the Input, Output, and
-        byte, byte, byte, byte);     //   Setpoint.  Initial tuning parameters are also set here
+    integerPID_ideal(void);     //   Setpoint.  Initial tuning parameters are also set here
 
     bool Compute();                       // * performs the PID calculation.  it should be
                                           //   called every time loop() cycles. ON/OFF and
@@ -184,8 +183,8 @@ class integerPID_ideal
 										  //it's likely the user will want to change this depending on
 										  //the application
 
-
-
+    void SetControl(const long* Input, uint16_t* Output, const uint16_t* Setpoint, const uint16_t* Sensitivity);
+    void SetSampleInterval(uint8_t interval);
   //available but not commonly used functions ********************************************************
     void SetTunings(byte, byte,       // * While most users will set the tunings once in the
                     byte);         	  //   constructor, this function gives the user the option
@@ -215,11 +214,11 @@ class integerPID_ideal
 
 	int controllerDirection;
 
-    long *myInput;              //
+    const long *myInput;              //
     uint16_t *myOutput;         //   This is a percentage figure multiplied by 100 (To give 2 points of precision)
-    uint16_t *mySetpoint;       //
-    uint16_t *mySensitivity;
-    byte *mySampleTime;
+    const uint16_t *mySetpoint;       //
+    const uint16_t *mySensitivity;
+    uint8_t mySampleInterval;
 
 
 	unsigned long lastTime;

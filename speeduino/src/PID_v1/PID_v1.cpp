@@ -527,24 +527,31 @@ void integerPID::ResetIntegeral() { outputSum=0;}
  *    The parameters specified here are those for for which we can't set up
  *    reliable defaults, so we need to have the user set them.
  ***************************************************************************/
-integerPID_ideal::integerPID_ideal(long* Input, uint16_t* Output, uint16_t* Setpoint, uint16_t* Sensitivity, byte* SampleTime,
-                                   byte Kp, byte Ki, byte Kd, byte ControllerDirection)
+integerPID_ideal::integerPID_ideal(void)
 {
+    integerPID_ideal::SetOutputLimits(20, 80);				//default output limits
 
-    myOutput = Output;
-    myInput = (long*)Input;
-    mySetpoint = Setpoint;
-    mySensitivity = Sensitivity;
-    mySampleTime = SampleTime;
+    integerPID_ideal::SetControllerDirection(DIRECT);
+    integerPID_ideal::SetTunings(1U, 1U, 1U);
 
-	  integerPID_ideal::SetOutputLimits(20, 80);				//default output limits
-
-    integerPID_ideal::SetControllerDirection(ControllerDirection);
-    integerPID_ideal::SetTunings(Kp, Ki, Kd);
-
-    lastTime = millis()- *mySampleTime;
     lastError = 0;
 }
+
+void integerPID_ideal::SetControl(const long* Input, uint16_t* Output, const uint16_t* Setpoint, const uint16_t* Sensitivity)
+{
+   mySensitivity = Sensitivity;
+   myOutput = Output;
+   myInput = Input;
+   mySetpoint = Setpoint;
+}
+
+void integerPID_ideal::SetSampleInterval(uint8_t interval)
+{
+    lastTime = millis()- interval;
+    mySampleInterval = interval;
+}
+
+
 
 /* Compute() **********************************************************************
  *     This, as they say, is where the magic happens.  this function should be called
@@ -569,7 +576,7 @@ bool integerPID_ideal::Compute(uint16_t FeedForward)
    unsigned long now = millis();
    //SampleTime = (now - lastTime);
    unsigned long timeChange = (now - lastTime);
-   if(timeChange >= *mySampleTime)
+   if(timeChange >= mySampleInterval)
    {
       /*Compute all the working error variables*/
       uint16_t sensitivity = 10001 - (*mySensitivity * 2);
