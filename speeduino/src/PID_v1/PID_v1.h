@@ -170,10 +170,6 @@ class integerPID_ideal
   //commonly used functions **************************************************************************
     integerPID_ideal(void);     //   Setpoint.  Initial tuning parameters are also set here
 
-    bool Compute();                       // * performs the PID calculation.  it should be
-                                          //   called every time loop() cycles. ON/OFF and
-                                          //   calculation frequency can be set using SetMode
-                                          //   SetSampleTime respectively
     bool Compute(uint16_t);               // * performs the PID calculation.  it should be
                                           //   called every time loop() cycles. ON/OFF and
                                           //   calculation frequency can be set using SetMode

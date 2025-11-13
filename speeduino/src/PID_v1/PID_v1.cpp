@@ -559,18 +559,6 @@ void integerPID_ideal::SetSampleInterval(uint8_t interval)
  *   pid Output needs to be computed.  returns true when the output is computed,
  *   false when nothing has been done.
  **********************************************************************************/
-bool integerPID_ideal::Compute()
-{
-   //This is the original PID with 50% Base target DC
-   return Compute(50*limitMultiplier);
-}
-
-/* Compute() **********************************************************************
- *     This, as they say, is where the magic happens.  this function should be called
- *   every time "void loop()" executes.  the function will decide for itself whether a new
- *   pid Output needs to be computed.  returns true when the output is computed,
- *   false when nothing has been done.
- **********************************************************************************/
 bool integerPID_ideal::Compute(uint16_t FeedForward)
 {
    unsigned long now = millis();
