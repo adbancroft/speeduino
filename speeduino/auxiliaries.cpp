@@ -654,39 +654,41 @@ static bool isBoostControlEnabled(const statuses &current, const config15 &page1
       || isFixedBoostControlEnabled(current, page15);
 }
 
-static uint16_t calcCLBoostDuty(statuses &current, const config2 &page2, const config6 &page6, const config9 &page9, const config10 &page10, const config15 &page15)
+static uint16_t boostTargetToDuty(uint16_t target, const statuses &current, const config2 &page2, const config6 &page6, const config10 &page10)
 {
   uint16_t boostDuty = 0U;
 
+  if(target > 0U)
+  {
+    //This only needs to be run very infrequently, once every 16 calls to boostControl().
+    if( (boostCounter & 15U) == 1U)
+    {
+      configureBoostPid(page2, page6, page10);
+    }
+
+    if (!boostPID.Compute( current.MAP, target, page10.boostSens,
+                            get3DTableValue(&boostTableLookupDuty, target, current.RPM) * 100U/2U, 
+                            &boostDuty))
+    {
+      boostDuty = current.boostDuty;
+    }
+  }
+  return boostDuty;
+}
+
+static uint16_t calcCLBoostDuty(statuses &current, const config2 &page2, const config6 &page6, const config9 &page9, const config10 &page10, const config15 &page15)
+{
   if( isBoostControlEnabled(current, page15) )
   {
     current.flexBoostCorrection = lookupFlexBoostCorrection(current, page2);
     current.boostTarget = getCLBoostTarget(current, page2, page9) + current.flexBoostCorrection;
-
-    if(current.boostTarget > 0U)
-    {
-      //This only needs to be run very infrequently, once every 16 calls to boostControl().
-      if( (boostCounter & 15U) == 1U)
-      {
-        configureBoostPid(page2, page6, page10);
-      }
-
-      if (!boostPID.Compute( current.MAP, current.boostTarget, page10.boostSens,
-                              get3DTableValue(&boostTableLookupDuty, current.boostTarget, current.RPM) * 100/2, 
-                              &boostDuty))
-      {
-        boostDuty = current.boostDuty;
-      }
-    }
+    return boostTargetToDuty(current.boostTarget, current, page2, page6, page10);
   }
-  else
-  {
-    boostPID.Initialize(current.MAP); //This resets the ITerm value to prevent rubber banding
-    //Boost control needs to have a high duty cycle if control is below threshold (baro or fixed value). This ensures the waste gate is closed as much as possible, this build boost as fast as possible.
-    boostDuty = configPage15.boostDCWhenDisabled*100U;
-  } //MAP above boost + hyster
 
-  return boostDuty;
+  boostPID.Initialize(current.MAP); //This resets the ITerm value to prevent rubber banding
+  // Boost control needs to have a high duty cycle if control is below threshold (baro or fixed value). 
+  // This ensures the waste gate is closed as much as possible, this build boost as fast as possible.
+  return configPage15.boostDCWhenDisabled*100U;
 }
 
 void boostControl(void)
