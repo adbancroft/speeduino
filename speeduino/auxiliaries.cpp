@@ -606,15 +606,11 @@ static uint16_t calcBoostByGearTarget(const statuses &current, const config9 &pa
 
 static uint16_t getOLBoostDuty(const statuses &current, const config2 &page2, const config9 &page9)
 {
-  uint16_t duty = 0U;
-      
   if ( isBoostByGear(page2, page9) ) { 
-    duty = calcBoostByGearDuty(current, page9); 
-  } else { 
-    duty = lookupBoostTarget(current) * 2U * 100U; 
+    return calcBoostByGearDuty(current, page9); 
   }
-
-  return clamp(duty, UINT16_C(0), UINT16_C(10000)); //Safety check  
+  
+  return lookupBoostTarget(current) * 2U * 100U; 
 }
 
 static int16_t lookupFlexBoostCorrection(const statuses &current, const config2 &page2)
