@@ -75,7 +75,7 @@ bool vvtIsHot;
 bool vvtTimeHold;
 uint16_t vvt_pwm_max_count; //Used for variable PWM frequency
 uint16_t boost_pwm_max_count; //Used for variable PWM frequency
-static table2D_u8_s16_6 flexBoostTable(&configPage10.flexBoostBins, &configPage10.flexBoostAdj);
+TESTABLE_STATIC table2D_u8_s16_6 flexBoostTable(&configPage10.flexBoostBins, &configPage10.flexBoostAdj);
 
 //Old PID method. Retained in case the new one has issues
 //integerPID boostPID(&MAPx100, &boost_pwm_target_value, &boostTargetx100, configPage6.boostKP, configPage6.boostKI, configPage6.boostKD, DIRECT);
@@ -613,7 +613,7 @@ TESTABLE_STATIC uint16_t calcOLBoostDuty(const statuses &current, const config2 
   return lookupBoostTarget(current) * 2U * 100U; 
 }
 
-static int16_t lookupFlexBoostCorrection(const statuses &current, const config2 &page2)
+TESTABLE_STATIC int16_t lookupFlexBoostCorrection(const statuses &current, const config2 &page2)
 {
   //If flex fuel is enabled, there can be an adder to the boost target based on ethanol content
   if( page2.flexEnabled == 1U )

@@ -9,6 +9,7 @@ extern uint8_t gearToBoostFactor(uint8_t gear, const config9 &page9);
 extern uint16_t calcBoostByGearDuty(const statuses &current, const config9 &page9);
 extern uint16_t calcBoostByGearTarget(const statuses &current, const config9 &page9);
 extern uint16_t calcOLBoostDuty(const statuses &current, const config2 &page2, const config9 &page9);
+extern int16_t lookupFlexBoostCorrection(const statuses &current, const config2 &page2);
 
 static void test_isBoostByGear_disabled(void)
 {
@@ -167,7 +168,40 @@ static void test_calcOLBoostDuty_openLoop(void)
     TEST_ASSERT_EQUAL(1800, calcOLBoostDuty(cur, p2, p9));
 }
 
+static void test_lookupFlexBoostCorrection_disabled(void)
+{
+  statuses cur = {};
+  config2 p2 = {};
 
+  // flex disabled -> correction should be zero
+  p2.flexEnabled = 0;
+  cur.ethanolPct = 40; // arbitrary
+  TEST_ASSERT_EQUAL(0, lookupFlexBoostCorrection(cur, p2));
+}
+
+static void test_lookupFlexBoostCorrection_enabled(void)
+{
+  statuses cur = {};
+  config2 p2 = {};
+
+  // Enable flex correction
+  p2.flexEnabled = 1;
+
+  // Set bins so that ethanolPct == 40 maps exactly to bin index 2
+  configPage10.flexBoostBins[0] = 0;
+  configPage10.flexBoostBins[1] = 20;
+  configPage10.flexBoostBins[2] = 40;
+  configPage10.flexBoostBins[3] = 60;
+  configPage10.flexBoostBins[4] = 80;
+  configPage10.flexBoostBins[5] = 100;
+
+  // Populate corresponding adj values and pick index 2 value
+  for(int i=0;i<6;i++) { configPage10.flexBoostAdj[i] = (int16_t)((i+1)*10); }
+
+  cur.ethanolPct = 40; // exact match to bin 2 -> value should be flexBoostAdj[2] == 30
+
+  TEST_ASSERT_EQUAL_INT16((int16_t)30, lookupFlexBoostCorrection(cur, p2));
+}
 
 void testBoost(void) {
   SET_UNITY_FILENAME() {
@@ -181,5 +215,7 @@ void testBoost(void) {
     RUN_TEST(test_calcBoostByGearTarget_multiplied);
     RUN_TEST(test_calcOLBoostDuty_boostByGear);
     RUN_TEST(test_calcOLBoostDuty_openLoop);
+    RUN_TEST(test_lookupFlexBoostCorrection_disabled);
+    RUN_TEST(test_lookupFlexBoostCorrection_enabled);
   }
 }
