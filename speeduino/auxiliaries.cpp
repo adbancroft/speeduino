@@ -11,6 +11,7 @@ A full copy of the license may be found in the projects root directory
 #include "timers.h"
 #include "utilities.h"
 #include "units.h"
+#include "unit_testing.h"
 
 static long vvt1_pwm_value;
 static long vvt2_pwm_value;
@@ -553,7 +554,7 @@ void initialiseAuxPWM(void)
 }
 
 
-static bool isBoostByGear(const config2 &page2, const config9 &page9)
+TESTABLE_STATIC bool isBoostByGear(const config2 &page2, const config9 &page9)
 {
   return (page9.boostByGearEnabled!=BOOST_BY_GEAR_OFF) && (page2.vssMode > 1);
 }
