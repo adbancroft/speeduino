@@ -604,7 +604,7 @@ static uint16_t calcBoostByGearTarget(const statuses &current, const config9 &pa
   return 0U;
 }
 
-static uint16_t getOLBoostDuty(const statuses &current, const config2 &page2, const config9 &page9)
+static uint16_t calcOLBoostDuty(const statuses &current, const config2 &page2, const config9 &page9)
 {
   if ( isBoostByGear(page2, page9) ) { 
     return calcBoostByGearDuty(current, page9); 
@@ -696,7 +696,7 @@ static uint16_t calcBoostDuty(uint8_t boostType, statuses &current, const config
 {
   if(boostType == OPEN_LOOP_BOOST)
   {
-    return getOLBoostDuty(current, page2, page9);
+    return calcOLBoostDuty(current, page2, page9);
   }
   
   if (boostType == CLOSED_LOOP_BOOST)
