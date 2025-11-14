@@ -14,6 +14,7 @@ extern uint16_t getCLBoostTarget(const statuses &current, const config2 &page2, 
 extern bool isBoostControlEnabled(const statuses &current, const config15 &page15);
 extern uint16_t boostTargetToDuty(uint16_t target, const statuses &current, const config2 &page2, const config6 &page6, const config10 &page10);
 extern uint16_t calcCLBoostDuty(statuses &current, const config2 &page2, const config6 &page6, const config9 &page9, const config10 &page10, const config15 &page15);
+extern uint16_t calcBoostDuty(uint8_t boostType, statuses &current, const config2 &page2, const config6 &page6, const config9 &page9, const config10 &page10, const config15 &page15);
 
 static void test_isBoostByGear_disabled(void)
 {
@@ -44,6 +45,22 @@ static void test_isBoostByGear_enabled(void)
   TEST_ASSERT_TRUE(isBoostByGear(p2, p9));
 }
 
+static void setup_boost_by_gear_constant(config9 &p9, uint8_t firstGearFactor)
+{
+  p9.boostByGearEnabled = BOOST_BY_GEAR_CONSTANT;
+  p9.boostByGear1 = firstGearFactor;
+}
+static void setup_boost_by_gear_constant(config2 &p2, config9 &p9, uint8_t firstGearFactor)
+{
+  p2.vssMode = 2;
+  setup_boost_by_gear_constant(p9, firstGearFactor);
+}
+static void setup_boost_by_gear_multiplied(config9 &p9, uint8_t firstGearFactor)
+{
+  p9.boostByGearEnabled = BOOST_BY_GEAR_MULTIPLIED;
+  p9.boostByGear1 = firstGearFactor;
+}
+
 static void test_gearToBoostFactor_basic(void)
 {
   config9 p9 = {};
@@ -66,17 +83,20 @@ static void test_gearToBoostFactor_basic(void)
   TEST_ASSERT_EQUAL(0, gearToBoostFactor(7, p9));
 }
 
+static void setup_baro_control(statuses &cur, config15 &p15)
+{
+  // Enable boost control (baro mode) and ensure MAP >= baro
+  p15.boostControlEnable = EN_BOOST_CONTROL_BARO;
+  cur.baro = 50;
+  cur.MAP = 50;
+}
+
 static void test_isBoostControlEnabled_baro(void)
 {
   statuses cur = {};
   config15 p15 = {};
 
-  // Baro mode
-  p15.boostControlEnable = EN_BOOST_CONTROL_BARO;
-
-  // MAP >= baro -> enabled
-  cur.baro = 50;
-  cur.MAP = 50;
+  setup_baro_control(cur, p15);
   TEST_ASSERT_TRUE(isBoostControlEnabled(cur, p15));
 
   // MAP < baro -> disabled
@@ -125,7 +145,7 @@ static void test_boostTargetToDuty_positive(void)
   // Call with a small positive target; exact output depends on PID internals, so assert general bounds
   uint16_t res = boostTargetToDuty(5U, cur, p2, p6, p10);
   // Result should be a valid duty between 0 and 10000 (0% - 100% with 2 decimal places)
-  TEST_ASSERT_TRUE(res <= 10000U);
+  TEST_ASSERT_EQUAL(2000, res);
 }
 
 static void test_calcBoostByGearDuty_constant(void)
@@ -133,8 +153,7 @@ static void test_calcBoostByGearDuty_constant(void)
   statuses cur = {};
   config9 p9 = {};
 
-  p9.boostByGearEnabled = BOOST_BY_GEAR_CONSTANT;
-  p9.boostByGear1 = 5; // factor
+  setup_boost_by_gear_constant(p9, 5);
 
   cur.gear = 1;
   TEST_ASSERT_EQUAL(1000, calcBoostByGearDuty(cur, p9)); // 5 * 2 * 100 = 1000
@@ -150,8 +169,7 @@ static void test_calcBoostByGearDuty_multiplied(void)
 
     statuses cur = {};
     config9 p9 = {};
-    p9.boostByGearEnabled = BOOST_BY_GEAR_MULTIPLIED;
-    p9.boostByGear1 = 3; // factor
+    setup_boost_by_gear_multiplied(p9, 3);
 
     cur.gear = 1;
     cur.TPS = 0; // lookup uses current.TPS * 2 -> 0
@@ -171,8 +189,7 @@ static void test_calcBoostByGearTarget_constant(void)
   statuses cur = {};
   config9 p9 = {};
 
-  p9.boostByGearEnabled = BOOST_BY_GEAR_CONSTANT;
-  p9.boostByGear1 = 5; // factor
+  setup_boost_by_gear_constant(p9, 5);
 
   cur.gear = 1;
   TEST_ASSERT_EQUAL(10, calcBoostByGearTarget(cur, p9)); // 5 * 2 = 10
@@ -185,8 +202,7 @@ static void test_calcBoostByGearTarget_multiplied(void)
 
   statuses cur = {};
   config9 p9 = {};
-  p9.boostByGearEnabled = BOOST_BY_GEAR_MULTIPLIED;
-  p9.boostByGear1 = 4; // factor
+  setup_boost_by_gear_multiplied(p9, 4);
 
   cur.gear = 1;
   cur.TPS = 0;
@@ -196,7 +212,6 @@ static void test_calcBoostByGearTarget_multiplied(void)
   TEST_ASSERT_EQUAL(4, calcBoostByGearTarget(cur, p9));
 }
 
-
 static void test_calcOLBoostDuty_boostByGear(void)
 {
     statuses cur = {};
@@ -204,9 +219,7 @@ static void test_calcOLBoostDuty_boostByGear(void)
     config9 p9 = {};
 
     // make isBoostByGear() true
-    p2.vssMode = 2;
-    p9.boostByGearEnabled = BOOST_BY_GEAR_CONSTANT;
-    p9.boostByGear1 = 6;
+    setup_boost_by_gear_constant(p2, p9, 6);
 
     cur.gear = 1;
 
@@ -245,24 +258,24 @@ static void test_lookupFlexBoostCorrection_disabled(void)
   TEST_ASSERT_EQUAL(0, lookupFlexBoostCorrection(cur, p2));
 }
 
+static void setup_flex_table(config2 &p2, 
+                             const uint8_t (&bins)[_countof(configPage10.flexBoostBins)],
+                             const int16_t (&adjust)[_countof(configPage10.flexBoostAdj)])
+{
+  p2.flexEnabled = 1;
+  memcpy(configPage10.flexBoostBins, bins, sizeof(bins));
+  memcpy(configPage10.flexBoostAdj, adjust, sizeof(adjust));
+}
+
 static void test_lookupFlexBoostCorrection_enabled(void)
 {
   statuses cur = {};
   config2 p2 = {};
 
-  // Enable flex correction
-  p2.flexEnabled = 1;
-
   // Set bins so that ethanolPct == 40 maps exactly to bin index 2
-  configPage10.flexBoostBins[0] = 0;
-  configPage10.flexBoostBins[1] = 20;
-  configPage10.flexBoostBins[2] = 40;
-  configPage10.flexBoostBins[3] = 60;
-  configPage10.flexBoostBins[4] = 80;
-  configPage10.flexBoostBins[5] = 100;
-
-  // Populate corresponding adj values and pick index 2 value
-  for(int i=0;i<6;i++) { configPage10.flexBoostAdj[i] = (int16_t)((i+1)*10); }
+  static constexpr uint8_t bins[_countof(configPage10.flexBoostBins)] = { 0, 20, 40, 60, 80, 100 };
+  static constexpr int16_t adjust[_countof(configPage10.flexBoostAdj)] = { 10, 20, 30, 40, 50, 60 };
+  setup_flex_table(p2, bins, adjust);
 
   cur.ethanolPct = 40; // exact match to bin 2 -> value should be flexBoostAdj[2] == 30
 
@@ -277,9 +290,7 @@ static void test_getCLBoostTarget_boostByGear(void)
   config9 p9 = {};
 
   // Make boost-by-gear active
-  p2.vssMode = 2;
-  p9.boostByGearEnabled = BOOST_BY_GEAR_CONSTANT;
-  p9.boostByGear1 = 7; // factor
+  setup_boost_by_gear_constant(p2, p9, 7);
 
   cur.gear = 1;
 
@@ -294,7 +305,6 @@ static void test_getCLBoostTarget_openLoop(void)
   config9 p9 = {};
 
   // Ensure boost-by-gear disabled
-  p2.vssMode = 0;
   p9.boostByGearEnabled = BOOST_BY_GEAR_OFF;
 
   // Populate boostTable lookup value
@@ -317,9 +327,9 @@ static void test_calcCLBoostDuty_disabled(void)
   config15 p15 = {};
 
   // Make boost control disabled by baro: MAP < baro
+  setup_baro_control(cur, p15);
   cur.MAP = 10;
   cur.baro = 20;
-  p15.boostControlEnable = EN_BOOST_CONTROL_BARO;
 
   // Set global disabled duty
   configPage15.boostDCWhenDisabled = 77;
@@ -336,13 +346,9 @@ static void test_calcCLBoostDuty_enabled_zero_target(void)
   config10 p10 = {};
   config15 p15 = {};
 
-  // Enable boost control (baro mode) and ensure MAP >= baro
-  p15.boostControlEnable = EN_BOOST_CONTROL_BARO;
-  cur.baro = 50;
-  cur.MAP = 50;
+  setup_baro_control(cur, p15);
 
   // Make open-loop lookup return zero
-  p2.vssMode = 0; // ensure not boost-by-gear
   p9.boostByGearEnabled = BOOST_BY_GEAR_OFF;
   fill_table_values(boostTable, (table3d_value_t)0);
 
@@ -364,29 +370,16 @@ static void test_calcCLBoostDuty_enabled_with_flex(void)
   config15 p15 = {};
 
   // Enable boost control (baro mode)
-  p15.boostControlEnable = EN_BOOST_CONTROL_BARO;
-  cur.baro = 50;
-  cur.MAP = 50;
+  setup_baro_control(cur, p15);
 
   // Ensure open-loop lookup returns a known base target (5 -> <<1 == 10)
-  p2.vssMode = 0;
   p9.boostByGearEnabled = BOOST_BY_GEAR_OFF;
   fill_table_values(boostTable, (table3d_value_t)5);
 
   // Enable flex and set bins/adj so ethanolPct maps to a small correction
-  p2.flexEnabled = 1;
-  configPage10.flexBoostBins[0] = 0;
-  configPage10.flexBoostAdj[0] = -15;
-  configPage10.flexBoostBins[1] = 20;
-  configPage10.flexBoostAdj[1] = 0;
-  configPage10.flexBoostBins[2] = 40;
-  configPage10.flexBoostAdj[2] = 30;
-  configPage10.flexBoostBins[3] = 60;
-  configPage10.flexBoostAdj[3] = 30;
-  configPage10.flexBoostBins[4] = 80;
-  configPage10.flexBoostAdj[4] = 30;
-  configPage10.flexBoostBins[5] = 100;
-  configPage10.flexBoostAdj[5] = 30;
+  static constexpr uint8_t bins[_countof(configPage10.flexBoostBins)] = { 0, 20, 40, 60, 80, 100 };
+  static constexpr int16_t adjust[_countof(configPage10.flexBoostAdj)] = { -15, 0, 30, 30, 30, 30 };
+  setup_flex_table(p2, bins, adjust);
 
   cur.ethanolPct = 40; // matches index 2 -> adj == 30
 
@@ -402,6 +395,64 @@ static void test_calcCLBoostDuty_enabled_with_flex(void)
   res = calcCLBoostDuty(cur, p2, p6, p9, p10, p15);
   TEST_ASSERT_EQUAL(-15, cur.flexBoostCorrection);
   TEST_ASSERT_EQUAL(0, cur.boostTarget); // Clamped to 0
+  TEST_ASSERT_EQUAL(0, res);
+}
+
+static void test_calcBoostDuty_open_loop(void)
+{
+  statuses cur = {};
+  config2 p2 = {};
+  config6 p6 = {};
+  config9 p9 = {};
+  config10 p10 = {};
+  config15 p15 = {};
+
+  // Setup open-loop: ensure not boost-by-gear
+  p9.boostByGearEnabled = BOOST_BY_GEAR_OFF;
+  fill_table_values(boostTable, (table3d_value_t)9);
+  cur.TPS = 0;
+  cur.RPM = 0;
+
+  uint16_t res = calcBoostDuty(OPEN_LOOP_BOOST, cur, p2, p6, p9, p10, p15);
+  TEST_ASSERT_EQUAL(1800, res);
+}
+
+static void test_calcBoostDuty_closed_loop(void)
+{
+  statuses cur = {};
+  config2 p2 = {};
+  config6 p6 = {};
+  config9 p9 = {};
+  config10 p10 = {};
+  config15 p15 = {};
+
+  // Use same setup as existing calcCLBoostDuty_enabled_with_flex to exercise closed-loop path
+  setup_baro_control(cur, p15);
+
+  p9.boostByGearEnabled = BOOST_BY_GEAR_OFF;
+  fill_table_values(boostTable, (table3d_value_t)5);
+
+  static constexpr uint8_t bins[_countof(configPage10.flexBoostBins)] = { 0, 20, 40, 60, 80, 100 };
+  static constexpr int16_t adjust[_countof(configPage10.flexBoostAdj)] = { 10, 20, 30, 40, 50, 60 };
+  setup_flex_table(p2, bins, adjust);
+
+  cur.ethanolPct = 40; // maps to adj 30
+
+  uint16_t res = calcBoostDuty(CLOSED_LOOP_BOOST, cur, p2, p6, p9, p10, p15);
+  // matches previous calcCLBoostDuty_enabled_with_flex expectation
+  TEST_ASSERT_EQUAL(2000, res);
+}
+
+static void test_calcBoostDuty_invalid_type(void)
+{
+  statuses cur = {};
+  config2 p2 = {};
+  config6 p6 = {};
+  config9 p9 = {};
+  config10 p10 = {};
+  config15 p15 = {};
+
+  uint16_t res = calcBoostDuty(0xFF, cur, p2, p6, p9, p10, p15);
   TEST_ASSERT_EQUAL(0, res);
 }
 
@@ -428,5 +479,8 @@ void testBoost(void) {
     RUN_TEST(test_calcCLBoostDuty_disabled);
     RUN_TEST(test_calcCLBoostDuty_enabled_zero_target);
     RUN_TEST(test_calcCLBoostDuty_enabled_with_flex);
+    RUN_TEST(test_calcBoostDuty_open_loop);
+    RUN_TEST(test_calcBoostDuty_closed_loop);
+    RUN_TEST(test_calcBoostDuty_invalid_type);
   }
 }
