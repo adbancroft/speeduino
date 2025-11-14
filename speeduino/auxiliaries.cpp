@@ -647,7 +647,7 @@ static bool isFixedBoostControlEnabled(const statuses &current, const config15 &
   return (page15.boostControlEnable == EN_BOOST_CONTROL_FIXED) && (current.MAP >= (long)page15.boostControlEnableThreshold);
 }
 
-static bool isBoostControlEnabled(const statuses &current, const config15 &page15)
+TESTABLE_STATIC bool isBoostControlEnabled(const statuses &current, const config15 &page15)
 {
   //Only enables boost control above baro pressure or above user defined threshold (User defined level is usually set to boost with wastegate actuator only boost level)
   return isBaroBoostControlEnabled(current, page15) 

@@ -11,6 +11,7 @@ extern uint16_t calcBoostByGearTarget(const statuses &current, const config9 &pa
 extern uint16_t calcOLBoostDuty(const statuses &current, const config2 &page2, const config9 &page9);
 extern int16_t lookupFlexBoostCorrection(const statuses &current, const config2 &page2);
 extern uint16_t getCLBoostTarget(const statuses &current, const config2 &page2, const config9 &page9);
+extern bool isBoostControlEnabled(const statuses &current, const config15 &page15);
 
 static void test_isBoostByGear_disabled(void)
 {
@@ -61,6 +62,42 @@ static void test_gearToBoostFactor_basic(void)
   // out of range
   TEST_ASSERT_EQUAL(0, gearToBoostFactor(0, p9));
   TEST_ASSERT_EQUAL(0, gearToBoostFactor(7, p9));
+}
+
+static void test_isBoostControlEnabled_baro(void)
+{
+  statuses cur = {};
+  config15 p15 = {};
+
+  // Baro mode
+  p15.boostControlEnable = EN_BOOST_CONTROL_BARO;
+
+  // MAP >= baro -> enabled
+  cur.baro = 50;
+  cur.MAP = 50;
+  TEST_ASSERT_TRUE(isBoostControlEnabled(cur, p15));
+
+  // MAP < baro -> disabled
+  cur.MAP = 49;
+  TEST_ASSERT_FALSE(isBoostControlEnabled(cur, p15));
+}
+
+static void test_isBoostControlEnabled_fixed(void)
+{
+  statuses cur = {};
+  config15 p15 = {};
+
+  // Fixed threshold mode
+  p15.boostControlEnable = EN_BOOST_CONTROL_FIXED;
+  p15.boostControlEnableThreshold = 60; // threshold
+
+  // MAP >= threshold -> enabled
+  cur.MAP = 60;
+  TEST_ASSERT_TRUE(isBoostControlEnabled(cur, p15));
+
+  // MAP < threshold -> disabled
+  cur.MAP = 59;
+  TEST_ASSERT_FALSE(isBoostControlEnabled(cur, p15));
 }
 
 static void test_calcBoostByGearDuty_constant(void)
@@ -258,5 +295,7 @@ void testBoost(void) {
     RUN_TEST(test_lookupFlexBoostCorrection_enabled);
     RUN_TEST(test_getCLBoostTarget_boostByGear);
     RUN_TEST(test_getCLBoostTarget_openLoop);
+    RUN_TEST(test_isBoostControlEnabled_baro);
+    RUN_TEST(test_isBoostControlEnabled_fixed);
   }
 }
