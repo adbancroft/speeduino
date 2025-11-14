@@ -29,6 +29,7 @@
   #include "SD_logger.h"
   #include "rtc_common.h"
 #endif
+#include "boost.h"
 
 #if defined(CORE_AVR)
 #pragma GCC push_options
@@ -188,6 +189,7 @@ void initialiseAll(void)
     initialiseIdle(true);
     initialiseFan();
     initialiseAirCon();
+    initialiseBoost();
     initialiseAuxPWM();
     initialiseCorrections();
     currentStatus.engineProtectIoError = false; //Clear the I/O error bit. The bit will be set in initialiseADC() if there is problem in there.

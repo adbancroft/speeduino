@@ -7,6 +7,7 @@
 #include "timers.h"
 #include "comms_secondary.h"
 #include <InternalTemperature.h>
+#include "boost.h"
 #include RTC_LIB_H
 
 /*

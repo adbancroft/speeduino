@@ -8,6 +8,7 @@
 #include "comms_secondary.h"
 #include <InternalTemperature.h>
 #include RTC_LIB_H
+#include "boost.h"
 
 static void PIT_isr();
 static void TMR1_isr(void);

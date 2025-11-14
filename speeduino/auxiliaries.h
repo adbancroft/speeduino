@@ -7,8 +7,6 @@
 #include "port_pin.h"
 
 void initialiseAuxPWM(void);
-void boostControl(void);
-void boostDisable(void);
 void vvtControl(void);
 void initialiseFan(void);
 void initialiseAirCon(void);
@@ -18,13 +16,8 @@ void airConControl(void);
 bool READ_AIRCON_REQUEST(void);
 void wmiControl(void);
 
-#define SIMPLE_BOOST_P  1
-#define SIMPLE_BOOST_I  1
-#define SIMPLE_BOOST_D  1
-
 #if(defined(CORE_TEENSY) || defined(CORE_STM32))
-#define BOOST_PIN_LOW()         (digitalWrite(pinBoost, LOW))
-#define BOOST_PIN_HIGH()        (digitalWrite(pinBoost, HIGH))
+
 #define VVT1_PIN_LOW()          (digitalWrite(pinVVT_1, LOW))
 #define VVT1_PIN_HIGH()         (digitalWrite(pinVVT_1, HIGH))
 #define VVT2_PIN_LOW()          (digitalWrite(pinVVT_2, LOW))
@@ -44,8 +37,6 @@ void wmiControl(void);
 
 #else
 
-#define BOOST_PIN_LOW()         ATOMIC() { *boost_pin_port &= ~(boost_pin_mask); }
-#define BOOST_PIN_HIGH()        ATOMIC() { *boost_pin_port |= (boost_pin_mask);  }
 #define VVT1_PIN_LOW()          ATOMIC() { *vvt1_pin_port &= ~(vvt1_pin_mask);   }
 #define VVT1_PIN_HIGH()         ATOMIC() { *vvt1_pin_port |= (vvt1_pin_mask);    }
 #define VVT2_PIN_LOW()          ATOMIC() { *vvt2_pin_port &= ~(vvt2_pin_mask);   }
@@ -98,9 +89,6 @@ void fanInterrupt(void);
 #endif
 
 extern uint16_t vvt_pwm_max_count; //Used for variable PWM frequency
-extern uint16_t boost_pwm_max_count; //Used for variable PWM frequency
-
-void boostInterrupt(void);
 void vvtInterrupt(void);
 
 #endif
