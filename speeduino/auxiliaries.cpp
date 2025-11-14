@@ -654,7 +654,7 @@ TESTABLE_STATIC bool isBoostControlEnabled(const statuses &current, const config
       || isFixedBoostControlEnabled(current, page15);
 }
 
-static uint16_t boostTargetToDuty(uint16_t target, const statuses &current, const config2 &page2, const config6 &page6, const config10 &page10)
+TESTABLE_STATIC uint16_t boostTargetToDuty(uint16_t target, const statuses &current, const config2 &page2, const config6 &page6, const config10 &page10)
 {
   uint16_t boostDuty = 0U;
 

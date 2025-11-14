@@ -12,6 +12,7 @@ extern uint16_t calcOLBoostDuty(const statuses &current, const config2 &page2, c
 extern int16_t lookupFlexBoostCorrection(const statuses &current, const config2 &page2);
 extern uint16_t getCLBoostTarget(const statuses &current, const config2 &page2, const config9 &page9);
 extern bool isBoostControlEnabled(const statuses &current, const config15 &page15);
+extern uint16_t boostTargetToDuty(uint16_t target, const statuses &current, const config2 &page2, const config6 &page6, const config10 &page10);
 
 static void test_isBoostByGear_disabled(void)
 {
@@ -98,6 +99,32 @@ static void test_isBoostControlEnabled_fixed(void)
   // MAP < threshold -> disabled
   cur.MAP = 59;
   TEST_ASSERT_FALSE(isBoostControlEnabled(cur, p15));
+}
+
+static void test_boostTargetToDuty_zero(void)
+{
+  statuses cur = {};
+  config2 p2 = {};
+  config6 p6 = {};
+  config10 p10 = {};
+
+  uint16_t res = boostTargetToDuty(0U, cur, p2, p6, p10);
+  TEST_ASSERT_EQUAL(0, res);
+}
+
+static void test_boostTargetToDuty_positive(void)
+{
+  statuses cur = {};
+  config2 p2 = {};
+  config6 p6 = {};
+  config10 p10 = {};
+
+  // Give current a known boostDuty that would be used as fallback by the PID path if Compute() does not run
+  cur.boostDuty = 1234U;
+  // Call with a small positive target; exact output depends on PID internals, so assert general bounds
+  uint16_t res = boostTargetToDuty(5U, cur, p2, p6, p10);
+  // Result should be a valid duty between 0 and 10000 (0% - 100% with 2 decimal places)
+  TEST_ASSERT_TRUE(res <= 10000U);
 }
 
 static void test_calcBoostByGearDuty_constant(void)
@@ -297,5 +324,7 @@ void testBoost(void) {
     RUN_TEST(test_getCLBoostTarget_openLoop);
     RUN_TEST(test_isBoostControlEnabled_baro);
     RUN_TEST(test_isBoostControlEnabled_fixed);
+    RUN_TEST(test_boostTargetToDuty_zero);
+    RUN_TEST(test_boostTargetToDuty_positive);
   }
 }
