@@ -13,6 +13,7 @@ extern int16_t lookupFlexBoostCorrection(const statuses &current, const config2 
 extern uint16_t getCLBoostTarget(const statuses &current, const config2 &page2, const config9 &page9);
 extern bool isBoostControlEnabled(const statuses &current, const config15 &page15);
 extern uint16_t boostTargetToDuty(uint16_t target, const statuses &current, const config2 &page2, const config6 &page6, const config10 &page10);
+extern uint16_t calcCLBoostDuty(statuses &current, const config2 &page2, const config6 &page6, const config9 &page9, const config10 &page10, const config15 &page15);
 
 static void test_isBoostByGear_disabled(void)
 {
@@ -306,6 +307,104 @@ static void test_getCLBoostTarget_openLoop(void)
   TEST_ASSERT_EQUAL(18, getCLBoostTarget(cur, p2, p9));
 }
 
+static void test_calcCLBoostDuty_disabled(void)
+{
+  statuses cur = {};
+  config2 p2 = {};
+  config6 p6 = {};
+  config9 p9 = {};
+  config10 p10 = {};
+  config15 p15 = {};
+
+  // Make boost control disabled by baro: MAP < baro
+  cur.MAP = 10;
+  cur.baro = 20;
+  p15.boostControlEnable = EN_BOOST_CONTROL_BARO;
+
+  // Set global disabled duty
+  configPage15.boostDCWhenDisabled = 77;
+
+  TEST_ASSERT_EQUAL( (uint16_t)(configPage15.boostDCWhenDisabled * 100U), calcCLBoostDuty(cur, p2, p6, p9, p10, p15));
+}
+
+static void test_calcCLBoostDuty_enabled_zero_target(void)
+{
+  statuses cur = {};
+  config2 p2 = {};
+  config6 p6 = {};
+  config9 p9 = {};
+  config10 p10 = {};
+  config15 p15 = {};
+
+  // Enable boost control (baro mode) and ensure MAP >= baro
+  p15.boostControlEnable = EN_BOOST_CONTROL_BARO;
+  cur.baro = 50;
+  cur.MAP = 50;
+
+  // Make open-loop lookup return zero
+  p2.vssMode = 0; // ensure not boost-by-gear
+  p9.boostByGearEnabled = BOOST_BY_GEAR_OFF;
+  fill_table_values(boostTable, (table3d_value_t)0);
+
+  uint16_t res = calcCLBoostDuty(cur, p2, p6, p9, p10, p15);
+
+  // With zero target, boostTargetToDuty should return 0
+  TEST_ASSERT_EQUAL(0, res);
+  TEST_ASSERT_EQUAL(0, cur.flexBoostCorrection);
+  TEST_ASSERT_EQUAL(0, cur.boostTarget);
+}
+
+static void test_calcCLBoostDuty_enabled_with_flex(void)
+{
+  statuses cur = {};
+  config2 p2 = {};
+  config6 p6 = {};
+  config9 p9 = {};
+  config10 p10 = {};
+  config15 p15 = {};
+
+  // Enable boost control (baro mode)
+  p15.boostControlEnable = EN_BOOST_CONTROL_BARO;
+  cur.baro = 50;
+  cur.MAP = 50;
+
+  // Ensure open-loop lookup returns a known base target (5 -> <<1 == 10)
+  p2.vssMode = 0;
+  p9.boostByGearEnabled = BOOST_BY_GEAR_OFF;
+  fill_table_values(boostTable, (table3d_value_t)5);
+
+  // Enable flex and set bins/adj so ethanolPct maps to a small correction
+  p2.flexEnabled = 1;
+  configPage10.flexBoostBins[0] = 0;
+  configPage10.flexBoostAdj[0] = -15;
+  configPage10.flexBoostBins[1] = 20;
+  configPage10.flexBoostAdj[1] = 0;
+  configPage10.flexBoostBins[2] = 40;
+  configPage10.flexBoostAdj[2] = 30;
+  configPage10.flexBoostBins[3] = 60;
+  configPage10.flexBoostAdj[3] = 30;
+  configPage10.flexBoostBins[4] = 80;
+  configPage10.flexBoostAdj[4] = 30;
+  configPage10.flexBoostBins[5] = 100;
+  configPage10.flexBoostAdj[5] = 30;
+
+  cur.ethanolPct = 40; // matches index 2 -> adj == 30
+
+  uint16_t res = calcCLBoostDuty(cur, p2, p6, p9, p10, p15);
+
+  // Verify flex correction and computed boost target are set as expected
+  TEST_ASSERT_EQUAL(30, cur.flexBoostCorrection);
+  // base lookup <<1 = 5<<1 = 10, plus flex 30 => 40
+  TEST_ASSERT_EQUAL(40, cur.boostTarget);
+  TEST_ASSERT_EQUAL(2000, res);
+
+  cur.ethanolPct = 0; // matches index 0 -> adj == -15
+  res = calcCLBoostDuty(cur, p2, p6, p9, p10, p15);
+  TEST_ASSERT_EQUAL(-15, cur.flexBoostCorrection);
+  TEST_ASSERT_EQUAL(0, cur.boostTarget); // Clamped to 0
+  TEST_ASSERT_EQUAL(0, res);
+}
+
 void testBoost(void) {
   SET_UNITY_FILENAME() {
     RUN_TEST(test_isBoostByGear_disabled);
@@ -326,5 +425,8 @@ void testBoost(void) {
     RUN_TEST(test_isBoostControlEnabled_fixed);
     RUN_TEST(test_boostTargetToDuty_zero);
     RUN_TEST(test_boostTargetToDuty_positive);
+    RUN_TEST(test_calcCLBoostDuty_disabled);
+    RUN_TEST(test_calcCLBoostDuty_enabled_zero_target);
+    RUN_TEST(test_calcCLBoostDuty_enabled_with_flex);
   }
 }

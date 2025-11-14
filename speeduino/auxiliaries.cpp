@@ -676,7 +676,7 @@ TESTABLE_STATIC uint16_t boostTargetToDuty(uint16_t target, const statuses &curr
   return boostDuty;
 }
 
-static uint16_t calcCLBoostDuty(statuses &current, const config2 &page2, const config6 &page6, const config9 &page9, const config10 &page10, const config15 &page15)
+TESTABLE_STATIC uint16_t calcCLBoostDuty(statuses &current, const config2 &page2, const config6 &page6, const config9 &page9, const config10 &page10, const config15 &page15)
 {
   if( isBoostControlEnabled(current, page15) )
   {
