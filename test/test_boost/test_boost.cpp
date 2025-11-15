@@ -332,9 +332,9 @@ static void test_calcCLBoostDuty_disabled(void)
   cur.baro = 20;
 
   // Set global disabled duty
-  configPage15.boostDCWhenDisabled = 77;
+  p15.boostDCWhenDisabled = 77;
 
-  TEST_ASSERT_EQUAL( (uint16_t)(configPage15.boostDCWhenDisabled * 100U), calcCLBoostDuty(cur, p2, p6, p9, p10, p15));
+  TEST_ASSERT_EQUAL( (uint16_t)(p15.boostDCWhenDisabled * 100U), calcCLBoostDuty(cur, p2, p6, p9, p10, p15));
 }
 
 static void test_calcCLBoostDuty_enabled_zero_target(void)
