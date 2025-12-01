@@ -256,7 +256,6 @@ void initialiseAll(void)
     fixedCrankingOverride = 0;
     timer5_overflow_count = 0;
     toothHistoryIndex = 0;
-    resetDecoder();
     
     noInterrupts();
     setDecoder(configPage4.TrigPattern);
