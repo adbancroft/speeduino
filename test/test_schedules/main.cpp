@@ -1,4 +1,5 @@
-#include "../device_test_harness.h"
+#include "../test_harness_device.h"
+#include "../test_harness_native.h"
 #include "init.h"
 
 void runAllScheduleTests(void)
@@ -15,6 +16,8 @@ void runAllScheduleTests(void)
   initialiseAll();
 
   test_status_initial_off();
+// These tests rely on timing that is difficult to achieve in the native environment
+#if !defined(NATIVE_BOARD)
   test_status_off_to_pending();
   test_status_pending_to_running();
   test_status_running_to_pending();
@@ -22,6 +25,7 @@ void runAllScheduleTests(void)
   test_accuracy_timeout();
   test_accuracy_duration();
   test_setSchedule();
+#endif
 }
 
-DEVICE_TEST(runAllScheduleTests)
+TEST_HARNESS(runAllScheduleTests)
