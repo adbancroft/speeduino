@@ -177,6 +177,59 @@ static void test_checkOilPressureLimit_activate_when_time_expires(void) {
     TEST_ASSERT_TRUE(checkOilPressureLimit(context.current, context.page6, context.page10, oilProtEndTime+1));
 }
 
+static void test_checkOilPressureLimit_timer_and_activation(void)
+{
+    engineProtection_test_context_t context;
+    context.setOilPressureActive();
+
+    // Set a non-zero delay (2 -> 200ms)
+    context.page10.oilPressureProtTime = 2;
+    oilProtEndTime = 0;
+
+    unsigned long now = 12345UL;
+    // First call should arm the timer but not yet activate
+    TEST_ASSERT_FALSE(checkOilPressureLimit(context.current, context.page6, context.page10, now));
+    TEST_ASSERT_EQUAL_UINT32(now + ((uint16_t)context.page10.oilPressureProtTime * 100U), oilProtEndTime);
+
+    // Before expiry -> still false
+    TEST_ASSERT_FALSE(checkOilPressureLimit(context.current, context.page6, context.page10, oilProtEndTime - 1));
+    // At expiry -> true
+    TEST_ASSERT_TRUE(checkOilPressureLimit(context.current, context.page6, context.page10, oilProtEndTime));
+}
+
+static void test_checkOilPressureLimit_existing_engineProtect_forces_cut(void)
+{
+    engineProtection_test_context_t context;
+    context.setOilPressureActive();
+
+    context.page10.oilPressureProtTime = 10;
+    unsigned long now = 20000UL;
+    oilProtEndTime = now + 5000UL; // future
+
+    // Even though timer hasn't expired, existing engineProtect.oil should force a cut
+    context.current.engineProtectOil = true;
+    TEST_ASSERT_TRUE(checkOilPressureLimit(context.current, context.page6, context.page10, now));
+}
+
+static void test_checkOilPressureLimit_timer_resets_when_pressure_recovers(void)
+{
+    engineProtection_test_context_t context;
+    context.setOilPressureActive();
+
+    context.page10.oilPressureProtTime = 5;
+    unsigned long now = 30000UL;
+    oilProtEndTime = 0;
+
+    // Arm the timer
+    TEST_ASSERT_FALSE(checkOilPressureLimit(context.current, context.page6, context.page10, now));
+    TEST_ASSERT_NOT_EQUAL(0U, oilProtEndTime);
+
+    // Simulate pressure recovery above the limit
+    context.current.oilPressure = table2D_getValue(&oilPressureProtectTable, context.current.RPMdiv100) + 10;
+    TEST_ASSERT_FALSE(checkOilPressureLimit(context.current, context.page6, context.page10, now + 1));
+    TEST_ASSERT_EQUAL_UINT32(0U, oilProtEndTime);
+}
+
 static void test_checkBoostLimit_disabled_conditions(void) {
     engineProtection_test_context_t context;
 
@@ -575,6 +628,9 @@ void runAllTests(void)
 
     RUN_TEST_P(test_checkOilPressureLimit_disabled_conditions);
     RUN_TEST_P(test_checkOilPressureLimit_activate_when_time_expires);
+    RUN_TEST_P(test_checkOilPressureLimit_timer_and_activation)
+    RUN_TEST_P(test_checkOilPressureLimit_existing_engineProtect_forces_cut);
+    RUN_TEST_P(test_checkOilPressureLimit_timer_resets_when_pressure_recovers);
     RUN_TEST_P(test_checkBoostLimit_disabled_conditions);
     RUN_TEST_P(test_checkBoostLimit_activate_when_conditions_met);
     RUN_TEST_P(test_checkAFRLimit_disabled_conditions);
