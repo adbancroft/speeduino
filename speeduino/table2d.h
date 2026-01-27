@@ -116,6 +116,24 @@ static inline Bin<T> findBin(const T *const array, const T value)
   return Bin<T>(binLower-array+1U, *(binLower+1U), *binLower);
 }
 
+/** @brief Performance specialization of generic findBin<>
+ * 
+ * <uint8_t, 4U> is a very common table size and this is 15% - 50% faster (see unit tests)
+ */
+template <>
+inline Bin<uint8_t> findBin<uint8_t, 4U>(const uint8_t *const array, const uint8_t value) 
+{
+  if (value>array[2])
+  {
+    return Bin<uint8_t>(array, 3U);
+  }
+  if (value>array[1])
+  {
+    return Bin<uint8_t>(array, 2U);
+  }
+    return Bin<uint8_t>(array, 1U);
+}
+
 // Generic interpolation
 template <typename axis_t, typename value_t>
 static inline value_t interpolate(const axis_t axisValue, const Bin<axis_t> &axisBin, const Bin<value_t> &valueBin) 

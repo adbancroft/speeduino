@@ -3,7 +3,9 @@
 #include "table2d.h"
 #include "../test_utils.h"
 
-
+static uint8_t table2d_data_u8_4[4] = {
+    251, 211, 199, 167
+};
 static uint8_t table2d_data_u8[] = {
     251, 211, 199, 167, 127, 101, 59, 23, 5
 };
@@ -14,6 +16,9 @@ static int16_t table2d_data_i16[] = {
     32029, 21323, 11329, 5531, 1237, -5531, -11329, -21323, -32029
 };
 
+static uint8_t table2d_axis_u8_4[4] {
+    5, 23, 59, 101
+};
 static uint8_t table2d_axis_u8[] {
     5, 23, 59, 101, 127, 167, 199, 211, 251,
 };
@@ -24,6 +29,7 @@ static uint16_t table2d_axis_u16[] = {
     123, 2539, 5531, 7537, 11329, 16363, 21323, 26357, 32029,
 };
 
+static table2D<uint8_t, uint8_t, _countof(table2d_data_u8_4)> table2d_u8_u8_4(&table2d_axis_u8_4, &table2d_data_u8_4);
 static table2D<uint8_t, uint8_t, _countof(table2d_data_u8)> table2d_u8_u8(&table2d_axis_u8, &table2d_data_u8);
 static table2D<uint16_t, uint8_t, _countof(table2d_data_u8)> table2d_u8_u16(&table2d_axis_u16, &table2d_data_u8);
 static table2D<uint8_t, uint16_t, _countof(table2d_data_u16)> table2d_u16_u8(&table2d_axis_u8, &table2d_data_u16);
@@ -73,6 +79,7 @@ static void test_table2dLookup(const table2D<axis_t, value_t, sizeT> &table, uin
 
 static void test_table2dLookup_bin_midpoints(void)
 {
+    test_table2dLookup(table2d_u8_u8_4, 50U);
     test_table2dLookup(table2d_u8_u8, 50U);
     test_table2dLookup(table2d_u8_u16, 50U);
     test_table2dLookup(table2d_u16_u8, 50U);
@@ -83,6 +90,7 @@ static void test_table2dLookup_bin_midpoints(void)
 
 static void test_table2dLookup_bin_33(void)
 {
+    test_table2dLookup(table2d_u8_u8_4, 33U);
     test_table2dLookup(table2d_u8_u8, 33U);
     test_table2dLookup(table2d_u8_u16, 33U);
     test_table2dLookup(table2d_u16_u8, 33U);
@@ -115,6 +123,7 @@ static void test_table2dLookup_bin_edges(const table2D<axis_t, value_t, sizeT> &
 
 static void test_table2dLookup_bin_edges(void)
 {
+    test_table2dLookup_bin_edges(table2d_u8_u8_4);
     test_table2dLookup_bin_edges(table2d_u8_u8);
     test_table2dLookup_bin_edges(table2d_u8_u16);
     test_table2dLookup_bin_edges(table2d_u16_u8);
@@ -134,6 +143,7 @@ static void test_table2dLookup_overMax(const table2D<axis_t, value_t, sizeT> &ta
 
 static void test_table2dLookup_overMax(void)
 {
+    test_table2dLookup_overMax(table2d_u8_u8_4);
     test_table2dLookup_overMax(table2d_u8_u8);
     test_table2dLookup_overMax(table2d_u8_u16);
     test_table2dLookup_overMax(table2d_u16_u8);
@@ -162,6 +172,7 @@ static void test_withinBin(void) {
 
 static void test_table2dLookup_underMin(void)
 {
+    test_table2dLookup_underMin(table2d_u8_u8_4);
     test_table2dLookup_underMin(table2d_u8_u8);
     test_table2dLookup_underMin(table2d_u8_u16);
     test_table2dLookup_underMin(table2d_u16_u8);
@@ -182,9 +193,7 @@ static void test_table2d_all_decrementing(void)
     }
 }
 
-
 #include "../timer.hpp"
-
 
 static void test_lookup_perf(void) {
     uint16_t iters = 1000;
@@ -206,7 +215,24 @@ static void test_lookup_perf(void) {
     char buffer[128];
     sprintf(buffer, "Timing: %" PRIu32, timerA.duration_micros());
     TEST_MESSAGE(buffer);
+}
 
+static void test_findBinu8_4_perf(void) {
+    constexpr uint16_t iters = 20000;
+    constexpr uint16_t start = 3;
+    constexpr uint16_t end = 2047;
+    constexpr uint16_t step = 1;
+
+    static uint8_t searchArray[5] = { 5, 23, 59, 101, 127 };
+    static uint8_t searchTarget = (uint8_t)random(searchArray[1], searchArray[3]);
+    auto baselineTest = [] (uint16_t, uint32_t &checkSum) { checkSum += _table2d_detail::findBin<uint8_t, 5>(searchArray, searchTarget).lowerValue(); };
+    auto optimizedTest = [] (uint16_t, uint32_t &checkSum) { checkSum += _table2d_detail::findBin<uint8_t, 4>(searchArray, searchTarget).lowerValue(); };
+    auto comparison = compare_executiontime<uint16_t, uint32_t>(iters, start, end, step, baselineTest, optimizedTest);
+    
+    TEST_ASSERT_EQUAL_UINT32(comparison.timeA.result, comparison.timeB.result);
+#if defined(__AVR__) // Speed up only noticeable on AVR
+    TEST_ASSERT_LESS_THAN(comparison.timeA.durationMicros, comparison.timeB.durationMicros);
+#endif
 }
 
 void testTable2d()
@@ -221,5 +247,6 @@ void testTable2d()
     RUN_TEST(test_table2dLookup_bin_edges);
     RUN_TEST(test_lookup_perf);
     RUN_TEST(test_withinBin);
+    RUN_TEST(test_findBinu8_4_perf);
   }
 }
