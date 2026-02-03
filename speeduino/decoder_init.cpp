@@ -4,6 +4,7 @@
 #include "decoder_builder.h"
 #include "globals.h"
 #include "preprocessor.h"
+#include "unit_testing.h"
 
 static decoder_t decoder = decoder_builder_t().build();
 static void setDecoder(const decoder_t &newDecoder)
@@ -15,7 +16,7 @@ const decoder_t& getDecoder(void)
   return decoder;
 }
 
-static decoder_t buildDecoder(uint8_t decoder)
+TESTABLE_STATIC decoder_t buildDecoder(uint8_t decoder)
 {
   // This array must be in the same order as the DECODER_ #defines (I.e. DECODER_MISSING_TOOTH etc.)
   // and therefore in the same order as the INI
@@ -62,7 +63,7 @@ static decoder_t buildDecoder(uint8_t decoder)
 /** Initialise the chosen trigger decoder. */
 void setDecoder(uint8_t decoderType)
 {
-  //Set the trigger function based on the decoder in the config
+  // Set the trigger function based on the decoder in the config
   setDecoder(buildDecoder(decoderType));
 
   getDecoder().primary.attach(pinTrigger);
