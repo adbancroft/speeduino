@@ -3,37 +3,33 @@
 #include "table3d.h"
 
 /**
- * Page count, as defined in the INI file
- */
-uint8_t getPageCount(void); 
-
-/**
  * Page size in bytes
  */
-uint16_t getPageSize(byte pageNum /**< [in] The page number */ );
+uint16_t getPageSize(uint8_t pageNum /**< [in] The page number */ );
 
 // These are the page numbers that the Tuner Studio serial protocol uses to transverse the different map and config pages.
-#define veMapPage     2
-#define veSetPage     1 //Note that this and the veMapPage were swapped in Feb 2019 as the 'algorithm' field must be declared in the ini before it's used in the fuel table
-#define ignMapPage    3
-#define ignSetPage    4//Config Page 2
-#define afrMapPage    5
-#define afrSetPage    6//Config Page 3
-#define boostvvtPage  7
-#define seqFuelPage   8
-#define canbusPage    9//Config Page 9
-#define warmupPage    10 //Config Page 10
-#define fuelMap2Page  11
-#define wmiMapPage    12
-#define progOutsPage  13
-#define ignMap2Page   14
-#define boostvvtPage2 15
-#define MAX_PAGE_NUM  (boostvvtPage2+1U)
+constexpr uint8_t veMapPage     = 2;
+constexpr uint8_t veSetPage     = 1; //Note that this and the veMapPage were swapped in Feb 2019 as the 'algorithm' field must be declared in the ini before it's used in the fuel table
+constexpr uint8_t ignMapPage    = 3;
+constexpr uint8_t ignSetPage    = 4;
+constexpr uint8_t afrMapPage    = 5;
+constexpr uint8_t afrSetPage    = 6;
+constexpr uint8_t boostvvtPage  = 7;
+constexpr uint8_t seqFuelPage   = 8;
+constexpr uint8_t canbusPage    = 9;
+constexpr uint8_t warmupPage    = 10;
+constexpr uint8_t fuelMap2Page  = 11;
+constexpr uint8_t wmiMapPage    = 12;
+constexpr uint8_t progOutsPage  = 13;
+constexpr uint8_t ignMap2Page   = 14;
+constexpr uint8_t boostvvtPage2 = 15;
+constexpr uint8_t MIN_PAGE_NUM  = veSetPage;
+constexpr uint8_t MAX_PAGE_NUM  = (boostvvtPage2+1U);
 
 // ============================== Per-byte page access ==========================
 
 /** @brief Gets a single value from a page, with data aligned as per the ini file */
-byte getPageValue(  byte pageNum,       /**< [in] The page number to retrieve data from. */
+byte getPageValue(  uint8_t pageNum,       /**< [in] The page number to retrieve data from. */
                     uint16_t offset     /**< [in] The address in the page that should be returned. This is as per the page definition in the ini. */
                     );
 
@@ -42,7 +38,7 @@ byte getPageValue(  byte pageNum,       /**< [in] The page number to retrieve da
  * 
  * @returns true if value set, false otherwise
  */
-bool setPageValue(  byte pageNum,       /**< [in] The page number to update. */
+bool setPageValue(  uint8_t pageNum,       /**< [in] The page number to update. */
                     uint16_t offset,    /**< [in] The offset within the page.  */
                     byte value          /**< [in] The new value */
                     );
@@ -54,7 +50,7 @@ bool setPageValue(  byte pageNum,       /**< [in] The page number to update. */
 // over those entities.
 
 // Type of entity
-enum entity_type { 
+enum class EntityType : uint8_t { 
     Raw,        // A block of memory
     Table,      // A 3D table
     NoEntity,   // No entity, but a valid offset
@@ -72,15 +68,16 @@ struct entity_page_location_t {
     {        
     }
 
-    bool operator==(const entity_page_location_t &other) const
+    friend bool operator==(const entity_page_location_t &lhs, const entity_page_location_t &rhs)
     {
-        return page==other.page
-            && index==other.index;
+        return lhs.page==rhs.page
+            && lhs.index==rhs.index;
     }
-    bool operator!=(const entity_page_location_t &other) const
+
+    friend bool operator!=(const entity_page_location_t &lhs, const entity_page_location_t &rhs)
     {
-        return !operator==(other);
-    }
+        return !(lhs==rhs);
+    }    
 };
 
 /** @brief  Position and size of an entity within a page */
@@ -114,12 +111,12 @@ struct entity_page_address_t {
 // A entity on a logical page.
 struct page_iterator_t {
     void *pData = nullptr;
-    entity_type type;
+    EntityType type;
     table_type_t table_key = table_type_None;
     entity_page_location_t location;
     entity_page_address_t address;
 
-    page_iterator_t(entity_type theType, const entity_page_location_t &entityLocation, const entity_page_address_t &entityAddress)
+    page_iterator_t(EntityType theType, const entity_page_location_t &entityLocation, const entity_page_address_t &entityAddress)
     : type(theType)
     , location(entityLocation)    
     , address(entityAddress)
@@ -129,21 +126,21 @@ struct page_iterator_t {
     void setNoEntity(void)
     {
         pData = nullptr;
-        type = NoEntity;
+        type = EntityType::NoEntity;
         table_key = table_type_None;
     }
 
     void setTable(void *pTable, table_type_t key)
     {
         pData = pTable;
-        type = Table;
+        type = EntityType::Table;
         table_key = key;
     }
 
     void setRaw(void *pBuffer)
     {
         pData = pBuffer;
-        type = Raw;
+        type = EntityType::Raw;
         table_key = table_type_None;
     }
 };
@@ -168,7 +165,7 @@ bool setEntityValue(page_iterator_t &entity,  /**< [in] The entity to update */
  * Initiates iteration over a pages entities.
  * Test `entity.type==End` to determine the end of the page.
  */
-page_iterator_t page_begin(byte pageNum /**< [in] The page number to iterate over. */);
+page_iterator_t page_begin(uint8_t pageNum /**< [in] The page number to iterate over. */);
 
 /**
  * Moves the iterator to the next sub-entity on the page

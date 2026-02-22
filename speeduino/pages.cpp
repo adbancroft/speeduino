@@ -33,17 +33,17 @@
 // calling context.
 
 template <class table_t>
-static inline constexpr uint16_t get_table_value_end(void)
+static constexpr uint16_t get_table_value_end(void)
 {
   return table_t::xaxis_t::length*table_t::yaxis_t::length;
 }
 template <class table_t>
-static inline constexpr uint16_t get_table_axisx_end(void)
+static constexpr uint16_t get_table_axisx_end(void)
 {
   return get_table_value_end<table_t>()+table_t::xaxis_t::length;
 }
 template <class table_t>
-static inline constexpr uint16_t get_table_axisy_end(const table_t *table)
+static constexpr uint16_t get_table_axisy_end(const table_t *table)
 {
   UNUSED(table);
   return get_table_axisx_end<table_t>()+table_t::yaxis_t::length;
@@ -194,11 +194,11 @@ static inline byte get_table_value(const page_iterator_t &entity, uint16_t offse
 
 byte getEntityValue(const page_iterator_t &entity, uint16_t offset)
 {
-  if (Raw==entity.type)
+  if (EntityType::Raw==entity.type)
   {
     return get_raw_location(entity, offset);
   }
-  if (Table==entity.type)
+  if (EntityType::Table==entity.type)
   {
     return get_table_value(entity, offset);
   }
@@ -224,11 +224,11 @@ static inline bool set_table_value(page_iterator_t &entity, uint16_t offset, byt
 
 bool setEntityValue(page_iterator_t &entity, uint16_t offset, byte value)
 {    
-  if (Raw==entity.type)
+  if (EntityType::Raw==entity.type)
   {
     return set_raw_location(entity, offset, value);
   }
-  else if (Table==entity.type)
+  else if (EntityType::Table==entity.type)
   {
     return set_table_value(entity, offset, value);
   }
@@ -252,7 +252,7 @@ void nextEntity(page_iterator_t &entity, uint16_t nextBlockSize)
 template <class table_t>
 static void checkIsInTable(page_iterator_t &result, table_t *pTable, uint16_t offset)
 {
-  if (result.type==End)
+  if (result.type==EntityType::End)
   {
     nextEntity(result, get_table_axisy_end(pTable));
     if (result.address.isOffsetInEntity(offset)) 
@@ -266,7 +266,7 @@ static void checkIsInTable(page_iterator_t &result, table_t *pTable, uint16_t of
 
 static void checkIsInRaw(page_iterator_t &result, void *pEntity, uint16_t entitySize, uint16_t offset)
 {
-  if (result.type==End)
+  if (result.type==EntityType::End)
   {
     nextEntity(result, entitySize);
     if (result.address.isOffsetInEntity(offset)) 
@@ -280,7 +280,7 @@ static void checkIsInRaw(page_iterator_t &result, void *pEntity, uint16_t entity
 
 static void checkIsInEmpty(page_iterator_t &result, uint16_t entitySize, uint16_t offset)
 {
-  if (result.type==End)
+  if (result.type==EntityType::End)
   {
     nextEntity(result, entitySize);
     if (result.address.isOffsetInEntity(offset)) 
@@ -299,7 +299,7 @@ static void checkIsInEmpty(page_iterator_t &result, uint16_t entitySize, uint16_
 static page_iterator_t map_page_offset_to_entity(uint8_t pageNumber, uint16_t offset)
 {
   // This is mutated by the checkIsIn* functions to return the entity that matches the offset
-  page_iterator_t result( End, // Signal that no entity has been found yet
+  page_iterator_t result( EntityType::End, // Signal that no entity has been found yet
                           entity_page_location_t(pageNumber, (uint8_t)-1 /* Deliberate, so we can increment index AND address as one operation */), 
                           entity_page_address_t(0U, 0U));
 
@@ -384,7 +384,7 @@ static page_iterator_t map_page_offset_to_entity(uint8_t pageNumber, uint16_t of
   }
 
   // Nothing matched, so we are at the end of the known entities for the page.
-  if (result.type==End)
+  if (result.type==EntityType::End)
   {
     nextEntity(result, 0U);
   }
@@ -395,12 +395,7 @@ static page_iterator_t map_page_offset_to_entity(uint8_t pageNumber, uint16_t of
 
 // ====================================== External functions  ====================================
 
-uint8_t getPageCount(void)
-{
-  return 16U;
-}
-
-uint16_t getPageSize(byte pageNum)
+uint16_t getPageSize(uint8_t pageNum)
 {
   page_iterator_t entity = map_page_offset_to_entity(pageNum, UINT16_MAX);
   return entity.address.start + entity.address.size;
@@ -411,14 +406,14 @@ static inline uint16_t pageOffsetToEntityOffset(const page_iterator_t &entity, u
   return pageOffset-entity.address.start;
 }
 
-bool setPageValue(byte pageNum, uint16_t offset, byte value)
+bool setPageValue(uint8_t pageNum, uint16_t offset, byte value)
 {
   page_iterator_t entity = map_page_offset_to_entity(pageNum, offset);
 
   return setEntityValue(entity, pageOffsetToEntityOffset(entity, offset), value);
 }
 
-byte getPageValue(byte pageNum, uint16_t offset)
+byte getPageValue(uint8_t pageNum, uint16_t offset)
 {
   page_iterator_t entity = map_page_offset_to_entity(pageNum, offset);
 
@@ -429,7 +424,7 @@ byte getPageValue(byte pageNum, uint16_t offset)
 // No need to have coverage on simple wrappers
 
 // Support iteration over a pages entities.
-page_iterator_t page_begin(byte pageNum)
+page_iterator_t page_begin(uint8_t pageNum)
 {
   return map_page_offset_to_entity(pageNum, 0U);
 }
