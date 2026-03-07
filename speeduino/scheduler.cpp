@@ -416,6 +416,8 @@ TESTABLE_INLINE_STATIC bool isOverDwellActive(const config4 &page4, const status
   return (page4.useDwellLim) && !isCrankLocked;
 }
 
+// LCOV_EXCL_START
+// The lower level function should be tested, so this can be excluded from coverage
 void applyOverDwellProtection(void)
 {
   if (isOverDwellActive(configPage4, currentStatus)) {
@@ -445,6 +447,7 @@ void applyOverDwellProtection(void)
 #endif
   }
 }
+// LCOV_EXCL_STOP
 
 static inline bool isAnyFuelScheduleRunning(void) {
   ATOMIC() {
