@@ -33,6 +33,7 @@ A full copy of the license may be found in the projects root directory
 #include "schedule_state_machine.h"
 #include "unit_testing.h"
 #include "decoders.h"
+#include "scheduledIO_inj.h"
 
 FuelSchedule fuelSchedule1(FUEL1_COUNTER, FUEL1_COMPARE); //cppcheck-suppress misra-c2012-8.4
 FuelSchedule fuelSchedule2(FUEL2_COUNTER, FUEL2_COMPARE); //cppcheck-suppress misra-c2012-8.4
@@ -401,53 +402,6 @@ void moveToNextState(IgnitionSchedule &schedule)
 {
   movetoNextState(schedule, ignitionPendingToRunning, ignitionRunningToOff, ignitionRunningToPending);
 }
-
-TESTABLE_INLINE_STATIC void applyChannelOverDwellProtection(IgnitionSchedule &schedule, uint32_t targetOverdwellTime) {
-  //Check first whether each spark output is currently on. Only check it's dwell time if it is
-  ATOMIC() {
-    if (isRunning(schedule) && (schedule._startTime < targetOverdwellTime)) { 
-      ignitionRunningToOff(&schedule); //Call the end function to disable the spark output
-    }
-  }
-}
-
-TESTABLE_INLINE_STATIC bool isOverDwellActive(const config4 &page4, const statuses &current){
-  bool isCrankLocked = page4.ignCranklock && (current.RPM < current.crankRPM); //Dwell limiter is disabled during cranking on setups using the locked cranking timing. WE HAVE to do the RPM check here as relying on the engine cranking bit can be potentially too slow in updating
-  return (page4.useDwellLim) && !isCrankLocked;
-}
-
-// LCOV_EXCL_START
-// The lower level function should be tested, so this can be excluded from coverage
-void applyOverDwellProtection(void)
-{
-  if (isOverDwellActive(configPage4, currentStatus)) {
-    uint32_t targetOverdwellTime = micros() - (configPage4.dwellLimit * 1000U); //Convert to uS
-
-    applyChannelOverDwellProtection(ignitionSchedule1, targetOverdwellTime);
-#if IGN_CHANNELS >= 2
-    applyChannelOverDwellProtection(ignitionSchedule2, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 3
-    applyChannelOverDwellProtection(ignitionSchedule3, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 4
-    applyChannelOverDwellProtection(ignitionSchedule4, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 5
-    applyChannelOverDwellProtection(ignitionSchedule5, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 6
-    applyChannelOverDwellProtection(ignitionSchedule6, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 7
-    applyChannelOverDwellProtection(ignitionSchedule7, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 8
-    applyChannelOverDwellProtection(ignitionSchedule8, targetOverdwellTime);
-#endif
-  }
-}
-// LCOV_EXCL_STOP
 
 static inline bool isAnyFuelScheduleRunning(void) {
   ATOMIC() {
