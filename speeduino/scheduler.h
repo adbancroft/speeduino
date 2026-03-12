@@ -130,6 +130,8 @@ struct Schedule {
 
   using callback = void(*)(void);
 
+  void reset(void);
+  
   /**
    * @brief Scheduled duration (timer ticks) 
    *
@@ -203,6 +205,8 @@ struct IgnitionSchedule : public Schedule {
   int16_t chargeAngle;        ///< Angle the coil should begin charging.
   int16_t dischargeAngle;     ///< Angle the coil should discharge at. I.e. spark.
   int16_t channelDegrees;     ///< The number of crank degrees until cylinder is at TDC  
+
+  void reset(void);
 };
 
 /// @cond 
