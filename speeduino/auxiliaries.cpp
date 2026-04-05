@@ -22,8 +22,6 @@ static long vvt1_pwm_value;
 static long vvt2_pwm_value;
 static volatile unsigned int vvt1_pwm_cur_value;
 static volatile unsigned int vvt2_pwm_cur_value;
-static long vvt_pid_target_angle;
-static long vvt2_pid_target_angle;
 static long vvt_pid_current_angle;
 static long vvt2_pid_current_angle;
 static volatile bool vvt1_pwm_state;
@@ -179,9 +177,9 @@ uint16_t boost_pwm_max_count; //Used for variable PWM frequency
 constexpr table2D_u8_s16_6 flexBoostTable(&configPage10.flexBoostBins, &configPage10.flexBoostAdj);
 
 //Old PID method. Retained in case the new one has issues
-static integerPID_ideal boostPID(&currentStatus.MAP, &currentStatus.boostDuty , &currentStatus.boostTarget, &configPage10.boostSens); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
-static integerPID vvtPID(&vvt_pid_current_angle, &currentStatus.vvt1Duty, &vvt_pid_target_angle); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
-static integerPID vvt2PID(&vvt2_pid_current_angle, &currentStatus.vvt2Duty, &vvt2_pid_target_angle); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID_ideal boostPID(&currentStatus.MAP, &currentStatus.boostDuty, &configPage10.boostSens); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID vvtPID(&vvt_pid_current_angle, &currentStatus.vvt1Duty); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID vvt2PID(&vvt2_pid_current_angle, &currentStatus.vvt2Duty); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
 
 static inline void checkAirConCoolantLockout(void);
 static inline void checkAirConTPSLockout(void);
@@ -617,17 +615,19 @@ static void setBoostPidTunings(const config6 &page6)
   }
   boostPID.SetOutputLimits(configPage2.boostMinDuty, configPage2.boostMaxDuty);
   boostPID.setSampleTime(millis(), configPage10.boostIntv);
+  boostPID.setTargetValue(currentStatus.boostTarget);
 }
 
-static void setVvtPidTunings(integerPID &pid, const config10 &page10, PidDirection direction)
+static void setVvtPidTunings(integerPID &pid, const config10 &page10, PidDirection direction, uint8_t targetAngle)
 {
   pid.SetTunings(PidTuningParameters(page10.vvtCLKP, page10.vvtCLKI, page10.vvtCLKD), direction, 33);
+  pid.setTargetValue(targetAngle);
 }
 
-static void configureVvtPid(integerPID &pid, const config10 &page10, PidDirection direction)
+static void configureVvtPid(integerPID &pid, const config10 &page10, PidDirection direction, uint8_t targetAngle)
 {
   pid.SetOutputLimits(page10.vvtCLminDuty, page10.vvtCLmaxDuty);
-  setVvtPidTunings(pid, page10, direction);
+  setVvtPidTunings(pid, page10, direction, targetAngle);
   pid.activate(); //Turn PID on
 }
 
@@ -658,10 +658,10 @@ void __attribute__((optimize("Os"))) initialiseAuxPWM(void)
 
     if(configPage6.vvtMode == VVT_MODE_CLOSED_LOOP)
     {
-      configureVvtPid(vvtPID, configPage10, (PidDirection)configPage6.vvtPWMdir);
+      configureVvtPid(vvtPID, configPage10, (PidDirection)configPage6.vvtPWMdir, currentStatus.vvt1TargetAngle);
       if (configPage10.vvt2Enabled == 1) // same for VVT2 if it's enabled
       {
-        configureVvtPid(vvt2PID, configPage10, (PidDirection)configPage4.vvt2PWMdir);
+        configureVvtPid(vvt2PID, configPage10, (PidDirection)configPage4.vvt2PWMdir, currentStatus.vvt2TargetAngle);
       }
     }
 
@@ -1000,7 +1000,7 @@ void vvtControl(void)
         else { currentStatus.vvt1TargetAngle = get3DTableValue(&vvtTable, (uint16_t)currentStatus.MAP, currentStatus.RPM); }
 
         if( (vvtCounter & 31) == 1) { //This only needs to be run very infrequently, once every 32 calls to vvtControl(). This is approx. once per second
-          setVvtPidTunings(vvtPID, configPage10, (PidDirection)configPage6.vvtPWMdir);  
+          setVvtPidTunings(vvtPID, configPage10, (PidDirection)configPage6.vvtPWMdir, currentStatus.vvt1TargetAngle);  
         }
 
         // safety check that the cam angles are ok. The engine will be totally undriveable if the cam sensor is faulty and giving wrong cam angles, so if that happens, default to 0 duty.
@@ -1022,7 +1022,6 @@ void vvtControl(void)
         else
         {
           //This is dumb, but need to convert the current angle into a long pointer.
-          vvt_pid_target_angle = (unsigned long)currentStatus.vvt1TargetAngle;
           vvt_pid_current_angle = (long)currentStatus.vvt1Angle;
 
           //If not already at target angle, calculate new value from PID
@@ -1039,7 +1038,7 @@ void vvtControl(void)
           else { currentStatus.vvt2TargetAngle = get3DTableValue(&vvt2Table, (uint16_t)currentStatus.MAP, currentStatus.RPM); }
 
           if( (vvtCounter & 31) == 1) { //This only needs to be run very infrequently, once every 32 calls to vvtControl(). This is approx. once per second
-            setVvtPidTunings(vvt2PID, configPage10, (PidDirection)configPage4.vvt2PWMdir);
+            setVvtPidTunings(vvt2PID, configPage10, (PidDirection)configPage4.vvt2PWMdir, currentStatus.vvt2TargetAngle);
         }
 
           // safety check that the cam angles are ok. The engine will be totally undriveable if the cam sensor is faulty and giving wrong cam angles, so if that happens, default to 0 duty.
@@ -1061,7 +1060,6 @@ void vvtControl(void)
           else
           {
             //This is dumb, but need to convert the current angle into a long pointer.
-            vvt2_pid_target_angle = (unsigned long)currentStatus.vvt2TargetAngle;
             vvt2_pid_current_angle = (long)currentStatus.vvt2Angle;
             //If not already at target angle, calculate new value from PID
             bool PID_compute = vvt2PID.Compute();
