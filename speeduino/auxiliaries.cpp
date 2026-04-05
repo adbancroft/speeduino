@@ -22,8 +22,6 @@ static long vvt1_pwm_value;
 static long vvt2_pwm_value;
 static volatile unsigned int vvt1_pwm_cur_value;
 static volatile unsigned int vvt2_pwm_cur_value;
-static long vvt_pid_current_angle;
-static long vvt2_pid_current_angle;
 static volatile bool vvt1_pwm_state;
 static volatile bool vvt2_pwm_state;
 static volatile bool vvt1_max_pwm;
@@ -177,9 +175,9 @@ uint16_t boost_pwm_max_count; //Used for variable PWM frequency
 constexpr table2D_u8_s16_6 flexBoostTable(&configPage10.flexBoostBins, &configPage10.flexBoostAdj);
 
 //Old PID method. Retained in case the new one has issues
-static integerPID_ideal boostPID(&currentStatus.MAP, &currentStatus.boostDuty); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
-static integerPID vvtPID(&vvt_pid_current_angle, &currentStatus.vvt1Duty); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
-static integerPID vvt2PID(&vvt2_pid_current_angle, &currentStatus.vvt2Duty); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID_ideal boostPID; //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID vvtPID; //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID vvt2PID; //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
 
 static inline void checkAirConCoolantLockout(void);
 static inline void checkAirConTPSLockout(void);
@@ -625,11 +623,11 @@ static void setVvtPidTunings(integerPID &pid, const config10 &page10, PidDirecti
   pid.setTargetValue(targetAngle);
 }
 
-static void configureVvtPid(integerPID &pid, const config10 &page10, PidDirection direction, uint8_t targetAngle)
+static void configureVvtPid(integerPID &pid, const config10 &page10, PidDirection direction, long currentAngle, uint8_t targetAngle)
 {
   pid.SetOutputLimits(page10.vvtCLminDuty, page10.vvtCLmaxDuty);
   setVvtPidTunings(pid, page10, direction, targetAngle);
-  pid.activate(); //Turn PID on
+  pid.activate(currentAngle); //Turn PID on
 }
 
 void __attribute__((optimize("Os"))) initialiseAuxPWM(void)
@@ -659,10 +657,10 @@ void __attribute__((optimize("Os"))) initialiseAuxPWM(void)
 
     if(configPage6.vvtMode == VVT_MODE_CLOSED_LOOP)
     {
-      configureVvtPid(vvtPID, configPage10, (PidDirection)configPage6.vvtPWMdir, currentStatus.vvt1TargetAngle);
+      configureVvtPid(vvtPID, configPage10, (PidDirection)configPage6.vvtPWMdir, currentStatus.vvt1Angle, currentStatus.vvt1TargetAngle);
       if (configPage10.vvt2Enabled == 1) // same for VVT2 if it's enabled
       {
-        configureVvtPid(vvt2PID, configPage10, (PidDirection)configPage4.vvt2PWMdir, currentStatus.vvt2TargetAngle);
+        configureVvtPid(vvt2PID, configPage10, (PidDirection)configPage4.vvt2PWMdir, currentStatus.vvt2Angle, currentStatus.vvt2TargetAngle);
       }
     }
 
@@ -888,7 +886,12 @@ void boostControl(void)
             setBoostPidTunings(configPage6);
           }
 
-          bool PIDcomputed = boostPID.Compute(millis(), get3DTableValue(&boostTableLookupDuty, currentStatus.boostTarget, currentStatus.RPM) * 100/2); //Compute() returns false if the required interval has not yet passed.
+          //Compute() returns false if the required interval has not yet passed.
+          bool PIDcomputed = boostPID.Compute(millis(), 
+                                              currentStatus.MAP,
+                                              get3DTableValue(&boostTableLookupDuty, currentStatus.boostTarget, currentStatus.RPM) * 100/2,
+                                              &currentStatus.boostDuty);
+          
           if(currentStatus.boostDuty == 0) { DISABLE_BOOST_TIMER(); boost_pin.setPinLow(); } //If boost duty is 0, shut everything down
           else
           {
@@ -906,7 +909,7 @@ void boostControl(void)
       }
       else
       {
-        boostPID.Initialize(); //This resets the ITerm value to prevent rubber banding
+        boostPID.Initialize(currentStatus.MAP); //This resets the ITerm value to prevent rubber banding
         //Boost control needs to have a high duty cycle if control is below threshold (baro or fixed value). This ensures the waste gate is closed as much as possible, this build boost as fast as possible.
         currentStatus.boostDuty = configPage15.boostDCWhenDisabled*100;
         boost_pwm_target_value = ((unsigned long)(currentStatus.boostDuty) * boost_pwm_max_count) / 10000; //Convert boost duty (Which is a % multiplied by 100) to a pwm count
@@ -1017,16 +1020,13 @@ void vvtControl(void)
         {
           currentStatus.vvt1Duty = configPage10.vvtCLholdDuty;
           vvt1_pwm_value = halfPercentage(currentStatus.vvt1Duty, vvt_pwm_max_count);
-          vvtPID.Initialize();
+          vvtPID.Initialize(currentStatus.vvt1Angle);
           currentStatus.vvt1AngleError = false;
         }
         else
         {
-          //This is dumb, but need to convert the current angle into a long pointer.
-          vvt_pid_current_angle = (long)currentStatus.vvt1Angle;
-
           //If not already at target angle, calculate new value from PID
-          bool PID_compute = vvtPID.Compute(millis());
+          bool PID_compute = vvtPID.Compute(millis(), currentStatus.vvt1Angle, &currentStatus.vvt1Duty);
           //vvt_pwm_target_value = percentage(40, vvt_pwm_max_count);
           //if (currentStatus.vvt1Angle > currentStatus.vvt1TargetAngle) { vvt_pwm_target_value = 0; }
           if(PID_compute == true) { vvt1_pwm_value = halfPercentage(currentStatus.vvt1Duty, vvt_pwm_max_count); }
@@ -1055,15 +1055,13 @@ void vvtControl(void)
           {
             currentStatus.vvt2Duty = configPage10.vvtCLholdDuty;
             vvt2_pwm_value = halfPercentage(currentStatus.vvt2Duty, vvt_pwm_max_count);
-            vvt2PID.Initialize();
+            vvt2PID.Initialize(currentStatus.vvt2Angle);
             currentStatus.vvt2AngleError = false;
           }
           else
           {
-            //This is dumb, but need to convert the current angle into a long pointer.
-            vvt2_pid_current_angle = (long)currentStatus.vvt2Angle;
             //If not already at target angle, calculate new value from PID
-            bool PID_compute = vvt2PID.Compute(millis());
+            bool PID_compute = vvt2PID.Compute(millis(), currentStatus.vvt2Angle, &currentStatus.vvt2Duty);
             if(PID_compute == true) { vvt2_pwm_value = halfPercentage(currentStatus.vvt2Duty, vvt_pwm_max_count); }
             currentStatus.vvt2AngleError = false;
           }
@@ -1275,7 +1273,7 @@ void wmiControl(void)
 
 void boostDisable(void)
 {
-  boostPID.Initialize(); //This resets the ITerm value to prevent rubber banding
+  boostPID.Initialize(currentStatus.MAP); //This resets the ITerm value to prevent rubber banding
   currentStatus.boostDuty = 0;
   DISABLE_BOOST_TIMER(); //Turn off timer
   boost_pin.setPinLow(); //Make sure solenoid is off (0% duty)
