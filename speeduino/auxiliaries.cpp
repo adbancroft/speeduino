@@ -621,7 +621,7 @@ static void setBoostPidTunings(const config6 &page6)
 
 static void setVvtPidTunings(integerPID &pid, const config10 &page10, PidDirection direction, uint8_t targetAngle)
 {
-  pid.SetTunings(PidTuningParameters(page10.vvtCLKP, page10.vvtCLKI, page10.vvtCLKD), direction, 33);
+  pid.SetTunings(PidTuningParameters(page10.vvtCLKP, page10.vvtCLKI, page10.vvtCLKD), direction, millis(), 33);
   pid.setTargetValue(targetAngle);
 }
 
@@ -888,7 +888,7 @@ void boostControl(void)
             setBoostPidTunings(configPage6);
           }
 
-          bool PIDcomputed = boostPID.Compute(get3DTableValue(&boostTableLookupDuty, currentStatus.boostTarget, currentStatus.RPM) * 100/2); //Compute() returns false if the required interval has not yet passed.
+          bool PIDcomputed = boostPID.Compute(millis(), get3DTableValue(&boostTableLookupDuty, currentStatus.boostTarget, currentStatus.RPM) * 100/2); //Compute() returns false if the required interval has not yet passed.
           if(currentStatus.boostDuty == 0) { DISABLE_BOOST_TIMER(); boost_pin.setPinLow(); } //If boost duty is 0, shut everything down
           else
           {
@@ -1026,7 +1026,7 @@ void vvtControl(void)
           vvt_pid_current_angle = (long)currentStatus.vvt1Angle;
 
           //If not already at target angle, calculate new value from PID
-          bool PID_compute = vvtPID.Compute();
+          bool PID_compute = vvtPID.Compute(millis());
           //vvt_pwm_target_value = percentage(40, vvt_pwm_max_count);
           //if (currentStatus.vvt1Angle > currentStatus.vvt1TargetAngle) { vvt_pwm_target_value = 0; }
           if(PID_compute == true) { vvt1_pwm_value = halfPercentage(currentStatus.vvt1Duty, vvt_pwm_max_count); }
@@ -1063,7 +1063,7 @@ void vvtControl(void)
             //This is dumb, but need to convert the current angle into a long pointer.
             vvt2_pid_current_angle = (long)currentStatus.vvt2Angle;
             //If not already at target angle, calculate new value from PID
-            bool PID_compute = vvt2PID.Compute();
+            bool PID_compute = vvt2PID.Compute(millis());
             if(PID_compute == true) { vvt2_pwm_value = halfPercentage(currentStatus.vvt2Duty, vvt_pwm_max_count); }
             currentStatus.vvt2AngleError = false;
           }
