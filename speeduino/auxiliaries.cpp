@@ -179,7 +179,7 @@ uint16_t boost_pwm_max_count; //Used for variable PWM frequency
 constexpr table2D_u8_s16_6 flexBoostTable(&configPage10.flexBoostBins, &configPage10.flexBoostAdj);
 
 //Old PID method. Retained in case the new one has issues
-static integerPID_ideal boostPID(&currentStatus.MAP, &currentStatus.boostDuty , &currentStatus.boostTarget, &configPage10.boostSens, &configPage10.boostIntv); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID_ideal boostPID(&currentStatus.MAP, &currentStatus.boostDuty , &currentStatus.boostTarget, &configPage10.boostSens); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
 static integerPID vvtPID(&vvt_pid_current_angle, &currentStatus.vvt1Duty, &vvt_pid_target_angle); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
 static integerPID vvt2PID(&vvt2_pid_current_angle, &currentStatus.vvt2Duty, &vvt2_pid_target_angle); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
 
@@ -615,6 +615,8 @@ static void setBoostPidTunings(const config6 &page6)
   {
     boostPID.SetTunings(PidTuningParameters(page6.boostKP, page6.boostKI, page6.boostKD), PidDirection::Direct);
   }
+  boostPID.SetOutputLimits(configPage2.boostMinDuty, configPage2.boostMaxDuty);
+  boostPID.setSampleTime(millis(), configPage10.boostIntv);
 }
 
 static void setVvtPidTunings(integerPID &pid, const config10 &page10, PidDirection direction)
@@ -639,7 +641,6 @@ void __attribute__((optimize("Os"))) initialiseAuxPWM(void)
   //The n2o_minTPS variable is capped at 100 by TS, so 255 indicates a new board.
   if(configPage10.n2o_minTPS == 255) { configPage10.n2o_enable = 0; }
 
-  boostPID.SetOutputLimits(configPage2.boostMinDuty, configPage2.boostMaxDuty);
   setBoostPidTunings(configPage6);
 
   if( configPage6.vvtEnabled > 0)
@@ -883,7 +884,6 @@ void boostControl(void)
           //This only needs to be run very infrequently, once every 16 calls to boostControl(). This is approx. once per second
           if( (boostCounter & 15) == 1)
           {
-            boostPID.SetOutputLimits(configPage2.boostMinDuty, configPage2.boostMaxDuty);
             setBoostPidTunings(configPage6);
           }
 
