@@ -177,7 +177,7 @@ uint16_t boost_pwm_max_count; //Used for variable PWM frequency
 constexpr table2D_u8_s16_6 flexBoostTable(&configPage10.flexBoostBins, &configPage10.flexBoostAdj);
 
 //Old PID method. Retained in case the new one has issues
-static integerPID_ideal boostPID(&currentStatus.MAP, &currentStatus.boostDuty, &configPage10.boostSens); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID_ideal boostPID(&currentStatus.MAP, &currentStatus.boostDuty); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
 static integerPID vvtPID(&vvt_pid_current_angle, &currentStatus.vvt1Duty); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
 static integerPID vvt2PID(&vvt2_pid_current_angle, &currentStatus.vvt2Duty); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
 
@@ -616,6 +616,7 @@ static void setBoostPidTunings(const config6 &page6)
   boostPID.SetOutputLimits(configPage2.boostMinDuty, configPage2.boostMaxDuty);
   boostPID.setSampleTime(millis(), configPage10.boostIntv);
   boostPID.setTargetValue(currentStatus.boostTarget);
+  boostPID.setSensitivity(configPage10.boostSens);
 }
 
 static void setVvtPidTunings(integerPID &pid, const config10 &page10, PidDirection direction, uint8_t targetAngle)
