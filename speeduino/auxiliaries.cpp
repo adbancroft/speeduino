@@ -605,11 +605,11 @@ static void setBoostPidTunings(const config6 &page6)
 {
   if(page6.boostMode == BOOST_MODE_SIMPLE)
   {
-    boostPID.SetTunings(PidTuningParameters(), PidDirection::Direct);
+    boostPID.SetTunings(PidTuningParameters());
   }
   else
   {
-    boostPID.SetTunings(PidTuningParameters(page6.boostKP, page6.boostKI, page6.boostKD), PidDirection::Direct);
+    boostPID.SetTunings(PidTuningParameters(page6.boostKP, page6.boostKI, page6.boostKD));
   }
   boostPID.SetOutputLimits(configPage2.boostMinDuty, configPage2.boostMaxDuty);
   boostPID.setSampleTime(millis(), configPage10.boostIntv);
@@ -619,7 +619,8 @@ static void setBoostPidTunings(const config6 &page6)
 
 static void setVvtPidTunings(integerPID &pid, const config10 &page10, PidDirection direction, uint8_t targetAngle)
 {
-  pid.SetTunings(PidTuningParameters(page10.vvtCLKP, page10.vvtCLKI, page10.vvtCLKD), direction, millis(), 33);
+  int8_t multiplier = direction==PidDirection::Direct ? 1 : -1;
+  pid.SetTunings(PidTuningParameters(page10.vvtCLKP, page10.vvtCLKI, page10.vvtCLKD) * multiplier, millis(), 33);
   pid.setTargetValue(targetAngle);
 }
 
