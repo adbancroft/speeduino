@@ -86,10 +86,11 @@ static FastCRC32 CRC32_calibration; //!< Support accumulation of a CRC during ca
 using crc_t = uint32_t;
 
 #ifdef COMMS_SD
-  commsInterface primaryComms(&Serial, SD_SERIAL_BUFFER_SIZE);
+static byte serialBuffer[SD_SERIAL_BUFFER_SIZE];
 #else
-  commsInterface primaryComms(&Serial, SERIAL_BUFFER_SIZE);
+static byte serialBuffer[TS_SERIAL_BUFFER_SIZE];
 #endif
+commsInterface primaryComms(&Serial, span<byte, dynamic_extent>(serialBuffer));
 
 static uint32_t deferEEPROMWritesUntil = 0; //!< Point in time that we can resume writing pages
 static constexpr uint32_t EEPROM_DEFER_DELAY = MICROS_PER_SEC; //1.0 second pause after large comms before writing to EEPROM
@@ -257,11 +258,10 @@ static uint16_t sendBufferAndCrcNonBlocking(const byte *buffer, size_t start, si
 static void sendSerialPayloadNonBlocking(commsInterface *comms, uint16_t payloadLength)
 {
   //Start new transmission session
-  uint8_t* serialPayload = comms->serialPayload.get();
   comms->serialStatusFlag = SERIAL_TRANSMIT_INPROGRESS;
   serialWrite(comms, payloadLength);
   comms->serialPayloadLength = payloadLength;
-  serialBytesRxTx = sendBufferAndCrcNonBlocking(serialPayload, 0, payloadLength);
+  serialBytesRxTx = sendBufferAndCrcNonBlocking(comms->_serialPayload.data(), 0, payloadLength);
   comms->serialStatusFlag = serialBytesRxTx==payloadLength+sizeof(crc_t) ? SERIAL_INACTIVE : SERIAL_TRANSMIT_INPROGRESS;
 }
 
@@ -343,10 +343,10 @@ static void generateLiveValues(commsInterface *comms, uint16_t offset, uint16_t 
 
   //currentStatus.status2 ^= (-currentStatus.hasSync ^ currentStatus.status2) & (1U << BIT_STATUS2_SYNC); //Set the sync bit of the Spark variable to match the hasSync variable
 
-  comms->serialPayload[0] = SERIAL_RC_OK;
+  comms->_serialPayload[0] = SERIAL_RC_OK;
   for(uint16_t x=0; x<packetLength; x++)
   {
-    comms->serialPayload[x+1U] = getTSLogEntry(offset+x); 
+    comms->_serialPayload[x+1U] = getTSLogEntry(offset+x); 
   }
   // Reset any flags that are being used to trigger page refreshes
   currentStatus.vssUiRefresh = false;
@@ -385,13 +385,13 @@ static void loadO2CalibrationChunk(commsInterface *comms, uint16_t offset, uint1
     //As we're using an interpolated 2D table, we only need to store 32 values out of this 1024
     if( (x % 32U) == 0U )
     {
-      o2CalibrationTable.values[offset/32U] = comms->serialPayload[x+7U]; //O2 table stores 8 bit values
+      o2CalibrationTable.values[offset/32U] = comms->_serialPayload[x+7U]; //O2 table stores 8 bit values
       o2CalibrationTable.axis[offset/32U]   = offset;
     }
 
     //Update the CRC
     //calibrationCRC = (CRC32_calibration.*pCrcFun)(&comms->serialPayload[x+7U], 1, false);
-    calibrationCRC = (*pCrcFun)(&comms->serialPayload[x+7U]);
+    calibrationCRC = (*pCrcFun)(comms->_serialPayload[x+7U]);
     // Subsequent passes through the loop, we need to UPDATE the CRC
     pCrcFun = &updateCrc;
   }
@@ -432,10 +432,10 @@ static void processTemperatureCalibrationTableUpdate(commsInterface *comms, uint
   {
     for (uint16_t x = 0; x < 32U; x++)
     {
-      values[x] = toTemperature(comms->serialPayload[(2U * x) + 7U], comms->serialPayload[(2U * x) + 8U]);
+      values[x] = toTemperature(comms->_serialPayload[(2U * x) + 7U], comms->_serialPayload[(2U * x) + 8U]);
       bins[x] = (x * 33U); // 0*33=0 to 31*33=1023
     }
-    saveCalibrationCrc(calibrationPage, CRC32_serial.crc32(&comms->serialPayload[7], 64));
+    saveCalibrationCrc(calibrationPage, CRC32_serial.crc32(&comms->_serialPayload[7], 64));
     saveCalibrationTable(calibrationPage);
     sendReturnCodeMsg(comms, SERIAL_RC_OK);
   }
@@ -455,7 +455,6 @@ Commands are single byte (letter symbol) commands.
 */
 void serialReceive(commsInterface *comms)
 {
-  uint8_t* serialPayload = comms->serialPayload.get();
   //Check for an existing legacy command in progress
   if(comms->serialStatusFlag == SERIAL_COMMAND_INPROGRESS_LEGACY)
   {
@@ -502,7 +501,7 @@ void serialReceive(commsInterface *comms)
   {
     if (serialBytesRxTx < comms->serialPayloadLength )
     {
-      comms->serialPayload[serialBytesRxTx] = (byte)comms->pSerial->read();
+      comms->_serialPayload[serialBytesRxTx] = (byte)comms->pSerial->read();
       ++serialBytesRxTx;
     }
     else
@@ -512,7 +511,7 @@ void serialReceive(commsInterface *comms)
 
       if (!comms->isRxTimeout()) // CRC read can timeout also!
       {
-        if (incomingCrc == CRC32_serial.crc32(serialPayload, comms->serialPayloadLength))
+        if (incomingCrc == CRC32_serial.crc32(comms->_serialPayload.data(), comms->serialPayloadLength))
         {
           //CRC is correct. Process the command
           processSerialCommand(comms);
@@ -540,7 +539,6 @@ void serialReceive(commsInterface *comms)
 
 void serialTransmit(commsInterface *comms)
 {
-  uint8_t* serialPayload = comms->serialPayload.get();
   switch (comms->serialStatusFlag)
   {
     case SERIAL_TRANSMIT_INPROGRESS_LEGACY:
@@ -560,7 +558,7 @@ void serialTransmit(commsInterface *comms)
       break;
 
     case SERIAL_TRANSMIT_INPROGRESS:
-      serialBytesRxTx = sendBufferAndCrcNonBlocking(serialPayload, serialBytesRxTx, comms->serialPayloadLength);
+      serialBytesRxTx = sendBufferAndCrcNonBlocking(comms->_serialPayload.data(), serialBytesRxTx, comms->serialPayloadLength);
       if(serialBytesRxTx == comms->serialPayloadLength+sizeof(crc_t)) { comms->serialStatusFlag = SERIAL_INACTIVE; }
       else { comms->serialStatusFlag = SERIAL_TRANSMIT_INPROGRESS; }
       break;
@@ -581,7 +579,7 @@ static void burnSinglePage(uint8_t page)
 
 void processSerialCommand(commsInterface *comms)
 {
-  uint8_t* serialPayload = comms->serialPayload.get();
+  uint8_t* serialPayload = comms->_serialPayload.data();
   switch (serialPayload[0])
   {
     case 'A': // send x bytes of realtime values in legacy support format
@@ -601,8 +599,8 @@ void processSerialCommand(commsInterface *comms)
       break;
 
     case 'C': // test communications. This is used by Tunerstudio to see whether there is an ECU on a given serial port
-      comms->serialPayload[0] = 0U;
-      comms->serialPayload[1] = 255U;
+      comms->_serialPayload[0] = 0U;
+      comms->_serialPayload[1] = 255U;
       sendSerialPayloadNonBlocking(comms, 2U);
       break;
 
@@ -610,7 +608,7 @@ void processSerialCommand(commsInterface *comms)
     {
       uint32_t CRC32_val = reverse_bytes(calculatePageCRC32( serialPayload[2] ));
 
-      comms->serialPayload[0] = SERIAL_RC_OK;
+      comms->_serialPayload[0] = SERIAL_RC_OK;
       (void)memcpy(&serialPayload[1], (byte*)&CRC32_val, sizeof(CRC32_val));
       sendSerialPayloadNonBlocking(comms, 5);      
       break;

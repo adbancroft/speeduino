@@ -10,7 +10,7 @@
 #ifndef COMMS_H
 #define COMMS_H
 
-#include <memory>
+#include "src/utils/span.h"
 #include "globals.h"
 #include "board_definition.h"
 
@@ -77,23 +77,21 @@ struct commsInterface
     uint32_t SDreadNumSectors;
     uint32_t SDreadCompletedSectors;
   #endif
-  std::unique_ptr<uint8_t[]> serialPayload;  // Dynamically sized payload //!< Serial payload buffer. Note that the size is set below at creation time
-  size_t payloadSize{};                // size of the payload buffer
   uint16_t serialPayloadLength; //!< How many bytes in serialPayload were received or sent
   SerialStatus serialStatusFlag;
+  span<byte, dynamic_extent> _serialPayload;
 
   // Constructor
-  commsInterface(Stream* serial, size_t payloadLen)
+  commsInterface(Stream* serial, span<byte, dynamic_extent> serialPayload)
       : pSerial(serial),
-        serialPayload(std::make_unique<uint8_t[]>(payloadLen)),
-        payloadSize(payloadLen)
+      _serialPayload(serialPayload)
   {}
 
   // Array-style access to payload
-  uint8_t& operator[](size_t i) { return serialPayload[i]; }
-  const uint8_t& operator[](size_t i) const { return serialPayload[i]; }
-  uint8_t* buffer() { return serialPayload.get(); }
-  const uint8_t* buffer() const { return serialPayload.get(); }
+  // uint8_t& operator[](size_t i) { return _serialPayload[i]; }
+  // const uint8_t& operator[](size_t i) const { return _serialPayload[i]; }
+  // uint8_t* buffer() { return _serialPayload.get(); }
+  // const uint8_t* buffer() const { return _serialPayload.get(); }
 
   void flushRXbuffer(void)
   {

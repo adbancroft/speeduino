@@ -28,8 +28,9 @@ sendcancommand is called when a command is to be sent either to serial3
 
 uint8_t currentSecondaryCommand;
 SECONDARY_SERIAL_T* pSecondarySerial;
-commsInterface secondaryComms(&Serial2, TS_SERIAL_BUFFER_SIZE);
-SerialStatus serialSecondaryStatusFlag;
+static byte serialBuffer[TS_SERIAL_BUFFER_SIZE];
+static commsInterface secondaryComms(&Serial, span<byte, dynamic_extent>(serialBuffer));
+static SerialStatus serialSecondaryStatusFlag;
 
 #if defined(CORE_AVR)
 #pragma GCC push_options
