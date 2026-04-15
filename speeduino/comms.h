@@ -87,12 +87,6 @@ struct commsInterface
       _serialPayload(serialPayload)
   {}
 
-  // Array-style access to payload
-  // uint8_t& operator[](size_t i) { return _serialPayload[i]; }
-  // const uint8_t& operator[](size_t i) const { return _serialPayload[i]; }
-  // uint8_t* buffer() { return _serialPayload.get(); }
-  // const uint8_t* buffer() const { return _serialPayload.get(); }
-
   void flushRXbuffer(void)
   {
     while (pSerial->available() > 0) { pSerial->read(); }
