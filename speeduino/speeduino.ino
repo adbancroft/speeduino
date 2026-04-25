@@ -314,7 +314,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
     }
     if(BIT_CHECK(currentStatus.LOOP_TIMER, BIT_TIMER_10HZ)) //10 hertz
     {
-      checkProgrammableIO(currentStatus, configPage13);
+      currentStatus.outputsStatus = checkProgrammableIO(configPage13);
       idleControl(); //Perform any idle related actions. This needs to be run at 10Hz to align with the idle taper resolution of 0.1s
       
       // Air conditioning control
