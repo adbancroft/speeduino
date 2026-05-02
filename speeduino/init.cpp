@@ -295,7 +295,8 @@ void initialiseAll(void)
     CRANK_ANGLE_MAX_IGN = 360;
     CRANK_ANGLE_MAX_INJ = 360;
 
-    currentStatus.maxInjOutputs = 1; // Disable all injectors expect channel 1
+    currentStatus.numPrimaryInjOutputs = 1; // Disable all injectors expect channel 1
+    currentStatus.numSecondaryInjOutputs = 0;
 
     if(configPage2.strokes == FOUR_STROKE) { CRANK_ANGLE_MAX_INJ = 720 / currentStatus.nSquirts; }
     else { CRANK_ANGLE_MAX_INJ = 360 / currentStatus.nSquirts; }
@@ -305,7 +306,7 @@ void initialiseAll(void)
         ignitionSchedule1.channelDegrees = 0;
         fuelSchedule1.channelDegrees = 0;
         currentStatus.maxIgnOutputs = 1;
-        currentStatus.maxInjOutputs = 1;
+        currentStatus.numPrimaryInjOutputs = 1;
 
         //Sequential ignition works identically on a 1 cylinder whether it's odd or even fire. 
         if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && (configPage2.strokes == FOUR_STROKE) ) { CRANK_ANGLE_MAX_IGN = 720; }
@@ -319,7 +320,7 @@ void initialiseAll(void)
         //Check if injector staging is enabled
         if(configPage10.stagingEnabled == true)
         {
-          currentStatus.maxInjOutputs = 2;
+          currentStatus.numSecondaryInjOutputs = 1;
           fuelSchedule2.channelDegrees = fuelSchedule1.channelDegrees;
         }
         break;
@@ -328,7 +329,7 @@ void initialiseAll(void)
         ignitionSchedule1.channelDegrees = 0;
         fuelSchedule1.channelDegrees = 0;
         currentStatus.maxIgnOutputs = 2;
-        currentStatus.maxInjOutputs = 2;
+        currentStatus.numPrimaryInjOutputs = 2;
         if (configPage2.engineType == EVEN_FIRE ) { ignitionSchedule2.channelDegrees = 180; }
         else { ignitionSchedule2.channelDegrees = configPage2.oddfire2; }
 
@@ -353,7 +354,7 @@ void initialiseAll(void)
         //Check if injector staging is enabled
         if(configPage10.stagingEnabled == true)
         {
-          currentStatus.maxInjOutputs = 4;
+          currentStatus.numSecondaryInjOutputs = 2;
 
           fuelSchedule3.channelDegrees = fuelSchedule1.channelDegrees;
           fuelSchedule4.channelDegrees = fuelSchedule2.channelDegrees;
@@ -364,7 +365,7 @@ void initialiseAll(void)
     case 3:
         ignitionSchedule1.channelDegrees = 0;
         currentStatus.maxIgnOutputs= 3;
-        currentStatus.maxInjOutputs = 3;
+        currentStatus.numPrimaryInjOutputs = 3;
         if (configPage2.engineType == EVEN_FIRE )
         {
           //Sequential and Single channel modes both run over 720 crank degrees, but only on 4 stroke engines.
@@ -448,14 +449,14 @@ void initialiseAll(void)
         if(configPage10.stagingEnabled == true)
         {
           #if INJ_CHANNELS >= 6
-            currentStatus.maxInjOutputs = 6;
+            currentStatus.numSecondaryInjOutputs = 3;
 
             fuelSchedule4.channelDegrees = fuelSchedule1.channelDegrees;
             fuelSchedule5.channelDegrees = fuelSchedule2.channelDegrees;
             fuelSchedule6.channelDegrees = fuelSchedule3.channelDegrees;
           #else
             //Staged output is on channel 4
-            currentStatus.maxInjOutputs = 4;
+            currentStatus.numSecondaryInjOutputs = 1;
             fuelSchedule4.channelDegrees = fuelSchedule1.channelDegrees;
           #endif
         }
@@ -464,7 +465,7 @@ void initialiseAll(void)
         ignitionSchedule1.channelDegrees = 0;
         fuelSchedule1.channelDegrees = 0;
         currentStatus.maxIgnOutputs = 2; //Default value for 4 cylinder, may be changed below
-        currentStatus.maxInjOutputs = 2;
+        currentStatus.numPrimaryInjOutputs = 2;
         if (configPage2.engineType == EVEN_FIRE )
         {
           ignitionSchedule2.channelDegrees = 180;
@@ -519,7 +520,7 @@ void initialiseAll(void)
           fuelSchedule3.channelDegrees = 360;
           fuelSchedule4.channelDegrees = 540;
 
-          currentStatus.maxInjOutputs = 4;
+          currentStatus.numPrimaryInjOutputs = 4;
 
           CRANK_ANGLE_MAX_INJ = 720;
           currentStatus.nSquirts = 1;
@@ -527,19 +528,19 @@ void initialiseAll(void)
         else
         {
           //Should never happen, but default values
-          currentStatus.maxInjOutputs = 2;
+          currentStatus.numPrimaryInjOutputs = 2;
         }
 
         //Check if injector staging is enabled
         if(configPage10.stagingEnabled == true)
         {
-          currentStatus.maxInjOutputs = 4;
+          currentStatus.numPrimaryInjOutputs = 4;
 
           if( (configPage2.injLayout == INJ_SEQUENTIAL) || (configPage2.injLayout == INJ_SEMISEQUENTIAL) )
           {
             //Staging with 4 cylinders semi/sequential requires 8 total channels
             #if INJ_CHANNELS >= 8
-              currentStatus.maxInjOutputs = 8;
+              currentStatus.numSecondaryInjOutputs = 4;
 
               fuelSchedule5.channelDegrees = fuelSchedule1.channelDegrees;
               fuelSchedule6.channelDegrees = fuelSchedule2.channelDegrees;
@@ -549,7 +550,7 @@ void initialiseAll(void)
               //This is an invalid config as there are not enough outputs to support sequential + staging
               //Put the staging output to the non-existent channel 5
               #if (INJ_CHANNELS >= 5)
-              currentStatus.maxInjOutputs = 5;
+              currentStatus.numSecondaryInjOutputs = 1;
               fuelSchedule5.channelDegrees = fuelSchedule1.channelDegrees;
               #endif
             #endif
@@ -571,7 +572,7 @@ void initialiseAll(void)
         ignitionSchedule5.channelDegrees = 288;
 #endif
         currentStatus.maxIgnOutputs= 5; //Only 4 actual outputs, so that's all that can be cut
-        currentStatus.maxInjOutputs = 4; //Is updated below to 5 if there are enough channels
+        currentStatus.numPrimaryInjOutputs = 4; //Is updated below to 5 if there are enough channels
 
         if(configPage4.sparkMode == IGN_MODE_SEQUENTIAL)
         {
@@ -621,7 +622,7 @@ void initialiseAll(void)
           fuelSchedule4.channelDegrees = 432;
           fuelSchedule5.channelDegrees = 576;
 
-          currentStatus.maxInjOutputs = 5;
+          currentStatus.numPrimaryInjOutputs = 5;
 
           CRANK_ANGLE_MAX_INJ = 720;
           currentStatus.nSquirts = 1;
@@ -629,7 +630,7 @@ void initialiseAll(void)
     #endif
 
     #if INJ_CHANNELS >= 6
-          if(configPage10.stagingEnabled == true) { currentStatus.maxInjOutputs = 6; }
+          if(configPage10.stagingEnabled == true) { currentStatus.numSecondaryInjOutputs = 1; }
     #endif
         break;
     case 6:
@@ -637,7 +638,7 @@ void initialiseAll(void)
         ignitionSchedule2.channelDegrees = 120;
         ignitionSchedule3.channelDegrees = 240;
         currentStatus.maxIgnOutputs= 3;
-        currentStatus.maxInjOutputs = 3;
+        currentStatus.numPrimaryInjOutputs = 3;
 
     #if IGN_CHANNELS >= 6
         if( (configPage4.sparkMode == IGN_MODE_SEQUENTIAL))
@@ -681,29 +682,29 @@ void initialiseAll(void)
           fuelSchedule5.channelDegrees = 480;
           fuelSchedule6.channelDegrees = 600;
 
-          currentStatus.maxInjOutputs = 6;
+          currentStatus.numPrimaryInjOutputs = 6;
 
           CRANK_ANGLE_MAX_INJ = 720;
           currentStatus.nSquirts = 1;
         }
         else if(configPage10.stagingEnabled == true) //Check if injector staging is enabled
         {
-          currentStatus.maxInjOutputs = 6;
+          currentStatus.numSecondaryInjOutputs = 3;
 
           if( (configPage2.injLayout == INJ_SEQUENTIAL) || (configPage2.injLayout == INJ_SEMISEQUENTIAL) )
           {
             //Staging with 6 cylinders semi/sequential requires 7 total channels
             #if INJ_CHANNELS >= 7
-              currentStatus.maxInjOutputs = 7;
+              currentStatus.numSecondaryInjOutputs = 4;
 
               fuelSchedule5.channelDegrees = fuelSchedule1.channelDegrees;
               fuelSchedule6.channelDegrees = fuelSchedule2.channelDegrees;
               fuelSchedule7.channelDegrees = fuelSchedule3.channelDegrees;
+              // TODO: this makes no sense!!
               fuelSchedule8.channelDegrees = fuelSchedule4.channelDegrees;
             #else
               //This is an invalid config as there are not enough outputs to support sequential + staging
               //No staging output will be active
-              currentStatus.maxInjOutputs = 6;
             #endif
           }
         }
@@ -715,7 +716,7 @@ void initialiseAll(void)
         ignitionSchedule3.channelDegrees = 180;
         ignitionSchedule4.channelDegrees = 270;
         currentStatus.maxIgnOutputs= 4;
-        currentStatus.maxInjOutputs = 4;
+        currentStatus.numPrimaryInjOutputs = 4;
 
 
         if( (configPage4.sparkMode == IGN_MODE_SINGLE))
@@ -774,7 +775,7 @@ void initialiseAll(void)
           fuelSchedule7.channelDegrees = 540;
           fuelSchedule8.channelDegrees = 630;
 
-          currentStatus.maxInjOutputs = 8;
+          currentStatus.numPrimaryInjOutputs = 8;
 
           CRANK_ANGLE_MAX_INJ = 720;
           currentStatus.nSquirts = 1;
