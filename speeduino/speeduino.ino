@@ -436,8 +436,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
 
       matchFuelSchedulersToSyncState(configPage2, configPage4, currentStatus);
       applyPwToInjectorChannels(pulse_widths, configPage6, currentStatus);
-      currentStatus.injAngle = setInjectionAngles(currentStatus);
-
+      
       //***********************************************************************************************
       //| BEGIN IGNITION CALCULATIONS
 
@@ -476,7 +475,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
         currentStatus.engineProtect.reset();
       }
       
-      setFuelChannelSchedules(injectorLimits(currentStatus.decoder.getCrankAngle()), currentStatus.schedulerCutState.fuelChannels);
+      currentStatus.injAngle = setFuelChannelSchedules(currentStatus);
     
       //***********************************************************************************************
       //| BEGIN IGNITION SCHEDULES
