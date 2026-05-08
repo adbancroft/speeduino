@@ -7,6 +7,7 @@
 #include "units.h"
 #include "board_definition.h" 
 #include "decoder_init.h"
+#include "scheduledIO_inj.h"
 
 static byte setStatusBit(byte status, uint8_t index, bool bit)
 {
@@ -33,10 +34,10 @@ static inline byte setStatusBits(byte status, bool (&bits)[N])
 static byte buildStatus1(const statuses &current)
 {
   bool bits[] = {
-    current.isInj1Open,
-    current.isInj2Open,
-    current.isInj3Open,
-    current.isInj4Open,
+    BIT_CHECK(getInjectorStatus(), 0),
+    BIT_CHECK(getInjectorStatus(), 1),
+    BIT_CHECK(getInjectorStatus(), 2),
+    BIT_CHECK(getInjectorStatus(), 3),
     current.isDFCOActive,
     false, // Unused
     current.isToothLog1Full,

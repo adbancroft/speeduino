@@ -34,17 +34,16 @@ void initInjDirectIO(const uint8_t (&pinNumbers)[INJ_CHANNELS])
     }
 }
 
-
 //Macros are used to define how each injector control system functions. These are then called by the master openInjectx() function.
 //The DIRECT macros (ie individual pins) are defined below. Others should be defined in their relevant acc_x.h file
-void openInjector1_DIRECT(void)  { channel_High<1>(); currentStatus.isInj1Open = true; }
-void closeInjector1_DIRECT(void) { channel_Low<1>();  currentStatus.isInj1Open = false; }
-void openInjector2_DIRECT(void)  { channel_High<2>(); currentStatus.isInj2Open = true; }
-void closeInjector2_DIRECT(void) { channel_Low<2>();  currentStatus.isInj2Open = false; }
-void openInjector3_DIRECT(void)  { channel_High<3>(); currentStatus.isInj3Open = true; }
-void closeInjector3_DIRECT(void) { channel_Low<3>();  currentStatus.isInj3Open = false; }
-void openInjector4_DIRECT(void)  { channel_High<4>(); currentStatus.isInj4Open = true; }
-void closeInjector4_DIRECT(void) { channel_Low<4>();  currentStatus.isInj4Open = false; }
+void openInjector1_DIRECT(void)  { channel_High<1>(); }
+void closeInjector1_DIRECT(void) { channel_Low<1>(); }
+void openInjector2_DIRECT(void)  { channel_High<2>(); }
+void closeInjector2_DIRECT(void) { channel_Low<2>(); }
+void openInjector3_DIRECT(void)  { channel_High<3>(); }
+void closeInjector3_DIRECT(void) { channel_Low<3>(); }
+void openInjector4_DIRECT(void)  { channel_High<4>(); }
+void closeInjector4_DIRECT(void) { channel_Low<4>(); }
 void openInjector5_DIRECT(void)  { channel_High<5>(); }
 void closeInjector5_DIRECT(void) { channel_Low<5>(); }
 void openInjector6_DIRECT(void)  { channel_High<6>(); }
