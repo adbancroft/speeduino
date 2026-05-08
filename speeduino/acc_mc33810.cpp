@@ -3,23 +3,8 @@
 #include "src/pins/fastOutputPin.h"
 #include "globals.h"
 
-uint8_t MC33810_BIT_INJ1 = 1;
-uint8_t MC33810_BIT_INJ2 = 2;
-uint8_t MC33810_BIT_INJ3 = 3;
-uint8_t MC33810_BIT_INJ4 = 4;
-uint8_t MC33810_BIT_INJ5 = 5;
-uint8_t MC33810_BIT_INJ6 = 6;
-uint8_t MC33810_BIT_INJ7 = 7;
-uint8_t MC33810_BIT_INJ8 = 8;
-
-uint8_t MC33810_BIT_IGN1 = 1;
-uint8_t MC33810_BIT_IGN2 = 2;
-uint8_t MC33810_BIT_IGN3 = 3;
-uint8_t MC33810_BIT_IGN4 = 4;
-uint8_t MC33810_BIT_IGN5 = 5;
-uint8_t MC33810_BIT_IGN6 = 6;
-uint8_t MC33810_BIT_IGN7 = 7;
-uint8_t MC33810_BIT_IGN8 = 8;
+uint8_t MC33810_BIT_INJ[8] = {};
+uint8_t MC33810_BIT_IGN[8] = {};
 
 static fastOutputPin_t mc33810_1_pin;
 static fastOutputPin_t mc33810_2_pin;
@@ -85,41 +70,41 @@ void __attribute__((optimize("Os"))) initMC33810(uint8_t pinMC33810_1, uint8_t p
     setMC33810_2_INACTIVE();
 }
 
-void openInjector1_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_INJ1); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void openInjector2_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_INJ2); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void openInjector3_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_INJ3); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void openInjector4_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_INJ4); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void openInjector5_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_INJ5); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
-void openInjector6_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_INJ6); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
-void openInjector7_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_INJ7); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
-void openInjector8_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_INJ8); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void openInjector1_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_INJ[0]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void openInjector2_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_INJ[1]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void openInjector3_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_INJ[2]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void openInjector4_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_INJ[3]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void openInjector5_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_INJ[4]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void openInjector6_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_INJ[5]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void openInjector7_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_INJ[6]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void openInjector8_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_INJ[7]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
 
-void closeInjector1_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_INJ1); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void closeInjector2_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_INJ2); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void closeInjector3_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_INJ3); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void closeInjector4_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_INJ4); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void closeInjector5_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_INJ5); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
-void closeInjector6_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_INJ6); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
-void closeInjector7_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_INJ7); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
-void closeInjector8_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_INJ8); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void closeInjector1_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_INJ[0]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void closeInjector2_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_INJ[1]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void closeInjector3_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_INJ[2]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void closeInjector4_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_INJ[3]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void closeInjector5_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_INJ[4]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void closeInjector6_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_INJ[5]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void closeInjector7_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_INJ[6]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void closeInjector8_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_INJ[7]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
 
-void coil1High_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_IGN1); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void coil2High_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_IGN2); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void coil3High_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_IGN3); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void coil4High_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_IGN4); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void coil5High_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_IGN5); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
-void coil6High_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_IGN6); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
-void coil7High_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_IGN7); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
-void coil8High_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_IGN8); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void coil1High_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_IGN[0]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void coil2High_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_IGN[1]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void coil3High_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_IGN[2]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void coil4High_MC33810(void) { setMC33810_1_ACTIVE(); BIT_SET(mc33810_1_requestedState, MC33810_BIT_IGN[3]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void coil5High_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_IGN[4]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void coil6High_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_IGN[5]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void coil7High_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_IGN[6]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void coil8High_MC33810(void) { setMC33810_2_ACTIVE(); BIT_SET(mc33810_2_requestedState, MC33810_BIT_IGN[7]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
 
-void coil1Low_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_IGN1); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void coil2Low_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_IGN2); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void coil3Low_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_IGN3); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void coil4Low_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_IGN4); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
-void coil5Low_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_IGN5); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
-void coil6Low_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_IGN6); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
-void coil7Low_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_IGN7); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
-void coil8Low_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_IGN8); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void coil1Low_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_IGN[0]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void coil2Low_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_IGN[1]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void coil3Low_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_IGN[2]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void coil4Low_MC33810(void) { setMC33810_1_ACTIVE(); BIT_CLEAR(mc33810_1_requestedState, MC33810_BIT_IGN[3]); mc33810_1_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_1_requestedState)); setMC33810_1_INACTIVE(); }
+void coil5Low_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_IGN[4]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void coil6Low_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_IGN[5]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void coil7Low_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_IGN[6]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
+void coil8Low_MC33810(void) { setMC33810_2_ACTIVE(); BIT_CLEAR(mc33810_2_requestedState, MC33810_BIT_IGN[7]); mc33810_2_returnState = SPI.transfer16(word(MC33810_ONOFF_CMD, mc33810_2_requestedState)); setMC33810_2_INACTIVE(); }
 
 void coil1Charging_MC33810(void)      { if(configPage4.IgInv == GOING_HIGH) { coil1Low_MC33810();  } else { coil1High_MC33810(); } }
 void coil1StopCharging_MC33810(void)  { if(configPage4.IgInv == GOING_HIGH) { coil1High_MC33810(); } else { coil1Low_MC33810();  } }

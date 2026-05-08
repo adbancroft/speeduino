@@ -8,23 +8,8 @@ void initMC33810(uint8_t pinMC33810_1, uint8_t pinMC33810_2);
 
 //These are default values for which injector is attached to which output on the IC. 
 //They may (Probably will) be changed during init by the board specific config in init.ino
-extern uint8_t MC33810_BIT_INJ1;
-extern uint8_t MC33810_BIT_INJ2;
-extern uint8_t MC33810_BIT_INJ3;
-extern uint8_t MC33810_BIT_INJ4;
-extern uint8_t MC33810_BIT_INJ5;
-extern uint8_t MC33810_BIT_INJ6;
-extern uint8_t MC33810_BIT_INJ7;
-extern uint8_t MC33810_BIT_INJ8;
-
-extern uint8_t MC33810_BIT_IGN1;
-extern uint8_t MC33810_BIT_IGN2;
-extern uint8_t MC33810_BIT_IGN3;
-extern uint8_t MC33810_BIT_IGN4;
-extern uint8_t MC33810_BIT_IGN5;
-extern uint8_t MC33810_BIT_IGN6;
-extern uint8_t MC33810_BIT_IGN7;
-extern uint8_t MC33810_BIT_IGN8;
+extern uint8_t MC33810_BIT_INJ[8];
+extern uint8_t MC33810_BIT_IGN[8];
 
 void openInjector1_MC33810(void);
 void openInjector2_MC33810(void);
