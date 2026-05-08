@@ -22,7 +22,7 @@ char getInjectorStatus(void)
 
 #define OPEN_INJECTOR(channel) \
     if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { \
-        openInjector ## channel ## _DIRECT(); \
+        openInjector_DIRECT(channel); \
     } else { \
         openInjector ## channel ## _MC33810(); \
     }; \
@@ -30,7 +30,7 @@ char getInjectorStatus(void)
 
 #define CLOSE_INJECTOR(channel) \
     if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { \
-        closeInjector ## channel ## _DIRECT(); \
+        closeInjector_DIRECT(channel); \
     } else { \
         closeInjector ## channel ## _MC33810(); \
     }; \
