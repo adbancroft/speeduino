@@ -2576,7 +2576,7 @@ void setPinMapping(byte boardID)
   
   if( (ignitionOutputControl == OUTPUT_CONTROL_MC33810) || (injectorOutputControl == OUTPUT_CONTROL_MC33810) )
   {
-    initMC33810();
+    initMC33810(pinMC33810_1_CS, pinMC33810_2_CS);
     if( (LED_BUILTIN != SCK) && (LED_BUILTIN != MOSI) && (LED_BUILTIN != MISO) ) pinMode(LED_BUILTIN, OUTPUT); //This is required on as the LED pin can otherwise be reset to an input
   }
 

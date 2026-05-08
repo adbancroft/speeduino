@@ -4,7 +4,7 @@
 #include <SPI.h>
 #include "board_definition.h"
 
-void initMC33810(void);
+void initMC33810(uint8_t pinMC33810_1, uint8_t pinMC33810_2);
 
 //These are default values for which injector is attached to which output on the IC. 
 //They may (Probably will) be changed during init by the board specific config in init.ino

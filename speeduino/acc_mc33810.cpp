@@ -34,20 +34,17 @@ void setMC33810_1_INACTIVE(void) { mc33810_1_pin.setPinLow(); }
 void setMC33810_2_ACTIVE(void) { mc33810_2_pin.setPinHigh(); }
 void setMC33810_2_INACTIVE(void) { mc33810_2_pin.setPinLow(); }
 
-void __attribute__((optimize("Os"))) initMC33810(void)
+void __attribute__((optimize("Os"))) initMC33810(uint8_t pinMC33810_1, uint8_t pinMC33810_2)
 {
     //Set pin port/masks
-    mc33810_1_pin.setPin(pinMC33810_1_CS, OUTPUT);
-    mc33810_2_pin.setPin(pinMC33810_2_CS, OUTPUT);
+    mc33810_1_pin.setPin(pinMC33810_1, OUTPUT);
+    mc33810_2_pin.setPin(pinMC33810_2, OUTPUT);
 
     //Set the output states of both ICs to be off to fuel and ignition
     mc33810_1_requestedState = 0;
     mc33810_2_requestedState = 0;
     mc33810_1_returnState = 0;
     mc33810_2_returnState = 0;
-
-    pinMode(pinMC33810_1_CS, OUTPUT);
-    pinMode(pinMC33810_2_CS, OUTPUT);
 
     SPI.begin();
     //These are the SPI settings per the datasheet
