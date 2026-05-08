@@ -904,6 +904,9 @@ void setPinMapping(byte boardID)
 
   if( configPage4.triggerTeeth == 0 ) { configPage4.triggerTeeth = 4; } //Avoid potential divide by 0 when starting decoders
 
+  uint8_t MC33810InjBits[8];
+  uint8_t MC33810IgnBits[8];
+
   switch (boardID)
   {
     //Note: Case 0 (Speeduino v0.1) was removed in Nov 2020 to handle default case for blank FRAM modules
@@ -2057,23 +2060,23 @@ void setPinMapping(byte boardID)
         pinMC33810_2_CS = 9;
 
       //Pin alignment to the MC33810 outputs
-      MC33810_BIT_INJ[0] = 3;
-      MC33810_BIT_INJ[1] = 1;
-      MC33810_BIT_INJ[2] = 0;
-      MC33810_BIT_INJ[3] = 2;
-      MC33810_BIT_IGN[0] = 4;
-      MC33810_BIT_IGN[1] = 5;
-      MC33810_BIT_IGN[2] = 6;
-      MC33810_BIT_IGN[3] = 7;
+      MC33810InjBits[0] = 3;
+      MC33810InjBits[1] = 1;
+      MC33810InjBits[2] = 0;
+      MC33810InjBits[3] = 2;
+      MC33810IgnBits[0] = 4;
+      MC33810IgnBits[1] = 5;
+      MC33810IgnBits[2] = 6;
+      MC33810IgnBits[3] = 7;
 
-      MC33810_BIT_INJ[4] = 3;
-      MC33810_BIT_INJ[5] = 1;
-      MC33810_BIT_INJ[6] = 0;
-      MC33810_BIT_INJ[7] = 2;
-      MC33810_BIT_IGN[4] = 4;
-      MC33810_BIT_IGN[5] = 5;
-      MC33810_BIT_IGN[6] = 6;
-      MC33810_BIT_IGN[7] = 7;
+      MC33810InjBits[4] = 3;
+      MC33810InjBits[5] = 1;
+      MC33810InjBits[6] = 0;
+      MC33810InjBits[7] = 2;
+      MC33810IgnBits[4] = 4;
+      MC33810IgnBits[5] = 5;
+      MC33810IgnBits[6] = 6;
+      MC33810IgnBits[7] = 7;
 
 
 
@@ -2576,7 +2579,7 @@ void setPinMapping(byte boardID)
   
   if( (ignitionOutputControl == OUTPUT_CONTROL_MC33810) || (injectorOutputControl == OUTPUT_CONTROL_MC33810) )
   {
-    initMC33810(pinMC33810_1_CS, pinMC33810_2_CS);
+    initMC33810(pinMC33810_1_CS, pinMC33810_2_CS, MC33810InjBits, MC33810IgnBits);
     if( (LED_BUILTIN != SCK) && (LED_BUILTIN != MOSI) && (LED_BUILTIN != MISO) ) pinMode(LED_BUILTIN, OUTPUT); //This is required on as the LED pin can otherwise be reset to an input
   }
 

@@ -3,8 +3,8 @@
 #include "src/pins/fastOutputPin.h"
 #include "globals.h"
 
-uint8_t MC33810_BIT_INJ[8] = {};
-uint8_t MC33810_BIT_IGN[8] = {};
+static uint8_t MC33810_BIT_INJ[8] = {};
+static uint8_t MC33810_BIT_IGN[8] = {};
 
 static fastOutputPin_t mc33810_1_pin;
 static fastOutputPin_t mc33810_2_pin;
@@ -19,8 +19,14 @@ void setMC33810_1_INACTIVE(void) { mc33810_1_pin.setPinLow(); }
 void setMC33810_2_ACTIVE(void) { mc33810_2_pin.setPinHigh(); }
 void setMC33810_2_INACTIVE(void) { mc33810_2_pin.setPinLow(); }
 
-void __attribute__((optimize("Os"))) initMC33810(uint8_t pinMC33810_1, uint8_t pinMC33810_2)
+void __attribute__((optimize("Os"))) initMC33810(uint8_t pinMC33810_1, uint8_t pinMC33810_2,
+                                                 const uint8_t (&injBits)[8], const uint8_t (&ignBits)[8])
 {
+    static_assert(sizeof(MC33810_BIT_INJ)==sizeof(injBits), "Mismatch!");
+    memcpy(MC33810_BIT_INJ, injBits, sizeof(MC33810_BIT_INJ));
+    static_assert(sizeof(MC33810_BIT_IGN)==sizeof(ignBits), "Mismatch!");
+    memcpy(MC33810_BIT_IGN, ignBits, sizeof(MC33810_BIT_IGN));
+
     //Set pin port/masks
     mc33810_1_pin.setPin(pinMC33810_1, OUTPUT);
     mc33810_2_pin.setPin(pinMC33810_2, OUTPUT);
