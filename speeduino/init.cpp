@@ -904,8 +904,10 @@ void setPinMapping(byte boardID)
 
   if( configPage4.triggerTeeth == 0 ) { configPage4.triggerTeeth = 4; } //Avoid potential divide by 0 when starting decoders
 
+#if defined(MC33810_SUPPORT)
   uint8_t MC33810InjBits[8];
   uint8_t MC33810IgnBits[8];
+#endif
 
   switch (boardID)
   {
@@ -2577,11 +2579,13 @@ void setPinMapping(byte boardID)
     initInjDirectIO(injPins);
   }
   
+#if defined(MC33810_SUPPORT)
   if( (ignControlMode == IgnIoControlMode::MC33810) || (injControlMode == InjIoControlMode::MC33810) )
   {
     initMC33810(configPage4, pinMC33810_1_CS, pinMC33810_2_CS, MC33810InjBits, MC33810IgnBits);
     if( (LED_BUILTIN != SCK) && (LED_BUILTIN != MOSI) && (LED_BUILTIN != MISO) ) pinMode(LED_BUILTIN, OUTPUT); //This is required on as the LED pin can otherwise be reset to an input
   }
+#endif
   initInjIoControl(injControlMode);
   initIgnIoControl(ignControlMode);
 

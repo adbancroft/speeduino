@@ -28,21 +28,29 @@ char getInjectorStatus(void)
 
 static void openInjector(uint8_t channel)
 {
+#if defined(MC33810_SUPPORT)
     if(_controlMode==InjIoControlMode::Direct) {
         openInjector_DIRECT(channel);
     } else {
         openInjector_MC33810(channel);
     };
+#else
+    openInjector_DIRECT(channel);
+#endif
     BIT_SET(injStatusMask, (channel)-1U);
 }
 
 static void closeInjector(uint8_t channel)
 {
+#if defined(MC33810_SUPPORT)
     if(_controlMode==InjIoControlMode::Direct) {
         closeInjector_DIRECT(channel);
     } else {
         closeInjector_MC33810(channel);
     };
+#else
+    closeInjector_DIRECT(channel);
+#endif
     BIT_CLEAR(injStatusMask, (channel)-1U); 
 }
 

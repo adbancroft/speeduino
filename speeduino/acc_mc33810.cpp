@@ -3,6 +3,8 @@
 #include "src/pins/fastOutputPin.h"
 #include "preprocessor.h"
 
+#if defined(MC33810_SUPPORT)
+
 static uint8_t MC33810_BIT_INJ[8] = {};
 static uint8_t MC33810_BIT_IGN[8] = {};
 
@@ -164,3 +166,4 @@ void coilStopCharging_MC33810(uint8_t channel)
 {
     coilDischargingFn(channel);
 }
+#endif

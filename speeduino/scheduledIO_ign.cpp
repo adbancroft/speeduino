@@ -19,6 +19,7 @@ static void tachoOutputOff(void) { if(configPage6.tachoMode) { tachoPulseHigh();
 
 static void beginCoilCharge(uint8_t channel) 
 { 
+#if defined(MC33810_SUPPORT)
     if(_controlMode==IgnIoControlMode::Direct) 
     {
         coilCharging_DIRECT(channel);
@@ -27,11 +28,15 @@ static void beginCoilCharge(uint8_t channel)
     {
         coilCharging_MC33810(channel);
     }
+#else
+    coilCharging_DIRECT(channel);
+#endif
     tachoOutputOn(); 
 }
 
 static void endCoilCharge(uint8_t channel)
 {
+#if defined(MC33810_SUPPORT)
     if(_controlMode==IgnIoControlMode::Direct) 
     {
         coilStopCharging_DIRECT(channel);
@@ -40,6 +45,9 @@ static void endCoilCharge(uint8_t channel)
     {
         coilStopCharging_MC33810(channel);
     }
+#else
+    coilStopCharging_DIRECT(channel);
+#endif
     tachoOutputOff();
 }
 
