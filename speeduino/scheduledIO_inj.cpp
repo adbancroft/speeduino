@@ -24,7 +24,7 @@ char getInjectorStatus(void)
     if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { \
         openInjector_DIRECT(channel); \
     } else { \
-        openInjector ## channel ## _MC33810(); \
+        openInjector_MC33810(channel); \
     }; \
     BIT_SET(injStatusMask, (channel)-1U);
 
@@ -32,7 +32,7 @@ char getInjectorStatus(void)
     if(injectorOutputControl != OUTPUT_CONTROL_MC33810) { \
         closeInjector_DIRECT(channel); \
     } else { \
-        closeInjector ## channel ## _MC33810(); \
+        closeInjector_MC33810(channel); \
     }; \
     BIT_CLEAR(injStatusMask, (channel)-1U); 
 

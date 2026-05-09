@@ -95,55 +95,43 @@ void __attribute__((optimize("Os"))) initMC33810(uint8_t pinMC33810_1, uint8_t p
     mc33810_2.sendCommand(loadDetectCmd);
 }
 
-void openInjector1_MC33810(void) { mc33810_1.setBit(MC33810_BIT_INJ[0]); }
-void openInjector2_MC33810(void) { mc33810_1.setBit(MC33810_BIT_INJ[1]); }
-void openInjector3_MC33810(void) { mc33810_1.setBit(MC33810_BIT_INJ[2]); }
-void openInjector4_MC33810(void) { mc33810_1.setBit(MC33810_BIT_INJ[3]); }
-void openInjector5_MC33810(void) { mc33810_2.setBit(MC33810_BIT_INJ[4]); }
-void openInjector6_MC33810(void) { mc33810_2.setBit(MC33810_BIT_INJ[5]); }
-void openInjector7_MC33810(void) { mc33810_2.setBit(MC33810_BIT_INJ[6]); }
-void openInjector8_MC33810(void) { mc33810_2.setBit(MC33810_BIT_INJ[7]); }
+static inline mc33810_t& getMC33810ForChannel(uint8_t channel)
+{ 
+    // Upper 4 channels (injection *and* ignition) are on the 2nd IC, lower 4 on the first IC
+    return channel>4U ? mc33810_2 : mc33810_1;
+}
 
-void closeInjector1_MC33810(void) { mc33810_1.clearBit(MC33810_BIT_INJ[0]); }
-void closeInjector2_MC33810(void) { mc33810_1.clearBit(MC33810_BIT_INJ[1]); }
-void closeInjector3_MC33810(void) { mc33810_1.clearBit(MC33810_BIT_INJ[2]); }
-void closeInjector4_MC33810(void) { mc33810_1.clearBit(MC33810_BIT_INJ[3]); }
-void closeInjector5_MC33810(void) { mc33810_2.clearBit(MC33810_BIT_INJ[4]); }
-void closeInjector6_MC33810(void) { mc33810_2.clearBit(MC33810_BIT_INJ[5]); }
-void closeInjector7_MC33810(void) { mc33810_2.clearBit(MC33810_BIT_INJ[6]); }
-void closeInjector8_MC33810(void) { mc33810_2.clearBit(MC33810_BIT_INJ[7]); }
+void openInjector_MC33810(uint8_t channel)
+{
+    if (channel<=_countof(MC33810_BIT_INJ))
+    {
+        getMC33810ForChannel(channel).setBit(MC33810_BIT_INJ[channel-1U]);
+    }
+}
 
-void coil1High_MC33810(void) { mc33810_1.setBit(MC33810_BIT_IGN[0]); }
-void coil2High_MC33810(void) { mc33810_1.setBit(MC33810_BIT_IGN[1]); }
-void coil3High_MC33810(void) { mc33810_1.setBit(MC33810_BIT_IGN[2]); }
-void coil4High_MC33810(void) { mc33810_1.setBit(MC33810_BIT_IGN[3]); }
-void coil5High_MC33810(void) { mc33810_2.setBit(MC33810_BIT_IGN[4]); }
-void coil6High_MC33810(void) { mc33810_2.setBit(MC33810_BIT_IGN[5]); }
-void coil7High_MC33810(void) { mc33810_2.setBit(MC33810_BIT_IGN[6]); }
-void coil8High_MC33810(void) { mc33810_2.setBit(MC33810_BIT_IGN[7]); }
+void closeInjector_MC33810(uint8_t channel)
+{ 
+    if (channel<=_countof(MC33810_BIT_INJ))
+    {
+        getMC33810ForChannel(channel).clearBit(MC33810_BIT_INJ[channel-1U]); 
+    }
+}
 
-void coil1Low_MC33810(void) { mc33810_1.clearBit(MC33810_BIT_IGN[0]); }
-void coil2Low_MC33810(void) { mc33810_1.clearBit(MC33810_BIT_IGN[1]); }
-void coil3Low_MC33810(void) { mc33810_1.clearBit(MC33810_BIT_IGN[2]); }
-void coil4Low_MC33810(void) { mc33810_1.clearBit(MC33810_BIT_IGN[3]); }
-void coil5Low_MC33810(void) { mc33810_2.clearBit(MC33810_BIT_IGN[4]); }
-void coil6Low_MC33810(void) { mc33810_2.clearBit(MC33810_BIT_IGN[5]); }
-void coil7Low_MC33810(void) { mc33810_2.clearBit(MC33810_BIT_IGN[6]); }
-void coil8Low_MC33810(void) { mc33810_2.clearBit(MC33810_BIT_IGN[7]); }
+void coilHigh_MC33810(uint8_t channel)
+{ 
+    if (channel<=_countof(MC33810_BIT_IGN))
+    {
+        getMC33810ForChannel(channel).setBit(MC33810_BIT_IGN[channel-1U]); 
+    }
+}
 
-void coil1Charging_MC33810(void)      { if(configPage4.IgInv == GOING_HIGH) { coil1Low_MC33810();  } else { coil1High_MC33810(); } }
-void coil1StopCharging_MC33810(void)  { if(configPage4.IgInv == GOING_HIGH) { coil1High_MC33810(); } else { coil1Low_MC33810();  } }
-void coil2Charging_MC33810(void)      { if(configPage4.IgInv == GOING_HIGH) { coil2Low_MC33810();  } else { coil2High_MC33810(); } }
-void coil2StopCharging_MC33810(void)  { if(configPage4.IgInv == GOING_HIGH) { coil2High_MC33810(); } else { coil2Low_MC33810();  } }
-void coil3Charging_MC33810(void)      { if(configPage4.IgInv == GOING_HIGH) { coil3Low_MC33810();  } else { coil3High_MC33810(); } }
-void coil3StopCharging_MC33810(void)  { if(configPage4.IgInv == GOING_HIGH) { coil3High_MC33810(); } else { coil3Low_MC33810();  } }
-void coil4Charging_MC33810(void)      { if(configPage4.IgInv == GOING_HIGH) { coil4Low_MC33810();  } else { coil4High_MC33810(); } }
-void coil4StopCharging_MC33810(void)  { if(configPage4.IgInv == GOING_HIGH) { coil4High_MC33810(); } else { coil4Low_MC33810();  } }
-void coil5Charging_MC33810(void)      { if(configPage4.IgInv == GOING_HIGH) { coil5Low_MC33810();  } else { coil5High_MC33810(); } }
-void coil5StopCharging_MC33810(void)  { if(configPage4.IgInv == GOING_HIGH) { coil5High_MC33810(); } else { coil5Low_MC33810();  } }
-void coil6Charging_MC33810(void)      { if(configPage4.IgInv == GOING_HIGH) { coil6Low_MC33810();  } else { coil6High_MC33810(); } }
-void coil6StopCharging_MC33810(void)  { if(configPage4.IgInv == GOING_HIGH) { coil6High_MC33810(); } else { coil6Low_MC33810();  } }
-void coil7Charging_MC33810(void)      { if(configPage4.IgInv == GOING_HIGH) { coil7Low_MC33810();  } else { coil7High_MC33810(); } }
-void coil7StopCharging_MC33810(void)  { if(configPage4.IgInv == GOING_HIGH) { coil7High_MC33810(); } else { coil7Low_MC33810();  } }
-void coil8Charging_MC33810(void)      { if(configPage4.IgInv == GOING_HIGH) { coil8Low_MC33810();  } else { coil8High_MC33810(); } }
-void coil8StopCharging_MC33810(void)  { if(configPage4.IgInv == GOING_HIGH) { coil8High_MC33810(); } else { coil8Low_MC33810();  } }
+void coilLow_MC33810(uint8_t channel)
+{ 
+    if (channel<=_countof(MC33810_BIT_IGN))
+    {
+        getMC33810ForChannel(channel).clearBit(MC33810_BIT_IGN[channel-1U]); 
+    }
+}
+
+void coilCharging_MC33810(uint8_t channel) { if(configPage4.IgInv == GOING_HIGH) { coilLow_MC33810(channel);  } else { coilHigh_MC33810(channel); } }
+void coilStopCharging_MC33810(uint8_t channel) { if(configPage4.IgInv == GOING_HIGH) { coilHigh_MC33810(channel); } else { coilLow_MC33810(channel);  } }
