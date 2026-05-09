@@ -1,4 +1,4 @@
-#include "globals.h"
+#include "scheduledIO_direct_ign.h"
 #include "board_definition.h"
 #include "src/pins/fastOutputPin.h"
 #include "preprocessor.h"
@@ -7,14 +7,6 @@
 // Exclude from code coverage, since this is all board output control
  
 static fastOutputPin_t pins[IGN_CHANNELS];
-
-void initIgnDirectIO(const uint8_t (&pinNumbers)[IGN_CHANNELS])
-{
-    for (uint8_t i = 0; i < _countof(pins); i++)
-    {
-        pins[i].setPin(pinNumbers[i], OUTPUT);
-    }
-}
 
 static inline void coilLow(uint8_t channel)
 {
@@ -32,28 +24,36 @@ static inline void coilHigh(uint8_t channel)
     }
 }
 
-void coilCharging_DIRECT(uint8_t channel) 
-{ 
-    if (configPage4.IgInv == GOING_HIGH)
+using channelFunc = void(*)(uint8_t);
+static channelFunc coilChargingFn = coilHigh;
+static channelFunc coilDischargingFn = coilLow;
+
+void initIgnDirectIO(const config4 &page4, const uint8_t (&pinNumbers)[IGN_CHANNELS])
+{
+    for (uint8_t i = 0; i < _countof(pins); i++)
     {
-        coilLow(channel);
+        pins[i].setPin(pinNumbers[i], OUTPUT);
+    }
+    if (page4.IgInv == GOING_HIGH)
+    {
+        coilChargingFn = coilLow;
+        coilDischargingFn = coilHigh;
     }
     else
     {
-        coilHigh(channel);
+        coilChargingFn = coilHigh;
+        coilDischargingFn = coilLow;
     }
+}
+
+void coilCharging_DIRECT(uint8_t channel) 
+{ 
+    coilChargingFn(channel);
 }
 
 void coilStopCharging_DIRECT(uint8_t channel) 
 {
-    if (configPage4.IgInv == GOING_HIGH)
-    {
-        coilHigh(channel);
-     }
-     else 
-     {
-        coilLow(channel);
-     }
+    coilDischargingFn(channel);
 }
 
 // LCOV_EXCL_STOP

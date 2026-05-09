@@ -2545,7 +2545,7 @@ void setPinMapping(byte boardID)
       pinCoil8,
       #endif
     };
-    initIgnDirectIO(ignPins);
+    initIgnDirectIO(configPage4, ignPins);
   } 
 
   if(injectorOutputControl == OUTPUT_CONTROL_DIRECT)
