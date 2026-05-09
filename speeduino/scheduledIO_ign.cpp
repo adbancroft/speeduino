@@ -1,7 +1,15 @@
-#include "globals.h"
+#include "scheduledIO_ign.h"
 #include "scheduledIO_direct_ign.h"
 #include "acc_mc33810.h"
 #include "timers.h"
+#include "globals.h"
+
+static IgnIoControlMode _controlMode = IgnIoControlMode::Direct;
+
+void initIgnIoControl(IgnIoControlMode controlMode)
+{
+    _controlMode = controlMode;
+}
 
 // LCOV_EXCL_START
 // Exclude from code coverage, since this is all board output control
@@ -11,7 +19,7 @@ static void tachoOutputOff(void) { if(configPage6.tachoMode) { tachoPulseHigh();
 
 static void beginCoilCharge(uint8_t channel) 
 { 
-    if(ignitionOutputControl != OUTPUT_CONTROL_MC33810) 
+    if(_controlMode==IgnIoControlMode::Direct) 
     {
         coilCharging_DIRECT(channel);
     }
@@ -24,7 +32,7 @@ static void beginCoilCharge(uint8_t channel)
 
 static void endCoilCharge(uint8_t channel)
 {
-    if(ignitionOutputControl != OUTPUT_CONTROL_MC33810)
+    if(_controlMode==IgnIoControlMode::Direct) 
     {
         coilStopCharging_DIRECT(channel);
     }

@@ -900,7 +900,7 @@ void setPinMapping(byte boardID)
 {
   //Force set defaults. Will be overwritten below if needed.
   InjIoControlMode injControlMode = InjIoControlMode::Direct;
-  ignitionOutputControl = OUTPUT_CONTROL_DIRECT;
+  IgnIoControlMode ignControlMode = IgnIoControlMode::Direct;
 
   if( configPage4.triggerTeeth == 0 ) { configPage4.triggerTeeth = 4; } //Avoid potential divide by 0 when starting decoders
 
@@ -1959,7 +1959,7 @@ void setPinMapping(byte boardID)
       #if defined(CORE_TEENSY)
       //Pin mappings for the DropBear
       injControlMode = InjIoControlMode::MC33810;
-      ignitionOutputControl = OUTPUT_CONTROL_MC33810;
+      ignControlMode = IgnIoControlMode::MC33810;
 
       //The injector pins below are not used directly as the control is via SPI through the MC33810s, however the pin numbers are set to be the SPI pins (SCLK, MOSI, MISO and CS) so that nothing else will set them as inputs
       pinInjector1 = 13; //SCLK
@@ -2519,7 +2519,7 @@ void setPinMapping(byte boardID)
   //This is a legacy mode option to revert the MAP reading behaviour to match what was in place prior to the 201905 firmware
   if(configPage2.legacyMAP > 0) { digitalWrite(pinMAP, HIGH); }
 
-  if(ignitionOutputControl == OUTPUT_CONTROL_DIRECT)
+  if(ignControlMode == IgnIoControlMode::Direct)
   {
     uint8_t ignPins[IGN_CHANNELS] = {
       pinCoil1,
@@ -2577,12 +2577,13 @@ void setPinMapping(byte boardID)
     initInjDirectIO(injPins);
   }
   
-  if( (ignitionOutputControl == OUTPUT_CONTROL_MC33810) || (injControlMode == InjIoControlMode::MC33810) )
+  if( (ignControlMode == IgnIoControlMode::MC33810) || (injControlMode == InjIoControlMode::MC33810) )
   {
     initMC33810(configPage4, pinMC33810_1_CS, pinMC33810_2_CS, MC33810InjBits, MC33810IgnBits);
     if( (LED_BUILTIN != SCK) && (LED_BUILTIN != MOSI) && (LED_BUILTIN != MISO) ) pinMode(LED_BUILTIN, OUTPUT); //This is required on as the LED pin can otherwise be reset to an input
   }
   initInjIoControl(injControlMode);
+  initIgnIoControl(ignControlMode);
 
 //CS pin number is now set in a compile flag. 
 // #ifdef USE_SPI_EEPROM

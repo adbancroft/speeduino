@@ -1,5 +1,14 @@
 #pragma once
 
+#include <stdint.h>
+
+enum class IgnIoControlMode : uint8_t
+{
+    Direct,
+    MC33810
+};
+void initIgnIoControl(IgnIoControlMode controlMode);
+
 void beginCoil1Charge(void);
 void endCoil1Charge(void);
 
