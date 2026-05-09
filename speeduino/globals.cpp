@@ -58,8 +58,6 @@ byte pinInjector5; ///< Output pin injector 5
 byte pinInjector6; ///< Output pin injector 6
 byte pinInjector7; ///< Output pin injector 7
 byte pinInjector8; ///< Output pin injector 8
-byte injectorOutputControl = OUTPUT_CONTROL_DIRECT; /**< Specifies whether the injectors are controlled directly (Via an IO pin)
-    or using something like the MC33810. 0 = Direct (OUTPUT_CONTROL_DIRECT), 10 = MC33810 (OUTPUT_CONTROL_MC33810) */
 byte pinCoil1; ///< Pin for coil 1
 byte pinCoil2; ///< Pin for coil 2
 byte pinCoil3; ///< Pin for coil 3

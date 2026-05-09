@@ -113,7 +113,6 @@ extern byte pinInjector5; //Output pin injector 5
 extern byte pinInjector6; //Output pin injector 6
 extern byte pinInjector7; //Output pin injector 7
 extern byte pinInjector8; //Output pin injector 8
-extern byte injectorOutputControl; //Specifies whether the injectors are controlled directly (Via an IO pin) or using something like the MC33810
 extern byte pinCoil1; //Pin for coil 1
 extern byte pinCoil2; //Pin for coil 2
 extern byte pinCoil3; //Pin for coil 3

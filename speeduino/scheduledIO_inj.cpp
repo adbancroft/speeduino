@@ -1,4 +1,4 @@
-#include "globals.h"
+#include "scheduledIO_inj.h"
 #include "acc_mc33810.h"
 #include "scheduledIO_direct_inj.h"
 
@@ -9,9 +9,15 @@
  * form where they are called (by scheduler.ino).
  */
 
- volatile byte injStatusMask = 0;
+static volatile byte injStatusMask = 0;
+static InjIoControlMode _controlMode = InjIoControlMode::Direct;
 
- /** @brief Injector open/close status bits */
+void initInjIoControl(InjIoControlMode controlMode)
+{
+    _controlMode = controlMode;
+}
+
+/** @brief Injector open/close status bits */
 char getInjectorStatus(void)
 {
     return injStatusMask;
@@ -22,7 +28,7 @@ char getInjectorStatus(void)
 
 static void openInjector(uint8_t channel)
 {
-    if(injectorOutputControl != OUTPUT_CONTROL_MC33810) {
+    if(_controlMode==InjIoControlMode::Direct) {
         openInjector_DIRECT(channel);
     } else {
         openInjector_MC33810(channel);
@@ -32,7 +38,7 @@ static void openInjector(uint8_t channel)
 
 static void closeInjector(uint8_t channel)
 {
-    if(injectorOutputControl != OUTPUT_CONTROL_MC33810) {
+    if(_controlMode==InjIoControlMode::Direct) {
         closeInjector_DIRECT(channel);
     } else {
         closeInjector_MC33810(channel);

@@ -899,7 +899,7 @@ void initialiseAll(void)
 void setPinMapping(byte boardID)
 {
   //Force set defaults. Will be overwritten below if needed.
-  injectorOutputControl = OUTPUT_CONTROL_DIRECT;
+  InjIoControlMode injControlMode = InjIoControlMode::Direct;
   ignitionOutputControl = OUTPUT_CONTROL_DIRECT;
 
   if( configPage4.triggerTeeth == 0 ) { configPage4.triggerTeeth = 4; } //Avoid potential divide by 0 when starting decoders
@@ -1958,7 +1958,7 @@ void setPinMapping(byte boardID)
     case 55:
       #if defined(CORE_TEENSY)
       //Pin mappings for the DropBear
-      injectorOutputControl = OUTPUT_CONTROL_MC33810;
+      injControlMode = InjIoControlMode::MC33810;
       ignitionOutputControl = OUTPUT_CONTROL_MC33810;
 
       //The injector pins below are not used directly as the control is via SPI through the MC33810s, however the pin numbers are set to be the SPI pins (SCLK, MOSI, MISO and CS) so that nothing else will set them as inputs
@@ -2548,7 +2548,7 @@ void setPinMapping(byte boardID)
     initIgnDirectIO(configPage4, ignPins);
   } 
 
-  if(injectorOutputControl == OUTPUT_CONTROL_DIRECT)
+  if(injControlMode == InjIoControlMode::Direct)
   {
     uint8_t injPins[INJ_CHANNELS] = {
       pinInjector1,
@@ -2577,11 +2577,12 @@ void setPinMapping(byte boardID)
     initInjDirectIO(injPins);
   }
   
-  if( (ignitionOutputControl == OUTPUT_CONTROL_MC33810) || (injectorOutputControl == OUTPUT_CONTROL_MC33810) )
+  if( (ignitionOutputControl == OUTPUT_CONTROL_MC33810) || (injControlMode == InjIoControlMode::MC33810) )
   {
     initMC33810(configPage4, pinMC33810_1_CS, pinMC33810_2_CS, MC33810InjBits, MC33810IgnBits);
     if( (LED_BUILTIN != SCK) && (LED_BUILTIN != MOSI) && (LED_BUILTIN != MISO) ) pinMode(LED_BUILTIN, OUTPUT); //This is required on as the LED pin can otherwise be reset to an input
   }
+  initInjIoControl(injControlMode);
 
 //CS pin number is now set in a compile flag. 
 // #ifdef USE_SPI_EEPROM
