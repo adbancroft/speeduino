@@ -1,7 +1,7 @@
 #include <SPI.h>
 #include "acc_mc33810.h"
 #include "src/pins/fastOutputPin.h"
-#include "globals.h"
+#include "preprocessor.h"
 
 static uint8_t MC33810_BIT_INJ[8] = {};
 static uint8_t MC33810_BIT_IGN[8] = {};
@@ -62,7 +62,34 @@ uint8_t mc33810_t::sendCommand(uint16_t command)
 static mc33810_t mc33810_1;
 static mc33810_t mc33810_2;
 
-void __attribute__((optimize("Os"))) initMC33810(uint8_t pinMC33810_1, uint8_t pinMC33810_2,
+static inline mc33810_t& getMC33810ForChannel(uint8_t channel)
+{ 
+    // Upper 4 channels (injection *and* ignition) are on the 2nd IC, lower 4 on the first IC
+    return channel>4U ? mc33810_2 : mc33810_1;
+}
+
+static void coilHigh(uint8_t channel)
+{ 
+    if (channel<=_countof(MC33810_BIT_IGN))
+    {
+        getMC33810ForChannel(channel).setBit(MC33810_BIT_IGN[channel-1U]); 
+    }
+}
+
+static void coilLow(uint8_t channel)
+{ 
+    if (channel<=_countof(MC33810_BIT_IGN))
+    {
+        getMC33810ForChannel(channel).clearBit(MC33810_BIT_IGN[channel-1U]); 
+    }
+}
+
+using channelFunc = void(*)(uint8_t);
+static channelFunc coilChargingFn = coilHigh;
+static channelFunc coilDischargingFn = coilLow;
+
+void __attribute__((optimize("Os"))) initMC33810(const config4 &page4,
+                                                 uint8_t pinMC33810_1, uint8_t pinMC33810_2,
                                                  const uint8_t (&injBits)[8], const uint8_t (&ignBits)[8])
 {
     static_assert(sizeof(MC33810_BIT_INJ)==sizeof(injBits), "Mismatch!");
@@ -99,12 +126,17 @@ void __attribute__((optimize("Os"))) initMC33810(uint8_t pinMC33810_1, uint8_t p
     constexpr uint16_t loadDetectCmd = 0b0010'1000'1111'0000;
     mc33810_1.sendCommand(loadDetectCmd);
     mc33810_2.sendCommand(loadDetectCmd);
-}
 
-static inline mc33810_t& getMC33810ForChannel(uint8_t channel)
-{ 
-    // Upper 4 channels (injection *and* ignition) are on the 2nd IC, lower 4 on the first IC
-    return channel>4U ? mc33810_2 : mc33810_1;
+    if (page4.IgInv == GOING_HIGH)
+    {
+        coilChargingFn = coilLow;
+        coilDischargingFn = coilHigh;
+    }
+    else
+    {
+        coilChargingFn = coilHigh;
+        coilDischargingFn = coilLow;
+    }
 }
 
 void openInjector_MC33810(uint8_t channel)
@@ -123,21 +155,12 @@ void closeInjector_MC33810(uint8_t channel)
     }
 }
 
-void coilHigh_MC33810(uint8_t channel)
+void coilCharging_MC33810(uint8_t channel) 
 { 
-    if (channel<=_countof(MC33810_BIT_IGN))
-    {
-        getMC33810ForChannel(channel).setBit(MC33810_BIT_IGN[channel-1U]); 
-    }
+    coilChargingFn(channel);
 }
 
-void coilLow_MC33810(uint8_t channel)
-{ 
-    if (channel<=_countof(MC33810_BIT_IGN))
-    {
-        getMC33810ForChannel(channel).clearBit(MC33810_BIT_IGN[channel-1U]); 
-    }
+void coilStopCharging_MC33810(uint8_t channel)
+{
+    coilDischargingFn(channel);
 }
-
-void coilCharging_MC33810(uint8_t channel) { if(configPage4.IgInv == GOING_HIGH) { coilLow_MC33810(channel);  } else { coilHigh_MC33810(channel); } }
-void coilStopCharging_MC33810(uint8_t channel) { if(configPage4.IgInv == GOING_HIGH) { coilHigh_MC33810(channel); } else { coilLow_MC33810(channel);  } }

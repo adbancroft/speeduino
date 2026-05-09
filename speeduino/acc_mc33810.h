@@ -1,7 +1,10 @@
 #ifndef MC33810_H
 #define MC33810_H
 
-void initMC33810(   uint8_t pinMC33810_1, uint8_t pinMC33810_2,
+#include "config_pages.h"
+
+void initMC33810(   const config4 &page4,
+                    uint8_t pinMC33810_1, uint8_t pinMC33810_2,
                     const uint8_t (&injBits)[8],
                     const uint8_t (&ignBits)[8]);
 
