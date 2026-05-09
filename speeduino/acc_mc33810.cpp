@@ -13,12 +13,24 @@ struct mc33810_t
     fastOutputPin_t pin;
     volatile uint8_t requestedState; //Current binary state of the 2nd ICs IGN and INJ values
     volatile uint8_t returnState; //Current binary state of the 1st ICs IGN and INJ values
+
+    void init(uint8_t pinNumber)
+    {
+        pin.setPin(pinNumber, OUTPUT);
+
+        //Set the output states to be off to fuel and ignition
+        requestedState = 0;
+        returnState = 0;
+    }
+
     uint8_t sendCommand(uint16_t command);
+    
     void setBit(uint8_t bit)
     {
         BIT_SET(requestedState, bit); 
         returnState = sendCommand(word(MC33810_ONOFF_CMD, requestedState));        
     }
+    
     void clearBit(uint8_t bit)
     {
         BIT_CLEAR(requestedState, bit); 
@@ -59,14 +71,8 @@ void __attribute__((optimize("Os"))) initMC33810(uint8_t pinMC33810_1, uint8_t p
     memcpy(MC33810_BIT_IGN, ignBits, sizeof(MC33810_BIT_IGN));
 
     //Set pin port/masks
-    mc33810_1.pin.setPin(pinMC33810_1, OUTPUT);
-    mc33810_2.pin.setPin(pinMC33810_2, OUTPUT);
-
-    //Set the output states of both ICs to be off to fuel and ignition
-    mc33810_1.requestedState = 0;
-    mc33810_2.requestedState = 0;
-    mc33810_1.returnState = 0;
-    mc33810_2.returnState = 0;
+    mc33810_1.init(pinMC33810_1);
+    mc33810_2.init(pinMC33810_2);
 
     SPI.begin();
     //These are the SPI settings per the datasheet
