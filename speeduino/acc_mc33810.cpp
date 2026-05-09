@@ -85,7 +85,7 @@ void __attribute__((optimize("Os"))) initMC33810(uint8_t pinMC33810_1, uint8_t p
     00000000 = All remaining values are unused (For us)
     */
     //uint16_t cmd = 0b000111110000;
-    constexpr uint16_t modeCmd = 0b0001111100000000;
+    constexpr uint16_t modeCmd = 0b0001'1111'0000'0000;
     mc33810_1.sendCommand(modeCmd);
     mc33810_2.sendCommand(modeCmd);
 
@@ -96,7 +96,7 @@ void __attribute__((optimize("Os"))) initMC33810(uint8_t pinMC33810_1, uint8_t p
     1111 = Open load detection fault when active (Default)
     0000 = Disable open load detection when off (Changed from 1111 to 0000)
     */
-    constexpr uint16_t loadDetectCmd = 0b0010100011110000;
+    constexpr uint16_t loadDetectCmd = 0b0010'1000'1111'0000;
     mc33810_1.sendCommand(loadDetectCmd);
     mc33810_2.sendCommand(loadDetectCmd);
 }
