@@ -7,7 +7,7 @@
 
 static fastOutputPin_t pins[INJ_CHANNELS];
 
-void initInjDirectIO(const uint8_t (&pinNumbers)[INJ_CHANNELS])
+void initInjDirectIO(const uint8_t (&pinNumbers)[_countof(pins)])
 {
     for (uint8_t i = 0; i < _countof(pins); i++)
     {
@@ -17,17 +17,13 @@ void initInjDirectIO(const uint8_t (&pinNumbers)[INJ_CHANNELS])
 
 void openInjector_DIRECT(uint8_t channel)
 {
-    if (channel<=_countof(pins))
-    {
-        pins[channel-1U].setPinHigh();
-    }
+    INTERNAL_TEST_ASSERT(channel>0 && channel<=_countof(pins));
+    pins[channel-1U].setPinHigh();
 }
 void closeInjector_DIRECT(uint8_t channel)
 {
-    if (channel<=_countof(pins))
-    {
-        pins[channel-1U].setPinLow();
-    }
+    INTERNAL_TEST_ASSERT(channel>0 && channel<=_countof(pins));
+    pins[channel-1U].setPinLow();
 }
 
 // LCOV_EXCL_STOP

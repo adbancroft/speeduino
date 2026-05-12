@@ -12,6 +12,9 @@ void initInjIoControl(InjIoControlMode controlMode);
 /** @brief Injector open/close status bits */
 char getInjectorStatus(void);
 
+void openInjector(uint8_t channel);
+void closeInjector(uint8_t channel);
+
 void openInjector1(void);
 void closeInjector1(void);
 

@@ -9,6 +9,9 @@ enum class IgnIoControlMode : uint8_t
 };
 void initIgnIoControl(IgnIoControlMode controlMode);
 
+void beginCoilCharge(uint8_t channel);
+void endCoilCharge(uint8_t channel);
+
 void beginCoil1Charge(void);
 void endCoil1Charge(void);
 

@@ -10,25 +10,21 @@ static fastOutputPin_t pins[IGN_CHANNELS];
 
 static inline void coilLow(uint8_t channel)
 {
-    if (channel<=_countof(pins))
-    {
-        pins[channel-1U].setPinLow();
-    }
+    INTERNAL_TEST_ASSERT(channel>0 && channel<=_countof(pins));
+    pins[channel-1U].setPinLow();
 }
 
 static inline void coilHigh(uint8_t channel)
 {
-    if (channel<=_countof(pins))
-    {
-        pins[channel-1U].setPinHigh();
-    }
+    INTERNAL_TEST_ASSERT(channel>0 && channel<=_countof(pins));
+    pins[channel-1U].setPinHigh();
 }
 
 using channelFunc = void(*)(uint8_t);
 static channelFunc coilChargingFn = coilHigh;
 static channelFunc coilDischargingFn = coilLow;
 
-void initIgnDirectIO(const config4 &page4, const uint8_t (&pinNumbers)[IGN_CHANNELS])
+void initIgnDirectIO(const config4 &page4, const uint8_t (&pinNumbers)[_countof(pins)])
 {
     for (uint8_t i = 0; i < _countof(pins); i++)
     {

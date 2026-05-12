@@ -26,7 +26,7 @@ char getInjectorStatus(void)
 // LCOV_EXCL_START
 // Exclude from code coverage, since this is all board output control
 
-static void openInjector(uint8_t channel)
+void openInjector(uint8_t channel)
 {
 #if defined(MC33810_SUPPORT)
     if(_controlMode==InjIoControlMode::Direct) {
@@ -40,7 +40,7 @@ static void openInjector(uint8_t channel)
     BIT_SET(injStatusMask, (channel)-1U);
 }
 
-static void closeInjector(uint8_t channel)
+void closeInjector(uint8_t channel)
 {
 #if defined(MC33810_SUPPORT)
     if(_controlMode==InjIoControlMode::Direct) {
@@ -73,31 +73,31 @@ void closeInjector8(void)  { closeInjector(8); }
 
 // These are for Semi-Sequential and 5 Cylinder injection
 //Standard 4 cylinder pairings
-void openInjector1and3(void) { openInjector1(); openInjector3(); }
-void closeInjector1and3(void) { closeInjector1(); closeInjector3(); }
-void openInjector2and4(void) { openInjector2(); openInjector4(); }
-void closeInjector2and4(void) { closeInjector2(); closeInjector4(); }
+void openInjector1and3(void) { openInjector(1U); openInjector(3U); }
+void closeInjector1and3(void) { closeInjector(1U); closeInjector(3U); }
+void openInjector2and4(void) { openInjector(2U); openInjector(4U); }
+void closeInjector2and4(void) { closeInjector(2U); closeInjector(4U); }
 //Alternative output pairings
-void openInjector1and4(void) { openInjector1(); openInjector4(); }
-void closeInjector1and4(void) { closeInjector1(); closeInjector4(); }
-void openInjector2and3(void) { openInjector2(); openInjector3(); }
-void closeInjector2and3(void) { closeInjector2(); closeInjector3(); }
+void openInjector1and4(void) { openInjector(1U); openInjector(4U); }
+void closeInjector1and4(void) { closeInjector(1U); closeInjector(4U); }
+void openInjector2and3(void) { openInjector(2U); openInjector(3U); }
+void closeInjector2and3(void) { closeInjector(2U); closeInjector(3U); }
 
-void openInjector3and5(void) { openInjector3(); openInjector5(); }
-void closeInjector3and5(void) { closeInjector3(); closeInjector5(); }
+void openInjector3and5(void) { openInjector(3U); openInjector(5U); }
+void closeInjector3and5(void) { closeInjector(3U); closeInjector(5U); }
 
-void openInjector2and5(void) { openInjector2(); openInjector5(); }
-void closeInjector2and5(void) { closeInjector2(); closeInjector5(); }
-void openInjector3and6(void) { openInjector3(); openInjector6(); }
-void closeInjector3and6(void) { closeInjector3(); closeInjector6(); }
+void openInjector2and5(void) { openInjector(2U); openInjector(5U); }
+void closeInjector2and5(void) { closeInjector(2U); closeInjector(5U); }
+void openInjector3and6(void) { openInjector(3U); openInjector(6U); }
+void closeInjector3and6(void) { closeInjector(3U); closeInjector(6U); }
 
-void openInjector1and5(void) { openInjector1(); openInjector5(); }
-void closeInjector1and5(void) { closeInjector1(); closeInjector5(); }
-void openInjector2and6(void) { openInjector2(); openInjector6(); }
-void closeInjector2and6(void) { closeInjector2(); closeInjector6(); }
-void openInjector3and7(void) { openInjector3(); openInjector7(); }
-void closeInjector3and7(void) { closeInjector3(); closeInjector7(); }
-void openInjector4and8(void) { openInjector4(); openInjector8(); }
-void closeInjector4and8(void) { closeInjector4(); closeInjector8(); }
+void openInjector1and5(void) { openInjector(1U); openInjector(5U); }
+void closeInjector1and5(void) { closeInjector(1U); closeInjector(5U); }
+void openInjector2and6(void) { openInjector(2U); openInjector(6U); }
+void closeInjector2and6(void) { closeInjector(2U); closeInjector(6U); }
+void openInjector3and7(void) { openInjector(3U); openInjector(7U); }
+void closeInjector3and7(void) { closeInjector(3U); closeInjector(7U); }
+void openInjector4and8(void) { openInjector(4U); openInjector(8U); }
+void closeInjector4and8(void) { closeInjector(4U); closeInjector(8U); }
 
 // LCOV_EXCL_STOP
