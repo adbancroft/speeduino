@@ -42,6 +42,22 @@
 #pragma GCC optimize ("Os") 
 #endif
 
+static void __attribute__((optimize("Os"))) stopAllCoilsCharging(void)
+{
+  for (uint8_t index=1; index<=IGN_CHANNELS; ++index)
+  {
+    endCoilCharge(index);
+  }
+}
+
+static void __attribute__((optimize("Os"))) closeAllInjectors(void)
+{
+  for (uint8_t index=1; index<=INJ_CHANNELS; ++index)
+  {
+    closeInjector(index);
+  }
+}
+
 ///
 /// @brief Allow the user to reset the firmware storage (aka EPROM).
 ///
@@ -163,36 +179,10 @@ void initialiseAll(void)
     if (configPage9.enable_secondarySerial == 1) { secondarySerial.begin(115200); }
 
     //End all coil charges to ensure no stray sparks on startup
-    endCoil1Charge();
-    endCoil2Charge();
-    endCoil3Charge();
-    endCoil4Charge();
-    endCoil5Charge();
-    #if (IGN_CHANNELS >= 6)
-    endCoil6Charge();
-    #endif
-    #if (IGN_CHANNELS >= 7)
-    endCoil7Charge();
-    #endif
-    #if (IGN_CHANNELS >= 8)
-    endCoil8Charge();
-    #endif
+    stopAllCoilsCharging();
 
     //Similar for injectors, make sure they're turned off
-    closeInjector1();
-    closeInjector2();
-    closeInjector3();
-    closeInjector4();
-    closeInjector5();
-    #if (INJ_CHANNELS >= 6)
-    closeInjector6();
-    #endif
-    #if (INJ_CHANNELS >= 7)
-    closeInjector7();
-    #endif
-    #if (INJ_CHANNELS >= 8)
-    closeInjector8();
-    #endif
+    closeAllInjectors();
     
     //Set the tacho output default state
     digitalWrite(pinTachOut, HIGH);
