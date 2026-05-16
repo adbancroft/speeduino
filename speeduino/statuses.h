@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include "bit_manip.h"
 #include "maths.h"
-#include "decoder_builder.h"
+#include "decoder_t.h"
 
 using byte = uint8_t;
 
@@ -34,6 +34,16 @@ enum class SchedulerCutStatus : uint8_t
 * unit based values in similar variable(s) without ADC part in name (see sensors.ino for reading of sensors).
 */
 struct statuses {
+  /** @brief Default construct */
+  statuses(void);
+
+  /**
+   * @brief Set the RPM field, keeping RPMDiv100 in sync.
+   * 
+   * @param rpm 
+   */
+  void setRpm(uint16_t rpm);
+
   // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
   bool initialisationComplete : 1; ///< Tracks whether the setup() function has run completely
   // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
@@ -318,20 +328,14 @@ struct statuses {
   {
     // Using bytes for compactness ATM, but that limits us to 8 fuel and 
     // 8 ignition channels
-    byte ignitionChannelsPending; ///< Any ignition channels that are pending injections before they are resumed
-    byte ignitionChannels; ///< Which ignition channels are on (1) or off (0)
-    byte fuelChannels; ///< Which fuel channels are on (1) or off (0)
-    SchedulerCutStatus status;
+    byte ignitionChannelsPending = 0; ///< Any ignition channels that are pending injections before they are resumed
+    byte ignitionChannels = 0xFF; ///< Which ignition channels are on (1) or off (0)
+    byte fuelChannels = 0xFF; ///< Which fuel channels are on (1) or off (0)
+    SchedulerCutStatus status = SchedulerCutStatus::None;
   };
   scheduler_cut_t schedulerCutState;
 
-  decoder_t decoder = decoder_builder_t().build(); ///< The current decoder
-};
+  decoder_t decoder; ///< The current decoder
 
-/**
- * @brief Set the RPM field, keeping RPMDiv100 in sync.
- * 
- * @param status 
- * @param smallRpm 
- */
-void setRpm(statuses &status, uint16_t rpm);
+  uint8_t LOOP_TIMER; ///< The timer flags currently in effect
+};
