@@ -259,7 +259,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
       vvt2Off();
       DISABLE_VVT_TIMER();
       boostDisable();
-      if(configPage4.ignBypassEnabled > 0) { digitalWrite(pinIgnBypass, LOW); } //Reset the ignition bypass ready for next crank attempt
+      if(configPage4.ignBypassEnabled > 0) { digitalWrite(pinNumbers.pinIgnBypass, LOW); } //Reset the ignition bypass ready for next crank attempt
     }
     //***Perform sensor reads***
     //-----------------------------------------------------------------------------------------------------
@@ -301,7 +301,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
     }
     if (BIT_CHECK(currentStatus.LOOP_TIMER, BIT_TIMER_15HZ)) //Every 32 loops
     {
-      checkLaunchAndFlatShift(currentStatus, pinLaunch, configPage2, configPage6, configPage10, configPage15); //Check for launch control and flat shift being active
+      checkLaunchAndFlatShift(currentStatus, pinNumbers.pinLaunch, configPage2, configPage6, configPage10, configPage15); //Check for launch control and flat shift being active
 
       #if defined(NATIVE_CAN_AVAILABLE)
       sendCANBroadcast(15);
@@ -408,11 +408,11 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
         if (currentStatus.wmiTankEmpty)
         {
           // flash with 1sec interval
-          digitalWrite(pinWMIIndicator, !digitalRead(pinWMIIndicator));
+          digitalWrite(pinNumbers.pinWMIIndicator, !digitalRead(pinNumbers.pinWMIIndicator));
         }
         else
         {
-          digitalWrite(pinWMIIndicator, configPage10.wmiIndicatorPolarity ? HIGH : LOW);
+          digitalWrite(pinNumbers.pinWMIIndicator, configPage10.wmiIndicatorPolarity ? HIGH : LOW);
         } 
       }
 
@@ -455,7 +455,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
           if( currentStatus.engineIsCranking )
           {
             currentStatus.engineIsCranking = false;
-            if(configPage4.ignBypassEnabled > 0) { digitalWrite(pinIgnBypass, HIGH); }
+            if(configPage4.ignBypassEnabled > 0) { digitalWrite(pinNumbers.pinIgnBypass, HIGH); }
           }
         }
         else
@@ -466,7 +466,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
             currentStatus.engineIsCranking = true;
             currentStatus.engineIsRunning = false;
             currentStatus.runSecs = 0; //We're cranking (hopefully), so reset the engine run time to prompt ASE.
-            if(configPage4.ignBypassEnabled > 0) { digitalWrite(pinIgnBypass, LOW); }
+            if(configPage4.ignBypassEnabled > 0) { digitalWrite(pinNumbers.pinIgnBypass, LOW); }
 
             //Check whether the user has selected to disable to the fan during cranking
             if(configPage2.fanWhenCranking == 0) { fanOff(); }
