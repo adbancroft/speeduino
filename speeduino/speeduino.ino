@@ -225,7 +225,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
     //***Perform sensor reads***
     //-----------------------------------------------------------------------------------------------------
     readPolledSensors(currentStatus.LOOP_TIMER);
-    boostControl();
+    boostControl(currentStatus, configPage2, configPage4, configPage6, configPage9, configPage10, configPage15);
 
     if(BIT_CHECK(currentStatus.LOOP_TIMER, BIT_TIMER_50HZ)) //50 hertz
     {
