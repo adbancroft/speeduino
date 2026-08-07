@@ -162,9 +162,16 @@ static void applyDutyToPwm(const statuses &current)
   }
 }
 
+static bool isBoostActive(const statuses &current, const config6 &page6)
+{
+  return (page6.boostEnabled)
+      && (current.rotationStatus==EngineRotationStatus::Running)
+  ;
+}
+
 TESTABLE_STATIC void boostControlCore(void)
 {
-  if( configPage6.boostEnabled==1 )
+  if(isBoostActive(currentStatus, configPage6) )
   {
     if(configPage4.boostType == OPEN_LOOP_BOOST)
     {
@@ -194,6 +201,7 @@ TESTABLE_STATIC void boostControlCore(void)
     } //Open / Cloosed loop   
   }
   else { // Disable timer channel and zero the flex boost correction status
+    boostPID.initialize(currentStatus.MAP); //This resets the ITerm value to prevent rubber banding
     currentStatus.boostTarget = 0;
     currentStatus.boostDuty = 0;
     currentStatus.flexBoostCorrection = 0;
