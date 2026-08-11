@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 #include "../utils/minmax.h"
+#undef min
+#undef max
 #include <array>
 #include "../../board_definition.h"
 #include "../../config_pages.h"
