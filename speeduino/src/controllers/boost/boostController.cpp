@@ -23,7 +23,7 @@ static constexpr uint16_t percentToDuty(uint16_t percent)
   return percent * 100U;
 }
 
-static __attribute__((optimize("Os"))) void setBoostPidTunings(const config2 &page2, const config6 &page6, const config10 &page10)
+static __attribute__((optimize("Os"))) void setBoostPidTunings(const config2 &page2, const config6 &page6, const config10 &page10) noexcept
 {
   if(page6.boostMode == BOOST_MODE_SIMPLE)
   {
@@ -45,7 +45,7 @@ __attribute__((optimize("Os"))) void initialiseBoost(statuses &current, const co
   current.boostDuty = 0;
 }
 
-static uint16_t getBoostByGearFactor(const statuses &current, const config9 &page9)
+static uint16_t getBoostByGearFactor(const statuses &current, const config9 &page9) noexcept
 {
   if ((current.gear>0U) && (current.gear-1U)<_countof(page9.boostByGear))
   {
@@ -77,7 +77,7 @@ static inline BoostByGearMode getBoostByGearMode(const config2 &page2, const con
   }
 }
 
-static inline uint16_t lookupBoostTable(const statuses &current)
+static inline uint16_t lookupBoostTable(const statuses &current) noexcept
 {
   // In open loop mode, the values in this table are duty cycle %
   // In closed loop mode, the values in this table are boost targets in kPa
@@ -143,16 +143,20 @@ static uint16_t convertTargetToDuty(const statuses &current, const config2 &page
   uint16_t duty = 0;
   if(current.boostTarget > 0)
   {
+    // LCOV_EXCL_BR_START
     // The timer check *MUST* be a multiple of the boost control interval
     // otherwise branch will NEVER be taken.
     if( BIT_CHECK(current.LOOP_TIMER, BIT_TIMER_1HZ) )
+    // LCOV_EXCL_BR_STOP
     {
       setBoostPidTunings(page2, page6, page10);
     }
 
     boostPID.setSetPoint(current.boostTarget);
     boostPID.setFeedForwardTerm(get3DTableValue(&boostTableLookupDuty, current.boostTarget, current.RPM) * 50U);
+    // LCOV_EXCL_BR_START
     (void)boostPID.compute(millis(), current.MAP, &duty);
+    // LCOV_EXCL_BR_STOP
   }
 
   return duty;
@@ -189,11 +193,13 @@ TESTABLE_STATIC void boostControlCore(statuses &current, const config2 &page2, c
     {
       current.boostDuty = getBoostDuty(current, page2, page9);
     }
-    else if (page4.boostType == CLOSED_LOOP_BOOST)
+    else // CLOSED_LOOP_BOOST
     {
+      // LCOV_EXCL_BR_START
       // The timer check *MUST* be a multiple of the boost control interval
       // otherwise branch will NEVER be taken.
       if( BIT_CHECK(current.LOOP_TIMER, BIT_TIMER_10HZ) )
+      // LCOV_EXCL_BR_STOP
       { 
         current.flexBoostCorrection = getFlexCorrection(current, page2);
         current.boostTarget = getBoostTarget(current, page2, page9);
@@ -212,10 +218,6 @@ TESTABLE_STATIC void boostControlCore(statuses &current, const config2 &page2, c
         current.boostDuty = page15.boostDCWhenDisabled*100;
       } //MAP above boost + hyster
     } //Open / Cloosed loop
-    else
-    {
-      // Unknown boost type
-    } 
   }
   else { // Disable timer channel and zero the flex boost correction status
     boostPID.initialize(current.MAP); //This resets the ITerm value to prevent rubber banding

@@ -29,7 +29,7 @@ static void assert_boost_off(statuses &current)
 
 static void test_boost_disabled(void)
 {
-  auto context = setup_boost_tune(false, VSS_MODE_OFF, BOOST_MODE_SIMPLE, BOOST_BY_GEAR_OFF);
+  auto context = setup_boost_tune(false, VSS_MODE_OFF, OPEN_LOOP_BOOST, BOOST_BY_GEAR_OFF);
   context.initialise();
 
   // Initial state
@@ -247,6 +247,12 @@ static void test_cl_boost_constant_gear(void)
   context.boostControl();
   TEST_ASSERT_EQUAL_UINT16(0U, context.current.boostTarget);
   TEST_ASSERT_EQUAL_UINT16(0U, context.current.boostDuty);
+
+  context.current.boostTarget = 1;
+  context.current.gear = _countof(context.page9.boostByGear) + 1U;
+  context.boostControl();
+  TEST_ASSERT_EQUAL_UINT16(0U, context.current.boostTarget);
+  TEST_ASSERT_EQUAL_UINT16(0U, context.current.boostDuty);
 }
 
 static void test_cl_boost_control_baro(void)
@@ -305,11 +311,62 @@ static void run_cl_tests(void)
   RUN_TEST_P(test_cl_boost_control_fixed);
 }
 
+static void test_boostPIDUpdates(void)
+{
+  auto context = setup_boost_tune(false, VSS_MODE_EXTERNAL_MI, CLOSED_LOOP_BOOST, BOOST_BY_GEAR_CONSTANT);
+  context.page6.boostMode = BOOST_MODE_FULL;
+  context.page6.boostKP = 1;
+  context.page6.boostKI = 1;
+  context.page6.boostKD = 1;
+
+  context.initialise();
+ 
+  TEST_ASSERT_EQUAL(1, boostPID._pidCore._pidParams.Kp);
+  TEST_ASSERT_EQUAL(1, boostPID._pidCore._pidParams.Ki);
+  TEST_ASSERT_EQUAL(1, boostPID._pidCore._pidParams.Kd);
+
+  context.page6.boostKP = 7;
+  context.page6.boostKI = 5;
+  context.page6.boostKD = 3;
+  BIT_SET(context.current.LOOP_TIMER, BIT_TIMER_1HZ);
+  context.current.rotationStatus = EngineRotationStatus::Running;
+  context.current.boostTarget = 7777;
+  context.boostControl();
+
+  TEST_ASSERT_EQUAL(7, boostPID._pidCore._pidParams.Kp);
+  TEST_ASSERT_EQUAL(5, boostPID._pidCore._pidParams.Ki);
+  TEST_ASSERT_EQUAL(3, boostPID._pidCore._pidParams.Kd);
+}
+
+static void test_cl_boost_no_external_vss(uint8_t gearMode)
+{
+  auto context = setup_boost_tune(false, VSS_MODE_OFF, CLOSED_LOOP_BOOST, gearMode);
+  context.initialise();
+
+  context.setup_boost_enabled();
+  context.current.TPS = 50;
+  context.current.boostTarget = 0U;
+  context.current.boostDuty = 0U;
+  boostPID.initialize(context.current.MAP);
+  context.boostControl();
+
+  TEST_ASSERT_EQUAL_UINT16(66U, context.current.boostTarget);
+  TEST_ASSERT_EQUAL_UINT16(553, context.current.boostDuty);
+}
+
+static void test_cl_boost_no_external_vss(void)
+{
+  test_cl_boost_no_external_vss(BOOST_BY_GEAR_CONSTANT);
+  test_cl_boost_no_external_vss(BOOST_BY_GEAR_PERCENT);
+}
+
 void testBoostControl(void)
 {
   SET_UNITY_FILENAME()
   {
     RUN_TEST_P(test_boost_disabled);
+    RUN_TEST_P(test_boostPIDUpdates);
+    RUN_TEST_P(test_cl_boost_no_external_vss);
     run_ol_tests();
     run_cl_tests();
   }
