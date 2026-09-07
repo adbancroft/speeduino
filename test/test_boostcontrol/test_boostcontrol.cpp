@@ -313,7 +313,7 @@ static void run_cl_tests(void)
 
 static void test_boostPIDUpdates(void)
 {
-  auto context = setup_boost_tune(false, VSS_MODE_EXTERNAL_MI, CLOSED_LOOP_BOOST, BOOST_BY_GEAR_CONSTANT);
+  auto context = setup_boost_tune(false, VSS_MODE_EXTERNAL_MI, CLOSED_LOOP_BOOST, BOOST_BY_GEAR_OFF);
   context.page6.boostMode = BOOST_MODE_FULL;
   context.page6.boostKP = 1;
   context.page6.boostKI = 1;
@@ -328,9 +328,12 @@ static void test_boostPIDUpdates(void)
   context.page6.boostKP = 7;
   context.page6.boostKI = 5;
   context.page6.boostKD = 3;
+  BIT_SET(context.current.LOOP_TIMER, BIT_TIMER_30HZ);
+  BIT_SET(context.current.LOOP_TIMER, BIT_TIMER_10HZ);
   BIT_SET(context.current.LOOP_TIMER, BIT_TIMER_1HZ);
   context.current.rotationStatus = EngineRotationStatus::Running;
   context.current.boostTarget = 7777;
+  context.setup_boost_enabled();
   context.boostControl();
 
   TEST_ASSERT_EQUAL(7, boostPID._pidCore._pidParams.Kp);

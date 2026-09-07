@@ -185,6 +185,20 @@ static bool isBoostActive(const statuses &current, const config6 &page6)
   ;
 }
 
+static inline bool isBoostControlBaroActive(const statuses &current, const config15 &page15)
+{
+  return (page15.boostControlEnable == EN_BOOST_CONTROL_BARO) 
+      && (current.MAP >= current.baro)
+      ;
+}
+
+static inline bool isBoostControlFixedActive(const statuses &current, const config15 &page15)
+{
+  return (page15.boostControlEnable == EN_BOOST_CONTROL_FIXED) 
+      && (current.MAP >= page15.boostControlEnableThreshold)
+      ;
+}
+
 TESTABLE_STATIC void boostControlCore(statuses &current, const config2 &page2, const config4 &page4, const config6 &page6, const config9 &page9, const config10 &page10, const config15 &page15)
 {
   if(isBoostActive(current, page6) )
@@ -206,11 +220,9 @@ TESTABLE_STATIC void boostControlCore(statuses &current, const config2 &page2, c
         current.boostDuty = convertTargetToDuty(current, page2, page6, page10);
       } 
 
-      if(((page15.boostControlEnable == EN_BOOST_CONTROL_BARO) && (current.MAP >= current.baro)) || ((page15.boostControlEnable == EN_BOOST_CONTROL_FIXED) && (current.MAP >= page15.boostControlEnableThreshold))) //Only enables boost control above baro pressure or above user defined threshold (User defined level is usually set to boost with wastegate actuator only boost level)
-      {
-        //currentStatus.boostDuty = convertTargetToDuty(currentStatus);
-      }
-      else
+      // Only enables boost control above baro pressure or above user defined threshold 
+      // (User defined level is usually set to boost with wastegate actuator only boost level)
+      if(!isBoostControlBaroActive(current, page15) && !isBoostControlFixedActive(current, page15)) 
       {
         boostPID.initialize(current.MAP); //This resets the ITerm value to prevent rubber banding
         // Boost control needs to have a high duty cycle if control is below threshold (baro or fixed value). 
