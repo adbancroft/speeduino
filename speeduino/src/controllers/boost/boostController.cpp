@@ -11,6 +11,18 @@ TESTABLE_STATIC integerPID_ideal boostPID; //This is the PID object if that algo
 
 TESTABLE_CONSTEXPR table2D_u8_s16_6 flexBoostTable(&configPage10.flexBoostBins, &configPage10.flexBoostAdj);
 
+// Convert a percentage to half percentage (percentage * 2)
+static constexpr uint16_t percentToHalfPct(uint16_t percent)
+{
+  return percent * 2U;
+}
+
+// Convert a percentage to duty cycle (percentage * 100)
+static constexpr uint16_t percentToDuty(uint16_t percent)
+{
+  return percent * 100U;
+}
+
 static __attribute__((optimize("Os"))) void setBoostPidTunings(const config2 &page2, const config6 &page6, const config10 &page10)
 {
   if(page6.boostMode == BOOST_MODE_SIMPLE)
@@ -33,11 +45,11 @@ __attribute__((optimize("Os"))) void initialiseBoost(statuses &current, const co
   current.boostDuty = 0;
 }
 
-static uint8_t getBoostByGearFactor(const statuses &current, const config9 &page9)
+static uint16_t getBoostByGearFactor(const statuses &current, const config9 &page9)
 {
   if ((current.gear>0U) && (current.gear-1U)<_countof(page9.boostByGear))
   {
-    return page9.boostByGear[current.gear-1U];
+    return PRESSURE.toUser(page9.boostByGear[current.gear-1U]);
   }
   return 0U;
 }
@@ -65,22 +77,30 @@ static inline BoostByGearMode getBoostByGearMode(const config2 &page2, const con
   }
 }
 
+static inline uint16_t lookupBoostTable(const statuses &current)
+{
+  // In open loop mode, the values in this table are duty cycle %
+  // In closed loop mode, the values in this table are boost targets in kPa
+  // In both cases, the values are stored in the table as kPa/2 (i.e. 1kPa = 2 in the table)
+  return PRESSURE.toUser(get3DTableValue(&boostTable, percentToHalfPct(current.TPS), current.RPM));
+}
+
 static uint16_t getBoostDuty(const statuses &current, const config2 &page2, const config9 &page9)
 {
   uint16_t duty = 0;
   if (getBoostByGearMode(page2, page9) == BoostByGearMode::Percent)
   {
-    duty = ((uint16_t)getBoostByGearFactor(current, page9) * (uint16_t)get3DTableValue(&boostTable, (current.TPS * 2U), current.RPM)) << 2;
+    duty = getBoostByGearFactor(current, page9) * lookupBoostTable(current);
   }
   else if (getBoostByGearMode(page2, page9) == BoostByGearMode::Constant)
   {
-    duty = (uint16_t)getBoostByGearFactor(current, page9) * 2U * 100U;
+    duty = percentToDuty(getBoostByGearFactor(current, page9));
   }
   else
   {
-    duty = (uint16_t)get3DTableValue(&boostTable, (current.TPS * 2U), current.RPM) * 2U * 100U;
+    duty = percentToDuty(lookupBoostTable(current));
   }
-  return clamp(duty, (uint16_t)0, (uint16_t)10000U);
+  return clamp(duty, (uint16_t)0, percentToDuty(100U));
 }
 
 static uint16_t getBoostTarget(const statuses &current, const config2 &page2, const config9 &page9)
@@ -88,11 +108,11 @@ static uint16_t getBoostTarget(const statuses &current, const config2 &page2, co
   uint16_t target = 0;
   if (getBoostByGearMode(page2, page9) == BoostByGearMode::Percent)
   {
-    target = ( ((uint16_t)getBoostByGearFactor(current, page9) * (uint16_t)get3DTableValue(&boostTable, (current.TPS * 2U), current.RPM)) / 100 ) << 2;
+    target = percentage(lookupBoostTable(current), getBoostByGearFactor(current, page9));
   }
   else if (getBoostByGearMode(page2, page9) == BoostByGearMode::Constant)
   {
-    target = (uint16_t)getBoostByGearFactor(current, page9) * 2U;
+    target = getBoostByGearFactor(current, page9);
   }
   else
   {
@@ -101,7 +121,7 @@ static uint16_t getBoostTarget(const statuses &current, const config2 &page2, co
     // LCOV_EXCL_BR_STOP
 
     //Boost target table is in kpa and divided by 2
-    target = get3DTableValue(&boostTable, (current.TPS * 2U), current.RPM) << 1;
+    target = lookupBoostTable(current);
   }
   // flexBoostCorrection is int16_t; beware of conversion under-/over-flow
   int16_t correctedTarget = (int16_t)target+current.flexBoostCorrection;
@@ -131,7 +151,7 @@ static uint16_t convertTargetToDuty(const statuses &current, const config2 &page
     }
 
     boostPID.setSetPoint(current.boostTarget);
-    boostPID.setFeedForwardTerm(get3DTableValue(&boostTableLookupDuty, current.boostTarget, current.RPM) * 100/2);
+    boostPID.setFeedForwardTerm(get3DTableValue(&boostTableLookupDuty, current.boostTarget, current.RPM) * 50U);
     (void)boostPID.compute(millis(), current.MAP, &duty);
   }
 
@@ -187,7 +207,8 @@ TESTABLE_STATIC void boostControlCore(statuses &current, const config2 &page2, c
       else
       {
         boostPID.initialize(current.MAP); //This resets the ITerm value to prevent rubber banding
-        //Boost control needs to have a high duty cycle if control is below threshold (baro or fixed value). This ensures the waste gate is closed as much as possible, this build boost as fast as possible.
+        // Boost control needs to have a high duty cycle if control is below threshold (baro or fixed value). 
+        // This ensures the waste gate is closed as much as possible, this build boost as fast as possible.
         current.boostDuty = page15.boostDCWhenDisabled*100;
       } //MAP above boost + hyster
     } //Open / Cloosed loop
