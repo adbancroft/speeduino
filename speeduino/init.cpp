@@ -241,7 +241,7 @@ void initialiseAll(void)
     currentLoopTime = micros();
     mainLoopCount = 0;
       
-    initialiseFuelPump(currentStatus, configPage2, pinNumbers.pinFuelPump);
+    initialiseFuelPump(currentStatus, configPage2, pinNumbers);
 
     interrupts();
     initialiseCLT();
