@@ -39,7 +39,15 @@ jobs:
         source PIO/bin/activate
         pip install platformio
        
+    - name: Test native timer lifetime
+      run: |
+        g++ -std=c++14 -O1 -g -DNATIVE_BOARD -pthread -I lib/ArduinoFake \
+          .github/workflows/tests/test_software_timer.cpp lib/ArduinoFake/SoftwareTimer.cpp \
+          -o /tmp/test-software-timer
+        timeout 30s /tmp/test-software-timer
+
     - name: Run Code Coverage Tests (8x8)
+      id: tests_8x8
       # We want the coverage to reflect the status of the
       # unit tests: so even if the tests fail or outright
       # crash, continue the rest of the workflow.
@@ -50,6 +58,7 @@ jobs:
         platformio test -e ${{ env.PIO_ENV }} ${{ vars.PIO_CMD_PARAMS }}
         
     - name: Run Code Coverage Tests (Other)
+      id: tests_other
       continue-on-error: true
       # Set NO_MULTI_CHANNEL=1 to skip this step and only run the 8x8 coverage tests.
       if: ${{ !vars.NO_MULTI_CHANNEL }}
@@ -90,3 +99,8 @@ jobs:
       with:
         path: |
           .pio/build/${{ env.PIO_ENV }}/${{ env.FILE_ROOT }}.*
+    - name: Check native test results
+      if: ${{ always() && (steps.tests_8x8.outcome == 'failure' || steps.tests_other.outcome == 'failure') }}
+      run: |
+        echo "::error::Native tests failed. See the test steps above; coverage reporting was allowed to complete."
+        exit 1

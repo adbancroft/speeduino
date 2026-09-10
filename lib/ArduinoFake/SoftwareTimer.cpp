@@ -3,6 +3,7 @@
 #include <chrono>
 #include <functional>
 #include <map>
+#include <mutex>
 #include "SoftwareTimer.h"
 
 namespace {
@@ -33,7 +34,7 @@ public:
 
     /** @brief External access to the current tick */
     software_timer_t::counter_t currentTick(void) const {
-        return tickCounter;
+        return tickCounter.load();
     }
 
     /** @brief Register a tick callback
@@ -42,6 +43,7 @@ public:
      * @return uint16_t Callback id that can be passed to unregisterCallback
      */
     uint16_t registerCallback(callback_t cb) {
+        std::lock_guard<std::mutex> lock(callbackMutex_);
         uint16_t id = nextId_;
         callbacks_[id] = std::move(cb);
         ++nextId_;
@@ -50,6 +52,8 @@ public:
 
     /** @brief Remove a previously registered callback */
     void unregisterCallback(uint16_t id) {
+        // Wait for an in-flight notification before destroying its timer.
+        std::lock_guard<std::mutex> lock(callbackMutex_);
         (void)callbacks_.erase(id);
     }    
 
@@ -78,6 +82,7 @@ public:
 private:
 
     void notifyNextTickEvent(void) {
+        std::lock_guard<std::mutex> lock(callbackMutex_);
         for (const auto &cb : callbacks_) {
             if (cb.second) {
                 cb.second(currentTick());
@@ -106,10 +111,11 @@ private:
         }
     }
 
+    std::mutex callbackMutex_;
     std::map<uint16_t, callback_t> callbacks_;
     uint16_t nextId_ = 0;
     std::thread tickThread;
-    software_timer_t::counter_t tickCounter = 1U;
+    std::atomic<software_timer_t::counter_t> tickCounter = {1U};
     std::atomic<bool> halt = {false};
 };
 
