@@ -5118,7 +5118,7 @@ static uint16_t getRPM_Vmax(void)
   uint16_t tempRPM = 0;
   if (decoderStatus.syncStatus==SyncStatus::Full)
   {
-    if ( currentStatus.RPM < (unsigned int)(configPage4.crankRPM * 100) )
+    if ( currentStatus.RPM < currentStatus.crankRPM )
     {
       int tempToothAngle;
       unsigned long toothTime;

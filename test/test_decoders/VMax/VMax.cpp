@@ -2,6 +2,7 @@
 #include "crankMaths.h"
 #include "../test_utils.h"
 #include "globals.h"
+#include "units.h"
 
 static void test_getCrankAngle(void)
 {
@@ -44,14 +45,14 @@ static void test_getRPM(void)
   extern volatile unsigned long toothOneTime;
   extern volatile unsigned long toothOneMinusOneTime;
   extern volatile int secondaryToothCount;
-  extern uint16_t triggerToothAngle;
+  extern volatile uint16_t triggerToothAngle;
 
   auto decoder = triggerSetup_Vmax();
 
   // --- Cranking-style calculation when RPM below threshold: computes using last-tooth gap * 36
   currentStatus.setRpm(0);
-  currentStatus.crankRPM = 400;
-  configPage4.crankRPM = 4;
+  configPage4.crankRPM = 40; // 400 RPM
+  currentStatus.crankRPM = RPM_MEDIUM.toUser(configPage4.crankRPM);
   currentStatus.startRevolutions = 0; // cranking
   decoderStatus.syncStatus = SyncStatus::Full;
   currentStatus.revolutionTime = UINT32_MAX; // To trigger a change
@@ -71,8 +72,8 @@ static void test_getRPM(void)
 
   // --- Running path: use stdGetRPM via toothOne pair -> RpmFromRevolutionTimeUs
   currentStatus.setRpm(2000);
-  currentStatus.crankRPM = 100; // ensure not considered cranking
-  configPage4.crankRPM = 1;
+  configPage4.crankRPM = 10; // 100 RPM
+  currentStatus.crankRPM = RPM_MEDIUM.toUser(configPage4.crankRPM);
   currentStatus.startRevolutions = 1; // not cranking
   decoderStatus.syncStatus = SyncStatus::Full;
   toothOneMinusOneTime = 1000UL;
@@ -86,10 +87,55 @@ static void test_getRPM(void)
 
 }
 
+static void assert_getRPM_at_cranking_boundary(uint16_t rpm, uint16_t expected)
+{
+  extern decoder_status_t decoderStatus;
+  extern volatile unsigned long toothOneTime;
+  extern volatile unsigned long toothOneMinusOneTime;
+  extern volatile unsigned long toothLastToothTime;
+  extern volatile unsigned long toothLastMinusOneToothTime;
+  extern volatile uint16_t triggerToothAngle;
+
+  auto decoder = triggerSetup_Vmax();
+  configPage4.crankRPM = 40; // Stored in RPM/10, so the boundary is 400 RPM
+  currentStatus.crankRPM = RPM_MEDIUM.toUser(configPage4.crankRPM);
+  currentStatus.setRpm(rpm);
+  currentStatus.startRevolutions = 1;
+  currentStatus.revolutionTime = UINT32_MAX;
+  decoderStatus.syncStatus = SyncStatus::Full;
+
+  // Deliberately different results distinguish which calculation was selected:
+  // last-tooth angle/gap -> 1000 RPM; complete revolution -> 1500 RPM.
+  triggerToothAngle = 120;
+  toothLastMinusOneToothTime = 1000UL;
+  toothLastToothTime = 21000UL;
+  toothOneMinusOneTime = 1000UL;
+  toothOneTime = 41000UL;
+  TEST_ASSERT_EQUAL_UINT16(expected, decoder.getRPM());
+}
+
+static void test_getRPM_below_cranking_boundary(void)
+{
+  assert_getRPM_at_cranking_boundary(399, 1000);
+}
+
+static void test_getRPM_at_cranking_boundary(void)
+{
+  assert_getRPM_at_cranking_boundary(400, 1500);
+}
+
+static void test_getRPM_above_cranking_boundary(void)
+{
+  assert_getRPM_at_cranking_boundary(401, 1500);
+}
+
 void testVMax(void)
 {
   SET_UNITY_FILENAME() {
     RUN_TEST_P(test_getCrankAngle);
     RUN_TEST_P(test_getRPM);
+    RUN_TEST_P(test_getRPM_below_cranking_boundary);
+    RUN_TEST_P(test_getRPM_at_cranking_boundary);
+    RUN_TEST_P(test_getRPM_above_cranking_boundary);
   }
 }
