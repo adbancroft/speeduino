@@ -29,10 +29,12 @@ void runAllInitTests(void)
     extern void testInitialisation(void);
     extern void testIgnitionScheduleInit(void);
     extern void testPinMapping(void);
+    extern void testPressureInputs(void);
 
     testInitialisation();
     testIgnitionScheduleInit();
     testPinMapping();
+    testPressureInputs();
 }
 
 TEST_HARNESS(runAllInitTests)

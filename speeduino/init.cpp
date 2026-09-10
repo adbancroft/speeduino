@@ -328,37 +328,24 @@ void setPinMapping(byte boardID)
   //This is a legacy mode option to revert the MAP reading behaviour to match what was in place prior to the 201905 firmware
   if(configPage2.legacyMAP > 0) { digitalWrite(pinNumbers.pinMAP, HIGH); }
 
-  //And for inputs
-  #if defined(CORE_STM32)
-    #ifdef INPUT_ANALOG
-      pinMode(pinNumbers.pinMAP, INPUT_ANALOG);
-      pinMode(pinNumbers.pinO2, INPUT_ANALOG);
-      pinMode(pinNumbers.pinO2_2, INPUT_ANALOG);
-      pinMode(pinNumbers.pinTPS, INPUT_ANALOG);
-      pinMode(pinNumbers.pinIAT, INPUT_ANALOG);
-      pinMode(pinNumbers.pinCLT, INPUT_ANALOG);
-      pinMode(pinNumbers.pinBat, INPUT_ANALOG);
-      pinMode(pinNumbers.pinBaro, INPUT_ANALOG);
-    #else
-      pinMode(pinNumbers.pinMAP, INPUT);
-      pinMode(pinNumbers.pinO2, INPUT);
-      pinMode(pinNumbers.pinO2_2, INPUT);
-      pinMode(pinNumbers.pinTPS, INPUT);
-      pinMode(pinNumbers.pinIAT, INPUT);
-      pinMode(pinNumbers.pinCLT, INPUT);
-      pinMode(pinNumbers.pinBat, INPUT);
-      pinMode(pinNumbers.pinBaro, INPUT);
-    #endif
+  // Select the board-specific mode once for the analog inputs configured here.
+  #if defined(CORE_STM32) && defined(INPUT_ANALOG)
+    constexpr auto analogInputMode = INPUT_ANALOG;
   #elif defined(CORE_TEENSY41)
-    //Teensy 4.1 has a weak pull down resistor that needs to be disabled for all analog pinNumbers. 
-    pinMode(pinNumbers.pinMAP, INPUT_DISABLE);
-    pinMode(pinNumbers.pinO2, INPUT_DISABLE);
-    pinMode(pinNumbers.pinO2_2, INPUT_DISABLE);
-    pinMode(pinNumbers.pinTPS, INPUT_DISABLE);
-    pinMode(pinNumbers.pinIAT, INPUT_DISABLE);
-    pinMode(pinNumbers.pinCLT, INPUT_DISABLE);
-    pinMode(pinNumbers.pinBat, INPUT_DISABLE);
-    pinMode(pinNumbers.pinBaro, INPUT_DISABLE);
+    constexpr auto analogInputMode = INPUT_DISABLE;
+  #else
+    constexpr auto analogInputMode = INPUT;
+  #endif
+
+  #if defined(CORE_STM32) || defined(CORE_TEENSY41)
+    pinMode(pinNumbers.pinMAP, analogInputMode);
+    pinMode(pinNumbers.pinO2, analogInputMode);
+    pinMode(pinNumbers.pinO2_2, analogInputMode);
+    pinMode(pinNumbers.pinTPS, analogInputMode);
+    pinMode(pinNumbers.pinIAT, analogInputMode);
+    pinMode(pinNumbers.pinCLT, analogInputMode);
+    pinMode(pinNumbers.pinBat, analogInputMode);
+    pinMode(pinNumbers.pinBaro, analogInputMode);
   #endif
 
   //Each of the below are only set when their relevant function is enabled. This can help prevent pin conflicts that users aren't aware of with unused functions
@@ -393,11 +380,11 @@ void setPinMapping(byte boardID)
   }
   if( (configPage10.fuelPressureEnable > 0)  && (!pinIsOutput(pinNumbers.pinFuelPressure)) )
   {
-    pinMode(pinNumbers.pinFuelPressure, INPUT);
+    pinMode(pinNumbers.pinFuelPressure, analogInputMode);
   }
   if( (configPage10.oilPressureEnable > 0) && (!pinIsOutput(pinNumbers.pinOilPressure)) )
   {
-    pinMode(pinNumbers.pinOilPressure, INPUT);
+    pinMode(pinNumbers.pinOilPressure, analogInputMode);
   }
 #ifdef SD_LOGGING
   if( (configPage13.onboard_log_trigger_Epin > 0) && (!pinIsOutput(pinNumbers.pinSDEnable)) )
