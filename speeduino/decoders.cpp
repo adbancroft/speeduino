@@ -3744,7 +3744,7 @@ static uint16_t getRPM_Harley(void)
   uint16_t tempRPM = 0;
   if (decoderStatus.syncStatus==SyncStatus::Full)
   {
-    if ( currentStatus.RPM < (unsigned int)(configPage4.crankRPM * 100) )
+    if ( currentStatus.RPM < currentStatus.crankRPM )
     {
       // No difference with this option?
       int tempToothAngle;
