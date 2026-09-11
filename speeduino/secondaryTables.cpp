@@ -17,32 +17,25 @@ static inline uint8_t lookupVE2(const config10 &page10, const table3d16RpmLoad &
   return get3DTableValue(&veLookupTable, getLoad(page10.fuel2Algorithm, current), current.RPM); //Perform lookup into fuel map for RPM vs MAP value
 }
 
-static inline bool fuelModeCondSwitchRpmActive(const config10 &page10, const statuses &current) {
-  return (page10.fuel2SwitchVariable == FUEL2_CONDITION_RPM)
-      && (current.RPM > page10.fuel2SwitchValue);
-}
+// Both tune fields use the same selector encoding. Keep that assumption checked
+// if either set of constants changes in the future.
+static_assert(FUEL2_CONDITION_RPM == SPARK2_CONDITION_RPM
+           && FUEL2_CONDITION_MAP == SPARK2_CONDITION_MAP
+           && FUEL2_CONDITION_TPS == SPARK2_CONDITION_TPS
+           && FUEL2_CONDITION_ETH == SPARK2_CONDITION_ETH,
+              "Secondary table switch selectors must match");
 
-static inline bool fuelModeCondSwitchMapActive(const config10 &page10, const statuses &current) {
-  return (page10.fuel2SwitchVariable == FUEL2_CONDITION_MAP)
-      && (current.MAP > page10.fuel2SwitchValue);
-}
-
-static inline bool fuelModeCondSwitchTpsActive(const config10 &page10, const statuses &current) {
-  return (page10.fuel2SwitchVariable == FUEL2_CONDITION_TPS)
-      && (current.TPS > page10.fuel2SwitchValue);
-}
-
-static inline bool fuelModeCondSwitchEthanolActive(const config10 &page10, const statuses &current) {
-  return (page10.fuel2SwitchVariable == FUEL2_CONDITION_ETH)
-      && (current.ethanolPct > page10.fuel2SwitchValue);
+static inline bool isSecondarySwitchActive(uint8_t variable, uint16_t threshold, const statuses &current)
+{
+  return ((variable == FUEL2_CONDITION_RPM) && (current.RPM > threshold))
+      || ((variable == FUEL2_CONDITION_MAP) && (current.MAP > threshold))
+      || ((variable == FUEL2_CONDITION_TPS) && (current.TPS > threshold))
+      || ((variable == FUEL2_CONDITION_ETH) && (current.ethanolPct > threshold));
 }
 
 static inline bool fuelModeCondSwitchActive(const config10 &page10, const statuses &current) {
   return (page10.fuel2Mode == FUEL2_MODE_CONDITIONAL_SWITCH)
-      && ( fuelModeCondSwitchRpmActive(page10, current)
-        || fuelModeCondSwitchMapActive(page10, current) 
-        || fuelModeCondSwitchTpsActive(page10, current)
-        || fuelModeCondSwitchEthanolActive(page10, current));
+      && isSecondarySwitchActive(page10.fuel2SwitchVariable, page10.fuel2SwitchValue, current);
 }
 
 static inline bool fuelModeInputSwitchActive(const config10 &page10) {
@@ -95,32 +88,9 @@ static inline int8_t constrainAdvance(int16_t advance)
   return (int8_t)clamp(advance, (int16_t)INT8_MIN, (int16_t)INT8_MAX);
 }
 
-static inline bool sparkModeCondSwitchRpmActive(const config10 &page10, const statuses &current) {
-  return (page10.spark2SwitchVariable == SPARK2_CONDITION_RPM)
-      && (current.RPM > page10.spark2SwitchValue);
-}
-
-static inline bool sparkModeCondSwitchMapActive(const config10 &page10, const statuses &current) {
-  return (page10.spark2SwitchVariable == SPARK2_CONDITION_MAP)
-      && (current.MAP > page10.spark2SwitchValue);
-}
-
-static inline bool sparkModeCondSwitchTpsActive(const config10 &page10, const statuses &current) {
-  return (page10.spark2SwitchVariable == SPARK2_CONDITION_TPS)
-      && (current.TPS > page10.spark2SwitchValue);
-}
-
-static inline bool sparkModeCondSwitchEthanolActive(const config10 &page10, const statuses &current) {
-return (page10.spark2SwitchVariable == SPARK2_CONDITION_ETH)
-    && (current.ethanolPct > page10.spark2SwitchValue);
-}
-
 static inline bool sparkModeCondSwitchActive(const config10 &page10, const statuses &current) {
   return (page10.spark2Mode == SPARK2_MODE_CONDITIONAL_SWITCH)
-      && ( sparkModeCondSwitchRpmActive(page10, current)
-        || sparkModeCondSwitchMapActive(page10, current) 
-        || sparkModeCondSwitchTpsActive(page10, current)
-        || sparkModeCondSwitchEthanolActive(page10, current));
+      && isSecondarySwitchActive(page10.spark2SwitchVariable, page10.spark2SwitchValue, current);
 }
 
 static inline bool sparkModeInputSwitchActive(const config10 &page10) {
