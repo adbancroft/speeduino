@@ -49,11 +49,9 @@ void fanControl(void)
   {
     int onTemp = temperatureRemoveOffset(configPage6.fanSP);
     int offTemp = onTemp - configPage6.fanHyster;
-    bool fanPermit = false;
-
-    
-    if ( configPage2.fanWhenOff == true) { fanPermit = true; }
-    else { fanPermit = currentStatus.rotationStatus==EngineRotationStatus::Running; }
+    // Cranking inhibition must also override a held-on state in the hysteresis band.
+    const bool fanPermit = (configPage2.fanWhenOff || currentStatus.rotationStatus == EngineRotationStatus::Running)
+                        && (currentStatus.rotationStatus != EngineRotationStatus::Cranking || configPage2.fanWhenCranking);
 
     if ( (fanPermit == true) &&
          ((currentStatus.coolant >= onTemp) || 
@@ -61,17 +59,8 @@ void fanControl(void)
            currentStatus.acStatus.turningOn == true)) )
     {
       //Fan needs to be turned on - either by high coolant temp, or from an A/C request (to ensure there is airflow over the A/C radiator).
-      if((currentStatus.rotationStatus==EngineRotationStatus::Cranking) && (configPage2.fanWhenCranking == 0))
-      {
-        //If the user has elected to disable the fan during cranking, make sure it's off 
-        fanOff();
-        currentStatus.fanOn = false;
-      }
-      else 
-      {
-        fanOn();
-        currentStatus.fanOn = true;
-      }
+      fanOn();
+      currentStatus.fanOn = true;
     }
     else if ( (currentStatus.coolant <= offTemp) || (!fanPermit) )
     {

@@ -311,10 +311,88 @@ static void test_fanControl_pwm_aircon_request_turns_fan_on(void)
 #endif
 }
 
+static void assert_fan_pin_state(bool active)
+{
+  TEST_ASSERT_EQUAL(active, currentStatus.fanOn);
+  TEST_ASSERT_EQUAL(active != (configPage6.fanInv != 0U), fan_pin._pin.isPinHigh());
+}
+
+static void assert_cranking_overrides_hysteresis(bool inverted)
+{
+  setup_nopwm_tune();
+  configPage6.fanInv = inverted;
+  configPage2.fanWhenOff = 1U;
+  configPage2.fanWhenCranking = 0U;
+  initialiseFan(TEST_FAN_PIN);
+  currentStatus.rotationStatus = EngineRotationStatus::Running;
+  currentStatus.acStatus.turningOn = false;
+
+  const int16_t onTemp = temperatureRemoveOffset(configPage6.fanSP);
+  const int16_t holdTemp = onTemp - configPage6.fanHyster / 2U;
+  currentStatus.coolant = onTemp;
+  fanControl();
+  assert_fan_pin_state(true);
+  currentStatus.coolant = holdTemp;
+  fanControl();
+  assert_fan_pin_state(true);
+
+  currentStatus.rotationStatus = EngineRotationStatus::Cranking;
+  fanControl();
+  assert_fan_pin_state(false);
+
+  // A/C demand must not bypass the configured cranking inhibit either.
+  configPage15.airConTurnsFanOn = 1U;
+  currentStatus.acStatus.turningOn = true;
+  fanControl();
+  assert_fan_pin_state(false);
+
+  // Resume normal hysteresis once cranking ends.
+  currentStatus.acStatus.turningOn = false;
+  currentStatus.rotationStatus = EngineRotationStatus::Running;
+  fanControl();
+  assert_fan_pin_state(false);
+  currentStatus.coolant = onTemp;
+  fanControl();
+  assert_fan_pin_state(true);
+}
+
+static void test_fanControl_cranking_overrides_hysteresis(void)
+{
+  assert_cranking_overrides_hysteresis(false);
+}
+
+static void test_fanControl_cranking_overrides_hysteresis_inverted(void)
+{
+  assert_cranking_overrides_hysteresis(true);
+}
+
+static void test_fanControl_cranking_preserves_hysteresis_when_permitted(void)
+{
+  setup_nopwm_tune();
+  configPage2.fanWhenOff = 1U;
+  configPage2.fanWhenCranking = 1U;
+  initialiseFan(TEST_FAN_PIN);
+  currentStatus.acStatus.turningOn = false;
+  currentStatus.rotationStatus = EngineRotationStatus::Cranking;
+  const int16_t onTemp = temperatureRemoveOffset(configPage6.fanSP);
+  currentStatus.coolant = onTemp - configPage6.fanHyster / 2U;
+  fanControl();
+  assert_fan_pin_state(false);
+  currentStatus.coolant = onTemp;
+  fanControl();
+  assert_fan_pin_state(true);
+  currentStatus.coolant = onTemp - configPage6.fanHyster / 2U;
+  fanControl();
+  assert_fan_pin_state(true);
+}
+
 void tesFanControl(void)
 {
   SET_UNITY_FILENAME()
   {
+    RUN_TEST_P(test_fanControl_cranking_overrides_hysteresis);
+    RUN_TEST_P(test_fanControl_cranking_overrides_hysteresis_inverted);
+    RUN_TEST_P(test_fanControl_cranking_preserves_hysteresis_when_permitted);
     RUN_TEST_P(test_fanControl_disabled_does_nothing);
     RUN_TEST_P(test_fanControl_nopwm_on_when_engine_running_and_hot);
     RUN_TEST_P(test_fanControl_pwm_on_when_engine_running_and_hot);
