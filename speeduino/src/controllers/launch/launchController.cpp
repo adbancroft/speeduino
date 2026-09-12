@@ -1,54 +1,78 @@
 #include "launchController.h"
+#include "../../../units.h"
+
+static void updateClutchState(statuses &current, uint8_t launchPin, const config6 &page6)
+{
+  current.previousClutchTrigger = current.clutchTrigger;
+  // Only read the shared clutch input when a function using it is enabled.
+  if (page6.flatSEnable || page6.launchEnabled)
+  {
+    current.clutchTrigger = (page6.launchHiLo == digitalRead(launchPin));
+
+    current.clutchTriggerActive = current.clutchTrigger; // TunerStudio indication
+  }
+
+  // Capture RPM on engagement, then retain it while the clutch is held or released.
+  if (current.clutchTrigger && !current.previousClutchTrigger)
+  {
+    current.clutchEngagedRPM = current.RPM;
+  }
+}
+
+static bool isLaunchArmed(const statuses &current, const config6 &page6, const config10 &page10)
+{
+  return page6.launchEnabled
+      && current.clutchTrigger
+      && (current.clutchEngagedRPM < RPM_COARSE.toUser(page6.flatSArm))
+      && (current.TPS >= page10.lnchCtrlTPS);
+}
+
+static uint16_t getHardCutRpmLimit(uint16_t baseRpm, const config2 &page2, const config15 &page15)
+{
+  if (page2.hardCutType == HARD_CUT_ROLLING)
+  {
+    baseRpm += SIGNED_RPM_MEDIUM.toUser(page15.rollingProtRPMDelta[0]);
+  }
+  return baseRpm;
+}
+
+static bool withinLaunchSpeedLimit(const statuses &current, const config2 &page2, const config10 &page10)
+{
+  return (page2.vssMode == VSS_MODE_OFF) || (current.vss < page10.lnchCtrlVss);
+}
+
+static bool aboveLaunchRpmLimit(const statuses &current, const config2 &page2, const config6 &page6, const config15 &page15)
+{
+  const uint16_t launchRpmLimit = getHardCutRpmLimit(RPM_COARSE.toUser(page6.lnchHardLim), page2, page15);
+  return current.RPM > launchRpmLimit;
+}
 
 void checkLaunchAndFlatShift(statuses &current, uint8_t launchPin, const config2 &page2, const config6 &page6, const config10 &page10, const config15 &page15)
 {
-  //Check for launching/flat shift (clutch) based on the current and previous clutch states
-  current.previousClutchTrigger = current.clutchTrigger;
-  //Only check for pinLaunch if any function using it is enabled. Else pins might break starting a board
-  if(page6.flatSEnable || page6.launchEnabled)
-  {
-    if(page6.launchHiLo > 0) { current.clutchTrigger = digitalRead(launchPin); }
-    else { current.clutchTrigger = !digitalRead(launchPin); }
+  updateClutchState(current, launchPin, page6);
 
-    current.clutchTriggerActive = current.clutchTrigger; //Stores the value to send to TunerStudio
-  }
-  if(current.clutchTrigger && (current.previousClutchTrigger != current.clutchTrigger) ) { current.clutchEngagedRPM = current.RPM; } //Check whether the clutch has been engaged or disengaged and store the current RPM if so
-
-  //Default flags to off
-  current.launchingHard = false; 
+  current.launchingHard = false;
   current.hardLaunchActive = false;
   current.flatShiftingHard = false;
 
-  if (page6.launchEnabled && current.clutchTrigger && (current.clutchEngagedRPM < ((unsigned int)(page6.flatSArm) * 100)) && (current.TPS >= page10.lnchCtrlTPS) ) 
-  { 
-    //Only enable if VSS is not used or if it is, make sure we're not above the speed limit
-    if( (page2.vssMode == 0) || ((page2.vssMode > 0) && (current.vss < page10.lnchCtrlVss)) )
+  if (isLaunchArmed(current, page6, page10))
+  {
+    // A configured vehicle speed limit applies only to launch control.
+    if (withinLaunchSpeedLimit(current, page2, page10)
+        && aboveLaunchRpmLimit(current, page2, page6, page15))
     {
-      //Check whether RPM is above the launch limit
-      uint16_t launchRPMLimit = (page6.lnchHardLim * 100);
-      if( (page2.hardCutType == HARD_CUT_ROLLING) ) { launchRPMLimit += (page15.rollingProtRPMDelta[0] * 10); } //Add the rolling cut delta if enabled (Delta is a negative value)
-
-      if(current.RPM > launchRPMLimit)
-      {
-        //HardCut rev limit for 2-step launch control.
-        current.launchingHard = true; 
-        current.hardLaunchActive = true;
-      }
+      current.launchingHard = true;
+      current.hardLaunchActive = true;
     }
-  } 
-  else 
-  { 
-    //If launch is not active, check whether flat shift should be active
-    if(page6.flatSEnable && current.clutchTrigger && (current.clutchEngagedRPM >= ((unsigned int)(page6.flatSArm * 100)) ) ) 
-    { 
-      uint16_t flatRPMLimit = current.clutchEngagedRPM;
-      if( (page2.hardCutType == HARD_CUT_ROLLING) ) { flatRPMLimit += (page15.rollingProtRPMDelta[0] * 10); } //Add the rolling cut delta if enabled (Delta is a negative value)
-
-      if(current.RPM > flatRPMLimit)
-      {
-        //Flat shift rev limit
-        current.flatShiftingHard = true;
-      }
-    }
+  }
+  else if (page6.flatSEnable && current.clutchTrigger
+        && (current.clutchEngagedRPM >= RPM_COARSE.toUser(page6.flatSArm)))
+  {
+    const uint16_t flatRpmLimit = getHardCutRpmLimit(current.clutchEngagedRPM, page2, page15);
+    current.flatShiftingHard = (current.RPM > flatRpmLimit);
+  }
+  else
+  {
+    // Neither function is armed; retain the cleared hard-cut flags.
   }
 }
